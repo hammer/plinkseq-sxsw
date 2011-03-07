@@ -1,0 +1,504 @@
+
+#include "phmap.h"
+
+#include "inddb.h"
+
+
+PhenotypeMap::PhenotypeMap(IndDBase * pinddb) 
+{   
+  phenotype_name = ".";
+  phenotype_type = PHE_NONE;
+  use_strata = false;
+  strata_name = ".";
+  inddb = pinddb;
+}
+
+
+PhenotypeMap::~PhenotypeMap()
+{
+  reset();
+}
+
+void PhenotypeMap::begin()
+{ 
+  if ( inddb && inddb->attached() ) { inddb->begin(); } 
+} 
+
+void PhenotypeMap::commit()
+{ 
+  if ( inddb && inddb->attached() ) { inddb->commit(); }
+} 
+
+void PhenotypeMap::reset()
+{
+  // Separate copies of individuals will have been made, so free those now  
+  std::map<std::string,Individual*>::const_iterator i = pmap.begin();
+  while ( i != pmap.end() )
+    {
+      delete i->second;
+      ++i;
+    }  
+  pmap.clear();
+  phenotype_name = ".";
+  phenotype_type = PHE_NONE;  
+  use_strata = false;
+  strata_name = ".";
+}
+
+int PhenotypeMap::set_strata( const std::string & s )
+{
+
+  strata_name = ".";
+  use_strata = false;
+  
+  if ( s == "" || s == "." ) 
+    {
+      plog.warn("no valid strata specified");
+      return 0;
+    }
+
+  // accumlate strata code across 1+ vars
+  std::map<std::string,std::string> smap;
+  
+  std::vector<std::string> svec = Helper::char_split( s , ',' );
+  for (int j = 0 ; j < svec.size(); j++ )
+    {
+      mType mt = MetaInformation<IndivMeta>::type( svec[j] ) ;
+  
+      if ( ! ( mt == META_TEXT || mt == META_INT || mt == META_CHAR ) ) 
+	{
+	  plog.warn("strata arg(s) must be text or integer");
+	  return 0;
+	}
+      
+      strata_name = svec[j];
+      
+      std::map< std::string, Individual* >::const_iterator i = pmap.begin();
+      while( i != pmap.end() )
+	{
+	  
+	  Individual * person = i->second;
+	  
+	  if ( ! person->meta.hasField( strata_name ) ) 
+	    {
+	      if ( smap[ i->first ] == "" ) 
+		smap[ i->first ] = ".";
+	    }
+	  else if ( mt == META_TEXT || mt == META_CHAR ) 
+	    {
+	      if ( smap[ i->first ]  != "" ) 
+		smap[ i->first ] += ",";
+	      smap[ i->first ] += person->meta.get1_string( strata_name );
+	    }
+	  else if ( mt == META_INT )
+	    {
+	      if ( smap[ i->first ]  != "" ) 
+		smap[ i->first ] += ",";
+	      smap[ i->first ] += Helper::int2str( person->meta.get1_int( strata_name ) );
+	    }
+	  
+	  ++i;
+	}
+    }
+
+  //
+  // Set actual groupings
+  //
+
+  int nonmissing = 0;
+  std::map< std::string, Individual* >::const_iterator i = pmap.begin();
+  while( i != pmap.end() )
+    {
+      
+      Individual * person = i->second;
+      person->group( smap[ i->first ] );
+      if ( smap[ i->first ] != "." ) 
+	++nonmissing;
+      ++i;
+    }
+  
+  if ( nonmissing ) 
+    {
+      use_strata = true;
+      strata_name = s; // reset to whole name, if comma-delim
+    }
+  else 
+    {
+      use_strata = false;
+      strata_name = ".";
+    }
+  return nonmissing;
+
+}
+
+void PhenotypeMap::align( const std::set<std::string> & ids )
+{
+  
+  // Given a set of IDs from an IndividualMap, ensure that we align 
+
+  // By definition, everybody in the indiv-map should already be in 
+  // the pheno-map, but just in case...
+
+  std::set<std::string>::iterator i = ids.begin();
+  while ( i != ids.end() )
+    {      
+      new_individual( *i );  // does nothing if person already exists
+      ++i;
+    }
+  
+  // Now, in the other direction
+  std::map< std::string, Individual *>::iterator j = pmap.begin();
+  while ( j != pmap.end() )
+    {
+      if ( ids.find( j->first ) == ids.end() )
+	{
+	  delete j->second;
+	  pmap.erase(j++);
+	}
+      else
+	++j;
+    }
+}
+
+
+
+int PhenotypeMap::set_phenotype( const std::string & phenotype )
+{
+  
+  int nonmissing = 0;
+  
+  phenotype_name = phenotype;
+
+  mType mt = MetaInformation<IndivMeta>::type( phenotype ) ;
+
+  if ( mt == META_UNDEFINED ) return 0;
+
+  if ( mt == META_INT )     
+    phenotype_type = PHE_DICHOT; 
+  else if ( mt == META_FLOAT ) 
+    phenotype_type = PHE_QT;
+  else 
+    phenotype_type = PHE_FACTOR;
+    
+  std::map< std::string, Individual* >::const_iterator i = pmap.begin();
+  while( i != pmap.end() )
+    {
+      
+      Individual * person = i->second;
+      
+      if ( phenotype_type == PHE_DICHOT ) 
+	{
+	  if ( ! person->meta.hasField( phenotype ) )
+	    {
+	      person->missing( true );
+	      person->affected( UNKNOWN_PHE );
+	    }
+	  else if ( person->meta.get1_int( phenotype ) == 2 )
+	    {
+	      person->affected( CASE );
+	      person->missing( false );
+	      nonmissing++;
+	    }
+	  else if ( person->meta.get1_int( phenotype ) == 1 )
+	    {
+	      person->affected( CONTROL );
+	      person->missing( false );
+	      nonmissing++;
+	    }
+	  else
+	    {
+	      person->affected( UNKNOWN_PHE );
+	      person->missing( true );
+	    }
+	}
+      
+      else if ( phenotype_type == PHE_QT )
+	{
+	  if ( ! person->meta.hasField( phenotype ) )
+	    person->missing( true );
+	  else
+	    {	      
+	      person->missing( false );
+	      person->qt( person->meta.get1_double( phenotype ) );
+	      nonmissing++;				  
+	    }
+	}
+      else 
+	{
+	  if ( ! person->meta.hasField( phenotype ) )
+	    {
+	      person->missing( true );
+	      person->group(0);
+	    }
+	  else
+	    {
+	      person->missing( false );
+	      person->group( person->meta.get1_string( phenotype ) );
+	      nonmissing++;				  
+	    }
+	}
+      
+      ++i;
+    }
+  
+  phenotype_name = phenotype;
+
+  return nonmissing;
+}
+
+
+int PhenotypeMap::make_phenotype( const std::string & make_phenotype )
+{
+  
+  int nonmissing = 0;
+
+  // expect in format: GRP=L1,L2
+  //                   GRP=L1,L2:L3
+  // where GRP should be FACTOR or INT
+
+  std::vector<std::string> p = Helper::char_split( make_phenotype , '=' );
+  
+  // Well-formed specification?
+  if ( p.size() != 2 ) 
+    {
+      plog.warn("make-phenotype arg not well formed (" , make_phenotype );
+      return 0;
+    }
+
+  // Can we find a phenotype?
+  if ( set_phenotype( p[0] ) == 0 ) 
+    {
+      plog.warn("could not find phenotype values for", p[0] );
+      return 0;
+    }
+
+  
+  // Is this a factor (or a dichot, for a simple swap)?
+  
+  if ( type() != PHE_FACTOR && type() != PHE_DICHOT ) 
+    {
+      plog.warn("make-phenotype arg must be a factor");
+      return 0;
+    }
+  
+  
+  std::vector<std::string> p2 = Helper::char_split( p[1] , ':' );
+  
+  if ( p2.size() != 1 && p2.size() !=2 ) 
+    {
+      plog.warn("make-phenotype arg not well formed");
+      return 0;
+    }
+
+  bool explicit_missing = p2.size() == 2 ;
+ 
+  std::set<std::string> grp1;
+  std::set<std::string> grp2;
+  
+  std::vector<std::string> t = Helper::char_split( p2[0] , ',' );
+  for (int i=0; i<t.size(); i++) grp1.insert( t[i] );
+  
+  if ( explicit_missing ) 
+    {
+      std::vector<std::string> t = Helper::char_split( p2[1] , ',' );
+      for (int i=0; i< t.size(); i++) grp2.insert( t[i] );
+    }
+
+
+  //
+  // We seem all okay now, so let's make the phenotype
+  //
+
+  phenotype_name = make_phenotype;
+  phenotype_type = PHE_DICHOT;
+  
+  std::map< std::string , Individual*>::iterator i = pmap.begin();
+  
+  while ( i != pmap.end() )
+    {
+      Individual * person = i->second;
+      
+      std::string label = type() == 
+	PHE_DICHOT ?
+	( person->affected() == CASE ? "2" : ( person->affected() == CONTROL ? "1" : "." ) ) 
+	:
+	person->group_label() ;
+      
+      if ( person->missing() ) 
+	{
+	  if ( !explicit_missing )  
+	    {
+	      person->affected( CONTROL );
+	      ++nonmissing;
+	    }
+	  else
+	    person->affected( UNKNOWN_PHE );
+	}
+      else
+	{
+	  // Is this person a case? 
+	  if ( grp1.find( label ) != grp1.end() )
+	    {
+	      person->affected( CASE );
+	      ++nonmissing;
+	    }
+	  else
+	    {
+	      // A control
+	      if ( ! explicit_missing )
+		{
+		  person->affected( CONTROL );
+		  ++nonmissing;
+		}
+	      else
+		{
+		  if ( grp2.find( label ) != grp2.end() )
+		    {
+		      person->affected( CONTROL );
+		      ++nonmissing;
+		    }
+		  else
+		    person->affected( UNKNOWN_PHE );		  
+		}
+	    }	    
+	}      
+      
+      ++i;
+    }
+  
+  return nonmissing;
+}
+
+
+
+std::map<std::string,int> PhenotypeMap::summarise_phenotype( const std::string & phenotype )
+{
+  set_phenotype( phenotype );
+  return summarise_phenotype();
+}
+
+std::map<std::string,int> PhenotypeMap::summarise_phenotype()
+{
+  
+  mType mt = MetaInformation<IndivMeta>::type( phenotype_name ) ;
+  
+  // Int   -- interpreted as case/control : return CASE/CONTROL/MISSING
+  // Float -- QT                          : return NON-MISSING/MISSING
+  // Other -- FACTOR                      : return N at each level, MISSING
+  
+  int missing = 0;
+  
+  std::map<std::string,int> r;
+  std::set<Individual*> seen;
+
+  r["NA"] = 0;
+  //  r["OBS"] = 0;
+  
+  std::map< std::string, Individual* >::const_iterator i = pmap.begin();
+  while( i != pmap.end() )
+    {
+            
+      Individual * person = i->second;
+
+      if ( phenotype_type == PHE_DICHOT  )
+	{
+	  if ( person->affected( ) == CASE )
+	    { 
+	      r["CASE"]++;
+	      //r["OBS"]++;
+	    }
+	  else if ( person->affected() == CONTROL ) 
+	    {
+	      r["CONTROL"]++;
+	      //r["OBS"]++;
+	    }
+	  else 
+	    r["NA"]++;
+	  
+	}
+      else if ( phenotype_type == PHE_QT )
+	{
+	  if ( person->missing() ) 
+	    r["NA"]++;
+	  else
+	    r["OBS"]++;
+	}
+      else if ( phenotype_type == PHE_FACTOR )
+	{
+	  if ( person->missing() ) 
+	    r["NA"]++;
+	  else
+	    {
+	      //r["OBS"]++;
+	      r[ person->group_label() ]++;
+	    }
+	}
+      ++i;
+    }
+  return r;
+}
+
+
+Individual * PhenotypeMap::new_individual( const std::string & id )
+{
+  
+  // Already exists?
+
+  Individual * person = ind(id);
+
+  if ( person ) return person;
+
+  
+  // Otherwise, create a new individual
+
+  person = new Individual( id );
+  
+  
+  // Track in the phenotype map
+  
+  pmap[ id ] = person ;
+
+
+  // Lookup in INDDB, attaching any phenotypic information that exists
+  
+  if ( inddb ) inddb->fetch( person );
+
+  
+  // And return a pointer to this new person
+  
+  return person;
+    
+}
+
+
+Data::Matrix<double> PhenotypeMap::covariates( const std::vector<std::string> & c )
+{
+
+  // To add -- function to automatically downcode factors?
+  // Return a matrix of covariate values
+
+  Data::Matrix<double> d( pmap.size() , c.size() );
+  
+  int r = 0;
+  std::map< std::string , Individual*>::iterator i = pmap.begin();
+  while ( i != pmap.end() )
+    {
+      Individual * person = i->second;      
+      for (int p=0; p<c.size(); p++)
+	{	  
+	  if ( person->meta.has_field( c[p] ) )
+	    {
+	      mType mt = MetaInformation<IndivMeta>::type( c[p] );
+	      if ( mt == META_INT ) d(r,p) = person->meta.get1_int( c[p] );
+	      else if ( mt == META_FLOAT ) d(r,p) = person->meta.get1_double( c[p] );
+	      else if ( mt == META_BOOL ) d(r,p) = person->meta.get1_bool( c[p] );
+	      else d.set_row_mask( r );	      
+	    }
+	  else // for now, require completely non-missing data
+	    d.set_row_mask( r );
+	}
+      ++r;
+      ++i;
+    }
+  return d;
+}

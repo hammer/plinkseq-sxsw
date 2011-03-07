@@ -1,0 +1,48 @@
+
+CXX = g++
+CXXFLAGS = -O2
+
+LFLAGS += -Wl,-rpath=/psych/genetics/shaun/pseq/lib 
+LFLAGS += -Wl,-rpath=/psych/genetics/pseq/share/lib
+LFLAGS += -Wl,-rpath=/psych/genetics/pseq/share/lib64/R/lib
+
+OUTPUT = pseq-dev
+
+PLINKSEQ = ../lib
+
+SRC = main.cpp func.cpp summaries.cpp views.cpp assoc.cpp genic.cpp	\
+compare.cpp ibd.cpp ibs.cpp loaders.cpp clusters.cpp varfunc.cpp	\
+util.cpp glm-tests.cpp
+
+HDR = func.h summaries.h views.h assoc.h genic.h compare.h ibd.h ibs.h	\
+loaders.h clusters.h
+
+OBJ = $(SRC:.cpp=.o)
+
+INC = -I../lib/
+INC += -I../share/include/ 
+INC += -I../share/lib64/R/include/ 
+LIBDIR = -L../share/lib -L$(PLINKSEQ)
+
+LIB  = -lpseq 
+LIB += -lsqlite3
+LIB += -lprotobuf
+LIB += -lRmath
+LIB += -lz
+LIB += -lpthread
+
+all : $(OUTPUT)
+
+$(OUTPUT) :
+	$(CXX) $(CXXFLAGS) $(LFLAGS) -o $(OUTPUT) $(OBJ) $(LIBDIR) $(LIB) 
+
+$(OBJ) : $(HDR) 
+
+.cpp.o : 
+	$(CXX) $(CXXFLAGS) -c $*.cpp $(INC)
+
+.SUFFIXES : .cpp .c .o $(SUFFIXES)
+
+$(OUTPUT) : $(OBJ)
+
+FORCE:
