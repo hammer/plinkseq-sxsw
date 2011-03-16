@@ -174,9 +174,9 @@ void f_view_lik( Variant & v , void * p )
   int n = v.size();
   
   plog << v << "\t" 
-	    << v.reference() << "\t"
-	    << v.alternate();
-
+       << v.reference() << "\t"
+       << v.alternate();
+  
   for (int i = 0 ; i < n ; i++)
     {
       
@@ -190,11 +190,13 @@ void f_view_lik( Variant & v , void * p )
       
       if ( genotype.hasField( PLINKSeq::META_GENO_PHRED() ) )
 	{
+
 	  std::vector<int> t = genotype.get_int( PLINKSeq::META_GENO_PHRED() );
+	
 	  if ( t.size() == 3 ) 
 	    {
-	      l.resize(3);
-	      for (int i=0;i<2;i++) l[i] = t[i];
+	      l.resize(3,0);
+	      for (int i=0;i<3;i++) l[i] = t[i];
 	    }
 	}
       else if ( genotype.hasField( PLINKSeq::META_GENO_LIK() ) )
@@ -202,8 +204,8 @@ void f_view_lik( Variant & v , void * p )
 	  l = genotype.get_double( PLINKSeq::META_GENO_LIK() );
 	  using_gl = true;
 	}
-
-
+      
+      
 
       // Currently, only handle bi-allelic cases
 
@@ -223,9 +225,9 @@ void f_view_lik( Variant & v , void * p )
 	    {
 	      g0 = -g0/10.0;
 	      g1 = -g1/10.0;
-	      g2 = -g1/10.0;
+	      g2 = -g2/10.0;
 	    }
-
+	  
 	  double mx = g0 > g1 ? g0 : g1 ;
 	  mx = g2 > mx ? g2 : mx;
 	  
@@ -259,9 +261,9 @@ void f_view_lik( Variant & v , void * p )
 	      plog << "\t0.333\t0.333\t0.333";
 	    }
 	  else
-	    plog << "\t" << g2 
+	    plog << "\t" << g0 
 		 << "\t" << g1 
-		 << "\t" << g0;
+		 << "\t" << g2;
 	}    
       else
 	{

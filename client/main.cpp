@@ -1583,7 +1583,7 @@ int main(int argc, char ** argv)
 	aux.show_meta = args.has("vmeta");
 
 	aux.dichot_pheno = g.phmap.type() == PHE_DICHOT;
-
+	
 	if ( options.key("postprobs") )
 	  {
 	    aux.use_postprobs = true;
@@ -1601,7 +1601,9 @@ int main(int argc, char ** argv)
 	    aux.covars = args.as_string_vector("covar");
 	    
 	    if ( options.key("show-covar") )
-	      aux.show_all_covar = true;
+	      {
+		aux.show_all_covar = true;
+	      }
 	  }
 	
 	// for now, no permutations

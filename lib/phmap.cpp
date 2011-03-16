@@ -1,6 +1,6 @@
 
 #include "phmap.h"
-
+#include "indmap.h"
 #include "inddb.h"
 
 
@@ -471,19 +471,24 @@ Individual * PhenotypeMap::new_individual( const std::string & id )
 }
 
 
-Data::Matrix<double> PhenotypeMap::covariates( const std::vector<std::string> & c )
+Data::Matrix<double> PhenotypeMap::covariates( const std::vector<std::string> & c , const IndividualMap & indmap )
 {
+
+  // Create a matrix of covariate values
+  // The order of rows of this matrix corresponds to 
 
   // To add -- function to automatically downcode factors?
   // Return a matrix of covariate values
 
-  Data::Matrix<double> d( pmap.size() , c.size() );
+  const int n = indmap.size();
+
+  Data::Matrix<double> d( n , c.size() );
   
-  int r = 0;
-  std::map< std::string , Individual*>::iterator i = pmap.begin();
-  while ( i != pmap.end() )
+  for (int r=0; r<n; r++)
     {
-      Individual * person = i->second;      
+
+      Individual * person = indmap(r);
+      
       for (int p=0; p<c.size(); p++)
 	{	  
 	  if ( person->meta.has_field( c[p] ) )
@@ -497,8 +502,6 @@ Data::Matrix<double> PhenotypeMap::covariates( const std::vector<std::string> & 
 	  else // for now, require completely non-missing data
 	    d.set_row_mask( r );
 	}
-      ++r;
-      ++i;
     }
   return d;
 }

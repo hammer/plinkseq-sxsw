@@ -11,6 +11,7 @@
 
 class IndDBase;
 class Individual;
+class IndividualMap;
 
 // The PhenotypeMap is a helper class responsible for knowing and 
 // setting the current phenotype, and for all transactions with the
@@ -93,7 +94,7 @@ class PhenotypeMap {
 
   //int attach_covariates( const std::string & );
   
-  Data::Matrix<double> covariates( const std::vector<std::string> & c );
+  Data::Matrix<double> covariates( const std::vector<std::string> & c , const IndividualMap & indmap );
 
 
   //

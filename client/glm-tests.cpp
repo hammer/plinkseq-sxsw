@@ -28,16 +28,14 @@ bool Pseq::Assoc::glm_assoc_test( Mask & m ,
 
   plog.data_header( "N" );
 
-  plog.data_header( "MAF" );
+  plog.data_header( "F" );
 
   if ( aux.show_all_covar ) 
     plog.data_header( "TEST" );
   
   if ( aux.dichot_pheno )
     {
-      if ( aux.has_covar ) 
-	plog.data_header( "F" );
-      else
+      if ( ! aux.has_covar ) 
 	{
 	  plog.data_header( "F_A" );
 	  plog.data_header( "F_U" );
@@ -46,7 +44,6 @@ bool Pseq::Assoc::glm_assoc_test( Mask & m ,
     }
   else
     {
-      plog.data_header( "F" );
       plog.data_header( "BETA" );      
     }
 
@@ -65,8 +62,7 @@ bool Pseq::Assoc::glm_assoc_test( Mask & m ,
   aux.mask.resize( n , false );
   
   for (int i=0; i<g.indmap.size(); i++)
-    {
-      
+    {      
       Individual * person = g.indmap.ind(i);
       
       if ( person->missing() )
@@ -79,17 +75,14 @@ bool Pseq::Assoc::glm_assoc_test( Mask & m ,
 	    aux.y[i] = person->affected() == CASE ? 1 : 0;
 	  else
 	    aux.y[i] = person->qt();
-	}
-      
-      // Covariates,  comes with it's own mask handled below
-      
-      if ( aux.has_covar )
-	{
-	  aux.c = g.phmap.covariates( aux.covars );
-	}
-      
+	}            
     }
 
+  
+  // Covariates, that come with their own mask, handled below  
+  if ( aux.has_covar )
+    aux.c = g.phmap.covariates( aux.covars , g.indmap );
+      
   // Run GLM tests  
   g.vardb.iterate( f_glm_association , &aux , m );
   
@@ -123,7 +116,7 @@ void f_glm_association( Variant & v , void * p )
       else if ( data->mask[i] ) { --an; mask[i] = true; }
       else if ( data->c.masked(i) ) { --an; mask[i] = true; }
     }
-  
+
   Data::Vector<double> y( an );
   Data::Matrix<double> x( an , 1 + np + nc ) ;
 
@@ -224,9 +217,7 @@ void f_glm_association( Variant & v , void * p )
       
       if ( data->dichot_pheno )
 	{
-	  if ( data->has_covar ) 
-	    plog.data( maf );
-	  else
+	  if ( ! data->has_covar ) 
 	    {
 	      plog.data( mafa );
 	      plog.data( mafu );
@@ -235,7 +226,6 @@ void f_glm_association( Variant & v , void * p )
 	}
       else
 	{
-	  plog.data( maf );
 	  plog.data( coef );      
 	}
       

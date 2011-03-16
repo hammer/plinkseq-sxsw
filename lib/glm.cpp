@@ -215,7 +215,7 @@ bool GLM::fit_linear()
 
   set_variance();  
   if ( standard_beta ) standardise();
-  
+
   sig.resize( nind , sqrt( 1.0 / sqrt( (double)nind) ) );
   
   w.resize( np );
@@ -310,7 +310,7 @@ bool GLM::fit_linear()
       return false;
     }
 
-
+  
   ////////////////////////
   // Calculate s^2 (sigma)
 
@@ -654,6 +654,14 @@ bool GLM::fit_logistic()
   
   if ( np==0 || nind==0 || ! all_valid )
     { return false; }
+  
+//   for( int i=0;i<nind; i++)
+//     {
+//       std::cout << "I" << i << "\t" << Y(i);
+//       for (int j=0;j<np; j++) std::cout << "\t" <<  X(i,j) ;
+//       std::cout << "\n";
+//     }
+//   std::cout << "\n";
 
   // Newton-Raphson to fit logistic model
     
@@ -721,6 +729,8 @@ bool GLM::fit_logistic()
 	  coef(j) += ncoef(j);
 	}
 
+      //      std::cout << "delta = " << delta << "\n";
+
       if ( delta < 1e-6 )
 	converge = true;
 
@@ -747,7 +757,8 @@ bool GLM::fit_logistic()
       all_valid = false;
       return false;
     }
-  
+
+
   if ( cluster ) HuberWhite();
   
   return true;
