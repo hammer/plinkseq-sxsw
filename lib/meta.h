@@ -1139,8 +1139,8 @@ class MetaInformation {
 		else s << "String";
 	      }
 
-	    s << ",Description=\"" << midx.description
-	      << "\">\n";
+	    s << ",Description=\"" << Helper::unquote( midx.description ) << "\">"
+	      << "\n";
 	  }
 	return s.str();
       }    

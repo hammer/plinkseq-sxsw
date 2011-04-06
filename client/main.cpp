@@ -33,7 +33,9 @@ int main(int argc, char ** argv)
 	<< "load-vcf|load all VCF files not already in VARDB" 
 	<< "reload-vcf|clear VARDB, then reload all VCF"
 	<< "index-bcf|add index to VARDB for a BCF"
-	<< "write-bcf|output from VARDB to BCF"
+	<< "write-bcf|output from VARDB to BCF|VCF"
+	<< "append|add a file to the project"
+	<< "drop|drop a file from the project"
 	<< "load-plink|load a PLINK binary PED file (BED)" 
 	<< "load-meta|load meta-information for existing VARDB variants" 
 	<< "delete-meta|remove meta-information"    
@@ -99,6 +101,7 @@ int main(int argc, char ** argv)
 	<< "counts|summary/count statistics|VCF"
 	<< "v-freq|variant frequency data|VCF"
 	<< "clusters|"
+	<< "proximity-scan||VCF"
 	<< "concordance|"
 	<< "group-comparison|"
 	<< "unique|"
@@ -212,7 +215,7 @@ int main(int argc, char ** argv)
       exit(0);
     }
   
-
+  
   //
   // Version information
   //
@@ -280,8 +283,12 @@ int main(int argc, char ** argv)
   // In single VCF mode, we still need a VARDB, but it can be in
   // memory
 
-  if ( g.single_file_mode() ) g.vardb.attach( ":memory:" );
-  
+  if ( g.single_file_mode() ) 
+    {
+      g.vardb.attach( ":memory:" );
+      g.inddb.attach( ":memory:" );
+    }
+
   if ( args.has("inddb") )
     g.inddb.attach( args.as_string( "inddb" ) );
   
@@ -298,6 +305,46 @@ int main(int argc, char ** argv)
     g.seqdb.attach( args.as_string( "seqdb" ) );
 
   
+
+  //
+  // Add/remove files from the project file
+  //
+
+  if ( command == "drop" )
+    {
+      std::string s;
+      if ( args.has("file") )
+	s = args.as_string( "file" );
+      else if ( args.has("name") )
+	s = args.as_string( "name" );
+      else if ( args.has( "type" ) )
+	s = args.as_string( "type" );
+      else
+	Helper::halt("no --file, --name or --type specified");      
+      
+      g.fIndex.remove_from_projectfile( s );
+      exit(0);
+    }
+
+  if ( command == "append" ) 
+    {
+      std::string pname;
+      if ( args.has("name") ) 
+	pname = args.as_string( "name" );
+      else if ( args.has("file") )
+	pname = args.as_string( "file" );
+      else
+	Helper::halt("no --name or --file specified");
+      
+      if ( ! args.has( "type" ) ) 
+	Helper::halt("no --type specified");
+      std::string type = args.as_string( "type" );
+      
+      g.fIndex.append_to_projectfile( Helper::fullpath( pname ) + "\t" + type );
+      exit(0);
+    }
+  
+
 
   //
   // Misc. formatting/display options
@@ -580,29 +627,6 @@ int main(int argc, char ** argv)
     }
  
   
-
-  //
-  // Convert a single VCF to a BCF
-  //
-  
-  if ( command == "write-bcf" )
-    {
-      
-      if ( ! args.has( "vcf" ) ) 
-	Helper::halt( "need to specify a single VCF");
-      
-      std::string vcffile = args.as_string( "vcf" );
-      
-      if ( ! args.has( "bcf" ) ) 
-	Helper::halt( "need to specify a single BCF file name");
-      
-      std::string bcffile = args.as_string( "bcf" );	
-      
-      BCF bcf( bcffile );
-      bcf.vcf2bcf( vcffile , bcffile );
-      exit(0);
-    }
-  
   
 
   //
@@ -625,21 +649,26 @@ int main(int argc, char ** argv)
 	      plog.warn( "could not find BCF" , t[f] );
 	      continue;
 	    }
-	  
+
 	  // Add to file-map, and create a BCF instance
 	  BCF * bcf = g.fIndex.add_BCF( t[f] );
 	  
+	  // Add to project index
+	  g.fIndex.append_to_projectfile( Helper::fullpath( t[f] ) + "\tBCF" );
+
 	  // Open BCF via BGZF interface	    
 	  bcf->reading();
 	  bcf->open();
 	  
-	  // Get header information, and add to VARDB
-	  bcf->read_header( &g.vardb );
-	  
 	  // Iterate through file, adding index	    
+	  
 	  g.vardb.begin();
 	  g.vardb.drop_index();
 	  
+	  // Get header information, and add to VARDB
+	  
+	  bcf->read_header( &g.vardb );
+
 	  uint64_t inserted = 0;
 	  while ( bcf->index_record() )
 	    {
@@ -653,6 +682,10 @@ int main(int argc, char ** argv)
 	  g.vardb.index();
 	  g.vardb.commit();
 	  bcf->close();
+	  
+	  // and calculate summary Ns
+	  int2 niv = g.vardb.make_summary( t[f] );
+
 	}
       exit(0);
     }
@@ -1023,12 +1056,16 @@ int main(int argc, char ** argv)
     //
 
     std::string phenotype_name = PLINKSeq::DEFAULT_PHENOTYPE();
-    if ( args.has("phenotype") ) phenotype_name = args.as_string("phenotype");
-    else if ( args.has("make-phenotype") )
+    if ( ! g.single_file_mode() )
       {
-	std::vector<std::string> k = Helper::char_split( args.as_string("make-phenotype") , '=' );
-	if ( k.size() == 2 ) phenotype_name = k[0];
+	if ( args.has("phenotype") ) phenotype_name = args.as_string("phenotype");
+	else if ( args.has("make-phenotype") )
+	  {
+	    std::vector<std::string> k = Helper::char_split( args.as_string("make-phenotype") , '=' );
+	    if ( k.size() == 2 ) phenotype_name = k[0];
+	  }
       }
+
     if ( phenotype_name != "" ) 
       {
 	maskspec += " phe.obs=" + phenotype_name;
@@ -1056,6 +1093,14 @@ int main(int argc, char ** argv)
 
     g.register_mask( m );
 
+    
+    //
+    // In single-VCF mode, read header, set meta-types
+    //
+
+    if ( g.single_file_mode() )
+      g.vardb.vcf_iterate_read_header( m );
+
 
 
     //
@@ -1063,9 +1108,21 @@ int main(int argc, char ** argv)
     //
     
     if ( args.has("phenotype") )
-      {
-	if ( ! Pseq::IndDB::set_phenotype( args.as_string( "phenotype" ) ) ) 
-	  Helper::halt("no individuals selected / problem setting phenotype " + args.as_string( "phenotype" ));
+      {		
+	// in single-file mode, we need to upload the phenotypes on the fly
+	
+	if ( g.single_file_mode() ) 
+	  {
+	    // in this case, expect phenotype to be two columns	    
+	    std::vector<std::string> k = args.as_string_vector( "phenotype" );
+	    if ( k.size() != 2 ) Helper::halt( "expecting --phenotype filename label" );
+	    g.phmap.direct_load( k[0] , k[1] );
+	  }
+	else
+	  {
+	    if ( ! Pseq::IndDB::set_phenotype( args.as_string( "phenotype" ) ) ) 
+	      Helper::halt("no individuals selected / problem setting phenotype " + args.as_string( "phenotype" ));
+	  }
       }
 
     else if ( args.has("make-phenotype") )
@@ -1102,11 +1159,16 @@ int main(int argc, char ** argv)
     if ( command == "v-view" )
       {		
 	OptVView opt;
-	opt.vmeta = args.has("vmeta");
+	opt.vmeta = args.has("vmeta") || args.has("verbose");
 	opt.vexpand = args.has("verbose");
-	opt.geno = args.has("geno");
+	opt.geno = args.has("geno") || args.has("gmeta");
 	opt.gmeta = args.has("gmeta");
 	opt.show_samples = args.has("samples");
+	opt.show_nonmissing_geno = ! options.key( "hide-null" );
+	opt.show_only_minor      =   options.key( "only-minor" ) || options.key( "minor-only" );
+	opt.show_only_alt        =   options.key( "only-alt" )  || options.key( "alt-only" );
+	if ( opt.show_only_alt || opt.show_only_minor ) opt.show_nonmissing_geno = false;
+	
 	IterationReport report = g.vardb.iterate( f_view , &opt , m );
 	exit(0);
       }
@@ -1115,8 +1177,8 @@ int main(int argc, char ** argv)
       {
 	OptGView opt;
 
-	opt.vmeta = args.has("vmeta");
-	opt.geno = args.has("geno");
+	opt.vmeta = args.has("vmeta") || args.has("verbose");
+	opt.geno = args.has("geno") || args.has("gmeta");
 	opt.gmeta = args.has("gmeta");
 	opt.vexpand = args.has("verbose");
 	opt.transpose = args.has("transpose");
@@ -1235,6 +1297,18 @@ int main(int argc, char ** argv)
 	Pseq::VarDB::cluster_scan( m );
 	exit(0);
       }
+
+
+    //
+    // Proximity scan, for clusters of variants with LD calculation also
+    //
+    
+    if ( command == "proximity-scan" )
+      {
+	Pseq::VarDB::proximity_scan( m );
+	exit(0);
+      }
+
 
 
     //
@@ -1619,7 +1693,7 @@ int main(int argc, char ** argv)
     //
     // Data-dumpers
     //
-
+    
     if ( command == "write-vardb" )
       {
 	std::string db_name = Pseq::Util::single_argument<std::string>( args , "name" );
@@ -1627,12 +1701,23 @@ int main(int argc, char ** argv)
 	Pseq::VarDB::write_vardb( proj_file , db_name ,  m);
 	exit(0);
       }
-
+    
+    
     if ( command == "write-vcf" )
       {
 	Pseq::VarDB::write_VCF(m);
 	exit(0);
       }
+
+    
+    if ( command == "write-bcf" )
+      {	
+	if ( ! args.has( "bcf" ) ) 
+	  Helper::halt( "need to specify --bcf output.bcf" );
+	Pseq::VarDB::write_BCF( m , args.as_string( "bcf" ) );
+	exit(0);
+      }
+    
     
     if ( command == "write-ped" )
       {

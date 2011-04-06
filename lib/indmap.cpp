@@ -34,8 +34,49 @@ void IndividualMap::insert( const int file_id,
 {
   int2 a( file_id , slot_j );
   int_string_pair  b( slot_k , id );
-  ialign.insert( std::make_pair( a,b ) );	    
-  wsample[ file_id][supposed_j] = slot_j;
+  ialign.insert( std::make_pair( a,b ) );
+  wsample[ file_id][supposed_j] = slot_j;  
+}
+
+std::vector<int> * IndividualMap::svar2consensus( int f )
+{
+  if ( wsint.find(f) == wsint.end() ) 
+    Helper::halt("internal error: trying to reference non-existent svar, svar2consensus()");
+  return &wsint[f];
+}
+
+
+void IndividualMap::construct_wsint_vector()
+{
+
+  // After insertion, given we have wsample made as maps, also 
+  // make some basic std::vector<int> for each file, to be used
+  // when mapping svar->consensus slots in multi-sample, flat alignments
+
+  // probably a really dumb way to do the below, but who cares we only 
+  // do it once
+
+  std::map<int,int> ns;  
+  std::map<int2,int_string_pair>::const_iterator i = ialign.begin();  
+  while ( i != ialign.end() )
+    {
+      ns[ i->first.p1 ]++;
+      ++i;
+    }
+  
+  std::map<int,int>::iterator j = ns.begin();
+  while ( j != ns.end() )
+    {
+      wsint[ j->first ].resize( j->second );
+      ++j;
+    }
+  
+  i = ialign.begin();  
+  while ( i != ialign.end() )
+    {
+      wsint[ i->first.p1 ][ i->first.p2 ] = i->second.i ;
+      ++i;
+    }
 }
 
 
@@ -110,6 +151,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 	  
   	  if ( ! m.use_indiv( id ) ) 
  	    continue;
+
 	  
 	  // Pull individual into the phenotype-map
 
@@ -145,7 +187,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 	    }
 
 	  // Store mapping of {file/slot} --> { slot/id-string }
-
+	  
 	  insert( f->first , j, actual_j++ , id_list[id] , id );
 	  
 	  // Simply list of people in map
@@ -153,6 +195,21 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 	  ids.insert(id);
 
 	}
+
+      // REMOVED -- this is a bad idea; and means that we don' see missing 
+      // genotypes etc for people, e.g. from g-view
+
+      // If no individuals were entered from this file, remove it from the Mask
+      // NOTE: need to see how this interacts with other uses of VARDB, eg. from ACDB
+      // in which there are no individual-level data...  or, downstream, if we have 
+      // some optimisations which only consider variant level data
+
+//       if ( obs_files.find( f->first ) == obs_files.end() )
+// 	const_cast<Mask&>(m).exclude_file( vardb.file_tag( f->first ) );
+
+      
+      // Move on to next file.
+
       ++f;
     }
 
@@ -170,7 +227,6 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
   //
   
   is_multi_sample = obs_files.size() > 1;
-  
 
   //
   // Number of unique individuals to be extracted
@@ -222,27 +278,27 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
   //
   // Look for a non-flat alignment
   //
-
-  map<int,map<int,int> >::iterator i = tracker.begin();
-
+  
+  std::map<int,map<int,int> >::iterator i = tracker.begin();
+  
   while ( i != tracker.end() )
     {
 
       // track position in files
 
-      map<int,int> & m = i->second;
+      std::map<int,int> & m = i->second;
 
       if ( m.size() == 1 ) 
 	{
-	  map<int,int>::iterator j = m.begin();
+	  std::map<int,int>::iterator j = m.begin();
 	  uniq[ i->first ] = int2( j->first, j->second );	  
 	}
       else
 	{
-
+	  
 	  is_flat = false;
-
-	  map<int,int>::iterator j = m.begin();
+	  
+	  std::map<int,int>::iterator j = m.begin();
 	  while ( j != m.end() )
 	    {
 	      mult[ i->first ].insert( int2( j->first, j->second ) );
@@ -252,11 +308,11 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 
       ++i;
     }
-
+  
   // Store the number of unique individuals
   
   n_uniq = uniq.size();
-
+  
 
 
   //
@@ -269,7 +325,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 
   idvec.resize( n_uniq , "" );
 
-  map<int,Individual*>::iterator pi = ptracker.begin();
+  std::map<int,Individual*>::iterator pi = ptracker.begin();
   while ( pi != ptracker.end() )
     {
 
@@ -291,7 +347,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 	}
       else
 	{
-	  set<int2>::iterator j = mult[ pi->first].begin();
+	  std::set<int2>::iterator j = mult[ pi->first].begin();
 	  while ( j != mult[ pi->first].end() )
 	    {
 	      sample_indiv[ j->p1 ][ j->p2 ] = pi->second;
@@ -308,6 +364,10 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
   
   phmap.align( ids );
   
+  // Populate some more convenient structures used in 
+  // Svar genotype look-ups for flat alignments
+
+  construct_wsint_vector();
   
   // return number of people in map
 

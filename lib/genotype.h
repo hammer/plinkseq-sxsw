@@ -12,6 +12,7 @@
 #include "individual.h"
 #include "meta.h"
 
+
 typedef std::bitset<8> bitset8;
 
 enum gCodes { G_UNKNOWN  =  0, 
@@ -257,7 +258,8 @@ class Genotype {
 
   void code(int g) { gcode = g; }
 
-
+  static bool equivalent( const Genotype &, const Genotype & );
+		 
   bool operator==(const Genotype & other) const 
     {
       return bs == other.bs && gcode == other.gcode;
@@ -325,6 +327,7 @@ class Genotype {
   object that contains the calls for the individuals in the VCF
 */
 
+struct SampleVariant;
 
 class GenotypeSet{
 
@@ -332,39 +335,54 @@ class GenotypeSet{
   
     std::vector<Genotype> calls;
 
+    // If this is non-null, it means that the alignment was flat and
+    // so the genotypes are stored elsewhere NULL means either this is
+    // the consensus, or it contains calls (unflat alignment) If not
+    // null, we assume calls will be empty ( by definition) We also
+    // assume we do not add/remove variants to a mirroring set --
+    // i.e. the mirroring is designed for read-operations only
+
+    SampleVariant * svar;
+
+    std::vector<int> * incon;
+
  public:
     
+    GenotypeSet( SampleVariant * p = NULL ) { svar = p; } 
+     
     /// Return number of individual genotype calls in set
-    int size() const { return calls.size(); }
+    int size() const;
 
     /*!
       @brief Allocate space for calls
       @param n Number of individuals      
     */
     
-    void size(int n) { calls.resize(n); }
+    void size(int n) { if ( ! svar ) calls.resize(n); }
     
+    void set_consensus_slotmap( SampleVariant * ps , std::vector<int> * pm )
+    { 
+      svar = ps;
+      incon = pm; 
+    } 
+
     /// Add a Genotype to the GenotypeSet
-    void add(Genotype & g) { calls.push_back(g); }
+    void add(Genotype & g) { if ( ! svar ) calls.push_back(g); }
     
     /// Add a Genotype at a particular individual index i
-    void add(Genotype & g, int i) { calls[i] = g; }
+    void add(Genotype & g, int i) { if ( ! svar ) calls[i] = g; }
 
     /// Return Genotype for individual i
-    Genotype & genotype(int i) { return calls[i]; }
+    Genotype & genotype(int i);
 
     /// Return const Genotype for individual i
-    const Genotype & genotype(int i) const { return calls[i]; }
+    const Genotype & genotype(int i) const;
     
-    /*!
-      @brief Return genotype code an individual
-      @param i Individual index
-    */
-
-    int code(int i) { return calls[i].code(); }
+    /// Return genotype code an individual    
+    int code(int i);
     
-    /// Wipe all genotype calls 
-    void clear() { calls.clear(); }
+    /// Wipe all genotype calls (only for actual calls)
+    void clear() { if ( ! svar ) calls.clear(); }
 
     void summarise_meta( std::map<meta_typed_key_t,std::pair<int,int> > & , 
 		         std::map<meta_typed_key_t,std::string>  & ,

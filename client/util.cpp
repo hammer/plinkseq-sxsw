@@ -4,6 +4,11 @@
 
 enum Pseq::Util::ArgMap::type_t types;
 
+void Pseq::Util::ArgMap::shortform( const std::string & sht , const std::string & lng ) 
+{
+  shortcuts[ sht ] = lng;
+}
+
 Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
 {
   
@@ -27,6 +32,7 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   reg("region" , STRING_VECTOR , "region(s) ");
   reg("alias" , STRING_VECTOR , "locus alias group(s)" );
   reg("name" , STRING_VECTOR , "generic name(s) variable" );
+  reg("type", STRING , "type of project entry");
   reg("id" , INT_VECTOR , "generic numeric IDs" );
   reg("options" , STRING_VECTOR, "context-specific options\n");
   reg("output", STRING, "output folder\n" );
@@ -65,14 +71,25 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
     
   reg("annot" , STRING_VECTOR , "transcript(s) group for annotation" );
 	
-  reg("phenotype" , STRING, "phenotype specification");
+  reg("phenotype" , STRING_VECTOR, "phenotype specification");
   reg("make-phenotype" , STRING, "dichotomise factor");
   reg("strata" , STRING,"stratifier variable");
   reg("covar" , STRING_VECTOR , "covariate(s)");
 
   reg("perm" , INT, "number of permutations");
   reg("aperm" , INT_VECTOR , "adaptive perm min, max");
-
+  
+  //
+  // Register some short-cuts
+  //
+  
+  shortform( "-o" , "--options" );
+  shortform( "-m" , "--mask" );
+  shortform( "-f" , "--file" );
+  shortform( "-g" , "--group" );
+  shortform( "-p" , "--phenotype" );
+  
+  
   if ( n == 2 && argv[1] == "help" ) 
     {
       std::cout << desc() << "\n";
@@ -95,6 +112,10 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   for (int i=3 ; i < n ; i++ )
     {
       std::string s = argv[i];
+      
+      // Swap in long-form from short-form? e.g. -o to --options
+      if ( shortcuts.find( s ) != shortcuts.end() ) 
+	s = shortcuts[s];
       
       if ( s.substr(0,2) != "--" ) Helper::halt("unknown option: " + s ); 
       s =  s.substr(2); 

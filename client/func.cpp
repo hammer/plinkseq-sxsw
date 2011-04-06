@@ -1,5 +1,4 @@
 
-
 #include "func.h"
 #include "views.h"
 #include "summaries.h"
@@ -16,6 +15,11 @@ extern Pseq::Util::Options options;
 
 bool Pseq::new_project( std::string project , Pseq::Util::ArgMap & args )
 {
+  
+  // Ensure full paths are used
+  
+  project = Helper::fullpath( project );
+
   // write a new project file
   
   std::ofstream P( project.c_str() , std::ios::out );
@@ -38,10 +42,11 @@ bool Pseq::new_project( std::string project , Pseq::Util::ArgMap & args )
   // Core folders, for output and input
   //
 
-  string output_folder = args.has("output") ?
+  std::string output_folder = args.has("output") ?
     args.as_string( "output" ) : 
     project + "_out/";
   
+  output_folder = Helper::fullpath( output_folder );
   Helper::ensure_folder( output_folder );
   
   P << output_folder << "\tOUTPUT\n";
@@ -50,10 +55,11 @@ bool Pseq::new_project( std::string project , Pseq::Util::ArgMap & args )
   // Resources folder
   //
 
-  string resources_folder = args.has("resources") ?
+  std::string resources_folder = args.has("resources") ?
     args.as_string( "resources" ) :
     project + "_res/";
-  
+
+  resources_folder = Helper::fullpath( resources_folder );
   Helper::ensure_folder( resources_folder );
   
   P << resources_folder << "\tRESOURCES\n";
@@ -65,6 +71,7 @@ bool Pseq::new_project( std::string project , Pseq::Util::ArgMap & args )
   if ( args.has( "scratch" ) )
     {
       std::string scratch_folder = args.as_string( "scratch" );
+      scratch_folder = Helper::fullpath( scratch_folder );
       Helper::ensure_folder( scratch_folder );
       P << scratch_folder << "\tTEMP\n";
     }
@@ -77,6 +84,7 @@ bool Pseq::new_project( std::string project , Pseq::Util::ArgMap & args )
   if ( args.has( "metameta" ) )
     {
       std::string metameta = args.as_string( "metameta" );
+      metameta = Helper::fullpath( metameta );
       P << metameta << "\tMETAMETA\n";
     }
 
@@ -90,8 +98,9 @@ bool Pseq::new_project( std::string project , Pseq::Util::ArgMap & args )
       std::vector<std::string> t = args.as_string_vector( "vcf" );
       for (int i=0; i<t.size(); i++)
 	{
+	  t[i] = Helper::fullpath( t[i] );
 	  if ( ! Helper::fileExists( t[i] ) )
-	    plog.warn( "VCF file " + t[i] + " does not exist" );
+	    plog.warn( "VCF file " + t[i] + " does not exist" );	  
 	  P << t[i] << "\tVCF\n";      
 	}
     }
@@ -101,27 +110,27 @@ bool Pseq::new_project( std::string project , Pseq::Util::ArgMap & args )
   //
   
   if ( args.has( "vardb" ) ) 
-    P << args.as_string( "vardb" ) << "\tVARDB\n";
+    P << Helper::fullpath( args.as_string( "vardb" ) ) << "\tVARDB\n";
   else
     P << output_folder << "vardb\tVARDB\n";
   
   if ( args.has( "inddb" ) ) 
-    P << args.as_string( "inddb" ) << "\tINDDB\n";
+    P << Helper::fullpath( args.as_string( "inddb" ) )<< "\tINDDB\n";
   else
     P << output_folder << "inddb\tINDDB\n";
-
+  
   if ( args.has( "locdb" ) ) 
-    P << args.as_string( "locdb" ) << "\tLOCDB\n";
+    P << Helper::fullpath( args.as_string( "locdb" ) ) << "\tLOCDB\n";
   else
     P << resources_folder << "locdb\tLOCDB\n";
   
   if ( args.has( "refdb" ) ) 
-    P << args.as_string( "refdb" )  << "\tREFDB\n";
+    P << Helper::fullpath( args.as_string( "refdb" ) ) << "\tREFDB\n";
   else
     P << resources_folder << "refdb\tREFDB\n";
   
   if ( args.has("seqdb") )
-    P << args.as_string( "seqdb" ) << "\tSEQDB\n";
+    P << Helper::fullpath( args.as_string( "seqdb" ) ) << "\tSEQDB\n";
   else
     P << resources_folder << "seqdb\tSEQDB\n";
   
@@ -282,7 +291,7 @@ bool Pseq::VarDB::dump_indiv()
 bool Pseq::VarDB::write_lik(Mask & m)
 {
   std::vector<std::string> ids = g.indmap.ind_id();
-  plog << "marker\talleleA\talleleB";
+  plog << "VAR\tREF\tALT";
   for (int i=0; i<ids.size(); i++) 
     plog << "\t" << ids[i] 
 	 << "\t" << ids[i] 
@@ -951,50 +960,169 @@ Mask Pseq::Util::construct_mask( std::string desc )
 
 void Pseq::Util::set_default( VStat & vstat )
 {
-  vstat.set_depth_label( PLINKSeq::META_DP() );
-  vstat.add_depth( 5 );
-  vstat.add_depth( 10 );
-  vstat.add_depth( 50 );
-  vstat.add_depth( 100 );
-  vstat.add_depth( 150 );
-  vstat.add_depth( 200 );
-  vstat.add_depth( 500 );
-  vstat.add_depth( 1000 );
-  vstat.add_depth( 5000 );
-  vstat.add_depth( 10000 );
   
-  vstat.set_indiv_depth_label( PLINKSeq::META_GENO_DP() );
-  vstat.add_indiv_depth( 1 );
-  vstat.add_indiv_depth( 5 );
-  vstat.add_indiv_depth( 10 );
-  vstat.add_indiv_depth( 20 );
-  vstat.add_indiv_depth( 50 );
+  if ( options.key("hwe") )
+    vstat.add_hwe_p( options.simple_string("hwe") );
+  
+  if ( options.key("ref") )
+    {
+      std::set<std::string> s = options.get_set( "ref" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  vstat.add_refgroup( *i );
+	  ++i;
+	}
+    }
 
-  vstat.set_indiv_geno_qual_label( PLINKSeq::META_GENO_GQ() );
-  vstat.add_indiv_geno_qual( 10 );
-  vstat.add_indiv_geno_qual( 50 );
-  vstat.add_indiv_geno_qual( 90 );
-  
-  vstat.add_qual( 10 );
-  vstat.add_qual( 50 );
-  vstat.add_qual( 100 );
-  vstat.add_qual( 500 );
-  
-  vstat.set_func_label( PLINKSeq::META_ANNOT() );
-  std::vector<std::string> s = Helper::char_split( PLINKSeq::META_ANNOT_FLAG() , ',' );
-  for (int i=0; i<s.size(); i++)
-    vstat.add_func( s[i] );
+  if ( options.key("loc") )
+    {
+      std::set<std::string> s = options.get_set( "loc" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  vstat.add_locgroup( *i );
+	  ++i;
+	}
+    }
 
+  if ( options.key("mac") )
+    {
+      std::set<std::string> s = options.get_set( "mac" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  vstat.add_mac( *i );
+	  ++i;
+	}
+    }
+
+  if ( options.key("maf") )
+    {
+      std::set<std::string> s = options.get_set( "maf" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  vstat.add_maf( *i );
+	  ++i;
+	}
+    }
+
+  if ( options.key("qual") )
+    {
+      std::set<std::string> s = options.get_set( "qual" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  vstat.add_qual( *i );
+	  ++i;
+	}
+    }
+
+  if ( options.key("dp") )
+    {
+      std::set<std::string> s = options.get_set( "dp" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  vstat.add_depth( *i );
+	  ++i;
+	}
+    }
+  
+  if ( options.key("mean") )
+    {
+      std::set<std::string> s = options.get_set( "mean" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  vstat.add_mean_tag( *i );
+	  ++i;
+	}
+    }
+
+  // --options count=AN:2:3,DP
+  //           count=AN,2:3  
+  //           count=AN      //table
+
+  if ( options.key("count") )
+    {
+      std::set<std::string> s = options.get_set( "count" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  std::vector<std::string> tok = Helper::char_split( *i , ':' );
+	  if ( tok.size() == 3 )  
+	    vstat.add_count_tag( tok[0] , tok[1] + ":" + tok[2] );
+	  if ( tok.size() == 2 )  
+	    vstat.add_count_tag( tok[0] , tok[1] );
+	  else if ( tok.size() == 1 )  // i.e. list all values
+	    vstat.add_table_tag( tok[0] );
+	  ++i;
+	}
+    }
+
+  bool all_istat_filter = false;
+
+  if ( options.key("filter") )
+    {
+      std::set<std::string> s = options.get_set( "filter" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  if ( *i != PLINKSeq::PASS_FILTER() )
+	    {
+	      if ( *i == "." ) all_istat_filter = true;
+	      else vstat.add_istat_filter( *i );
+	    }
+	  ++i;
+	}
+
+    }
+
+  // Add all non-PASS filters to the report fields
   std::vector<std::string> f = MetaInformation<VarFilterMeta>::field_names();
   for ( int i = 0 ; i < f.size() ; i++ ) 
     {
       if ( f[i] != PLINKSeq::PASS_FILTER() )
-	vstat.add_filter( f[i] );
+	{
+	  vstat.add_filter( f[i] );
+	  if ( all_istat_filter ) 
+	    vstat.add_istat_filter( f[i] );
+	}
     }
 
-  vstat.set_dbSNP_label( PLINKSeq::DEFAULT_DBSNP() );
-  vstat.set_1KG_label( PLINKSeq::DEFAULT_G1K() );
+
+  // G-TAGs
   
+  if ( options.key( "gmean" ) )
+    {
+      std::set<std::string> s = options.get_set( "gmean" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  vstat.add_mean_gtag( *i );
+	  ++i;
+	}
+    }
+
+  
+  if ( options.key( "gcount" ) )
+    {
+      std::set<std::string> s = options.get_set( "gcount" );
+      std::set<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
+	{
+	  std::vector<std::string> tok = Helper::char_split( *i , ':' );
+	  if ( tok.size() == 3 )  
+	    vstat.add_count_gtag( tok[0] , tok[1] + ":" + tok[2] );
+	  if ( tok.size() == 2 )  
+	    vstat.add_count_gtag( tok[0] , tok[1] );
+	  ++i;
+	}
+    }
+
+
 }
 
 
@@ -1118,7 +1246,7 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
 
   while ( i != regions.end() )
     {
-
+            
       std::string alias = g.locdb.alias( i->name , true );
       if ( alias == "" ) alias = ".";
 
@@ -1132,7 +1260,7 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
       int refcnt_whole = 0;
       
       bool okay = g.seqdb.GC( *i , gc0 , tot0 );      
-      g.seqdb.N( *i , n0 , tot0); 
+      g.seqdb.N( *i , n0 , tot0 ); 
       
       if ( refvars ) 
 	range_intersector.intersect( *i , &refcnt_whole );
@@ -1158,7 +1286,9 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
 
       for ( int s = 0 ; s < ( nosubs ? 0 : i->subregion.size() ) ; s++ )
 	{
-	  
+
+	  std::cout << "S = " << s << "\n";
+
 	  int sgc = 0 , sn = 0 , stot = 0;
 	  
 	  Region sr( i->subregion[s] );
@@ -1221,31 +1351,44 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
       // Print summary of all subregions (S=0 code in output)
       //
       
+
       plog << i->name << "\t"
-		<< alias << "\t";
+	   << alias << "\t";
       plog << ( nosubs ? 1 : nreg ) << "\t";
       if (sub) plog << "0\t";	  
       plog << i->coordinate() << "\t";
       
-
-      plog << tot << "\t"
-		<< tot0 << "\t";	  
-
+      if ( nosubs ) plog << ".\t";
+      else plog << tot << "\t";
+      plog << tot0 << "\t";	  
+      
       bool only0 = tot == 0;
       
       if ( okay && ( nosubs || nreg > 0 ) )
 	{
-	  plog << (double)gc/(double)(tot-n) << "\t";
-	  if ( only0 ) plog << ".\t"; else plog << (double)gc0/(double)(tot0-n0) << "\t";
-	  plog << (double)n/(double)tot << "\t";
-	  if ( only0 ) plog << ".\t"; else plog << (double)n0/(double)tot0 ;
+	  if ( only0 ) plog << ".\t"; 
+	  else
+	    {
+	      if ( tot-n != 0 )
+		plog << (double)gc/(double)(tot-n) << "\t";
+	      else
+		plog << "NA\t";
+	    }
+	  
+	  if ( tot0-n0 ) 
+	    plog << (double)gc0/(double)(tot0-n0) << "\t";
+	  else
+	    plog << "NA\t";
+	  
+	  if ( only0 ) plog << ".\t"; else plog << (double)n/(double)tot << "\t";
+	  plog << (double)n0/(double)tot0 ;
 	}
       else
 	plog << "NA\tNA\tNA\tNA";
       
       if ( refvars ) 
 	plog << "\t" << refcnt 
-		  << "\t" << refcnt_whole ;
+	     << "\t" << refcnt_whole ;
       
       plog << "\n";
 
@@ -1377,17 +1520,23 @@ void f_counts_report( Variant & v , void * p )
       // write to VCF
       
       plog << v.chromosome() << "\t"
-		<< v.position() << "\t"
-		<< v.name() << "\t"
-		<< svar_meta.reference() << "\t"
-		<< svar_meta.alternate() << "\t"
-		<< svar_meta.quality() << "\t"
-		<< svar_meta.filter() << "\t"	  
-		<< "_S=" << g.vardb.file_tag( svar.fileset() ) << ";"
-		<< ginfo.str() << ";" 
-		<< cinfo.str() << ";"
-		<< pinfo.str() << ";"
-		<< svar_meta.meta << "\n";
+	   << v.position() << "\t"
+	   << v.name() << "\t"
+	   << svar_meta.reference() << "\t"
+	   << svar_meta.alternate() << "\t";
+
+      if ( svar_meta.quality() < 0 ) 
+	plog << ".\t";
+      else
+	plog << svar_meta.quality() << "\t";
+      
+      plog << svar_meta.filter() << "\t";
+      
+      plog << "_S=" << g.vardb.file_tag( svar.fileset() ) << ";" 
+	   << ginfo.str() << ";" 
+	   << cinfo.str() << ";"
+	   << pinfo.str() << ";"
+	   << svar_meta.meta << "\n";
       
       // next sample
       if ( ! v.next_sample() ) break;
@@ -1421,12 +1570,12 @@ bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
     }
 
   plog << "##INFO=<ID=_S,Number=1,Type=String,Description=\"Sample tag\">\n"
-	    << "##INFO=<ID=_GENO,Number=-1,Type=String,Description=\"Genotypes\">\n"
-	    << "##INFO=<ID=_GCNT,Number=-1,Type=Integer,Description=\"Genotype counts\">\n"
-	    << "##INFO=<ID=_PGRP,Number=-1,Type=Integer,Description=\"Phenotypic groups (0=all;1=control;2=case)\">\n"
-	    << MetaInformation<VarMeta>::headers( )
-	    << MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
-
+       << "##INFO=<ID=_GENO,Number=-1,Type=String,Description=\"Genotypes\">\n"
+       << "##INFO=<ID=_GCNT,Number=-1,Type=Integer,Description=\"Genotype counts\">\n"
+       << "##INFO=<ID=_PGRP,Number=-1,Type=Integer,Description=\"Phenotypic groups (0=all;1=control;2=case)\">\n"
+       << MetaInformation<VarMeta>::headers( )
+       << MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
+  
   plog << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
 
   g.vardb.iterate( f_counts_report , &aux , m );
@@ -1448,11 +1597,12 @@ bool Pseq::VarDB::simple_counts( Mask & m )
 
   // binary phenotype?
   if ( g.phmap.type() == PHE_DICHOT )
-    plog << "\tCASE"
-	 << "\tCON";
+    plog << "\tALTA"
+	 << "\tALTU"
+	 << "\tTOTA\tTOTU";
   else
-    plog << "\tMAC";
-  
+    plog << "\tALT\tTOT";
+    
   if ( opt.apply_annot )
     plog << "\tFUNC"
 	 << "\tGENE"
@@ -1495,3 +1645,27 @@ bool Pseq::VarDB::simple_counts( Mask & m )
   return true;
 }
 
+
+
+void f_write_to_bcf( Variant & var , void * p )
+{
+  if ( ! var.valid() ) return; 
+  BCF * bcf = (BCF*)p;  
+  bcf->write_record( var );  
+}
+
+
+bool Pseq::VarDB::write_BCF( Mask & mask , const std::string & bcffile )
+{
+  
+  // We will either be in single VCF mode, or we will be dumping 
+  // a VARDB into a single BCF file. Either way, we will have read
+  // the header (from VARDB, or from the VCF) by now.  Thus, first 
+  // create that.
+  
+  BCF bcf( bcffile );  
+  bcf.create_header();		    
+  IterationReport report = g.vardb.iterate( f_write_to_bcf , &bcf , mask );  
+  bcf.close();  
+  return true;
+}

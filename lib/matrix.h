@@ -13,13 +13,13 @@ namespace Data {
     public:
 
     Vector() { } 
-    Vector(int i) { resize(i); }
-    Vector(const std::vector<T> & x ) { data = x; }
+    Vector(int i) { resize(i); mask.resize(i,false); }
+    Vector(const std::vector<T> & x ) { data = x; mask.resize( data.size() , false ); }
     
-    void clear() { data.clear(); }
-    void resize(const int i) { data.resize(i); }
-    void resize(const int i, const T & t) { data.resize(i,t); }
-    void push_back( const T & t ) { data.push_back(t); }
+    void clear() { data.clear(); mask.clear(); }
+    void resize(const int i) { data.resize(i); mask.resize(i,false); }
+    void resize(const int i, const T & t) { data.resize(i,t); mask.resize(i,false); }
+    void push_back( const T & t ) { data.push_back(t); mask.push_back(false); }
     int size() const { return data.size(); }
     int dim1() const { return data.size(); }
     
@@ -33,10 +33,32 @@ namespace Data {
     Vector<T> operator+( const Vector<T> & rhs ) const;
     Vector<T> operator-( const Vector<T> & rhs ) const;
     
+    void set_elem_mask( const int r , const bool val = true )
+    {
+      if ( r < 0 || r >= mask.size() ) return;
+      mask[r] = val;
+    }
+
+    bool masked(const int r ) const
+    {
+      if ( r < 0 || r >= data.size() ) return false;
+      return mask[r];
+    }
+    
+    Vector purge_rows() 
+    {
+      int sz = 0;
+      for (int i=0; i<mask.size(); i++) if ( !mask[i] ) ++sz;
+      Vector<T> v( sz );
+      sz = 0;
+      for (int i=0; i<mask.size(); i++) if ( !mask[i] ) v[sz++] = data[i]; 
+      return v;
+    }
+    
     private:
     
     std::vector<T> data;
-
+    std::vector<bool> mask;
   };
 
   
@@ -85,7 +107,16 @@ namespace Data {
     Vector<T> col( const int c ) const { return data[c]; } 
     Vector<T> & col( const int c ) { return data[c]; } 
 
-    void add_col( const Vector<T> & r ) { data.push_back(r); ++ncol; }
+    void add_col( const Vector<T> & r ) 
+    { 
+      data.push_back(r);  // add data
+      ++ncol;             // track increase in col count
+      
+      // propagate case-wise missingness across columns for each row
+      for (int i=0; i<r.size(); i++) 
+	if( r.masked(i) ) set_row_mask(i); 
+    }
+    
     void add_col( const std::vector<T> & r ) { data.push_back( Vector<T>(r) ); ++ncol; }
     
     void cbind( const Data::Matrix<T> & rhs )
@@ -125,7 +156,7 @@ namespace Data {
       if ( r >= 0 && r < nrow ) row_mask[r] = b;
     }
     
-    bool masked( const int r )
+    bool masked( const int r ) const
     {
       if ( ncol == 0 ) return false; // no data
       if ( r >= 0 && r < nrow ) return row_mask[r];
@@ -133,6 +164,19 @@ namespace Data {
     }
 
     void clear() { data.clear(); row_mask.clear(); nrow = ncol = 0; }
+
+    Matrix<T> purge_rows() 
+    {
+      int sz = 0; 
+      for (int i=0; i<row_mask.size(); i++) if ( ! row_mask[i] ) ++sz;
+      Matrix<T> v( sz , ncol );
+      for (int c = 0 ; c < ncol ; c++ ) 
+	{
+	  int sz = 0;
+	  for (int r=0; r<nrow; r++) if ( ! row_mask[r] ) v( sz++ , c ) = data[c][r]; 
+	}      
+      return v;
+    }
     
     void resize(const int r, const int c) 
     { 

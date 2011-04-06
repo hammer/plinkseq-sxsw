@@ -74,6 +74,7 @@ bool Pseq::VarDB::load_PLINK( const std::vector<std::string> & name , const Pseq
   if ( tag != "" ) b.set_tag( tag );
   bool okay = b.read_bed();
   if ( ! okay ) plog.warn( "problems detected loading BED file, " + fileroot );
+  g.fIndex.append_to_projectfile( Helper::fullpath( fileroot ) + "\tPLINK" );
   return okay;
 }
 
@@ -433,3 +434,6 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
   
 
 }
+
+
+

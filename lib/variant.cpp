@@ -79,22 +79,44 @@ bool Variant::make_consensus( IndividualMap * a )
   // needs to be done, as we would have previously stored all genotype
   // information in the consensus SampleVariant already.
   //  
+
+  // Note -- we may have a unflat, single-sample alignment, if we
+  // are letting the different SVARs be compiled within the same
+  // VCF as a single variant.  In that case, the force_unflat()
+  // flag will be set and we can use that.
   
-  if ( ( ! align->multi_sample() ) && svar.size() < 2 ) 
+  if ( ( ! align->multi_sample() ) && align->flat() ) 
     {
       
       int n_alleles = consensus.parse_alleles();
-      
+
       // for biallelic markers, we can leave now
       if ( n_alleles == 2 ) return true;
       
       consensus.set_allelic_encoding();
-      
+
       return true;
     }
   
+  
+  //
+  // Do we have a flat, mutli-sample alignment?  If so, we need
+  // to add pointers to the constitute SampleVariants that point
+  // out that the genotype data are not stored there (for filters
+  // that want to assess, e.g. per-sample presence of the alternate
+  // allele -- i.e. in this way, calls to svar(i).genotype(j) will
+  // be automatically redirected to consensus.genotype(k) where k is
+  // the correct mapping for (sample-i, slot-j) -> consensus(k)
+  //
+  
+  if ( align->multi_sample() && align->flat() )
+    {
+      for (int i = 0 ; i < svar.size(); i++ )
+	svar[i].calls.set_consensus_slotmap( &consensus , 
+					     GP->indmap.svar2consensus( svar[i].fileset() ) );
+    }
 
-
+  
   //
   // Align basic allelic informaiton
   //
@@ -128,12 +150,14 @@ bool Variant::make_consensus( IndividualMap * a )
 	    {
 	      
 	      // Hmm... not sure this is right way to deal with things?
+
+	      //need_to_resolve = true;
+	      //obs_alleles.insert( sv.ref );
+
 	      // should probably just halt?
 
 	      Helper::halt( "incompatible REF sequences " + coordinate() );	      
 
-	      //need_to_resolve = true;
-	      //obs_alleles.insert( sv.ref );
 	    }
 	  else
 	    expanded_ref = true;
@@ -218,24 +242,65 @@ bool Variant::make_consensus( IndividualMap * a )
   // Under a flat alignment, we can leave now, as genotype data will
   // already be in consensus
   //
-  
-  // but what if we need a re-coding (i.e. need_to_resolve=T) ??
 
-  if ( align->flat() ) 
+
+  // but what if we need a re-coding (i.e. need_to_resolve=T) ??
+  
+  if ( align->flat() && ! need_to_resolve ) 
     {
       return true;
     }
-
+  
 
   //
-  // Genotypes (which might need to be recoded)
+  // Handle flat case, where ALT alleles are different between samples -- will need to 
+  // recode the genotypes of some individuals
+  //
+  
+  if ( align->flat() )
+    {
+      const int n = align->size();
+      for (int i=0; i<n; i++)
+	{
+	  
+	  int2 j = align->unique_mapping(i);      
+	  
+	  // Does this individual feature in multiple samples? 
+	  
+	  bool multiple_samples = j.p1 != -1 ? ftosv[ j.p1 ].size() > 1 : true;
+	  
+	  if ( ! multiple_samples )
+	    { 
+	      
+	      // not sure this would ever fail, but just in case (perhaps
+	      // also need to check ftosv/j.p1 above for range?)
+	      
+	      if ( ftosv[ j.p1 ].size() == 1 ) 
+		{
+		  SampleVariant * p = psample( ftosv[ j.p1 ][0] );	      
+		  if ( p )  
+		    {		  
+		      Genotype & g = consensus(i);
+		      std::string label = p->label( g );	  
+		      g = consensus.spec->callGenotype( label , this , true );  //T=ACGT mode
+		    }	 
+		}
+	    }
+	  else
+	    Helper::halt("internal error in Variant::make_consensus()");
+	}
+      return true;
+    }
+
+      
+  //
+  // Genotypes in non-flat alignments, (which might need to be recoded)
   //
   
   const int n = align->size();
   const int ns = n_samples();
 
   consensus.calls.size( n );
-
 
   for (int i=0; i<n; i++)
     {
@@ -245,16 +310,16 @@ bool Variant::make_consensus( IndividualMap * a )
       // Does this individual feature in multiple samples? 
       
       bool multiple_samples = j.p1 != -1 ? ftosv[ j.p1 ].size() > 1 : true;
-
+      
       if ( ! multiple_samples )
 	{ 
 	  
-	  // not sure this would ever fail, but just incase (perhaps
+	  // not sure this would ever fail, but just in case (perhaps
 	  // also need to check ftosv/j.p1 above for range?)
-	  
+
 	  if ( ftosv[ j.p1 ].size() == 1 ) 
 	    {
-	      
+
 	      SampleVariant * p = psample( ftosv[ j.p1 ][0] );
 	      
 	      if ( p )  
@@ -270,8 +335,8 @@ bool Variant::make_consensus( IndividualMap * a )
 		    {
 		      std::string label = p->label( g );		  
 		      g = consensus.spec->callGenotype( label , this , true );  //T=ACGT mode
-		    }	      	      
-		  
+		    }	 
+     	      
 		  consensus(i) = g;
 		  consensus(i).meta = (*p)(j.p2).meta;
 		}
@@ -365,10 +430,10 @@ bool Variant::make_consensus( IndividualMap * a )
 
 		  // otherwise, if a discordant call, set consensus to missing
 		  
-		  if ( g != consensus(i) )
+		  if ( ! Genotype::equivalent ( g , consensus(i) ) )
 		    {
 		      consensus(i).null( true );
-		      consensus(i).meta.clear();	
+		      consensus(i).meta.clear();
 		      break;
 		    }		  
 		  
@@ -783,9 +848,13 @@ string Variant::VCF()
     << bp << "\t"
     << vname << "\t"
     << consensus.ref << "\t"
-    << consensus.alt << "\t"
-    << consensus.qual << "\t"
-    << consensus.filter_info << "\t"
+    << consensus.alt << "\t";
+  if ( consensus.qual < 0 )
+    s << "." << "\t";
+  else
+    s << consensus.qual << "\t";
+
+  s << consensus.filter_info << "\t"
     << consensus.meta << "\t";
   
   // Format field for genotype info:
@@ -803,7 +872,7 @@ string Variant::VCF()
   for (int i = 0 ; i < size(); i++)
     {
       std::vector<std::string> keys = consensus.calls.genotype(i).meta.keys();
-      for (unsigned int j=0; j<keys.size(); j++) allkeys.insert( keys[j] );
+      for (unsigned int j=0; j<keys.size(); j++) if ( MetaMeta::display( keys[j] ) ) allkeys.insert( keys[j] );
     }
   
   std::set<std::string>::iterator i = allkeys.begin();
@@ -1386,7 +1455,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
       //
   
       int j = 0; // geno2 counter
-      
+
       for ( unsigned i=0; i<n_buffer; i++)
 	{
 	  
@@ -1404,12 +1473,18 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 		slot = align->get_slot( source->fileset() , slot );
 	      
 	    }
-	  
-	  
+
+
 	  //
 	  // Basic genotype
 	  //
-	  
+
+	  // TODO: the geno1/geno2 layout is silly, as we have to look at every
+	  // geno1 and unpack it to know where geno2 is, even if we are only interested
+	  // in a single sample. Think about changing layout. Likely solution is just a 
+	  // better geno1 representation.
+
+
 	  Genotype g( parent );
 	  
 	  g.unpack( buf.geno1(i) );
@@ -1418,7 +1493,9 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	    g.code( buf.geno2( j++ ) );
 	  
 	  if ( slot != -1 )        	      
-	    target->calls.add( g, slot );
+	    {	      
+	      target->calls.add( g, slot );
+	    }	
 	}
       
 
@@ -1661,10 +1738,15 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   
 
     } // end of extracting all genotypic (meta) information from PB/BLOB
+
+
+  //
+  // Extract genotype information from a BCF-encoded buffer
+  //
+
   else if ( target->bcf ) 
     {     
       
-      // but, perhaps we need to now extract from the BCF buffer
       // The format of the genotype is a string in bcf_format
       
 //       std::string           bcf_format;
@@ -1674,6 +1756,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 
       // Number of individuals in BCF buffer
       unsigned int n_buffer = target->bcf->sample_n();
+
       
       // Number of individuals we actually want
       unsigned int n_variant = align ? align->size() : n_buffer ;
@@ -1709,7 +1792,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	      // under a flat alignment, we need to reset to the
 	      // consensus slot: check -- or should this be (fset,i) ?	      
 	      if ( align->flat() ) 
-		slot = align->get_slot( source->fileset() , slot );		      
+		slot = align->get_slot( source->fileset() , slot );
 	    }	  
 	  s2t[ i ] = slot;	  
 	}
@@ -1721,143 +1804,193 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
       for (int t = 0 ; t < format.size(); t++)
 	{	  
 	  
-	  if ( format[t] == "GT" ) // uint8_t
+	  const std::string & tag = format[t];
+	  
+	  // this should exist in the BCF, or else we would have received an error by now
+	  
+	  BCF::bcf_meta_t bt = target->bcf->bcftype[ tag ];
+	  
+	  int nalt = alt.size() + 1;
+	  int ngen = (int) (nalt * (nalt+1) * 0.5);
+	  if ( bt.len == -1 ) bt.len = nalt - 1;
+	  else if ( bt.len == -2 ) bt.len = nalt;
+	  else if ( bt.len == -3 ) bt.len = ngen;
+	  
+	  
+	  // Unpack
+	  
+	  if ( bt.type == BCF::BCF_genotype )
 	    {
 	      for ( int i=0; i < n_buffer ; i++ )
 		{
 		  if ( s2t[i] != -1 )
 		    {
 		      // std::cout << "mapping genotype " << i << " " << s2t[i] << " " << "\n";
-		      target->calls.genotype( s2t[i] ).bcf( target->bcf_genotype_buf[ p ] );
+		      target->calls.genotype( s2t[i] ).bcf( target->bcf_genotype_buf[ p ] );		      
 		      // std::cout << "geno = " << target->calls.genotype( s2t[i] ) << "\n";
 		    }
 		  ++p;
 		}
 	    }
-	  else if ( format[t] == "PL" ) // G * uint8_t
+
+	  
+	  else if ( bt.type == BCF::BCF_int32 )
 	    {
+
 	      for ( int i=0; i < n_buffer ; i++ )
-		{		  
+		{
 		  if ( s2t[i] != -1 ) 
 		    {
-		      std::vector<int> pl(ngen);		      
-		      for (int j=0;j<ngen;j++)
-			pl[j] = target->bcf_genotype_buf[p+j];			  
-		      target->calls.genotype( s2t[i] ).meta.set( "PL" , pl );
+		      std::vector<int> tmp( bt.len );
+		      for (int j=0;j< bt.len; j++)
+			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint32_t) ];
+		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
 		    }
-		  p += ngen; 
+		  p += bt.len * sizeof(uint32_t);
 		}
-	    }	  
-	}
-    
+	    }
 
-      ////
-      // Need to figure out what is done, what isn't here
-      ///
-
-
-//       //
-//       // Append genotype meta-information
-//       //
-      
-//       unsigned int m = buf.gmeta().size();
-
-
-//       for ( unsigned int k = 0 ; k < m ; k++ )
-// 	{
+	  else if ( bt.type == BCF::BCF_uint8 )
+	    {
+	      for ( int i=0; i < n_buffer ; i++ )
+		{
+		  if ( s2t[i] != -1 ) 
+		    {
+		      std::vector<int> tmp( bt.len );
+		      for (int j=0;j< bt.len; j++)
+			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint8_t) ];
+		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+		    }
+		  p += bt.len * sizeof(uint8_t);
+		}
+	    }
 	  
-// 	  // Does this have a set length, how are missing individuals
-// 	  // handlded?
-      
-// 	  // Mode: 
-// 	  //  0) constant_length or no? 
+	  else if ( bt.type == BCF::BCF_uint16 )
+	    {
+	      for ( int i=0; i < n_buffer ; i++ )
+		{
+		  if ( s2t[i] != -1 ) 
+		    {
+		      std::vector<int> tmp( bt.len );
+		      for (int j=0;j< bt.len; j++)
+			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint16_t) ];
+		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+		    }
+		  p += bt.len * sizeof(uint16_t);
+		}
+	    }
+
+
+	  else if ( bt.type == BCF::BCF_double )
+	    {
+	      for ( int i=0; i < n_buffer ; i++ )
+		{
+		  if ( s2t[i] != -1 ) 
+		    {
+		      std::vector<double> tmp( bt.len );
+		      for (int j=0;j< bt.len; j++)
+			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(double) ];
+		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+		    }
+		  p += bt.len * sizeof(double);
+		}
+	    }
+
+
+	  else if ( bt.type == BCF::BCF_float )
+	    {
+	      for ( int i=0; i < n_buffer ; i++ )
+		{
+		  if ( s2t[i] != -1 ) 
+		    {
+		      std::vector<double> tmp( bt.len );
+		      for (int j=0;j< bt.len; j++)
+			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(float) ];
+		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+		    }
+		  p += bt.len * sizeof(float);
+		}
+	    }
+
+	  else if ( bt.type == BCF::BCF_string )
+	    {
+	      Helper::halt("BCF_string parsing not implemented yet for FORMAT");
+
+	      for ( int i=0; i < n_buffer ; i++ )
+		{
+		  if ( s2t[i] != -1 ) 
+		    {
+		      std::vector<std::string> tmp( bt.len );
+		      for (int j=0;j< bt.len; j++)
+			tmp[j] = target->bcf_genotype_buf[ p + j * tmp[j].size() ];
+		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+		    }
+		  p += bt.len * sizeof(float);
+		}
+	    }
 	  
-// 	  //  1) all_nonmissing -- no index, just list all values
-// 	  //  2) indiv_index    -- specify IDs for people w/ data
-// 	  //  3) missing_index  -- specify IDs for people w/out data
-	  
-// 	  bool constant_length = buf.gmeta(k).has_fixed_len();
-// 	  int  length = 0;
-// 	  if ( constant_length ) 
-// 	    length = buf.gmeta(k).fixed_len();
-	  
-// 	  // Should only get one of these:
-// 	  bool missing_index = buf.gmeta(k).missing_index().size() > 0;
-// 	  bool indiv_index = buf.gmeta(k).indiv_index().size() > 0;
-// 	  bool all_nonmissing = ! ( missing_index || indiv_index );
-	  
-// 	  // Set buffer sizes
-
-// 	  int nlen = indiv_index ?
-// 	    (int)buf.gmeta(k).indiv_index().size() :
-// 	    n_buffer;
-
-// 	  int idx = 0;
-
-// 	  if ( all_nonmissing ) 
-// 	    {
-
-// 	      switch (  buf.gmeta(k).type() ) {
-		
-// 	      case GenotypeMetaBuffer::INT :
-// 		{
-	      
-// 		  for (int j=0;j<nlen; j++)
-// 		    {
-		      
-// 		      idx = target->addIntGenMeta( j , source->fileset() , 
-// 						   buf, align, k, idx, 
-// 						   constant_length ? length : buf.gmeta(k).len(j) );		  
-// 		    }
-// 		  break;
-// 		}
-// 	      case GenotypeMetaBuffer::FLOAT :
-// 		{
-// 		  for (int j=0;j<nlen; j++)
-// 		    {
-// 		      idx = target->addFloatGenMeta( j,  source->fileset() ,
-// 						     buf, align, k, idx, 
-// 						     constant_length ? length : buf.gmeta(k).len(j) );
-// 		    }
-// 		  break;
-// 		}
-// 	      case GenotypeMetaBuffer::BOOL :
-// 		{
-// 		  for (int j=0;j<nlen; j++)
-// 		    {
-// 		      idx = target->addBoolGenMeta( j, source->fileset() ,
-// 						    buf, align, k, idx, 
-// 						    constant_length ? length : buf.gmeta(k).len(j) );
-// 		    }		   
-// 		  break;
-// 		}
-// 	      default :
-// 		{
-// 		  for ( int j=0;j<nlen; j++)
-// 		    {
-// 		      idx = target->addStringGenMeta( j, source->fileset() ,
-// 						      buf, align, k, idx, 
-// 						      constant_length ? length : buf.gmeta(k).len(j) );
-// 		    }
-		  
-// 		}
-// 	      }
-// 	    }
-
-
-      
-      // ... not yet implemented...
+	} // next tag
       
     }
-
   
   
   //
-  // Apply any genotype masks? 
+  // Reading directly from a VCF buffer
+  //
+
+  else if ( target->vcf_direct )    
+    {
+      
+      // If not a valid variant, do not try to expand genotypes
+      if ( ! parent->valid() ) return false;
+      
+      // Individual counter
+      int j = 0;
+
+      unsigned int n_variant = align ? align->size() : vcf_direct_buffer.size()-9 ;
+      target->calls.size( n_variant );
+
+      // Call genotypes, add to variant   
+      for ( int i=9; i < vcf_direct_buffer.size(); i++)
+	{
+	  
+	  int slot = j;
+	  
+	  if ( align )
+	    {
+	      // is this needed?? -- don't think both are needed
+	      slot = align->sample_remapping( 1 , j ) ;
+	      if ( align->flat() ) slot = align->get_slot( 1 , slot );	      
+	    }	  
+	  
+	  if ( slot != -1 )
+	    {
+	      Genotype g = target->spec->callGenotype( vcf_direct_buffer[i] , parent ); 
+	      target->calls.add( g , slot );
+	    }
+
+	  ++j;
+	}
+
+      // Clear buffer
+      target->vcf_direct_buffer.clear();
+
+    }
+
+
+  
+  //
+  // Now that we've extracted all the genotypic information and 
+  // meta-information: do we want to apply any genotype masks? 
   //
   
   const int n_var = target->calls.size();
 
+  
+  // 1) mask 'assume-ref'.  Assume missing genotypes are
+  // obligatorarily homozygous for the reference allele; also populate
+  // PL fields to indicate this.
+  
   if ( mask && mask->assuming_null_is_reference() )
     {
       std::vector<int> t(3);
@@ -1873,7 +2006,14 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	    }
 	}
     }
+  
 
+  
+  //
+  // 2). mask 'geno' conditions -- i.e. determineing whether to zero-out specific genotypes
+  // because they meet/fail to meet certain criteria, e.g. geno=DP:ge:10
+  //
+  
   if ( mask && mask->genotype_mask() ) 
     {
       for ( unsigned int i = 0 ; i < n_var ; i++ )
@@ -1898,7 +2038,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   //     {
   //       if ( ! mask->calc_filter_expression( parent->consensus , *target ) ) return false;
   //     }
-
+  
 
   return true;
   
@@ -2217,13 +2357,15 @@ void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id
 
   // store original text 
   other_info = s; 
-
+  
+  if ( s == "." ) return;
+  
   // parse semi-colon delimited list
   std::vector<std::string> f = Helper::parse(s,";");
-
+  
   for (int i=0; i<f.size(); i++)
-    {
-
+    {      
+      
       std::vector<std::string> k = Helper::char_split( f[i] , '=' );
       mType mt = MetaInformation<VarMeta>::type( k[0] );
       
@@ -2604,31 +2746,17 @@ void SampleVariant::collapse_alternates( int altcode )
 }
 
 
-bool SampleVariant::vcf_expand_buffer( Variant * parent )
-{
-
-  // If not a valid variant, do not try to expand genotypes
-  if ( ! parent->valid() ) return false;
-  
-  // Call genotypes, add to variant   
-  for ( int i=9; i < vcf_direct_buffer.size(); i++)
-    {
-      Genotype g = spec->callGenotype( vcf_direct_buffer[i] , parent ); 
-      calls.add( g );  
-    }
-  vcf_direct_buffer.clear();
-  return true;
-}
 
 
 bool SampleVariant::has_nonreference( const bool also_poly ) const
 {
   bool nonref = false;
   std::set<int> npoly;
+
   for (int i=0; i<calls.size(); i++)
-    {
+    {      
       if ( calls.genotype(i).nonreference() ) 
-	{
+	{	  
 	  // leave when hit first non-reference call
 	  if ( ! also_poly ) return true;
 	  else 

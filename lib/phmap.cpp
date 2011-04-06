@@ -2,7 +2,7 @@
 #include "phmap.h"
 #include "indmap.h"
 #include "inddb.h"
-
+#include "filemap.h"
 
 PhenotypeMap::PhenotypeMap(IndDBase * pinddb) 
 {   
@@ -100,6 +100,7 @@ int PhenotypeMap::set_strata( const std::string & s )
 	  ++i;
 	}
     }
+
 
   //
   // Set actual groupings
@@ -504,4 +505,153 @@ Data::Matrix<double> PhenotypeMap::covariates( const std::vector<std::string> & 
 	}
     }
   return d;
+}
+
+
+void PhenotypeMap::direct_load( const std::string & filename , const std::string & label )
+{
+  
+  Helper::fileExists( filename );
+  InFile f( filename );
+    
+  int expected_col_count = -1;
+  
+  // Details for the single phenotype to load
+  mType mt = META_UNDEFINED;
+  int to_load = 0;
+  std::string mis_code = ".";
+  
+  while ( ! f.eof() )
+    {
+      
+      std::string s = f. readLine();
+      if ( s == "" ) continue;
+      
+      // Meta-information? 
+      
+      if ( s.size() > 2 && s.substr(0,2) == "##" )
+	{
+	  
+	  std::vector<std::string> tok = Helper::quoted_parse( s.substr(2) );
+	  
+	  if ( tok.size() != 4 ) continue;
+	  std::string name = tok[0];	  
+	  if ( name != label ) continue;
+
+	  std::string type = tok[1];
+	  std::string miss = tok[2];
+	  std::string desc = tok[3];
+	  
+	  mis_code = tok[2];
+	  
+	  if ( Helper::is_int( type ) ) 
+	    {
+	      MetaInformation<IndivMeta>::field( name , META_INT , 1 , desc );
+	      mt = META_INT;
+	      phenotype_type = PHE_DICHOT;
+	      phenotype_name = label;
+	    }
+	  else if ( Helper::is_float( type ) ) 
+	    {
+	      MetaInformation<IndivMeta>::field( name , META_FLOAT , 1 , desc );
+	      mt = META_FLOAT;
+	      phenotype_type = PHE_QT;
+	      phenotype_name = label;
+	    }
+	  else 
+	    {
+	      MetaInformation<IndivMeta>::field( name , META_TEXT , 1 , desc );
+	      mt = META_TEXT;
+	      phenotype_type = PHE_FACTOR;
+	      phenotype_name = label;
+	    }
+	  
+	}
+
+      // Or header line?      
+      else if ( s.substr(0,1) == "#" )
+	{
+	  
+	  if ( mt == META_UNDEFINED ) 
+	    Helper::halt( "phenotype " + label + " not defined in header of " + filename );
+
+	  // #ID phe1 phe2 phe3	  
+	  std::vector<std::string> tok = Helper::parse( s , " \t");	  
+	  if ( tok.size() < 2 ) { plog.warn("malformed phenotype file"); continue; } 
+	  if ( tok[0] != "#ID" ) { plog.warn("malformed phenotype file"); continue; } 
+	  
+	  for ( int i = 1 ; i < tok.size(); i++ )
+	    {
+	      if ( tok[i] != label ) continue;
+	      to_load = i;
+	    }
+
+	  if ( to_load == 0 ) 
+	    Helper::halt( "could not find phenotype " + label + " in " + filename );
+	  
+	  expected_col_count = tok.size();
+	}
+      
+      // Or data ? 
+      
+      else 
+	{
+	  
+	  // Skip, if we haven't seen a header
+	  if ( expected_col_count == -1 ) continue;
+	  
+	  std::vector<std::string> tok = Helper::parse( s , " \t");
+	  
+	  if ( tok.size() != expected_col_count ) 
+	    {
+	      plog.warn("row in phenotype file with wrong number of fields");
+	      continue;
+	    }
+	  	  
+	  
+	  Individual * person = ind( tok[0] );
+	  
+	  
+	  //
+	  // If person not in indmap/VCF header, skip
+	  //
+
+	  if ( ! person ) continue;
+	  
+
+	  //
+	  // Insert actual phenotypes
+	  //
+
+	  // skip 
+	  if ( to_load == 0 ) Helper::halt( "phenotype " + label + " not found" );
+
+	  // skip missing values
+	  if ( tok[to_load] == mis_code ) continue;
+	  
+	  // skip invalid values for numerics (as MT will be registered)  
+	  if ( mt == META_INT )
+	    {    
+	      int x;
+	      if ( Helper::str2int( tok[to_load] , x ) )
+		person->meta.set( label , x );
+	    }
+	  else if ( mt == META_FLOAT )
+	    {
+	      double x;
+	      if ( Helper::str2dbl( tok[to_load] , x ) )
+		person->meta.set( label , x );		    
+	    }
+	  else 
+	    {
+	      person->meta.set( label , tok[to_load]  );		    		  		  
+	    }
+	  
+	}
+    }
+  
+  f.close();
+  
+  set_phenotype( label );
+
 }

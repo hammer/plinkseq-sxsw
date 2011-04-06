@@ -278,15 +278,16 @@ std::set<SeqInfo> Annotate::annotate( int chr,
   // Assumptions:
   //
   
-  //   Upper-case allele codes
+  // Upper-case allele codes
   
   // At any one position, we assume an individual has either a 
+
   // *Either* a SNP, insertion or deletion
   // snp .. just flip the base
-
+  
   //  deletions .. obliterates relevant bases in cds splice range, but does
   //  not otherwise impact cds start, stop, splicing, etc.
-
+  
   //  insertions .. adds bases within cds splice range, but does not otherwise
   //  impact cds start, stop, splicing, etc. .. that is, the insertion must
   //  fall after the first base of a cds exon and before the last base of that
@@ -356,10 +357,9 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	{
 
 	  //
-	  // Assume that we have exons as sub-regions
+	  // Assume that we have exons encoded as sub-regions
 	  //
 	  
-
 	  if ( r->subregion.size() == 0 ) 
 	    {
 	      ++r;		
@@ -368,15 +368,15 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  
 
 
-	  // Which exon(s) does this mutation impact
-	  // Pull in neighbouring exon if needed
-	  // Assume all subregions are on the same
-	  // chromosome
+	  // Which exon(s) does this mutation impact?  Pull in
+	  // neighbouring exon if needed. Assume all subregions are on
+	  // the same chromosome
 	  
 	  std::set<int> exons;
 	  std::map<int,int> exon_pos;
 	  int pos = 1;
 	  int in_exon = 0;
+
 	  for ( unsigned int s = 0 ; s < r->subregion.size(); s++ )
 	    {		
 	      
@@ -572,7 +572,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  bool nonsense = false;
 
 
-	  for (unsigned int i=0; i< trans_var.size(); i++)
+	  for ( unsigned int i=0; i< trans_var.size(); i++ )
 	    {
 	      
 	      // for reference -- for substitutions,
@@ -585,9 +585,9 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		  seq_annot_t type = MIS;
 		  if ( trans_var[i] == '*' ) type = NON;
 		  else if ( trans_ref[i] == '*' ) type = RT;
-
+		  
 		  // need to assess frameshifts, and also splice/UTRs
-
+		  
 		  annot.insert( SeqInfo( r->name , 
 					 type , 
 					 pos_whole_transcript , 

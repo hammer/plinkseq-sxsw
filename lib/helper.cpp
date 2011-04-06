@@ -816,6 +816,18 @@ void Helper::ensure_folder( std::string & f)
     f += "/";
 }
 
+std::string Helper::fullpath( const std::string & f)
+{
+
+#ifdef WINDOWS
+  return f;
+#endif
+  
+  if ( f == "" ) Helper::halt("missing filename in fullpath()");  
+  if ( f.substr(0,1) != "/" ) return FileMap::working_directory() + "/" + f;
+  return f;
+}
+
 bool Helper::fileExists(string f)
 {
 
@@ -1180,10 +1192,13 @@ void int_range::set( const std::string & s )
 {
   
   // constrained to positive values
-
+  
   // expect 1-2
   // or     -2      means 0-2 
-  //                    2- inf
+  //        2-            2- inf
+
+  //        2    by default -->  -2  
+
 
   reset();
 
@@ -1191,14 +1206,24 @@ void int_range::set( const std::string & s )
   // explicitly set no filter?
   //
 
-  if ( s == "-" ) return;
+  if ( s == "-" || s == "" ) return;
+  
+  if ( s == "*" || s == "." )
+    {
+      // i.e. everything
+      has_lwr = has_upr = false;
+    }
 
   //
   // Parse, expecting at least one "-"
   //
-
-  std::vector<std::string> tok = parse( s , "-" );
-  if ( tok.size() != 2 && tok.size() != 1 ) return;
+  
+  std::vector<std::string> tok = Helper::char_split( s , ':' , false );
+  if ( tok.size() != 2 ) 
+    {
+      std::vector<std::string> tok2 = Helper::char_split( s , '-' , false );
+      if ( tok2.size() == 2 ) tok = tok2;
+    }
   
   if ( tok.size() == 2 )
     {
@@ -1211,16 +1236,23 @@ void int_range::set( const std::string & s )
 	  upr = t;
 	}
     }
-  else
+  else if ( tok.size() == 1 ) // single char means upper bound (inc. below)
     {
-      // need to go back to string
-      if ( s.substr(0,1) == "-" ) 
+      
+      // 2- means lower bound, otherwise upper:
+      
+      if ( s.substr( s.size()-1 , 1 )  == "-" || s.substr( s.size()-1,1) == ":" )
+	has_lwr = Helper::str2int( tok[0] , lwr );
+      else if ( s.substr(0,1) == ":" || s.substr(0,1) == "-" )
 	has_upr = Helper::str2int( tok[0] , upr );
       else
-	has_lwr = Helper::str2int( tok[0] , lwr );
+	{
+	  has_lwr = Helper::str2int( tok[0] , lwr ); 
+	  has_upr = Helper::str2int( tok[0] , upr ); 	  
+	}    
     }
-
 }
+
 
 bool int_range::in( const int i ) const
 {
@@ -1231,6 +1263,104 @@ bool int_range::in( const int i ) const
 }
 
 
+//
+// prop_range
+//
+
+dbl_range::dbl_range( const std::string & s)
+{
+  set(s);
+}
+
+void dbl_range::reset( )
+{
+  lwr = 0; upr = 0;
+  has_lwr = has_upr = false;
+}
+ 
+void dbl_range::set( const std::string & s )
+{
+
+  // try comma first, as this will allow -ve numbers
+  // -2,2
+
+  bool colon = true;
+  reset();
+
+  if ( s == "-" || s == "" )
+    {
+      return;
+    }
+
+  if ( s == "*" || s == "." )
+    {
+      // i.e. everything
+      has_lwr = has_upr = false;
+      return;
+    }
+  
+  std::vector<std::string> tok = Helper::char_split( s , ':' , false );
+  if ( tok.size() != 2 )
+    {
+      std::vector<std::string> tok2 = Helper::char_split( s , '-' , false );
+      if ( tok2.size() == 2 ) tok = tok2;
+      colon = false;
+    }
+  
+  if ( tok.size() == 2 )
+    {
+      has_lwr = Helper::str2dbl( tok[0] , lwr );
+      has_upr = Helper::str2dbl( tok[1] , upr );
+      if ( lwr > upr ) 
+	{
+	  double t = lwr;
+	  lwr = upr;
+	  upr = t;
+	}
+    }
+  else if ( tok.size() == 1 ) // single char means upper bound (inc. below)
+    {
+
+      // ,2   means  * -- 2
+      // 2,   means  2 -- *
+
+      // 2    means  2 -- 2
+
+      // -2   means  -2 -- -2
+      // 2-   means  2  -- *
+      
+      // 2- means lower bound, otherwise upper:
+      
+      if ( ( colon && s.substr( s.size()-1 , 1 )  == ":" ) 
+	   || ( (!colon) && s.substr( s.size()-1,1) == "-" ) )
+	{
+	  has_lwr = Helper::str2dbl( tok[0] , lwr );
+	}
+      else if ( s.substr(0,1) == ":" )
+	has_upr = Helper::str2dbl( tok[0] , upr ); 
+      else 
+	{
+	  has_lwr = Helper::str2dbl( tok[0] , lwr ); 
+	  has_upr = Helper::str2dbl( tok[0] , upr ); 
+	}
+	
+    }
+  
+}
+
+bool dbl_range::in( const double d ) const
+{
+  //  if ( d < 0 || d > 1 ) return false;
+  if ( has_lwr && d < lwr ) return false;
+  if ( has_upr && d > upr ) return false;
+  return true;
+}
+
+
+
+//
+// delete a file
+//
 
 bool Helper::remove_file( const std::string & f )
 {
@@ -1257,6 +1387,7 @@ std::string Helper::quote_value( const std::string & s )
 
 std::string Helper::unquote( const std::string & s )
 {
+  if ( s == "" ) return s;
   int s1 = s.substr(0,1) == "\"" ? 1 : 0;
   int s2 = s.substr(s.size()-1) == "\"" ? s.size()-1-s1 : s.size()-s1;
   return s.substr(s1,s2);

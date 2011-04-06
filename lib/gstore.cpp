@@ -85,8 +85,7 @@ bool GStore::set_project( const std::string & filename, bool verbose)
 
 bool GStore::register_mask( const Mask & m )
 {
-  // set up the individual map
-  
+  // set up the individual map  
   int n = indmap.populate( vardb , phmap , m );
 
   // register all known meta-types (Var, VarFilter, Gen)

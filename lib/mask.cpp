@@ -92,6 +92,7 @@ std::set<std::string> populate_known_commands()
   s.insert("hwe"); 
   s.insert("maf");
   s.insert("null"); 
+  s.insert("qual");
   s.insert("assume-ref");
   s.insert("downcode");
   s.insert("collapse");
@@ -419,16 +420,26 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
   if ( m.has_field( "obs.nfile" ) )
     {
-      int i = m.get1_int( "obs.nfile" );
-      if ( i != -1 ) count_obs_file( i );
-      else plog.warn("invalid arg for obs.nfile=n");
+      std::vector<std::string> k = m.get_string( "obs.nfile" );
+      if ( k.size() != 1 && k.size() != 2 ) Helper::halt("bad args for obs.nfile");
+      int i1, i2 = 0;      
+      if ( ! Helper::str2int( k[0] , i1 ) ) 
+	plog.warn("invalid arg for obs.nfile=n,{m}");
+      if ( k.size() ==2 && ! Helper::str2int( k[1] , i2 ) ) 
+	plog.warn("invalid arg for obs.nfile=n,{m}");
+      count_obs_file( i1,i2 );
     }
 
   if ( m.has_field( "alt.nfile" ) )
     {
-      int i = m.get1_int( "alt.nfile" );
-      if ( i != -1 ) count_alt_file( i );
-      else plog.warn("invalid arg for alt.nfile=n");
+      std::vector<std::string> k = m.get_string( "alt.nfile" );
+      if ( k.size() != 1 && k.size() != 2 ) Helper::halt("bad args for alt.nfile");
+      int i1, i2 = 0;      
+      if ( ! Helper::str2int( k[0] , i1 ) ) 
+	plog.warn("invalid arg for alt.nfile=n,{m}");
+      if ( k.size() ==2 && ! Helper::str2int( k[1] , i2 ) ) 
+	plog.warn("invalid arg for alt.nfile=n,{m}");
+      count_alt_file( i1,i2 );
     }
 
 
@@ -800,6 +811,12 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       null_filter( m.get1_string( "null" ) );
     }
   
+
+  if ( m.has_field( "qual" ) )
+    {
+      qual_filter( m.get1_string( "qual" ) );
+    }
+
   if ( m.has_field( "case.control" ) )
     {
       std::vector<std::string> k = m.get_string( "case.control" );
@@ -1905,6 +1922,9 @@ void Mask::exclude_filter_any()
 bool Mask::eval_filters( const SampleVariant & v )
 {
   
+  // QUAL filter?
+
+  if ( use_qual_filter && ! qual.in( v.quality() ) ) return false;
 
   // Needs at least 1 inclusion filter, if 1+ includes
   // Needs all required filters, if 1+ requires
@@ -3258,14 +3278,16 @@ void Mask::exclude_var_alt_group( const std::vector<std::string> & f )
 //     }
 }
 
-void Mask::count_obs_file(int i)
+void Mask::count_obs_file(int i, int j)
 {
   obs_file_count = i;
+  obs_file_max = j;
 }
 
-void Mask::count_alt_file(int i)
+void Mask::count_alt_file(int i, int j )
 {
   alt_file_count = i;
+  alt_file_max = j;
 }
 
 
@@ -3343,7 +3365,8 @@ bool Mask::eval_alt_file_filter( Variant & v ) const
   while ( i != req_alt_file.end() )
     {
       SampleVariant * svar = v.fsample( *i );
-      if ( svar && !svar->has_nonreference() ) return false;
+      if ( ! svar ) return false;  // sample must be present, implicitly
+      if ( ! svar->has_nonreference() ) return false;
       ++i;
     }
   
@@ -3379,13 +3402,14 @@ bool Mask::eval_file_count( Variant & v ) const
 {
 
   // Do we have to see at least N samples with the variant observed?
-  if ( obs_file_count ) 
+  if ( obs_file_count || obs_file_max ) 
     {
       if ( v.n_uniq_samples() < obs_file_count ) return false;
+      if ( obs_file_max && v.n_uniq_samples() > obs_file_max ) return false;
     }
 
   // Do we have to see at least N samples with at least one non-reference variant?
-  if ( alt_file_count ) 
+  if ( alt_file_count || alt_file_max ) 
     {
       v.set_first_sample();
       int c=0;
@@ -3393,8 +3417,10 @@ bool Mask::eval_file_count( Variant & v ) const
 	{	  
 	  if ( v.sample().has_nonreference() ) ++c;
 	  if ( c == alt_file_count ) return true;
+	  if ( alt_file_max && c >  alt_file_max   ) return false;
 	  if ( ! v.next_sample() ) break;
 	}
+      return false;
     }
   return true;
 }

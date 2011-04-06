@@ -109,6 +109,12 @@ class PhenotypeMap {
   
   std::string strata() const { return strata_name; }
   
+  //
+  // Directly load
+  //
+
+  void direct_load( const std::string & f , const std::string & l );
+
   
   //
   // Display functions

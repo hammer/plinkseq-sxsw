@@ -483,3 +483,53 @@ BCF * FileMap::add_BCF( const std::string & f )
   return bcf;
 }
 
+
+bool FileMap::append_to_projectfile( const std::string & s)
+{
+  std::string projectfile = special_files.find( FIDX )->second->name();
+  if ( projectfile == "." ) return false;
+  if ( ! Helper::fileExists( projectfile ) )
+    {
+      plog.warn("could not find projectfile",projectfile);
+      return false;
+    }
+
+  // open in append-to-end mode
+  std::ofstream O1( projectfile.c_str() , std::ios::out | std::ios::app );
+  O1 << s << "\n";
+  O1.close();
+}
+
+bool FileMap::remove_from_projectfile( const std::string & s )
+{
+  std::string projectfile = special_files.find( FIDX )->second->name();
+  if ( projectfile == "." ) return false;
+  if ( ! Helper::fileExists( projectfile ) )
+    {
+      plog.warn("could not find projectfile",projectfile);
+      return false;
+    }
+
+  // open in append-to-end mode
+  InFile O1( projectfile );
+  std::vector<std::string> lines;
+  while ( ! O1.eof() )
+    {
+      std::string l = O1.readLine();
+      if ( l == "" ) continue;
+      std::vector<std::string> tok = Helper::char_split(l,'\t');
+      if ( ! ( tok[0] == s || ( tok.size()>1 && tok[1] == s ) )  ) lines.push_back(l);
+    }
+  O1.close();
+  
+  // write back out, 
+  //  OutFile O2( projectfile );
+  for (int l=0;l<lines.size();l++)
+    {
+      std::cout << lines[l] << "\n";
+    }
+  //  O2.close();
+
+
+  // write
+}

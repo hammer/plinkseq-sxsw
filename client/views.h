@@ -84,6 +84,9 @@ struct OptVView {
     gmeta = false;
     vexpand = false;
     show_samples = false;
+    show_nonmissing_geno = true;
+    show_only_minor = false;
+    show_only_alt = false;
   }
   
   bool vmeta;
@@ -91,6 +94,9 @@ struct OptVView {
   bool gmeta;
   bool vexpand;
   bool show_samples;
+  bool show_nonmissing_geno;
+  bool show_only_minor;
+  bool show_only_alt;
 };
 
 

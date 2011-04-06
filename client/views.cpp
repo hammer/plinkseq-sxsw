@@ -53,19 +53,19 @@ void f_view( Variant & v , void * p )
 	       << sample.file_name() << "\t"
 	       << sample << "\t"
 	       << sample.filter();
-
+	  
 	  if ( opt->vmeta ) 
 	    {
 	      if ( opt->vexpand ) plog << "\n" << sample.meta.display();
 	      else plog << "\t" << sample.meta ;
 	    }
-
+	  
 	  plog << "\n";
-
+	  
 	  if ( ! v.next_sample() ) break;
 	}      
     }
-
+  
 
   //
   // Show genotypes and genotype meta-information? One row per individual
@@ -73,11 +73,24 @@ void f_view( Variant & v , void * p )
   
   if ( opt->geno )
     {
+      bool altmin = true;
+      if ( opt->show_only_minor ) 
+	{
+	  int c , c_tot;
+	  altmin = v.n_minor_allele( c , c_tot );
+	}
       
+	
       const int n = v.size();
       
       for ( int i=0; i<n; i++)
 	{
+
+	  // show null and/or major genotypes?
+
+	  if ( (!opt->show_nonmissing_geno) && v(i).null() ) continue;
+	  if ( opt->show_only_alt   && ! v(i).nonreference() ) continue;
+	  if ( opt->show_only_minor && v(i).minor_allele_count( altmin ) <= 0 ) continue;	  
 	  
 	  plog << v.ind( i )->id() << "\t";
 	  
@@ -787,7 +800,7 @@ void f_simple_counts( Variant & var , void * p )
   
   // Output
 
-  plog << "chr" << var.chromosome() << ":" << var.position() ;
+  plog << Helper::chrCode( var.chromosome() ) << ":" << var.position() ;
   plog << "\t" << ( ma ? var.alternate() + "/" + var.reference() : var.reference() + "/" + var.alternate() ) ;
 
   if ( data->dichot_pheno )
@@ -795,7 +808,14 @@ void f_simple_counts( Variant & var , void * p )
 	 << "\t" << control_count ;
   else
     plog << "\t" << case_count ;
-  
+
+  if ( data->dichot_pheno )
+    plog << "\t" << case_tot 
+	 << "\t" << control_tot;
+  else
+    plog << "\t" << case_tot;
+
+
   if ( data->apply_annot ) 
     plog << "\t" << annot
 	 << "\t" << ( gene == "" ? "." : gene ) 
@@ -846,7 +866,9 @@ bool Pseq::VarDB::header_VCF( const bool show_meta ,
 
   tmpdb.begin();
 
-  
+  bool show_dichot_pheno = g.phmap.type() == PHE_DICHOT;
+  bool show_qt = g.phmap.type() == PHE_QT;
+
   while ( 1 ) 
     { 
       
@@ -861,7 +883,12 @@ bool Pseq::VarDB::header_VCF( const bool show_meta ,
 	{
 	  int n = imap.populate( tmpdb , g.phmap , mask );
 	  for (int i=0; i<n; i++)
-	    plog << imap(i)->id() << "\n";
+	    {	      
+	      plog << imap(i)->id();
+	      if ( show_dichot_pheno ) plog << "\t" << imap(i)->affected();
+	      else if (show_qt ) plog << "\t" << imap(i)->qt();   
+	      plog << "\n";
+	    }
 	}
       
       if ( l == VCFReader::VCF_VARIANT ) break; // assume no more meta-info

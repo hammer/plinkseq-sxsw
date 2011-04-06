@@ -524,7 +524,8 @@ namespace Helper
   bool checkFileExists(std::vector<std::string>);
   bool checkFileExists(File *);
   bool checkFileRectangular(File *);
-  
+  std::string fullpath( const std::string & );
+
   ////////////////////////////
   // Pretty-printing
   
@@ -649,9 +650,23 @@ struct int_string_pair {
 
 
 class int_range {
+
   int lwr, upr;
   bool has_lwr, has_upr;  
+
  public:
+
+  friend std::ostream & operator<<( std::ostream & out , const int_range & r )
+  {
+    if ( r.has_lwr ) out << r.lwr ; else out << "*";
+    if ( r.has_upr ) 
+      {
+	if ( r.upr != r.lwr || ! r.has_lwr ) out << ":" << r.upr ; 
+      }
+    else 
+      if ( r.has_lwr ) out << ":*";
+  }
+
   int_range() { reset(); }
   int_range( const std::string & );
   void set( const std::string & );
@@ -660,6 +675,60 @@ class int_range {
   bool in( const int i ) const; 
   int lower() const { return has_lwr ? lwr : -1; }
   int upper() const { return has_upr ? upr : -1; }  
+
+  bool operator<( const int_range & rhs ) const
+  {
+    if ( rhs.has_lwr && ! has_lwr ) return true;
+    if ( has_lwr && ! rhs.has_lwr ) return false;
+    if ( has_lwr ) 
+      {
+	if ( lwr < rhs.lwr ) return true;
+	if ( lwr > rhs.lwr ) return false;
+      }    
+    if ( rhs.has_upr & ! has_upr ) return false;
+    if (     has_upr & ! rhs.has_upr ) return true;    
+    return upr < rhs.upr;   
+  }
 };
+
+class dbl_range {
+  double lwr, upr;
+  bool has_lwr, has_upr;  
+ public:
+
+  friend std::ostream & operator<<( std::ostream & out , const dbl_range & r )
+  {
+    if ( r.has_lwr ) out << r.lwr ; else out << "*";
+    if ( r.has_upr ) 
+      {
+	if ( r.upr != r.lwr || ! r.has_lwr ) out << ":" << r.upr ; 
+      }
+    else 
+      if ( r.has_lwr ) out << ":*";
+    return out;
+  }
+  dbl_range() { reset(); }
+  dbl_range( const std::string & );
+  void set( const std::string & );
+  void reset();
+  void set( const double a, const double b ) { lwr=a; upr=b; has_lwr=has_upr=true; }
+  bool in( const double d ) const; 
+  double lower() const { return has_lwr ? lwr : 0; }
+  double upper() const { return has_upr ? upr : 0; }  
+  bool operator<( const dbl_range & rhs ) const
+  {
+    if ( rhs.has_lwr && ! has_lwr ) return true;
+    if ( has_lwr && ! rhs.has_lwr ) return false;
+    if ( has_lwr ) 
+      {
+	if ( lwr < rhs.lwr ) return true;
+	if ( lwr > rhs.lwr ) return false;
+      }    
+    if ( rhs.has_upr & ! has_upr ) return false;
+    if (     has_upr & ! rhs.has_upr ) return true;    
+    return upr < rhs.upr;   
+  }
+};
+
 
 #endif

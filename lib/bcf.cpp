@@ -2,14 +2,100 @@
 #include "variant.h"
 #include "vardb.h"
 #include "gstore.h"
+#include "meta.h"
 
 #include <iostream>
 
 extern GStore * GP;
 
+
+void BCF::set_types()
+{
+  
+  // Note -- currently no support for FORMAT FLAG items in this implementation of BCF
+
+  // BCF recognised tags are:
+  //                                       Length in bytes
+  //                                       ----------------------
+  //     DP     uint16_t                   sizeof(uint16_t) * n
+  //     GL     float   (*ngen)            sizeof(float) * g * n 
+  //     GT     uint8_t                    sizeof(uint8_t) * n
+  //     GQ     uint8_t                    sizeof(uint8_t) * n
+  //     HQ     uint8_t (*2)               sizeof(uint8_t) * 2 * n
+  //     PL     uint8_t (*ngen)            sizeof(uint8_t) * g * n
+  //     SP     uint8_t                    sizeof(uint8_t) * n
+  //     misc   int32_t + char*            sizeof(int32_t) + value
+
+  //   enum bcf_meta_t {
+  //     BCF_undef = 0 , 
+  //     BCF_uint8 , 
+  //     BCF_uint16 , 
+  //     BCF_int32 , 
+  //     BCF_uint32 , 
+  //     BCF_uint64 ,
+  //     BCF_float , 
+  //     BCF_double , 
+  //     BCF_flag , 
+  //     BCF_char ,
+  //     BCF_string };   
+  
+  
+  bcftype.clear();
+  
+  // Encode all known meta-fields in this format:
+  
+  std::vector<std::string> keys = MetaInformation<GenMeta>::field_names();
+  for (int k = 0 ; k < keys.size(); k++)
+    {
+      
+      if ( ! MetaMeta::display( keys[k] ) ) continue;
+
+      // BCF   Means                  Internal
+      // ------------------------------------------
+      // 2     2                      2
+      // 1     1                      1
+      // ?     ?                      0 (flag)
+      // 0     variable-length        -1 (v-length)
+      // -1    # alt alleles          -1
+      // -2    # alleles              -1
+      // -3    # genotypes            -1
+
+      meta_index_t midx = MetaInformation<GenMeta>::field( keys[k] );
+      int len = midx.len;
+      if ( len ==  0 )      len == 1;  // flag is always 1 bit (0/1)
+      else if ( len == -1 ) len == 0;  // 0 is BCF variable length code
+      
+      if      ( midx.mt == META_INT   ) bcftype[ keys[k] ] = bcf_meta_t( BCF_int32  , len );	
+      else if ( midx.mt == META_FLOAT ) bcftype[ keys[k] ] = bcf_meta_t( BCF_double , len );
+      else if ( midx.mt == META_TEXT  ) bcftype[ keys[k] ] = bcf_meta_t( BCF_string , len );
+
+      //      else if ( midx.mt == META_FLAG  ) bcftype[ keys[k] ] = bcf_meta_t( BCF_flag   , 1   );
+      
+    }
+
+  
+  // Over-ride with some special, default hard-coded types
+  
+  bcftype[ "DP" ] = bcf_meta_t( BCF_uint16    , 1 );
+  bcftype[ "GL" ] = bcf_meta_t( BCF_float     , -3 );  // -3 is # genotypes
+  bcftype[ "GT" ] = bcf_meta_t( BCF_genotype  , 1 );
+  bcftype[ "GQ" ] = bcf_meta_t( BCF_uint8     , 1 );
+  bcftype[ "HQ" ] = bcf_meta_t( BCF_uint8     , 2 );
+  bcftype[ "PL" ] = bcf_meta_t( BCF_uint8     , -3 );
+  bcftype[ "SP" ] = bcf_meta_t( BCF_uint8     , 1 );
+  bcftype[ "AD" ] = bcf_meta_t( BCF_uint16    , -2 ); // per allele
+  bcftype[ "EC" ] = bcf_meta_t( BCF_float     , -1 ); // per alt-allele
+  
+  // Only the FORMAT fields are encoded here.
+
+}
+
+
 bool BCF::open()
 {
+
   if ( file ) close();
+
   if ( readmode )
     file = bgzf_open( filename.c_str(), "r" );
   else
@@ -31,6 +117,7 @@ void BCF::close()
 
 void BCF::read_header( VarDBase * v )
 {
+  
   // has a VARDB been specified?
   if ( v ) vardb = v;
 
@@ -48,6 +135,7 @@ void BCF::read_header( VarDBase * v )
   std::string mtext;
   if ( ! read( mtext ) ) Helper::halt( "problem with format of BCF header(4) " );   
   // F not '.' for empty slot  
+  
   hdr.meta_text = Helper::char_split( mtext , '\n' , false ); 
   
   // Assign to VarDB
@@ -66,10 +154,10 @@ void BCF::read_header( VarDBase * v )
       if ( f == NULL ) Helper::halt( "internal error in BCF class, parsing header"  );
       
       // NULL means no SEQDB attached for now, i.e no REF checking
-      VCFReader v( f , f->tag() , vardb , NULL );
+      VCFReader vcf( f , f->tag() , vardb , NULL );
       
       // Get file-ID (would have been created from VARDB)
-      file_id = v.group_id();
+      file_id = vcf.group_id();
       
       // Chromosome codes
       // ??
@@ -89,15 +177,19 @@ void BCF::read_header( VarDBase * v )
       vardb->store_bcf_n( file_id , filename , n );
 
       plog << "added " << hdr.sample_names.size() << " individuals from BCF " << filename << "\n";
-
+      
       // Meta-fields
-      v.insert_meta( "##format=BCF4.0" );
+      vcf.insert_meta( "##format=BCF4.0" );
+      
       for (int i=0; i<hdr.meta_text.size(); i++)
-	{	  	  
-	  v.insert_meta( hdr.meta_text[i] );	  
+	{
+	  vcf.insert_meta( hdr.meta_text[i] );
 	}
     }
-
+  
+  // refresh bcftypes()
+  set_types();
+  
 }
 
 
@@ -118,14 +210,16 @@ std::string BCF::vcf_header()
   return vcf;
 }
 
+
 bool BCF::index_record( )
 {
+  
   // requires an attached VARDB
   if ( ! vardb ) return false;
   
   // track offset for this variant
   int64_t offset = tell();
-
+  
   // we do not need to process information here
 
   int32_t seq_id; 
@@ -137,22 +231,25 @@ bool BCF::index_record( )
   if ( ! read( bp ) ) return false;
   if ( ! read( qual ) ) return false;
   if ( ! read( mstr ) ) return false;
-  
+
   std::vector<std::string> alt = Helper::char_split( mstr[2] , ',' );
-  int nalt = alt.size() + 1;
-  int ngen = (int) (nalt * (nalt+1) * 0.5);
+  int nallele = alt.size() + 1;
+  int ngen = (int) (nallele * (nallele+1) * 0.5);
   
   Variant var;
   var.chromosome( Helper::chrCode( hdr.seq_names[ seq_id ] ) );
   var.position( bp );
   var.stop( bp + mstr[1].size() - 1 );
+  var.name( mstr[0] == "" ? "." : mstr[0] );
   
-  // TODO: change this to calculate a single # of bytes and read/skip those
+
+  // ** TODO ** change this to calculate a single # of bytes and read/skip those
+
   std::vector<std::string> format = Helper::char_split( mstr[5] , ':' );
   
   for ( int t = 0 ; t < format.size(); t++ )
     {
-      
+
       // BCF recognised tags are:
       //                                       Length in bytes
       //                                       ----------------------
@@ -164,77 +261,107 @@ bool BCF::index_record( )
       //     PL     uint8_t (*ngen)            sizeof(uint8_t) * 2 * n
       //     SP     uint8_t                    sizeof(uint8_t) * n
       //     misc   int32_t + char*            sizeof(int32_t) + value
+      
+      // Look-up BCF type
+      
+      std::map<std::string,bcf_meta_t>::iterator ii = bcftype.find( format[t] );
 
-      if ( format[t] == "DP" ) 
+      if ( ii == bcftype.end() ) 
+	Helper::halt( "could not deal with meta-type " + format[t] );
+
+      int nelem = ii->second.len;
+      bool vlen = nelem == 0;
+      if ( nelem == -1 ) nelem = nallele - 1;
+      else if ( nelem == -2 ) nelem = nallele;
+      else if ( nelem == -3 ) nelem = ngen;
+      
+      // Scan through only
+      if ( ii->second.type == BCF_uint16 ) 
 	{	  
+	  uint16_t dp; 
 	  for ( int per = 0 ; per < n ; per++ )
 	    {
-	      uint16_t dp; 
-	      if ( ! read(dp) ) return false;
-	    }
-	  
-	}
-      else if ( format[t] == "GL" )
-	{
-	  for ( int per = 0 ; per < n ; per++ )
-	    {
-	      float gl;
-	      for (int g=0; g<ngen; g++) 
-		if ( ! read( gl ) ) return false;
-	    }	  
-	}
-      else if ( format[t] == "GT" )
-	{
-	  for ( int per = 0 ; per < n ; per++ )
-	    {
-	      uint8_t gt;
-	      if ( ! read( gt ) ) return false;
-	    }
-	}
-      else if ( format[t] == "GQ" )
-	{
-	  for ( int per = 0 ; per < n ; per++ )
-	    {
-	      uint8_t x;
-	      if ( ! read( x ) ) return false;
-	    }
-	  
-	}
-      else if ( format[t] == "HQ" )
-	{
-	  for ( int per = 0 ; per < n ; per++ )
-	    {
-	      uint8_t x,y;
-	      if ( ! read( x ) ) return false;
-	      if ( ! read( y ) ) return false;
-	    }
-	  
-	}
-      else if ( format[t] == "PL" )
-	{	  
-	  for ( int per = 0 ; per < n ; per++ )
-	    {
-	      uint8_t pl0;
-	      for (int g=0; g<ngen; g++) 
+	      if ( vlen ) read(nelem);
+	      for (int g=0; g < nelem; g++) 
 		{
-		  if ( ! read( pl0 ) ) return false;
+		  if ( ! read(dp) ) return false;		  
 		}
 	    }
 	}
-      else if ( format[t] == "SP" ) 
+//       else if ( ii->second.type == BCF_flag )
+// 	{
+// 	  // use uint8_t; always 1 element per genotype exactly
+// 	  uint8_t x; 
+// 	  for ( int per = 0 ; per < n ; per++ )
+// 	    if ( ! read(x) ) return false;	  
+// 	}      
+      else if ( ii->second.type == BCF_float )
 	{
+	  float gl;
+
 	  for ( int per = 0 ; per < n ; per++ )
 	    {
-	      uint8_t x;
-	      if (! read( x ) ) return false;
+	      if ( vlen ) read(nelem);
+	      for (int g=0; g<nelem; g++) 
+		if ( ! read( gl ) ) return false;
+	    }
+	}	 	
+      else if ( ii->second.type == BCF_uint8 )
+	{
+	  uint8_t x; 
+	  for ( int per = 0 ; per < n ; per++ )
+	    {
+	      if ( vlen ) read(nelem);
+	      for (int g=0; g < nelem; g++) 
+		{
+		  if ( ! read(x) ) return false;
+		}
 	    }
 	}
-      else
-	plog.warn( "unrecognise tag in BCF", format[t] );
-      
+      else if ( ii->second.type == BCF_int32 )
+	{
+	  int32_t x; 
+	  for ( int per = 0 ; per < n ; per++ )
+	    {
+	      if ( vlen ) read(nelem);
+	      for (int g=0; g < nelem; g++) 
+		if ( ! read(x) ) return false;
+	    }
+	}
+      else if ( ii->second.type == BCF_double ) 
+	{
+	  double x; 
+	  for ( int per = 0 ; per < n ; per++ )
+	    {
+	      if ( vlen ) read(nelem);
+	      for (int g=0; g < nelem; g++) 
+		if ( ! read(x) ) return false;
+	    }
+	}
+      else if ( ii->second.type == BCF_string )
+	{
+	  std::string x;
+	  for ( int per = 0 ; per < n ; per++ )
+	    {
+	      if ( vlen ) read(nelem);
+	      for (int g=0; g < nelem; g++) 
+		if ( ! read(x) ) return false;	  
+	    }
+	}
+      else if ( ii->second.type == BCF_genotype )
+	{
+	  uint8_t x; 
+	  for ( int per = 0 ; per < n ; per++ )
+	    {
+	      if ( vlen ) read(nelem);
+	      for (int g=0; g < nelem; g++) 
+		{
+		  if ( ! read(x) ) return false;
+		}
+	    }
+	}      
+
     } // next FORMAT-specified tag
-  
-  //  std::cout << var << "\t" << offset << "\n";
   
   // Add offset to DB
   vardb->insert_bcf_index( file_id , var , offset );
@@ -245,7 +372,7 @@ bool BCF::index_record( )
 
 bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & svar_g )
 {
-  
+
   int32_t seq_id;                 // 'chromosome' code  
   int32_t bp;                     // position (BP1)  
   float qual;                     // quality score
@@ -256,7 +383,7 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
   if ( ! read( qual ) ) return false;
   if ( ! read( mstr ) ) return false;  
   if ( mstr.size() < 6 ) return false;
-
+  
   // check that Variant spec (chr/bp) from VARDB matches what is in
   // the BCF (although chr. coding will be different -- can check that
   // bp matches though)
@@ -268,9 +395,9 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
   // Read genotype; # alleles based on ALT tag, comma-sep values
   
   std::vector<std::string> alt = Helper::char_split( mstr[2] , ',' );
-  int nalt = alt.size() + 1;
-  int ngen = (int) (nalt * (nalt+1) * 0.5);
-  
+  int nallele = alt.size() + 1;
+  int ngen = (int) (nallele * (nallele+1) * 0.5);
+
 
   //
   // Populate Sample Variant -- variant-level information
@@ -280,7 +407,7 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
   // so we can skip these Variant-level attributes here
 
   // Add SampleVariant core attributes
-
+  
   svar.quality( qual );
   svar.reference( mstr[1] );
   svar.alternate( mstr[2] );
@@ -303,20 +430,6 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
   
   std::vector<std::string> format = Helper::char_split( mstr[5] , ':' );
 
-
-  // BCF recognised tags are:
-  //                                       Length in bytes
-  //                                       ----------------------
-  //     DP     uint16_t                   sizeof(uint16_t) * n
-  //     GL     float   (*ngen)            sizeof(float) * g * n 
-  //     GT     uint8_t                    sizeof(uint8_t) * n
-  //     GQ     uint8_t                    sizeof(uint8_t) * n
-  //     HQ     uint8_t (*2)               sizeof(uint8_t) * 2 * n
-  //     PL     uint8_t (*ngen)            sizeof(uint8_t) * g * n
-  //     SP     uint8_t                    sizeof(uint8_t) * n
-  //     misc   int32_t + char*            sizeof(int32_t) + value
-  
-  
   // Indicate that this SampleVariant contains a BCF-derived buffer
   // Fill buffer as direct raw byte sequence from BCF, for later parsing
 
@@ -331,176 +444,90 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
   
   for ( int t = 0 ; t < format.size(); t++ )
     {
-
+      
       int p = buf_sz;
       
-      if ( format[t] == "DP" ) 
+      std::map<std::string,bcf_meta_t>::iterator ii = bcftype.find( format[t] );
+      
+      if ( ii == bcftype.end() ) 
+	Helper::halt( "could not deal with meta-type " + format[t] );
+      
+      int nelem = ii->second.len;
+      bool vlen = nelem == 0;
+      if ( nelem == -1 ) nelem = nallele - 1;
+      else if ( nelem == -2 ) nelem = nallele;
+      else if ( nelem == -3 ) nelem = ngen;
+      
+      if ( ii->second.type == BCF_uint16 )
 	{
-	  buf_sz += n * sizeof(uint16_t);
+	  buf_sz += n * nelem * sizeof(uint16_t);
 	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * sizeof(uint16_t) );
+	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(uint16_t) );
 	}
-      else if ( format[t] == "GL" ) 
+      else if ( ii->second.type == BCF_float )
 	{
-	  buf_sz += n * ngen * sizeof(float);
+	  buf_sz += n * nelem * sizeof(float);
 	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * ngen * sizeof(float) );	  
+	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(float) );	  
 	}
-      else if ( format[t] == "PL" ) 
+      else if ( ii->second.type == BCF_uint8 )
 	{
-	  buf_sz += n * ngen * sizeof(uint8_t);
+	  buf_sz += n * nelem * sizeof(uint8_t);
 	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * ngen * sizeof(uint8_t) );	  
+	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(uint8_t) );	  
 	}
-      else if ( format[t] == "GT" ) 
+      else if ( ii->second.type == BCF_double )
 	{
-	  buf_sz += n * sizeof(uint8_t);
+	  buf_sz += n * nelem * sizeof(double);
 	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * sizeof(uint8_t) );	  
+	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(double) );	  
 	}
-      else if ( format[t] == "GQ" )
+      else if ( ii->second.type == BCF_int32 )
 	{
-	  buf_sz += n * sizeof(uint8_t);
+	  buf_sz += n * nelem * sizeof(int32_t);
 	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * sizeof(uint8_t) );	  
+	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(int32_t) );	  
 	}
-      else if ( format[t] == "HQ" ) 
+      else if ( ii->second.type == BCF_string ) 
 	{
-	  buf_sz += 2 * n * sizeof(uint8_t);
+	  for (int i=0;i<n;i++)
+	    {
+	      int32_t len;
+	      read( len );
+	      buf_sz += nelem * sizeof(int32_t) + len;
+	      
+	      svar_g.bcf_genotype_buf.resize( buf_sz );
+	      
+	      // swap length in
+	      uint8_t * d = (uint8_t*)len;
+	      svar_g.bcf_genotype_buf[p] = d[0];
+	      svar_g.bcf_genotype_buf[p+1] = d[1];
+	      svar_g.bcf_genotype_buf[p+2] = d[2];
+	      svar_g.bcf_genotype_buf[p+3] = d[3];
+	      
+	      // read text
+	      read( &(svar_g.bcf_genotype_buf)[ p+4 ] , len );
+	    }
+	  
+	}
+      else if ( ii->second.type == BCF_genotype )
+	{
+	  
+	  // NOTE: currently, assume genotype is uint8_t
+	  
+	  buf_sz += n * nelem * sizeof(uint8_t);
 	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , 2 * n * sizeof(uint8_t) );	  
+	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(uint8_t) );	  
 	}
-      else if ( format[t] == "SP" ) 
-	{
-	  buf_sz += n * sizeof(uint8_t);
-	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * sizeof(uint8_t) );	  
-	}
-      else 
-	{
-	  int32_t len;
-	  read( len );
-	  svar_g.bcf_genotype_buf.resize( buf_sz + sizeof(int32_t) + len );
-	  uint8_t * d = (uint8_t*)len;
-	  svar_g.bcf_genotype_buf[p] = d[0];
-	  svar_g.bcf_genotype_buf[p+1] = d[1];
-	  svar_g.bcf_genotype_buf[p+2] = d[2];
-	  svar_g.bcf_genotype_buf[p+3] = d[3];
-	  read( &(svar_g.bcf_genotype_buf)[ p+4 ] , len );
-	}
+
     }
   
-  // now we've finished building the BCF genotype buffer; this may get
-  // expanded later (i.e. given a Mask, not everybody will be
-  // extracted) necessarily.
+  // now we've finished building the BCF genotype buffer; this may (or
+  // may not) get expanded later, as needed given the Mask
 
   return true;
+
 }
-
-
-  
-// 	  MetaInformation<GenMeta>::field( "DP", META_INT , 1, "Read depth" );	      
-// 	  for ( int per = 0 ; per < n ; per++ )
-// 	    {
-// 	      uint16_t dp; 
-// 	      read(dp);
-// 	      svar_g.calls.genotype(per).meta.set( "DP" , (int)dp );		  
-// 	    }
-	  
-// 	}
-//       else if ( format[t] == "GT" )
-// 	{
-// 	  for ( int per = 0 ; per < n ; per++ )
-// 	    {
-// 	      uint8_t gt;
-// 	      read( gt );
-	      
-// 	      // genotype encoded phase << 6 | allele1 << 3 | allele2 
-	      
-// 	      Genotype g( &var );
-	      
-// 	      g.null(   ( gt >> 7 ) & 1 );
-// 	      g.phased( ( gt >> 6 ) & 1 );
-	      
-// 	      // TMP -- for now, ignore >2 alleles, but casting to bools
-	      
-// 	      g.pat( ( gt >> 3 ) & 7 );
-// 	      g.mat( gt & 7 );
-	      
-// 	      svar_g.calls.genotype(per) = g;
-	      
-// 	    }
-// 	}
-//       else if ( format[t] == "GQ" )
-// 	{
-	  
-// 	  MetaInformation<GenMeta>::field( "GQ" , META_INT , 1 , "Genotype Quality score (phred-scaled)" );
-	  
-// 	  for ( int per = 0 ; per < n ; per++ )
-// 	    {
-// 	      uint8_t x;
-// 	      read( x );
-// 	      svar_g.calls.genotype(per).meta.set( "GQ" , (int)x );
-// 	    }
-	  
-// 	}
-//       else if ( format[t] == "HQ" )
-// 	{
-// 	  MetaInformation<GenMeta>::field( "HQ" , META_INT , 2 , "Haplotype Quality score (phred-scaled)" );
-	  
-// 	  for ( int per = 0 ; per < n ; per++ )
-// 	    {
-// 	      uint8_t x,y;
-// 	      read( x );
-// 	      read( y );
-// 	      std::vector<int> hq(2);
-// 	      hq[0]=x; hq[1]=y;
-// 	      svar_g.calls.genotype(per).meta.set( "HQ" , hq );
-// 	    }
-	  
-// 	}
-//       else if ( format[t] == "PL" )
-// 	{
-	  
-// 	  MetaInformation<GenMeta>::field( "PL" , META_INT , -1 , "Phred-scaled genotype likelihood" );
-	  
-// 	  for ( int per = 0 ; per < n ; per++ )
-// 	    {
-// 	      std::vector<int> pl(ngen); 
-// 	      uint8_t pl0;
-// 	      for (int g=0; g<ngen; g++) 
-// 		{
-// 		  read( pl0 );		  
-// 		  pl[g] = pl0;
-// 		}
-// 	      svar_g.calls.genotype(per).meta.set( "PL" , pl );
-// 	    }
-	  
-// 	}
-//       else if ( format[t] == "SP" ) 
-// 	{
-	  
-// 	  MetaInformation<GenMeta>::field( "SP" , META_INT , 1 , "Strand Bias p-value (bcftools)" );
-	  
-// 	  for ( int per = 0 ; per < n ; per++ )
-// 	    {
-// 	      uint8_t x;
-// 	      read( x );
-// 	      svar_g.calls.genotype(per).meta.set( "SP" , (int)x );
-// 	    }
-// 	}
-//       else
-// 	plog.warn( "unrecognised tag in BCF", format[t] );
-      
-      
-//     } // next FORMAT-specified tag
-  
-// //   for ( int per = 0 ; per < n ; per++ )
-// //     std::cout << "in " << per << "\t" << svar_g.calls.genotype(per) << "\t" << svar_g.calls.genotype(per).meta << "\n";
-  
-//   return true;
-  
-// }
 
 
 
@@ -511,25 +538,22 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
 }
 
 
-bool BCF::vcf2bcf( const std::string & vcfname , const std::string & bcfname )
+bool BCF::create_header()
 {
-
-  // Get VCF
-  if ( ! Helper::fileExists( vcfname ) )
-    {
-      plog.warn( "could not find VCF" , vcfname );
-      return false;
-    }
-  InFile vcf( vcfname );
   
-  // Open a new BCF for writing
-  filename = bcfname;
   writing();
   open();
   hdr.clear();
 
-  
-  // For now, assume we'll encounter only 'normal' chromosome/sequence codes
+  // Set # of individuals
+
+  n = GP->indmap.size();
+
+  //
+  // For now, assume we'll encounter only 'normal' chromosome/sequence
+  // codes
+  //
+
   for (int c=1;c<=22;c++)
     {
       hdr.seq_names.push_back( "chr" + Helper::int2str( c ) );
@@ -546,139 +570,34 @@ bool BCF::vcf2bcf( const std::string & vcfname , const std::string & bcfname )
   hdr.seq_map.clear();
   for (int i=0; i<hdr.seq_names.size(); i++)
     hdr.seq_map[ hdr.seq_names[i] ] = i;
+
   
-  std::string mtext = "";
-
-  // Start parsing VCF, first the header
-
-  while ( ! vcf.eof() ) 
-    {
-      std::string l = vcf.readLine();
-      if ( l == "" ) continue;
-      if ( l.size() < 2 ) continue;
-      // meta text
-      if ( l.substr(0,2) == "##" ) mtext += l + "\n";
-      // header
-      else if ( l.substr(0,1) == "#" ) 
-	{
-	  
-	  // silly fix, but get rid of trailing tab in GATK VCF header
-	  const int len = l.size();
-	  if ( l.substr( len - 1) == "\t" ) 
-	    l = l.substr( 0 , len-1 );
-
-	  std::vector<std::string> t = Helper::char_split( l , '\t' );
-	  // skip forst 9 fields (0-8)
-	  for (int i=9; i<t.size(); i++)
-	    hdr.sample_names.push_back(t[i]);
-	  n = hdr.sample_names.size();
-	  break;
-	}
-    }
+  // Sample IDs
   
+  const int n = GP->indmap.size();
+  hdr.sample_names.clear(); 
+  for ( int i=0; i<n; i++) 
+    hdr.sample_names.push_back( GP->indmap(i)->id() );
+
+
+  // Meta-fields from INFO, FORMAT and FILTER
+
+  std::string mtext = "##source\n" 
+    + MetaInformation<VarMeta>::headers( ) 
+    + MetaInformation<GenMeta>::headers( META_GROUP_GEN ) 
+    + MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
+
   // F means no empty fields (i.e. last row otherwise)
-  hdr.meta_text = Helper::char_split( mtext , '\n' , false );
+  // but that should not be a problem in any case
+  hdr.meta_text = Helper::char_split( mtext , '\n' , false );  
   
   // Write header info to BCF
   write_header();
-
+  
+  set_types();
+  
   plog << "inserted header into BCF, " << n << " individuals\n";
-  int inserted = 0;
-
-  // process each variant row until end of file
-  while ( ! vcf.eof() ) 
-    {
-
-      // read line from VCF
-      std::string s = vcf.readLine();
-      if ( s == "" ) continue;
-
-      // Parse to make a Variant
-
-      std::vector<std::string> tok
-	= Helper::char_split(  s[ s.size()-1] == '\n' ?
-			       s.substr( 0 , s.size() - 1 ) :
-			       s , '\t' );
-
-      Variant var( true );
-      
-      // valid VCF row?
-      if ( tok.size() < 8 ) continue;
-
-      // store chr code as per BCF header
-      var.chromosome( Helper::chrCode( hdr.seq_map[ tok[0] ] ) );
-
-      int pos;
-      Helper::str2int( tok[1] , pos );
-      var.position( pos );
-      var.stop( tok[3].size() == 1 ? 0 : pos + tok[3].size() - 1 );
-
-      // store as NULL if missing
-      var.name( tok[2] == "." ? "" : tok[2] );
-      
-      var.consensus.reference( tok[3] );
-      var.consensus.alternate( tok[4] );
-      
-      double qual;
-      Helper::str2dbl( tok[5] , qual );
-      
-      var.consensus.quality(qual);
-      
-      var.consensus.filter( tok[6] == "." ? "" : tok[6] );
-      var.consensus.info( tok[7] == "." ? "" : tok[7] );
-      
-      // no genotype data
-      if ( tok.size() > 8 )
-	{
-      
-	  // store format string, to be parsed later
-	  var.consensus.bcf_format = tok[8];
-
-	  // Parse the format specifier, and attach the the variant, so that
-	  // genotypes can be called.
-	  
-	  VariantSpec * ps = SampleVariant::decoder.decode( var.consensus.bcf_format + " " + tok[3] + " " + tok[4] );
-	  var.consensus.specification( ps );
-	  
-	  // Call genotypes, add to variant
-	  int gcnt = 0;
-	  for (int i=9;i<tok.size(); i++)
-	    {
-	      Genotype g = ps->callGenotype( tok[i] , &var ); 
-	      var.consensus.calls.add( g );
-	      ++gcnt;
-	    }
   
-	  
-	  // Did we see the correct number of genotypes?
-      
-	  if ( gcnt != n )
-	    {
-	      plog.warn( "incorrect number of genotypes: " 
-			 + Helper::int2str( gcnt) + " observed, " 
-			 + Helper::int2str( n ) + " expected" ) ;
-	      var.valid( false );
-	    }
-	  
-	}
-      
-      // At this point, should be okay to write to BCF
-      
-      if ( var.valid() ) 
-	write_record( var );
-	
-      if ( ++inserted % 1000 == 0 ) 
-	{
-	  plog.counter( "inserted " + Helper::int2str( inserted ) + " variants from VCF" ); 
-	}
-      
-    } // next line in VCF
-  
-  plog << "inserted " << inserted << " variants from VCF\n";
-
-  // close VCF, BCF  
-  vcf.close();
-  close();
 }
 
 
@@ -720,96 +639,173 @@ bool BCF::write_record( const Variant & var )
   m.push_back( var.consensus.reference() );
   m.push_back( var.consensus.alternate() );
   m.push_back( var.consensus.filter() );
-  m.push_back( var.consensus.info() );
-  m.push_back( var.consensus.bcf_format );
+  std::stringstream ss;
+  ss << var.consensus.meta;
+  m.push_back( ss.str() );
+    
+  // Get genotype format field; genotype always goes first (this will be *slow*) 
+  // look for speed-ups downstream
+
+  std::string format_string = "GT";
+  std::set<std::string> allkeys;
+  for (int i = 0 ; i < var.size(); i++)
+    {
+      std::vector<std::string> keys = var.consensus.calls.genotype(i).meta.keys();
+      for (unsigned int j=0; j<keys.size(); j++) allkeys.insert( keys[j] );
+    }
+  
+  std::set<std::string>::iterator i = allkeys.begin();
+  while ( i != allkeys.end() )
+    {
+      format_string += ":" + *i;
+      ++i;
+    }
+  
+  m.push_back( format_string );
   write( m );
- 
+
   // Read genotype; # alleles based on ALT tag, comma-sep values
   // BCF::n should already be set 
 
   std::vector<std::string> alt = Helper::char_split( var.alternate() , ',' );
-  int nalt = alt.size() + 1;
-  int ngen = (int) (nalt * (nalt+1) * 0.5);
+  int nallele = alt.size() + 1;
+  int ngen = (int) (nallele * (nallele+1) * 0.5);
   
   // Add in genotype information, from consensus
   
-  std::vector<std::string> format = Helper::char_split( var.consensus.bcf_format , ':' );
+  std::vector<std::string> format = Helper::char_split( format_string , ':' );
   
-
-  // BCF recognised tags are:
-  //                                       Length in bytes
-  //                                       ----------------------
-  //     DP     uint16_t                   sizeof(uint16_t) * n
-  //     GL     float   (*ngen)            sizeof(float) * g * n 
-  //     GT     uint8_t                    sizeof(uint8_t) * n
-  //     GQ     uint8_t                    sizeof(uint8_t) * n
-  //     HQ     uint8_t (*2)               sizeof(uint8_t) * 2 * n
-  //     PL     uint8_t (*ngen)            sizeof(uint8_t) * g * n
-  //     SP     uint8_t                    sizeof(uint8_t) * n
-  //     misc   int32_t + char*            sizeof(int32_t) + value
   
+  // Default type is  bcf_meta_t( BCF_string , 1 ) 
+  // is which implies storage as a single string
   
   for ( int t = 0 ; t < format.size(); t++ )
     {
 
-      if ( format[t] == "DP" ) // uint16_t
+      const std::string & tag = format[t];
+      
+      std::map<std::string,bcf_meta_t>::iterator ii = bcftype.find( format[t] );
+      
+      if ( ii == bcftype.end() ) 
+	Helper::halt( "could not deal with meta-type " + format[t] );
+
+      int nelem = ii->second.len;
+      if ( nelem == -1 ) nelem = nallele - 1;
+      else if ( nelem == -2 ) nelem = nallele;
+      else if ( nelem == -3 ) nelem = ngen;
+
+      
+      if ( ii->second.type == BCF_uint16 )
 	{
-	  for (int i=0; i<n; i++) write( (uint16_t) var(i).meta.get1_int( "DP" ) );
-	}
-      else if ( format[t] == "GL" ) // float * G
-	{
-	  for (int i=0; i<n; i++) 
+	  if ( nelem == 1 ) 
+	    for (int i=0; i<n; i++) 
+	      write( (uint16_t) var(i).meta.get1_int( tag ) );
+	  else
 	    {
-	      std::vector<double> gl = var(i).meta.get_double( "GL" );
-	      for (int j=0;j<gl.size();j++)
-		write( (float)gl[j] ); 
+	      for (int i=0; i<n; i++) 
+		{
+		  std::vector<int> tmp = var(i).meta.get_int( tag );
+		  set_size<int>( nelem , tmp , nallele , ngen );
+		  for (int j=0; j<tmp.size(); j++)		    
+		    write( (uint16_t) tmp[j] );
+		}
 	    }
 	}
-      else if ( format[t] == "PL" ) // uint8_t * G
+
+      else if ( ii->second.type == BCF_int32 )
 	{
-	  for (int i=0; i<n; i++) 
+	  if ( nelem == 1 ) 
+	    for (int i=0; i<n; i++) 
+	      write( (int32_t) var(i).meta.get1_int( tag ) );
+	  else
 	    {
-	      std::vector<int> pl = var(i).meta.get_int( "PL" );
-	      for (int j=0;j<pl.size();j++)
-		write( (uint8_t)pl[j] ); 
+	      for (int i=0; i<n; i++) 
+		{
+		  std::vector<int> tmp = var(i).meta.get_int( tag );
+		  set_size<int>( nelem , tmp , nallele , ngen );
+		  for (int j=0; j<tmp.size(); j++)
+		    write( (int32_t) tmp[j] );
+		}
 	    }
 	}
-      else if ( format[t] == "GT" ) // uint8_t
+
+      else if ( ii->second.type == BCF_float )
 	{
-	  for (int i=0; i<n; i++) write( var(i).bcf() );
-	}
-      else if ( format[t] == "GQ" ) // uint8_t
-	{
-	  for (int i=0; i<n; i++) write( (uint8_t) var(i).meta.get1_int( "GQ" ) );
-	}
-      else if ( format[t] == "HQ" ) // 2 * uint8_t
-	{
-	  for (int i=0; i<n; i++) 
+	  if ( nelem == 1 ) 
+	    for (int i=0; i<n; i++) 
+	      write( (float) var(i).meta.get1_double( tag ) );
+	  else
 	    {
-	      std::vector<int> hq = var(i).meta.get_int( "HQ" );
-	      for (int j=0;j<hq.size();j++)
-		write( (uint8_t)hq[j] ); 
+	      for (int i=0; i<n; i++) 
+		{
+		  std::vector<double> tmp = var(i).meta.get_double( tag );
+		  set_size<double>( nelem , tmp , nallele , ngen );
+		  for (int j=0; j<tmp.size(); j++)
+		    write( (float) tmp[j] );
+		}
 	    }
 	}
-      else if ( format[t] == "SP" ) // uint8_t
+      
+      else if ( ii->second.type == BCF_double )
 	{
-	  for (int i=0; i<n; i++) write( (uint8_t) var(i).meta.get1_int( "SP" ) );
+	  if ( nelem == 1 ) 
+	    for (int i=0; i<n; i++) 
+	      write( (double) var(i).meta.get1_double( tag ) );
+	  else
+	    {
+	      for (int i=0; i<n; i++) 
+		{
+		  std::vector<double> tmp = var(i).meta.get_double( tag );
+		  set_size<double>( nelem , tmp , nallele , ngen );
+		  for (int j=0; j<tmp.size(); j++)
+		    write( (double) tmp[j] );
+		}
+	    }
 	}
-      else 
+
+      else if ( ii->second.type == BCF_uint8 )
+	{
+	  if ( nelem == 1 ) 
+	    for (int i=0; i<n; i++) 
+	      write( (uint8_t) var(i).meta.get1_int( tag ) );
+	  else
+	    {
+	      for (int i=0; i<n; i++) 
+		{
+		  std::vector<int> tmp = var(i).meta.get_int( tag );
+		  set_size<int>( nelem , tmp , nallele , ngen );
+		  for (int j=0; j<tmp.size(); j++)
+		    {
+		      // worry about clipping here (i.e. cap at 255 for PL, etc)?
+		      if ( tmp[j] < 0 ) tmp[j] == 0;
+		      else if ( tmp[j] > 255 ) tmp[j] == 255;
+		      write( (uint8_t) tmp[j] );
+		    }
+		}
+	    }
+	}
+      
+      else if ( ii->second.type == BCF_genotype )
+	{
+	  for (int i=0; i<n; i++) 
+	    write( var(i).bcf() );
+	}
+
+      else if ( ii->second.type == BCF_string ) 
 	{	  
 	  // Variable
 	  std::vector<std::string> m(n);
 	  for (int i=0;i<n;i++)
 	    {
-	      // get values as comma-delimited list (per individual)
-	      m[i] = var(i).meta.as_string( format[t] , "," );
+	      // store values as comma-delimited list (per individual)
+	      m[i] = var(i).meta.as_string( tag , "," );
 	    }
 	  write( m );
 	}
     }
 
   // end of writing this record 
-
+  
   return true;
 
 }
@@ -995,7 +991,6 @@ void BCF::write( const std::vector<std::string> & s )
       if ( i > 0 ) t += '\0';
       t += s[i];
     }
-  //  std::cout << t.size() << " t=["<<t<<"]\n";
   write( (int32_t)t.size() );
   bgzf_write(file,t.c_str(),t.size());      
 }

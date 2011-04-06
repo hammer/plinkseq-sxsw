@@ -1,6 +1,9 @@
 
 #include "inddb.h"
 #include "filemap.h"
+#include "gstore.h"
+
+extern GStore * GP;
 
 void IndDBase::wipe( const std::string & n )
 {
@@ -385,7 +388,10 @@ bool IndDBase::load_ped_info( const std::string & filename )
   plog << "Inserted " << cnt1 
        << " new individuals, updated " << cnt2 
        << " existing individuals\n";
-  
+
+  if ( cnt1 + cnt2 ) 
+    GP->fIndex.append_to_projectfile( Helper::fullpath(filename) + "\tPED" );
+
   return true;
   
 }
@@ -555,6 +561,8 @@ bool IndDBase::load_phenotypes( const std::string & filename )
   index();
   
   plog << "Processed " << inserted << " rows\n";
+  
+  if ( inserted ) GP->fIndex.append_to_projectfile( Helper::fullpath( filename ) + "\tPHE" );
     
   return true;
 }

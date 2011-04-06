@@ -249,6 +249,8 @@ class VarDBase {
 			       void * data ,	
 			       Mask & mask );
 
+  bool vcf_iterate_read_header( Mask & mask );
+
   
   //
   // Other functions

@@ -203,7 +203,8 @@ class IndividualMap {
 
   }
 
-    
+  void construct_wsint_vector();
+  std::vector<int> * svar2consensus(const int f);
 
  private:
   
@@ -218,6 +219,10 @@ class IndividualMap {
 	       const std::string & id );
     
   std::map<int,std::string> map_slot_to_id() const;
+
+  // map of final svar slots -> consensus slot in convenient
+  // std::vector<int> form
+  std::map<int,std::vector<int> > wsint;
 
 
   //
@@ -242,9 +247,10 @@ class IndividualMap {
   // file
   
   std::map<int2,int_string_pair> ialign;
-
+  
   // Within-sample mapping (i.e. post filters)
   std::map<int,std::map<int,int> > wsample;
+  // and a stable set of vectors vector
   
   // map from the 0..N-1 to the individual file, or file(s) (int2 = f/i pairs)
   // these are populated by vardb.populate_individual_alignment()
@@ -252,6 +258,7 @@ class IndividualMap {
   std::vector<int2> uniq;       
   std::vector<std::set<int2> > mult;
 
+  
   // Keep track of IDs of included individuals
   
   std::set< std::string > ids;

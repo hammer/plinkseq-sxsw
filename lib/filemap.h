@@ -18,6 +18,14 @@
 #include <sys/types.h>
 #include <cerrno>
 
+#include <cstdio>
+#ifdef WINDOWS
+#include <direct.h>
+#define GetCurrentDir _getcwd
+#else
+#include <unistd.h>
+#define GetCurrentDir getcwd
+#endif
 
 #include "helper.h"
 #include "defs.h"
@@ -200,7 +208,13 @@ class FileMap {
 
   bool readFileIndex( const std::string & );
 
-
+  //
+  // Project file direct manipulation
+  //
+  
+  bool append_to_projectfile( const std::string & );
+  bool remove_from_projectfile( const std::string & );
+  
   //
   // Lookup information on files
   //
@@ -250,6 +264,17 @@ class FileMap {
       }	   
     return true;
   }
+
+
+  static std::string working_directory()
+    {      
+      char cCurrentPath[ FILENAME_MAX ];      
+      if ( ! GetCurrentDir(cCurrentPath, sizeof(cCurrentPath) ) )
+	Helper::halt("problem getting current working directory in FileMap()");      
+      cCurrentPath[sizeof(cCurrentPath) - 1] = '\0'; // not really required
+      return cCurrentPath;
+    }
+  
   
 };
 

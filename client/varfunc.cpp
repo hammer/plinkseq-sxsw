@@ -905,3 +905,165 @@ bool Pseq::VarDB::simple_sim()
 
 }
 
+
+
+//
+// Proximity Scan
+//
+
+struct Aux_proximity{ 
+
+  int dist;
+  
+  Variant lastvar;
+  
+  std::set<Variant> store;
+  
+};
+
+
+void f_proxscan( Variant & var , void * p )
+{
+
+  Aux_proximity * aux = (Aux_proximity*)p;
+  
+  // Is this close enough to the last variant seen?
+  
+  if ( var.chromosome() == aux->lastvar.chromosome() && 
+       var.position() - aux->lastvar.stop() <= aux->dist ) 
+    {
+      
+      aux->store.insert( aux->lastvar );
+
+      const int n = var.size();
+      
+      std::set<Variant>::iterator i = aux->store.begin();
+      while ( i != aux->store.end() )
+	{
+	  
+	  plog.data_group( i->displaycore() + "," + var.displaycore() );
+
+	  // Counts
+
+	  int n1, m1, n2, m2;
+	  bool altmin1 = var.n_minor_allele( n1, m1 );
+	  bool altmin2 = aux->lastvar.n_minor_allele( n2, m2 );
+	  
+	  // DIST
+	  plog.data( var.position() - aux->lastvar.stop() );
+
+	  
+	  // Calculate correlation coefficient between pair of SNPs
+	  
+	  Data::Vector<double> alt1 = VarFunc::alternate_allele_count( var );	  
+	  Data::Vector<double> alt2 = VarFunc::alternate_allele_count( *i  );
+	  
+	  Data::Matrix<double> d( n , 0 );
+	  d.add_col( alt1 );
+	  d.add_col( alt2 );
+	  
+	  //	  std::cout << "init d = " << d.dim1() << " " ; 
+
+	  int mis = 0;
+	  for (int ik=0; ik<d.dim1(); ik++)
+	    if ( d.masked(ik) ) ++mis; 
+
+
+	  d = d.purge_rows();
+	  
+	  Data::Matrix<double> cov = Statistics::covariance_matrix( d );
+	  
+// 	  std::cout << "d = " << d.dim1() << " "<< d.dim2() << " : " 
+// 		    << cov(0,0) << " " << cov(1,0) << " " << cov(0,1) << " " << cov(1,1) << "\n";
+	  
+	  double r = cov(0,1) / sqrt( cov(0,0) * cov(1,1) ) ; 
+	  
+	  const int na = d.dim1();
+
+	  // Either/both
+
+	  int g1 = 0 , g2 = 0;
+	  for (int ii=0; ii<na; ii++)
+	    {
+	      if ( d(ii,0) ) ++g1;
+	      if ( d(ii,1) ) ++g2;
+	    }
+	  
+	  // Either/both (not pairwise missing)
+	  int either = 0, both = 0;
+	  for (int ii=0; ii<n; ii++) 
+	    {
+	      if ( ( (!alt1.masked(ii)) && alt1(ii) ) 
+		   || 
+		   ( (!alt2.masked(ii)) && alt2(ii) ) ) ++either;	      
+	      if ( ( ! ( alt1.masked(ii) || alt2.masked(ii) ) ) && d(ii,0) && d(ii,1) ) ++both;
+	    }
+	  
+	  // Non-ref genotype counts
+	  
+
+	  // FREQ1, OBS1
+	  plog.data( n1 ) ; 
+	  plog.data( n2 ) ; 
+
+	  plog.data( g1 );
+	  plog.data( g2 );
+	  plog.data( na );	  
+
+	  // Both/Either
+
+	  plog.data( both  );
+	  plog.data( either  );
+	  plog.data( both/(double)either );
+
+	  if ( Helper::realnum( r ) ) plog.data( r ) ; 
+	  else plog.data( "NA" ) ; 	  
+	  
+	  plog.print_data_group();    
+
+	  ++i;
+	}
+    }
+  else // if not, we can purge
+    {
+      aux->store.clear();
+    }
+  
+  aux->lastvar = var;
+
+}
+
+bool Pseq::VarDB::proximity_scan( Mask & mask )
+{
+  
+  Aux_proximity aux;
+  aux.dist = options.key( "dist" ) ? options.as<int>( "dist" ) : 2 ;
+  
+  plog.data_reset();	
+
+  plog.data_group_header( "PAIR" );
+
+  plog.data_header( "DIST" );
+
+  plog.data_header( "FRQ1" );
+  plog.data_header( "FRQ2" );
+
+  plog.data_header( "GENO1" );
+  plog.data_header( "GENO2" );
+
+  plog.data_header( "NP" );
+  plog.data_header( "BOTH" );
+  plog.data_header( "EITHER" );
+  plog.data_header( "CONC" );
+
+  plog.data_header( "R" );
+
+
+
+  plog.data_header_done();
+  
+  IterationReport report = g.vardb.iterate( f_proxscan , &aux , mask );
+  
+  return true;
+}
+

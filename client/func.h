@@ -41,7 +41,9 @@ namespace Pseq
       bool vacuum();
 
       bool write_VCF(Mask & m);
-      
+
+      bool write_BCF(Mask & m, const std::string & );
+
       bool write_PED(Mask & m, std::string, bool);
 
       bool write_lik(Mask & m);
@@ -71,6 +73,8 @@ namespace Pseq
       bool check_concordance(Mask &m);
       
       bool cluster_scan(Mask &m);
+
+      bool proximity_scan(Mask &m);
       
       bool make_counts_file(Mask &m , const std::string & );
 
@@ -177,12 +181,15 @@ namespace Pseq
 	    {
 	      if ( s[i].find("=") != std::string::npos )
 		{
-		  optdata[ s[i].substr(0, s[i].find("=") ) ] = Helper::parseCommaList( s[i].substr( s[i].find("=") + 1 ) );
+		  const std::string key = s[i].substr(0, s[i].find("=") );
+		  const std::string vallist = s[i].substr( s[i].find("=") + 1 );
+		  optdata[ key ] = Helper::parseCommaList( vallist );
+		  simpledata[ key ] = vallist;
 		}
 	      else
 		{
 		  // evoke default set constructor
-		  optdata[ s[i] ];
+		  optdata[ s[i] ];		  
 		}
 	    }
 	}
@@ -222,12 +229,19 @@ namespace Pseq
 	std::set<std::string> get_set( const std::string & k ) const
 	  {
 	    std::set<std::string> s;
-	    std::map< std::string, std::set< std::string > >::const_iterator i = optdata.find(k);
+ 	    std::map< std::string, std::set< std::string > >::const_iterator i = optdata.find(k);
 	    if ( i == optdata.end() ) return s;
 	    else return i->second;
 	  }
-
-
+	
+	std::string simple_string( const std::string & k ) const
+	  {
+	    
+ 	    std::map< std::string,std::string>::const_iterator i = simpledata.find(k);
+	    if ( i == simpledata.end() ) return "";
+	    return i->second;
+	  }
+	
 	template<class T> 
         T as( const std::string & k ) const 
 	  {
@@ -242,6 +256,7 @@ namespace Pseq
       private:
 	
 	std::map< std::string, std::set< std::string> > optdata;
+	std::map< std::string,std::string> simpledata;
 	
       };
       
@@ -279,8 +294,10 @@ namespace Pseq
 	void reg( const std::string & s , const type_t & , const std::string & desc = "" );	
 
 	std::string command() const { return command_str; } 
+	
 	std::string project_file() const { return project_str; } 
-
+	
+	void shortform( const std::string & a , const std::string & b );
 	
       private:
 	
@@ -291,6 +308,7 @@ namespace Pseq
 	std::map<std::string,std::vector<std::string> > data;
 	std::map<std::string,type_t> known_type;
 	std::map<std::string,std::string> known_desc;
+	std::map<std::string,std::string> shortcuts;
 
 	std::string command_str;
 	std::string project_str;

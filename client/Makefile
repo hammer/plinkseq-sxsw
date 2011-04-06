@@ -1,6 +1,6 @@
 
 CXX = g++
-CXXFLAGS = -O2
+CXXFLAGS = -O2 -fno-common
 
 LFLAGS += -Wl,-rpath=/psych/genetics/shaun/pseq/lib 
 LFLAGS += -Wl,-rpath=/psych/genetics/pseq/share/lib

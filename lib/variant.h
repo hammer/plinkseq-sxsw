@@ -135,7 +135,7 @@ struct SampleVariant {
   
   bool                       vcf_direct;
   std::vector<std::string>   vcf_direct_buffer;
-  bool                       vcf_expand_buffer( Variant * );
+
   
   // Or, from a BCF (and so no BLOB to decode)
 

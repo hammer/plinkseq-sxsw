@@ -1647,6 +1647,7 @@ std::vector<uint64_t> LocDBase::get_region_ids(uint64_t gid, int chr, int bp1, i
 
 bool LocDBase::contains( const std::string & group , const int chr , const int bp1 , const int bp2 )
 {
+  if ( ! attached() ) return false;
   uint64_t id = lookup_group_id( group );
   if ( id == 0 ) return false;
   return contains( id , chr , bp1 , bp2 );
@@ -2257,10 +2258,11 @@ std::string LocDBase::summary()
   std::set<GroupInfo>::iterator i = g.begin();
   while ( i != g.end() )
     {
+
       ss << "LOCDB\t"
-	 << "GROUP_N=" << i->idx << "\t"
-	 << "N=" << count( i->idx ) << "\t"
+      //	 << "GROUP_N=" << i->idx << "\t"
 	 << "NAME=" << i->name << "\t"
+	 << "N=" << count( i->idx ) << "\t"
 	 << "DESC=" << i->description
 	 << "\n";
       ++i;

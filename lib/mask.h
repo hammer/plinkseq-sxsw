@@ -201,8 +201,8 @@ class Mask {
   void require_var_alt_group( const std::vector<std::string> & );
   void exclude_var_alt_group( const std::vector<std::string> & );
 
-  void count_obs_file(int);
-  void count_alt_file(int);
+  void count_obs_file(int i , int j = 0 );
+  void count_alt_file(int i , int j = 0 );
 
   bool eval_obs_file_filter( const Variant & ) const;
   bool eval_alt_file_filter( Variant & ) const;
@@ -440,7 +440,12 @@ class Mask {
 
   bool exclude_monomorphic() const { return exc_monomorphic; }
   void exclude_monomorphic(const bool b ) { exc_monomorphic = b; }
+  
+  // 
+  // QUAL filter
+  //
 
+  void qual_filter( const std::string & s ) { qual.set(s); use_qual_filter = true; }
 
   //
   // Variant meta-information masks
@@ -767,6 +772,9 @@ class Mask {
       obs_file_filter = false;
       obs_file_count = 0;
       alt_file_count = 0;
+      obs_file_max = 0;
+      alt_file_max = 0;
+
       alt_file_filter = false;
       alt_group_filter = false;
       
@@ -1248,6 +1256,8 @@ class Mask {
 	use_hwe_filter = false;
 	hwe_lower = 0;
 	hwe_upper = 1;
+	use_qual_filter = false;
+	qual.set(".");
 	null_fltr.reset();
 	case_fltr.reset();
 	control_fltr.reset();
@@ -1271,8 +1281,10 @@ class Mask {
 	ext_vcffile = "";
 	obs_file_filter = false;
 	obs_file_count = 0;
+	obs_file_max = 0;
 	alt_file_filter = false;
 	alt_file_count = 0;
+	alt_file_max = 0;
 	alt_group_filter = false;
       } 
     
@@ -1332,8 +1344,10 @@ class Mask {
 
     bool obs_file_filter;
     int  obs_file_count;
+    int  obs_file_max;
     bool alt_file_filter;
     int  alt_file_count;
+    int  alt_file_max;
     bool alt_group_filter;
     
 
@@ -1556,6 +1570,13 @@ class Mask {
     double hwe_lower;
     double hwe_upper;
 
+    //
+    // QUAL filters
+    //
+
+    bool use_qual_filter;
+    dbl_range qual;
+    
 
     //
     // Null filters, case/control filrers

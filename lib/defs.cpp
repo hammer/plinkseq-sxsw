@@ -98,6 +98,7 @@ void PLINKSeq::register_standard_metatypes()
   MetaInformation<GenMeta>::field( "GL" , META_FLOAT  , -1 , "log10-scaled likelihoods; for AA,AB,BB where A=ref, B=alt" );
   MetaInformation<GenMeta>::field( "PL" , META_INT  , -1 , "phred-scaled genotype likelihoods; for AA,AB,BB where A=ref, B=alt" );
   MetaInformation<GenMeta>::field( "PP" , META_FLOAT  , -1 , "P(genotype | data)" );
+  MetaInformation<GenMeta>::field( "EC" , META_FLOAT  , -1 , "Expected count (dosage) of alternate alleles");
   MetaInformation<GenMeta>::field( "GQ" , META_INT  , 1 , "phred-scaled genotype quality, -10log_10p(genotype call is wrong)" );
   MetaInformation<GenMeta>::field( "HQ" , META_INT  , 2 , "haplotype qualities, two phred qualities" );
   
@@ -130,6 +131,15 @@ void PLINKSeq::register_standard_metatypes()
   MetaMeta::is_internal("SOMATIC");
   MetaMeta::is_internal("VALIDATED");
   
+  MetaMeta::is_internal("HQ");
+  MetaMeta::is_internal("DP");
+  MetaMeta::is_internal("GL");
+  MetaMeta::is_internal("PL");
+  MetaMeta::is_internal("PP");
+  MetaMeta::is_internal("EC");
+  MetaMeta::is_internal("GQ");
+  MetaMeta::is_internal("FT");
+
   MetaMeta::is_internal("PASS");
   
 }

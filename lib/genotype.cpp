@@ -159,3 +159,48 @@ void Genotype::bcf( uint8_t gt )
     }
   
 }
+
+
+bool Genotype::equivalent( const Genotype & a , const Genotype & b )
+{
+  if ( a == b ) return true;
+  // what about phase/hets?
+
+  // more now, just work with biallelic SNPs.
+  if ( a.heterozygote() && b.heterozygote() ) return true;
+
+  return false;
+}
+
+
+
+
+
+
+//
+// GenotypeSet functions: reading commands, which can be redirected
+//
+
+int GenotypeSet::size() const 
+{ 
+  return svar ? incon->size() : calls.size(); 
+}
+
+// Return Genotype for individual i
+Genotype & GenotypeSet::genotype(int i) 
+{ 
+  return svar ? svar->calls.genotype( (*incon)[i] ) : calls[i]; 
+}
+
+/// Return const Genotype for individual i
+const Genotype & GenotypeSet::genotype(int i) const 
+{ 
+  return svar ? svar->calls.genotype( (*incon)[i] ) : calls[i]; 
+}
+    
+/// Return genotype code an individual    
+int GenotypeSet::code(int i) 
+{ 
+  return svar ? svar->calls.genotype( (*incon)[i] ).code() : calls[i].code(); 
+}
+    

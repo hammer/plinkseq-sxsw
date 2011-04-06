@@ -224,8 +224,8 @@ bool VarDBase::newDB( std::string n )
 bool VarDBase::attach( std::string n )
 {
 
-  if ( n == "-" ) { dettach(); return false; } 
-
+  if ( n == "." ) { dettach(); return false; } 
+  
   //
   // Close any existing database
   //
@@ -260,7 +260,7 @@ bool VarDBase::attach( std::string n )
   //
 
   set_metatypes( ); 
-
+  
   populate_indep_metadata_map();
   
   populate_bcf_map();
@@ -335,8 +335,8 @@ bool VarDBase::init()
     
     stmt_insert_bcf_idx = 
       sql.prepare(" INSERT OR IGNORE INTO variants "
-		  "          ( file_id, chr, bp1 , bp2 , offset ) "
-		  "   values ( :file_id, :chr, :bp1 , :bp2, :offset ) ; " );
+		  "          ( file_id, name , chr, bp1 , bp2 , offset ) "
+		  "   values ( :file_id, :name , :chr, :bp1 , :bp2, :offset ) ; " );
 
 
 
@@ -1534,6 +1534,7 @@ void VarDBase::populate_bcf_map()
 	  bcf->set_nind( nind );
 	  bcf->reading();
 	  bcf->open();
+	  bcf->set_types();
 	}
       else
 	plog.warn( "could not find BCF " , filename );	
@@ -1555,6 +1556,7 @@ void VarDBase::insert_bcf_index( uint64_t file_id , const Variant & var , int64_
 {
   // add row to variants table
   sql.bind_int64( stmt_insert_bcf_idx , ":file_id" , file_id );
+  sql.bind_text( stmt_insert_bcf_idx , ":name" , var.name() );
   sql.bind_int( stmt_insert_bcf_idx , ":chr" , var.chromosome() );
   sql.bind_int( stmt_insert_bcf_idx , ":bp1" , var.position() );
   sql.bind_int( stmt_insert_bcf_idx , ":bp2" , var.stop() == var.position() ? 0 : var.stop() );

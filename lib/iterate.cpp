@@ -57,7 +57,16 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
   
 
   //
-  // Is this looking at the VARDB fully, or just a single VCF?
+  // Upfront, determine if any variant/genotype masks present
+  //
+
+  mask.determine_variant_mask();
+  
+  mask.determine_genotype_mask();
+
+
+  //
+  // Is this looking at the VARDB fully, or just a single VCF/BCF?
   //
 
   if ( mask.external_vcf_iteration() )
@@ -133,13 +142,6 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
   // Otherwise, we need a crafted query
   //
   
-  //
-  // Upfront, determine if any variant/genotype masks present
-  //
-
-  mask.determine_variant_mask();
-  
-  mask.determine_genotype_mask();
   
 
   // and some other settings from the Mask: should overlapping
@@ -838,7 +840,7 @@ bool VarDBase::eval_and_call( Mask & mask,
 
       bool sample_okay = true;
 
-      svar.decode_BLOB_basic( target );    
+      svar.decode_BLOB_basic( target ); 
 
       if ( mask.attach_meta() ) 
 	{	  
@@ -890,9 +892,9 @@ bool VarDBase::eval_and_call( Mask & mask,
 	  else sample_okay = false;
 	}
 
-      // Assign genotypes if reading directly from a single VCF
-      
-      if ( genotype_target->vcf_direct ) { genotype_target->vcf_expand_buffer( &var ); } 
+
+//       // Assign genotypes if reading directly from a single VCF
+//       if ( genotype_target->vcf_direct ) { genotype_target->vcf_expand_buffer( &var ); } 
     
 
       if ( mask.filter_expression() && mask.filter_expression_requires_genotypes() ) 
