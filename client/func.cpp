@@ -520,12 +520,10 @@ bool Pseq::VarDB::write_vardb( const std::string & new_project ,
     Helper::halt( new_vardb + " already exists" );
   
   VarDBase newdb( g.indmap );
-  
   newdb.attach( new_vardb );
-
-  g.vardb.begin();
+  newdb.drop_index();
+  newdb.begin();
   
-
   //
   // Add header and meta-information 
   //
@@ -546,23 +544,19 @@ bool Pseq::VarDB::write_vardb( const std::string & new_project ,
   // Add selected variants (and meta-fields)
   //
   
-  g.vardb.drop_index();
-  
-  g.vardb.begin();
-
   g.vardb.iterate( f_write_into_vardb , &newdb , mask );
-    
+  
   //
   // All done, finish up and write new project file
   //
   
-  g.vardb.commit();
+  newdb.commit();  
   
-  g.vardb.index();
-
+  newdb.index();
+  
   OutFile O1( new_project );
-  
-  plog.warn("function incomplete: need to write the new prokect file (TODO item)\n");
+
+  O1 << "not yet\n";
 
   O1.close();
 

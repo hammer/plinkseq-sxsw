@@ -822,9 +822,13 @@ uint64_t VarDBase::insert_consensus( uint64_t file_id , const Variant & var )
   // VCF file.  We will need another variant-insert function to insert
   // the multiple SampleVariants (i.e. when writing variants to the VARDB
   // from sources other than the VCF.  
-  
-  if ( ! var.single_sample() ) 
-    Helper::halt("Trying to save a MultiSample Variant in insert_consensus()");
+
+  //
+  // For now, allow the insert, but just put the consensus in  
+  //
+
+//   if ( ! var.single_sample() ) 
+//     Helper::halt("Trying to save a MultiSample Variant in insert_consensus()");
   
   // 1) Insert variant information in the variant table
     
