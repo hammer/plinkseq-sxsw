@@ -214,7 +214,8 @@ class FileMap {
   
   bool append_to_projectfile( const std::string & , const std::string & );
   bool remove_from_projectfile( const std::string & );
-  
+  bool write_new_projectfile( const std::string & );
+
   //
   // Lookup information on files
   //

@@ -528,6 +528,7 @@ bool Pseq::VarDB::write_vardb( const std::string & new_project ,
   // Add header and meta-information 
   //
   
+  newdb.insert( "newvardb" , "newvardb" );
   newdb.insert_header( 1, "format" , "VCFv4.0" ); 
   newdb.insert_header( 1, "source" , "pseq" ); 
   
@@ -551,15 +552,16 @@ bool Pseq::VarDB::write_vardb( const std::string & new_project ,
   //
   
   newdb.commit();  
-  
   newdb.index();
+
+  // Insert summary Ni, Nv into database for this file  
+  int2 niv = newdb.make_summary( "newvardb" ) ;  
+  plog << new_vardb << " : inserted " << niv.p2 << " variants\n";
   
-  OutFile O1( new_project );
-
-  O1 << "not yet\n";
-
-  O1.close();
-
+  // Update / create new project specification file  
+  g.fIndex.addSpecial( VARDB , Helper::fullpath( new_vardb )  );
+  g.fIndex.write_new_projectfile( new_project );
+  
   return true;
 
 }    

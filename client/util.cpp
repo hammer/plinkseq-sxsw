@@ -37,6 +37,9 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   reg("options" , STRING_VECTOR, "context-specific options\n");
   reg("output", STRING, "output folder\n" );
   reg("whitespace", NONE , "allow whitespace delimited input" );
+
+  reg("new-project" , STRING , "new project specification filename" );
+  reg("new-vardb" , STRING , "new VARDB name, for write-vardb" );
   
   reg("debug", NONE , "set debug mode");
   reg("silent", NONE , "set silent mode");

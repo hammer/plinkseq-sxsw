@@ -764,9 +764,10 @@ int main(int argc, char ** argv)
   
   if ( command == "tag-file" )
     {
-      std::string ftag = Pseq::Util::single_argument<std::string>( args , "name" );
-      int file_id = Pseq::Util::single_argument<int>( args , "id" );
-      g.vardb.insert_file_tag( file_id , ftag );
+      std::string newtag = Pseq::Util::single_argument<std::string>( args , "name" );
+      std::string oldtag = Pseq::Util::single_argument<std::string>( args , "id" );
+      int file_id = g.vardb.file_tag( oldtag );
+      if ( file_id ) g.vardb.insert_file_tag( file_id , newtag );
       exit(0);
     }
   
@@ -1747,10 +1748,12 @@ int main(int argc, char ** argv)
     //
     
     if ( command == "write-vardb" )
-      {
-	std::string db_name = Pseq::Util::single_argument<std::string>( args , "name" );
-	std::string proj_file = Pseq::Util::single_argument<std::string>( args , "file" );
-	Pseq::VarDB::write_vardb( proj_file , db_name ,  m);
+      {       
+	if ( ! args.has( "new-vardb" ) ) Helper::halt("no --new-vardb for write-vardb specified");
+	if ( ! args.has( "new-project" ) ) Helper::halt("no --new-project for write-vardb specified");
+	std::string proj_file = Pseq::Util::single_argument<std::string>( args , "new-project" );
+	std::string db_file = Pseq::Util::single_argument<std::string>( args , "new-vardb" );	
+	Pseq::VarDB::write_vardb( proj_file , db_file ,  m);
 	exit(0);
       }
     
@@ -1773,12 +1776,13 @@ int main(int argc, char ** argv)
     
     if ( command == "write-ped" )
       {
-	if ( ! args.has("output") )
-	  Helper::halt("no output file given, use --output");
-	string filename = args.as_string( "output" );
+	if ( ! args.has("name") )
+	  Helper::halt("no output file given, use --name");
+	string filename = args.as_string( "name" );
 	Pseq::VarDB::write_PED(m,filename, options.key( "family-id" ) );
 	exit(0);
       }
+
 
     if ( command == "write-lik" )
       {

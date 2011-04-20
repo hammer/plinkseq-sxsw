@@ -284,12 +284,29 @@ void f_view_lik( Variant & v , void * p )
 	    plog << "\t" << g0 
 		 << "\t" << g1 
 		 << "\t" << g2;
-	}    
+	}   
       else
 	{
+	  
+	  // do we have an observed genotype?  if so, make a dummy likelihood
+	  const Genotype & g = v(i);
+	  
+
 	  // flat ratio ~ missing data point
-	  plog << "\t0.333\t0.333\t0.333";
+	  if ( g.null() ) 	
+	    {	      
+	      plog << "\t0.333\t0.333\t0.333";
+	    }
+	  else
+	    {
+	      int ac = g.allele_count();
+	      if ( ac == 0 ) plog << "\t1\t0\t0";
+	      else if ( ac == 1 ) plog << "\t0\t1\t0";
+	      else if ( ac == 2 ) plog << "\t0\t0\t1"; 
+	      else plog << "\t0.333\t0.333\t0.333";
+	    }
 	}	    
+
     }
   
   plog << "\n"; 

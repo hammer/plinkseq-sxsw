@@ -527,9 +527,35 @@ bool FileMap::remove_from_projectfile( const std::string & s )
   O1.close();
   
   // write back out, 
-  OutFile O2( projectfile );
+  std::ofstream O2( projectfile.c_str() );
   for (int l=0;l<lines.size();l++)
     O2 << lines[l] << "\n";    
   O2.close();
 
+}
+
+bool FileMap::write_new_projectfile( const std::string & filename ) 
+{
+  
+  std::ofstream O2( filename.c_str() );
+  
+  std::map< std::string, File* >::const_iterator f = fmap.begin();
+  while ( f != fmap.end() )
+    {
+      O2 << f->second->name() << "\t" 
+	 << FileMap::typeName( f->second->type() ) << "\n";
+      ++f;
+    }
+  
+  std::map<fType,File*>::const_iterator i = special_files.begin();
+  while ( i != special_files.end() )
+    {
+      if ( i->first != FIDX ) // not needed
+	O2 << i->second->name() << "\t"
+	   << FileMap::typeName( i->first )  << "\n";
+      ++i;
+    }
+  
+  O2.close();
+  return true;
 }
