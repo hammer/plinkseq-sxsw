@@ -756,7 +756,7 @@ bool Eval::parse( const std::string & input )
 
       if ( ! extract_gfunc( &(etok[i]) ) )
 	is_valid = false;
-
+      
       if ( ! shunting_yard( etok[i], output[i] ) )
 	is_valid = false;
     }

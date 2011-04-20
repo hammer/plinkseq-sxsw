@@ -135,6 +135,13 @@ class MetaInformation {
 
 	std::vector<std::string> tokens_b = Helper::quoted_parse( *tok_iter , "=" );
 
+	// handle weird things like trying to parse '==' 
+	if ( tokens_b.size() == 0 ) 
+	  {
+	    ++tok_iter;
+	    continue;
+	  }
+
 	const std::string key = tokens_b[0];
 	
 	if ( tokens_b.size() == 2 ) // a key = value pair
@@ -156,7 +163,7 @@ class MetaInformation {
 	
 	++tok_iter;
       }
-    
+
   }
   
        
@@ -843,7 +850,7 @@ class MetaInformation {
 
 	meta_index_t midx = MetaInformation::field( name );
 
-	if ( midx.mt == META_FLAG ) return "";
+	if ( midx.mt == META_FLAG ) return flag( midx.key ) ? "set" : "";
 	
 	if ( midx.mt == META_INT )
 	  {
@@ -1074,6 +1081,7 @@ class MetaInformation {
 	if ( midx.mt == META_FLOAT ) return print( m_double[ midx.key ] );
 	if ( midx.mt == META_TEXT ) return print( m_string[ midx.key ] );
 	if ( midx.mt == META_BOOL ) return print( m_bool[ midx.key ] );
+	if ( midx.mt == META_FLAG ) return "flag set";
 	return ".";
       }
 

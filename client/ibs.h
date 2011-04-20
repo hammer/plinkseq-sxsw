@@ -23,7 +23,7 @@ namespace Pseq {
 	  ibs_cnt.resize(n);
 	  for (int i=0; i<n; i++)
 	    ibs_cnt[i].resize(i,0);
-
+	  
 	  obs_cnt.resize(n);
 	  for (int i=0; i<n; i++)
 	    obs_cnt[i].resize(i,0);
@@ -37,13 +37,13 @@ namespace Pseq {
 	if ( i > j ) ibs_cnt[i][j] += s;
 	else if ( j > i ) ibs_cnt[j][i] +=s;
       }
-
+      
       void obs(const int i, const int j, const int s)
       {
 	if ( i > j ) obs_cnt[i][j] += s;
 	else if ( j > i ) obs_cnt[j][i] +=s;
       }
-
+      
       int ibs( const int i , const int j ) 
       {
 	if ( i > j ) return ibs_cnt[i][j];
@@ -59,7 +59,7 @@ namespace Pseq {
       }
       
     private:
-
+      
       std::vector< std::vector<int> > ibs_cnt;
 
       std::vector< std::vector<int> > obs_cnt;      

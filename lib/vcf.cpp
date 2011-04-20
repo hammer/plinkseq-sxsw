@@ -634,10 +634,8 @@ bool VCFReader::getHeader( const std::string & s_ )
 	Helper::halt("misformed #header row in VCF (fewer than 8 fields)");
       
       if ( Helper::lexical_cast<std::string>(*tok_iter) != head[i] ) 
-	{
-	  Helper::halt( "Problem with header row: " + *tok_iter + ", expecting " + head[i] + "\n" );
-	  return false;
-	}
+	plog.warn( "potential problem with header row: " + *tok_iter + ", expecting " + head[i] + "\n" );
+      
       ++tok_iter;
     }
   

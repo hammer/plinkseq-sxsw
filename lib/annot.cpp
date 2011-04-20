@@ -20,19 +20,20 @@ uint64_t Annotate::transcript_group_id = 0;
 std::map<seq_annot_t,std::string> populate_seqinfo()
 {
   std::map<seq_annot_t,std::string> m;
-  m[UNDEF]  = ".";
-  m[MONO]   = "Monomorhpic";
-  m[IGR]    = "Intergenic region";
-  m[INTRON] = "Intronic";
-  m[UTR5]   = "5'UTR";
-  m[UTR3]   = "3'UTR";
-  m[SYN]    = "Synonymous";
-  m[MIS]    = "Missense";
-  m[NON]    = "Nonsense";
-  m[PART]   = "Partial codon";
-  m[SPLICE] = "Splice site";
-  m[FS]     = "Frameshift";
-  m[RT]     = "Readthrough";
+  m[UNDEF]    = ".";
+  m[MONO]     = "Monomorhpic";
+  m[IGR]      = "Intergenic region";
+  m[INTRON]   = "Intronic";
+  m[UTR5]     = "5'UTR";
+  m[UTR3]     = "3'UTR";
+  m[SYN]      = "Synonymous";
+  m[MIS]      = "Missense";
+  m[NON]      = "Nonsense";
+  m[PART]     = "Partial codon";
+  m[SPLICE]   = "Splice site";
+  m[BOUNDARY] = "Intron/exon boundary";
+  m[FS]       = "Frameshift";
+  m[RT]       = "Readthrough";
   return m;
 }
 

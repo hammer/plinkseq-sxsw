@@ -390,7 +390,7 @@ bool IndDBase::load_ped_info( const std::string & filename )
        << " existing individuals\n";
 
   if ( cnt1 + cnt2 ) 
-    GP->fIndex.append_to_projectfile( Helper::fullpath(filename) + "\tPED" );
+    GP->fIndex.append_to_projectfile( Helper::fullpath(filename) , "PED" );
 
   return true;
   
@@ -436,12 +436,17 @@ bool IndDBase::load_phenotypes( const std::string & filename )
 	  
 	  std::vector<std::string> tok = Helper::quoted_parse( s.substr(2) );
 	  
-	  if ( tok.size() != 4 ) continue;
-	  
+	  // need at least a name
+	  if ( tok.size() < 1 ) continue;	  
 	  std::string name = tok[0];
-	  std::string type = tok[1];
-	  std::string miss = tok[2];
-	  std::string desc = tok[3];
+
+	  // defaults
+	  std::string type = "Integer"; 
+	  std::string miss = "0";
+	  std::string desc = "Dichotomous phenotype";	  
+	  if ( tok.size() >= 2 ) type = tok[1];
+	  if ( tok.size() >= 3 ) miss = tok[2];
+	  if ( tok.size() >= 4 ) desc = tok[3];
 	  
 	  int code = insert_phenotype( name, type, miss, desc );
 	  
@@ -562,7 +567,7 @@ bool IndDBase::load_phenotypes( const std::string & filename )
   
   plog << "Processed " << inserted << " rows\n";
   
-  if ( inserted ) GP->fIndex.append_to_projectfile( Helper::fullpath( filename ) + "\tPHE" );
+  if ( inserted ) GP->fIndex.append_to_projectfile( Helper::fullpath( filename ) , "PHE" );
     
   return true;
 }

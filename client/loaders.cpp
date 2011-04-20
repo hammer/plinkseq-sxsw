@@ -68,13 +68,13 @@ bool Pseq::VarDB::load_PLINK( const std::vector<std::string> & name , const Pseq
   
   BEDReader b( &g.vardb );
   b.set_root( fileroot );
-  if ( g.seqdb.attached() ) 
-    b.use_seqdb( &g.seqdb );
+  if ( ! options.key("check-reference") ) g.seqdb.dettach();
+  if ( g.seqdb.attached() ) b.use_seqdb( &g.seqdb );
   b.store_phenotypes( &g.inddb, options.key("phenotype") ? options.as<std::string>("phenotype") : "phe1" );
   if ( tag != "" ) b.set_tag( tag );
   bool okay = b.read_bed();
   if ( ! okay ) plog.warn( "problems detected loading BED file, " + fileroot );
-  g.fIndex.append_to_projectfile( Helper::fullpath( fileroot ) + "\tPLINK" );
+  g.fIndex.append_to_projectfile( Helper::fullpath( fileroot ) , "PLINK" );
   return okay;
 }
 

@@ -94,7 +94,7 @@ namespace Pseq
       typename std::map<std::string, std::map<T,U> >::iterator ii = x.begin();
       while ( ii != x.end() )
 	{
-	  headers( ii->first , ii->second );
+	  headers( label + "|" + ii->first , ii->second );
 	  ++ii;
 	}
     }
@@ -384,6 +384,8 @@ namespace Pseq
     //
     
     void report();
+    void row_headers();
+    void row_report( const int , const int , const bool show_genic = false );
 
     //
     // Data members
@@ -525,8 +527,11 @@ namespace Pseq
     
     std::map<std::string,VStat> stat;
     
+    bool alt_not_min;
+
     int nvar;
     std::map<std::string,int> nalt;
+    std::map<std::string,int> nmin;
     std::map<std::string,int> nhet;
     std::map<std::string,int> nobs;
     

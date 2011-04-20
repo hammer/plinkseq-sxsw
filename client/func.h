@@ -62,7 +62,7 @@ namespace Pseq
 
       bool uniq_report( std::vector<std::string> & , Mask & m , OptUniq & );
       
-      bool gene_stats_header(Mask & m);
+      bool gene_stats_header( VStat & );
 
       bool variant_stats(Mask & m);
 
@@ -78,7 +78,7 @@ namespace Pseq
       
       bool make_counts_file(Mask &m , const std::string & );
 
-      bool simple_counts(Mask &m);
+      bool simple_counts(Mask &m, bool);
 
       bool lookup_list(const std::string & filename, Mask &m);
 

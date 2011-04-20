@@ -1,6 +1,6 @@
 
 CXX = g++
-CXXFLAGS = -O2 -shared -fPIC  -fno-common
+CXXFLAGS = -O0 -pg -shared -fPIC  -fno-common
 
 INC = -I../share/include/ 
 

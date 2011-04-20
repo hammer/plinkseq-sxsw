@@ -1287,7 +1287,7 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
       for ( int s = 0 ; s < ( nosubs ? 0 : i->subregion.size() ) ; s++ )
 	{
 
-	  std::cout << "S = " << s << "\n";
+	  //	  std::cout << "S = " << s << "\n";
 
 	  int sgc = 0 , sn = 0 , stot = 0;
 	  
@@ -1584,25 +1584,33 @@ bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
 }
 
 
-bool Pseq::VarDB::simple_counts( Mask & m )
+bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
 {
   
   OptSimpleCounts opt;
   opt.apply_annot = options.key( "annotate" );
   opt.dichot_pheno = g.phmap.type() == PHE_DICHOT;
   opt.show_filter = options.key( "filters" );
+  opt.genotypes = genotypes;
 
-  plog << "VAR" << "\t"
-       << "ALLELES";
+  plog << "VAR";
+  plog << "\tALLELES";  
 
-  // binary phenotype?
-  if ( g.phmap.type() == PHE_DICHOT )
-    plog << "\tALTA"
-	 << "\tALTU"
-	 << "\tTOTA\tTOTU";
+  if ( genotypes )
+    {
+      plog << "\tGENOTYPES";
+    }
   else
-    plog << "\tALT\tTOT";
-    
+    {      
+      // binary phenotype?
+      if ( g.phmap.type() == PHE_DICHOT )
+	plog << "\tALTA"
+	     << "\tALTU"
+	     << "\tTOTA\tTOTU";
+      else
+	plog << "\tALT\tTOT";
+    }
+
   if ( opt.apply_annot )
     plog << "\tFUNC"
 	 << "\tGENE"

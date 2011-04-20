@@ -128,10 +128,13 @@ int VarDBase::loader_indep_meta( const std::string & filename , int f , const st
       int nkey = 0;
       
       if ( indep_metamap.find( skey ) == indep_metamap.end() ) 
-	process_indep_meta_header( "##" + skey + ",1,String," , f  );	      
-      
+	{
+	  process_indep_meta_header( "##" + skey + ",1,String," , f  );	      
+	}
+
       nkey = indep_metamap[ skey ];
       
+
       //
       // A valid value?
       //
@@ -213,7 +216,7 @@ void VarDBase::populate_indep_metadata_map()
       
       indep_metamap[ name ] = id;
       reverse_indep_metamap[ id ] = name;
-      
+
     }
 
   sql.reset( stmt_fetch_indep_meta_type );  
@@ -226,13 +229,15 @@ bool VarDBase::attach_indep_metadata( const uint64_t & svar_id ,
 				      SampleVariant & target , 
 				      const std::set<std::string> * grps )
 {
-  
+
+
   sql.bind_int64( stmt_fetch_indep_meta_value , ":var_id" , svar_id );
   
   while ( sql.step( stmt_fetch_indep_meta_value ) )
     {
+
       int meta_id = sql.get_int( stmt_fetch_indep_meta_value , 0 );
-      
+
       if ( reverse_indep_metamap.find( meta_id ) != reverse_indep_metamap.end() )
 	{
 	  
@@ -248,7 +253,9 @@ bool VarDBase::attach_indep_metadata( const uint64_t & svar_id ,
 	  else if ( midx.mt == META_FLOAT ) 
 	    target.meta.set( key , sql.get_double( stmt_fetch_indep_meta_value , 1 ) );
 	  else if ( midx.mt == META_FLAG && sql.get_int( stmt_fetch_indep_meta_value , 1 ) != 0 ) 
-	    target.meta.set( key );
+	    {
+	      target.meta.set( key );
+	    }
 	  else // META_TEXT as default
 	    target.meta.set( key , sql.get_text( stmt_fetch_indep_meta_value , 1 ) );
 
@@ -285,7 +292,7 @@ int VarDBase::process_indep_meta_header( const std::string & line , const int f 
   if ( Helper::is_int( type ) ) mt = META_INT;
   else if ( Helper::is_float( type ) ) mt = META_FLOAT;
   else if ( Helper::is_text( type ) ) mt = META_TEXT;
-  else if ( Helper::is_flag( type ) ) mt = META_FLAG;
+  else if ( Helper::is_flag( type ) ) { mt = META_FLAG; }
   
 
   //

@@ -219,6 +219,24 @@ double Helper::str2dbl(const std::string & s)
     return d;
 }
 
+std::string Helper::search_replace( std::string & str , const std::string & search , const std::string & replace )
+{
+  string::size_type pos = 0;
+  while ( (pos = str.find(search, pos)) != string::npos ) 
+    {
+      str.replace( pos, search.size(), replace );
+      pos++;
+    }
+  return str;
+}
+
+std::string Helper::header( const std::string & s , const int len , const std::string & rep ) 
+{
+  if ( s.size() <= len ) return s;
+  return s.substr(0,len-3) + rep + rep + rep;
+}
+
+
 bool Helper::inCommaList( const std::string & lst, const std::string & term)
 {
   std::vector<std::string> tok = Helper::char_split( lst , ',' );
@@ -1177,9 +1195,9 @@ double Helper::SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
 }
 
 
-int_range::int_range( const std::string & s)
+int_range::int_range( const std::string & s , const int smode )
 {
-  set(s);
+  set(s, smode );
 }
 
 void int_range::reset( )
@@ -1188,7 +1206,7 @@ void int_range::reset( )
   has_lwr = has_upr = false;
 }
 
-void int_range::set( const std::string & s )
+void int_range::set( const std::string & s , const int smode )
 {
   
   // constrained to positive values
@@ -1247,8 +1265,21 @@ void int_range::set( const std::string & s )
 	has_upr = Helper::str2int( tok[0] , upr );
       else
 	{
-	  has_lwr = Helper::str2int( tok[0] , lwr ); 
-	  has_upr = Helper::str2int( tok[0] , upr ); 	  
+	  if ( smode == -1 ) 
+	    {
+	      has_lwr = false; 
+	      has_upr = Helper::str2int( tok[0] , upr ); 	  	      
+	    }
+	  else if ( smode == 1 ) 
+	    {
+	      has_lwr = Helper::str2int( tok[0] , lwr ); 
+	      has_upr = false;
+	    }
+	  else
+	    {
+	      has_lwr = Helper::str2int( tok[0] , lwr ); 
+	      has_upr = Helper::str2int( tok[0] , upr ); 	  
+	    }
 	}    
     }
 }
@@ -1267,9 +1298,9 @@ bool int_range::in( const int i ) const
 // prop_range
 //
 
-dbl_range::dbl_range( const std::string & s)
+dbl_range::dbl_range( const std::string & s, const int smode )
 {
-  set(s);
+  set(s , smode );
 }
 
 void dbl_range::reset( )
@@ -1278,7 +1309,7 @@ void dbl_range::reset( )
   has_lwr = has_upr = false;
 }
  
-void dbl_range::set( const std::string & s )
+void dbl_range::set( const std::string & s , const int smode )
 {
 
   // try comma first, as this will allow -ve numbers
@@ -1340,10 +1371,23 @@ void dbl_range::set( const std::string & s )
 	has_upr = Helper::str2dbl( tok[0] , upr ); 
       else 
 	{
-	  has_lwr = Helper::str2dbl( tok[0] , lwr ); 
-	  has_upr = Helper::str2dbl( tok[0] , upr ); 
-	}
-	
+
+	  if ( smode == -1 ) 
+	    {
+	      has_lwr = false; 
+	      has_upr = Helper::str2dbl( tok[0] , upr ); 	  	      
+	    }
+	  else if ( smode == 1 ) 
+	    {
+	      has_lwr = Helper::str2dbl( tok[0] , lwr ); 
+	      has_upr = false;
+	    }
+	  else
+	    {
+	      has_lwr = Helper::str2dbl( tok[0] , lwr ); 
+	      has_upr = Helper::str2dbl( tok[0] , upr ); 	  
+	    }
+	}	
     }
   
 }

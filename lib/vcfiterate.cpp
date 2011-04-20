@@ -23,10 +23,11 @@ bool VarDBase::vcf_iterate_read_header( Mask & mask )
 
   // Load, parse VCF file; store variant and genotype information, and
   // meta-information, in vardb
-  
+
   File vcffile( filename , VCF );
 
   VCFReader v( &vcffile , "" , &(GP->vardb) ,  NULL );
+
 
   // 
   // Work through VCF
@@ -38,7 +39,7 @@ bool VarDBase::vcf_iterate_read_header( Mask & mask )
     { 
       
       VCFReader::line_t l = v.parseLine();
-      
+
       if ( l == VCFReader::VCF_EOF ) break;
       
       if ( l == VCFReader::VCF_INVALID ) 
@@ -76,7 +77,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 
   // Load, parse VCF file; store variant and genotype information, and
   // meta-information, in vardb
-  
+
   File vcffile( filename , VCF );
 
   VCFReader v( &vcffile , "" , &(GP->vardb) ,  NULL );
@@ -95,6 +96,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
   if ( locinc != "" ) 
     filter = GP->locdb.get_regions( locinc );
 
+
   std::set<Region> reginc = mask.included_reg();
   std::set<Region>::iterator ii = reginc.begin();
   while ( ii != reginc.end() ) 
@@ -107,6 +109,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
   if ( filter.size() > 0 ) 
     v.set_region_mask( &filter );  
   
+
 
   //
   // Misc. settings.
@@ -121,6 +124,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 
 //  tmpdb.begin();
   GP->vardb.begin();
+
 
   int inserted = 0;
 
@@ -168,7 +172,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 	    {
 	      irep.rejected_variant();
 	    }
-	  
+
 	  // and now clean up 	  
 	  delete pv;
 	  

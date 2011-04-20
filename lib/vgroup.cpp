@@ -91,18 +91,18 @@ string VariantGroup::dump( bool vmeta ,
 			   bool gmeta , 
 			   bool transpose , 
 			   bool rarelist , 
-			   bool show_phenotype )
+			   bool show_phenotype , 
+			   bool only_minor )
 {
-
-
-  stringstream ss;
+  
+  std::stringstream ss;
   
   // Overall group details
   
   ss << "NAME=[" << name() << "]\t" 
      << "N(V)=" << size() << "\t"
      << "N(I)=" << n_individuals() << "\n";
-
+  
   if ( size() == 0 ) 
     {
       return ss.str();
@@ -273,15 +273,49 @@ string VariantGroup::dump( bool vmeta ,
       // var. header line
 
       ss << "I";
+      if ( show_phenotype ) ss << "\tPHE";
       for (int i=0; i< size(); i++)
 	ss << "\tV" << i+1;
 
       ss << "\n";
+      
+      // Get minor alleles, if needed
+      std::vector<bool> altmin( size() );
+      if ( only_minor )
+	{
+	  int c, c_tot;
+	  for (int i=0; i<size(); i++)
+	    altmin[i] = var(i).n_minor_allele( c , c_tot );
+	}
 
       // Indiv rows
       for (int j=0; j < n_individuals(); j++ )
 	{ 
+	  // perhaps we skip this person?
+	  if ( only_minor ) 
+	    {
+	      bool minor = false;
+	      for (int i=0; i< size(); i++)
+		{
+		  if ( (*this)(i,j).minor_allele_count( altmin[i] ) ) { minor = true; break; }
+		}
+	      if ( !minor ) continue;
+	    }
+
 	  ss << ind(j)->id();
+
+	  if ( show_phenotype )
+	    {
+	      if ( GP->phmap.type() == PHE_DICHOT )
+		{
+		  if ( ind( j )->affected() == CASE ) ss << "\tCASE";
+		  else if ( ind( j )->affected() == CONTROL ) ss << "\tCONTROL";
+		  else ss << "\t.";
+		}
+	      else if ( GP->phmap.type() == PHE_QT ) 
+		ss << "\t" << ind( j )->qt();
+	    }
+
 	  for (int i=0; i< size(); i++)
 	    {	    
 	      ss << "\t" << var(i).consensus.label( (*this)(i,j) ) ;

@@ -162,7 +162,7 @@ class DiploidSpec : public GenotypeSpec {
 
   std::string print_unphased() 
     {
-      return a2.label > a1.label ? a1.label + a2.label : a2.label + a1.label;
+      return a2.label > a1.label ? a1.label + "/" + a2.label : a2.label + "/" + a1.label;
     }
 
   std::string print() 

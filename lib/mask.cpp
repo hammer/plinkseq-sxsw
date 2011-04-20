@@ -139,8 +139,10 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   //
   // Swap in any file-lists with "#" include 
   //
-  
+
+
   std::string d2 = Helper::filelist2commalist(d);
+
 
   //
   // Attach necessary databases, set sensible defaults, etc
@@ -164,6 +166,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   //
   
   MetaInformation<MiscMeta> m;
+
 
   // Pass command line ( key=val key key=val1,val2 )
   m.parse(d2,
@@ -189,7 +192,9 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   
   if ( m.has_field( "v-include" ) )
     {
+     std::cout << "j1\n";
       std::string k = m.get1_string( "v-include" );      
+      std::cout << "j2\n";
       var_set_filter_expression( k );
     }
 
@@ -726,65 +731,24 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   
   if ( m.has_field( "maf" ) )
     {
-      std::vector<std::string> k = m.get_string( "maf" );
-      // allow 2-20 as well as 2,20
-      if ( k.size() == 1 ) k = Helper::char_split( k[0] , '-' );
-      if ( k.size() == 2 ) 
-	{
-	  double fl, fu;
-	  if ( str2dbl( k[0] , fl ) && str2dbl( k[1] , fu ) )
-	    minor_allele_frequency( fl , fu );
-	}
-      else if ( k.size() == 1 ) // for MAF, assume only upper bound is given
-	{
-	  double fu;
-	  if ( Helper::str2dbl( k[0] , fu ) )
-	    minor_allele_frequency( -1 , fu  );
-	}
-      
+      dbl_range r( m.get1_string( "maf" ) , +1 ); // 0.05  means include 0.05 or more
+      minor_allele_frequency( r.has_lower() ? r.lower() : 0 , r.has_upper() ? r.upper() : 1 );
     }
-
+  
   if ( m.has_field( "mac" ) )
     {
-      std::vector<std::string> k = m.get_string( "mac" );
-      if ( k.size() == 1 ) k = Helper::char_split( k[0] , '-' );
-      if ( k.size() == 2 ) 
-	{
-	  int fl, fu;
-	  if ( str2int( k[0] , fl ) && str2int( k[1] , fu ) )
-	    minor_allele_count( fl , fu );	    
-	}
-      else if ( k.size() == 1 ) // for MAC, assume only lower bound given
-	{
-	  int fl;
-	  if ( str2int( k[0] , fl ) ) 
-	    minor_allele_count( fl , -1 );	    
-	}
+      // int_range("2", 0) means 2 -->  *:2
+      // int_range("2", 1) means 2 -->  2:*
+      // int_range("2",-1) means 2 -->  *:2
+      
+      int_range r( m.get1_string( "mac" ) , -1 ); // 2 means 2 or *lower*
+      minor_allele_count( r.lower() , r.upper() );
     }
  
   if ( m.has_field( "hwe" ) )
-    {
-      
-      std::vector<std::string> k = m.get_string( "hwe" );
-      
-      if ( k.size() == 2 )
-	{
-	  double pl, pu;
-	  if ( Helper::str2dbl( k[0] , pl ) && Helper::str2dbl( k[1] , pu ) )
-	    hwe( pl, pu );
-	  else 
-	    plog.warn("invalid arg for hwe");
-	}
-      else if ( k.size() == 1 ) // assume only upper bound given
-	{
-	  double pl;
-	  if ( Helper::str2dbl( k[0] , pl ) ) 
-	    hwe( pl , 1 );
-	  else 
-	    plog.warn("invalid arg for hwe");
-	}
-      else
-	plog.warn("invalid arg for hwe");
+    {      
+      dbl_range r( m.get1_string( "hwe" ) , 1 ); // x --> include x:*       
+      hwe( r.has_lower() ? r.lower() : 0  , r.has_upper() ? r.upper() : 1 );
     }
   
 
@@ -826,16 +790,14 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   
   if ( m.has_field( "case.uniq" ) )
      {
-       //std::string k = m.get1_string( "case.uniq" );
-       case_control_filter( "1-" , "0-0" );
+       case_control_filter( "1:" , "0:0" );
      }
 
    if ( m.has_field( "control.uniq" ) )
      {
-       //std::string k = m.get1_string( "control.uniq" );
-       case_control_filter(  "0-0" , "1-" );
+       case_control_filter(  "0:0" , "1:" );
      }
-
+   
     
   if ( m.has_field( "var.append" ) ) 
     {

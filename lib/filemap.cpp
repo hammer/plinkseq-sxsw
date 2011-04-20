@@ -484,8 +484,9 @@ BCF * FileMap::add_BCF( const std::string & f )
 }
 
 
-bool FileMap::append_to_projectfile( const std::string & s)
+bool FileMap::append_to_projectfile( const std::string & s , const std::string & t )
 {
+  if ( exists( s ) ) return false; // already present, nothing to do
   std::string projectfile = special_files.find( FIDX )->second->name();
   if ( projectfile == "." ) return false;
   if ( ! Helper::fileExists( projectfile ) )
@@ -496,8 +497,11 @@ bool FileMap::append_to_projectfile( const std::string & s)
 
   // open in append-to-end mode
   std::ofstream O1( projectfile.c_str() , std::ios::out | std::ios::app );
-  O1 << s << "\n";
+  O1 << s << "\t" << t << "\n";
   O1.close();
+  
+  // add to internal map
+  add( s , type(t) , "" , "" );
 }
 
 bool FileMap::remove_from_projectfile( const std::string & s )
@@ -523,13 +527,9 @@ bool FileMap::remove_from_projectfile( const std::string & s )
   O1.close();
   
   // write back out, 
-  //  OutFile O2( projectfile );
+  OutFile O2( projectfile );
   for (int l=0;l<lines.size();l++)
-    {
-      std::cout << lines[l] << "\n";
-    }
-  //  O2.close();
+    O2 << lines[l] << "\n";    
+  O2.close();
 
-
-  // write
 }

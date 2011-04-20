@@ -559,15 +559,21 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::ArgMap & args , c
   // Which tests to apply?
   //
   
-  a.vanilla = a.burden = a.uniq = true;
+  a.vanilla = options.key("sumstat");
+  a.burden = ! options.key("no-burden");
+  a.uniq = options.key("uniq");
   a.site_burden = options.key("site-burden");
   a.mhit = options.key("mhit" );
   a.vt = options.key("vt");
   a.fw = options.key("fw");
   a.calpha = options.key("calpha");
   a.cancor = options.key("cancor");
+  a.hoffman_witte = options.key("stepup");
+  a.kbac = options.key("kbac");
 
   const int ntests = a.n_tests();
+  
+  if ( ntests == 0 ) Helper::halt( "no assoc tests specified" );
 
   // labels   vanilla  SUMSTAT
   //          burden   BURDEN
@@ -578,15 +584,16 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::ArgMap & args , c
   //          fw       FRQWGT
   //          calpha   CALPHA
   //          cancor   CANCOR
-  // 
+  //          stepup   STEPUP
+  //          kbac     KBAC 
 
   //
   // Set up permutation class
   //
    
   g.perm.initiate( nrep , ntests );
-  //  if ( options.key("aperm") ) g.perm.adaptive( options.as_int_vector("aperm") );
   a.fix_null_genotypes = options.key("fix-null");
+ 
   
   //
   // Apply tests to dataset
@@ -598,24 +605,26 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::ArgMap & args , c
   //
   // Post-processing to obtain corrected p-values
   //
+
+  if ( false ) // skip for now
+    {
+      for (int t=0; t < g.perm.n_tests(); t++)
+	for (int s=0; s < g.perm.n_stats(); s++) 
+	  {      
+	    plog << "_PCORR\t" 
+		 << s << "\t"
+		 << t << "\t"
+		 << g.perm.max_pvalue(s,t) << "\n";      
+	  }
+    }
   
-//   for (int t=0; t < g.perm.n_tests(); t++)
-//     for (int s=0; s < g.perm.n_stats(); s++) 
-//       {      
-// 	   plog << "_PCORR\t" 
-// 		  << s << "\t"
-// 		  << t << "\t"
-// 		  << g.perm.max_pvalue(s,t) << "\n";      
-//       }
-  
-  
-  //
+
   // All done
-  //
 
   return true; 
 
 }
+
 
 
 //
@@ -662,6 +671,10 @@ void g_set_association( VariantGroup & vars , void * p )
   Pseq::Assoc::Aux_calpha aux_calpha;
   Pseq::Assoc::Aux_cancor aux_cancor( 1 , vars.size() , vars.n_individuals() ) ;
   Pseq::Assoc::prelim( vars , &aux_prelim );
+  
+  // External tests
+  Pseq::Assoc::Aux_hoffman_witte aux_hoffman_witte( vars, &aux_prelim );
+  Pseq::Assoc::Aux_kbac aux_kbac;
 
 
   //
@@ -757,7 +770,22 @@ void g_set_association( VariantGroup & vars , void * p )
       test_name.push_back("CANCOR");
       test_statistic.push_back( aux_cancor.stat );
     }
+  
 
+  if ( data->hoffman_witte )
+    {
+      test_name.push_back( "STEPUP" );
+      double statistic = Pseq::Assoc::stat_hoffman_witte( vars , &aux_hoffman_witte , &test_text , true );
+      test_statistic.push_back( statistic );
+   }
+  
+  
+  if ( data->kbac )
+    {
+      test_name.push_back( "KBAC" );
+      double statistic = Pseq::Assoc::stat_kbac( vars , &aux_prelim , &aux_kbac , &test_text , true );
+      test_statistic.push_back( statistic );
+    }
   
   
   //
@@ -811,6 +839,20 @@ void g_set_association( VariantGroup & vars , void * p )
 	  test_statistic.push_back( aux_cancor.stat );
 	}
       
+      
+      if ( data->hoffman_witte )
+	{
+	  double statistic = Pseq::Assoc::stat_hoffman_witte( vars , &aux_hoffman_witte , NULL , false );
+	  test_statistic.push_back( statistic );
+	}
+
+      
+      if ( data->kbac )
+	{
+	  double statistic = Pseq::Assoc::stat_kbac( vars , &aux_prelim , &aux_kbac , NULL , false );
+	  test_statistic.push_back( statistic );
+	}
+
 
       //
       // Store all statistics; permute phenotype labels
@@ -829,6 +871,7 @@ void g_set_association( VariantGroup & vars , void * p )
   plog.data_group( vars.name() );
   plog.data( vars.coordinate() );
   plog.data( g->locdb.alias( vars.name() , false ) );
+    //plog.data( "." );
   plog.data( vars.size() );
 
   if ( data->show_midbp)

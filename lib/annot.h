@@ -19,19 +19,23 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
                    MONO    =  1 ,     // monomorphic site 
 
 		   IGR     =  2 ,     // intergenic region
+
+		   // near gene?
 		   INTRON  =  3 ,     // intronic		   
 		   UTR5    =  4 ,     // 5' UTR allele -- not used
 		   UTR3    =  5 ,     // 3' UTR allele -- not used		   
+		   BOUNDARY =  6 ,    // intron/exon boundary (but not essential SPLICE site)
 
- 		   SYN     =  10 ,    // synonymous allele 		   
-
-		   MIS     =  20 ,    // missense allele
- 		   PART    =  21 ,    // partial codon  -- not used
-		   SPLICE  =  22 ,    // split-site allele -- not used
- 		   NON     =  23 ,    // nonsense allele		   		  
- 		   FS      =  24 ,    // frameshift  -- not used
-		   RT      =  25 };   // readthrough
-
+		   // exonic
+		   SYN      =  10 ,    // synonymous allele 		   		   
+		   
+		   // non-synon coding
+		   MIS      =  20 ,    // missense allele
+ 		   PART     =  21 ,    // partial codon  -- not used
+		   SPLICE   =  22 ,    // split-site allele 
+ 		   NON      =  23 ,    // nonsense allele		   		  
+ 		   FS       =  24 ,    // frameshift 
+		   RT       =  25 };   // readthrough
 
 struct SeqInfo { 
 

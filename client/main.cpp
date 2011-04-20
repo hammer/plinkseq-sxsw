@@ -18,7 +18,7 @@ using namespace std;
 GStore g;
 Pseq::Util::Options options;
 std::string PSEQ_VERSION = "0.05";
-std::string PSEQ_DATE    = "11-Feb-2011";
+std::string PSEQ_DATE    = "7-Apr-2011";
 
 int main(int argc, char ** argv)
 {
@@ -82,8 +82,11 @@ int main(int argc, char ** argv)
 	<< "refdb-summary|" 
 	<< "seqdb-summary|"   
 	<< "file-summary|" 
-	<< "meta-summary|"    
+	<< "meta-summary||VCF"    
 	<< "v-view|view variant data|VCF" 
+	<< "rv-view|view rare alleles|VCF" 
+	<< "mv-view|view multiple variants|VCF" 
+	<< "mrv-view|view multiple rare variants|VCF" 
 	<< "*g-view|" 
 	<< "i-view|individuals in project/file|VCF" 
 	<< "v-stats|variant statistics|VCF" 
@@ -99,12 +102,13 @@ int main(int argc, char ** argv)
 	<< "glm|general linear models|VCF"
 	<< "s-assoc|"
 	<< "counts|summary/count statistics|VCF"
+	<< "gcounts|genotype summary/count statistics|VCF"
 	<< "v-freq|variant frequency data|VCF"
 	<< "clusters|"
 	<< "proximity-scan||VCF"
 	<< "concordance|"
 	<< "group-comparison|"
-	<< "unique|"
+	<< "unique||VCF"
 	<< "*simple-sim|"
 	<< "ibs-matrix|IBS matrix calculation|VCF"
 	<< "intersect|"
@@ -340,7 +344,7 @@ int main(int argc, char ** argv)
 	Helper::halt("no --type specified");
       std::string type = args.as_string( "type" );
       
-      g.fIndex.append_to_projectfile( Helper::fullpath( pname ) + "\t" + type );
+      g.fIndex.append_to_projectfile( Helper::fullpath( pname ) , type );
       exit(0);
     }
   
@@ -622,7 +626,24 @@ int main(int argc, char ** argv)
   
   if ( command == "load-vcf" )
     {
+      // Add any VCFs specified on the command line, via --vcf or --file
+      
+      if ( args.has("vcf") ) 
+	{
+	  std::vector<std::string> f = args.as_string_vector( "vcf" ); 
+	  for (int i=0;i<f.size();i++) 
+	    g.fIndex.append_to_projectfile( Helper::fullpath( f[i] ) , "VCF" );
+	}
+
+      if ( args.has("file") ) 
+	{
+	  std::vector<std::string> f = args.as_string_vector( "file" ); 
+	  for (int i=0;i<f.size();i++) 
+	    g.fIndex.append_to_projectfile( Helper::fullpath( f[i] ) , "VCF" );
+	}
+
       Pseq::VarDB::load_VCF();
+
       exit(0);
     }
  
@@ -654,7 +675,7 @@ int main(int argc, char ** argv)
 	  BCF * bcf = g.fIndex.add_BCF( t[f] );
 	  
 	  // Add to project index
-	  g.fIndex.append_to_projectfile( Helper::fullpath( t[f] ) + "\tBCF" );
+	  g.fIndex.append_to_projectfile( Helper::fullpath( t[f] ) , "BCF" );
 
 	  // Open BCF via BGZF interface	    
 	  bcf->reading();
@@ -717,10 +738,10 @@ int main(int argc, char ** argv)
   if ( command == "load-meta" )
     {
       std::string file = Pseq::Util::single_argument<std::string>( args , "file" );
-      std::vector<int> id = Pseq::Util::n_arguments<int>( args , "id" );
+      std::vector<std::string> id = Pseq::Util::n_arguments<std::string>( args , "id" );
       std::string group = Pseq::Util::single_argument<std::string>( args , "group" );
       for (int i=0;i<id.size();i++)
-	g.vardb.loader_indep_meta( file , id[i] , group );
+	g.vardb.loader_indep_meta( file , g.vardb.file_tag( id[i] ) , group );
       exit(0);
     }
   
@@ -757,8 +778,15 @@ int main(int argc, char ** argv)
   if ( command == "delete-var" )
     {
       if ( ! args.has("id") )
-	Helper::halt("no --id specified");	
-      Pseq::VarDB::flush( args.as_int_vector( "id" ) );	
+	Helper::halt("no --id specified");	      
+      std::vector<std::string> f = args.as_string_vector( "id" );
+      std::vector<int> fi;
+      for (int i=0; i<f.size(); i++)
+	{
+	  int n = g.vardb.file_tag( f[i] );
+	  if ( n ) fi.push_back( n );
+	}
+      Pseq::VarDB::flush( fi );	
       exit(0);
     }
   
@@ -1156,20 +1184,41 @@ int main(int argc, char ** argv)
     // Data-views
     //
 
-    if ( command == "v-view" )
+    if ( command == "v-view" || 
+	 command == "rv-view" || 
+	 command == "mv-view" ||
+	 command == "mrv-view" )
       {		
+	const bool rview = command == "rv-view" || command == "mrv-view";
+	const bool mview = command == "mv-view" || command == "mrv-view";
+	
 	OptVView opt;
 	opt.vmeta = args.has("vmeta") || args.has("verbose");
 	opt.vexpand = args.has("verbose");
-	opt.geno = args.has("geno") || args.has("gmeta");
+	opt.geno = args.has("geno") || args.has("gmeta") || rview || mview;
 	opt.gmeta = args.has("gmeta");
 	opt.show_samples = args.has("samples");
 	opt.show_nonmissing_geno = ! options.key( "hide-null" );
-	opt.show_only_minor      =   options.key( "only-minor" ) || options.key( "minor-only" );
+	opt.show_only_minor      =   options.key( "only-minor" ) || options.key( "minor-only" ) || rview;
 	opt.show_only_alt        =   options.key( "only-alt" )  || options.key( "alt-only" );
 	if ( opt.show_only_alt || opt.show_only_minor ) opt.show_nonmissing_geno = false;
-	
+	opt.mview = mview;
+
 	IterationReport report = g.vardb.iterate( f_view , &opt , m );
+
+	// Use g-view code to display a set of multiple variants; fix options for display here
+	
+	if ( mview ) 
+	  {
+	    plog << opt.vars.dump( opt.vmeta , 
+				   opt.vexpand , 
+				   opt.geno , 
+				   opt.gmeta , 
+				   false , // transpose
+				   false , // rarelist mode 
+				   g.phmap.type() != PHE_NONE , 
+				   rview ) << "\n";
+	  }
 	exit(0);
       }
     
@@ -1315,7 +1364,7 @@ int main(int argc, char ** argv)
     // Create a summary counts file
     //
 
-    if ( command == "counts" )
+    if ( command == "counts" || command == "gcounts" )
       {
 	if ( options.key("vcf") )
 	  {
@@ -1323,8 +1372,9 @@ int main(int argc, char ** argv)
 	    Pseq::VarDB::make_counts_file( m , proj );
 	  }
 	else
-	  {	    
-	    Pseq::VarDB::simple_counts( m );
+	  {	 	    
+	    bool genotypes = options.key("genotypes") || command == "gcounts" ;
+	    Pseq::VarDB::simple_counts( m , genotypes );
 	  }
 	exit(0);
       }
@@ -1430,18 +1480,20 @@ int main(int argc, char ** argv)
     
     if ( command == "g-stats" )
       {
+
+	if ( ! m.any_grouping() )
+	  Helper::halt("no gene-grouping specified for g-stat");
+	if ( ! m.group_loc() ) 
+	  Helper::halt("currently g-stats only supports loc.group");
+
 	Pseq::VStat vstat(&g);
 
 	Pseq::Util::set_default( vstat );
 
 	Pseq::GStat aux(&g, m.group_set(), vstat );
 	
-	Pseq::VarDB::gene_stats_header( m );
+	Pseq::VarDB::gene_stats_header( vstat );
 
-	if ( ! m.any_grouping() )
-	  Helper::halt("no gene-grouping specified for g-stat");
-	if ( ! m.group_loc() ) 
-	  Helper::halt("currently g-stats only supports loc.group");
 	IterationReport report = g.vardb.iterate( g_gstat , &aux , m );	
 	exit(0);
       }
@@ -1770,6 +1822,8 @@ int main(int argc, char ** argv)
 	OptGMatrix opt(&g);
 	if ( options.key( "hide-invariant" )  )
 	  opt.hide_zero_variance = true;
+	if ( options.key( "collapse" ) ) 
+	  opt.collapse_01 = true;
 	Pseq::VarDB::write_gene_matrix(m,opt);
 	exit(0);
       }

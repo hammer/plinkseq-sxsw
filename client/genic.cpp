@@ -16,14 +16,15 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
   // Frequency-weights
   aux->fweights.resize( vars.size() , 0 );  
   aux->acounts.resize( vars.size() , 0 );
+  aux->altmin.resize( vars.size() , true );
   
   for ( int v = 0 ; v < vars.size(); v++ )
     {
-
+      
       int c     = 0; // minor allele
       int c_tot = 0; // total counts	  
-      bool altmin = vars(v).n_minor_allele( c , c_tot );
-      if ( ! altmin ) aux->refmin.insert(v);
+      aux->altmin[v] = vars(v).n_minor_allele( c , c_tot );      
+      if ( ! aux->altmin[v] ) aux->refmin.insert(v);
       if ( aux->minm == -1 || c < aux->minm ) aux->minm = c;
       if ( aux->maxm == -1 || c > aux->maxm ) aux->maxm = c;
       
@@ -41,7 +42,7 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
 	{	  	  
 	  if ( vars.geno(v,i).notnull() )
 	    {
-	      int ac = vars.geno(v,i).minor_allele_count( altmin );
+	      int ac = vars.geno(v,i).minor_allele_count( aux->altmin[v] );
 	      if ( ac ) 
 		{
 		  affType aff = vars(v).ind(i)->affected();

@@ -212,7 +212,7 @@ class FileMap {
   // Project file direct manipulation
   //
   
-  bool append_to_projectfile( const std::string & );
+  bool append_to_projectfile( const std::string & , const std::string & );
   bool remove_from_projectfile( const std::string & );
   
   //

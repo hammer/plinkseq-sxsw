@@ -14,7 +14,7 @@ bool Pseq::IBS::calculate( Mask & m )
   
   bool matrix = ! options.key("long-format");
   bool two_counts = (!matrix) && options.key("two-counts");
-
+  
   if ( matrix ) 
     {
       plog << "IBS";
@@ -54,22 +54,27 @@ void f_IBS_calculator( Variant & v , void * p )
 {
 
   Pseq::IBS::Aux * aux = (Pseq::IBS::Aux*)p;
+  
+  int c, c_tot;
+  bool altmin = v.n_minor_allele( c , c_tot );
   const int n = v.size();
+  
   for (int i=1; i<n; i++)
     {
       if ( v(i).null() ) continue;
       
-      const int s = v(i).allele_count();
+      const int s = v(i).minor_allele_count( altmin );
       
       for (int j=0; j<i; j++)
 	{
+	
 	  // count only similar non-ref alleles at one of two indiv	  
 	  if ( v(j).notnull() )
 	    {	      
 	      // genotype counting (1=both non-reference)
  	      aux->obs(i,j,1);	      
-	      const int t = v(j).allele_count();
-	      aux->ibs(i,j, s > 0 && t > 0 );
+	      const int t = v(j).minor_allele_count( altmin );
+	      aux->ibs(i , j , s > 0 && t > 0 );
 	    }
 	}
     }

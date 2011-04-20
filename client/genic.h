@@ -18,7 +18,9 @@ namespace Pseq
     struct Aux_calpha;
     struct Aux_fw_vt;
     struct Aux_cancor;
-
+    struct Aux_hoffman_witte;
+    struct Aux_kbac;
+     
     void  prelim( const VariantGroup & vars , Aux_prelim * aux );
     
     void stat_burden( const VariantGroup & vars , 
@@ -45,8 +47,19 @@ namespace Pseq
 		      std::map<std::string,std::string> *  , 
 		      bool original );
     
+    double stat_hoffman_witte( const VariantGroup & , 
+			       Aux_hoffman_witte * , 
+			       std::map<std::string,std::string> *  , 
+			       bool original );
     
     
+    double stat_kbac( const VariantGroup & , 
+		      Aux_prelim * , 
+		      Aux_kbac * , 
+		      std::map<std::string,std::string> *  , 
+		      bool original );
+    
+
     struct AuxGenic 
     {
       
@@ -66,7 +79,8 @@ namespace Pseq
 	fw = false;
 	calpha = false;
 	cancor = false;
-	witte = false;
+	hoffman_witte = false;
+	kbac = false;
       }
       
       int n_tests() const 
@@ -79,7 +93,8 @@ namespace Pseq
 	  + fw 
 	  + calpha 
 	  + cancor 
-	  + witte; 
+	  + hoffman_witte
+	  + kbac;
       }
       
       GStore * g;
@@ -98,7 +113,8 @@ namespace Pseq
       bool vt;
       bool calpha;
       bool cancor;
-      bool witte;
+      bool hoffman_witte;
+      bool kbac;
 
     };
  
@@ -114,7 +130,8 @@ namespace Pseq
       int n_t;
 	
       std::set<int> refmin;            // track alleles at which reference is minor 
-      
+      std::vector<bool> altmin;        // same info but as vector
+
       std::map<int,int> mc;            // key=#minor alleles,value=#variants   
       std::map<std::string,int> mc_a;  // count in affecteds
       
@@ -158,11 +175,13 @@ namespace Pseq
       double stat_vt;
     };
     
+
     struct Aux_calpha {
       double p_a;
       double p_ap_u;      
       double variance;
     };
+
 
     struct Aux_cancor { 
       Aux_cancor(int np, int ng, int ni) : P(ni,np) , G(ni,ng) { } 
@@ -171,7 +190,42 @@ namespace Pseq
       Data::Matrix<double> G;
     };
     
+
+    struct Aux_hoffman_witte {      
+      Aux_hoffman_witte( const VariantGroup & vars, Aux_prelim * p );      
+      std::vector<int> piece_begin; // cutpoint begin points
+      std::vector<int> piece_end;   // cutpoint end points
+      double tbar;                  // mean of the trait
+      std::vector<double> xbar;     // mean of the genotypes      
+      Aux_prelim * aux_prelim;
+      bool dichot;
+      
+      double calc_stat( const VariantGroup & , 
+		      const std::vector<int> & , 
+		      const std::vector<double> & , 
+		      const std::vector<double> & );
+      
+      void clear() 
+      {
+	piece_begin.clear();
+	piece_end.clear();
+	tbar = 0.0;
+	xbar.clear();
+      }      
+    };
+
     
+    struct Aux_kbac {
+      static double lnfact_table[]; 
+      double gw_ln_factorial( const double ) const;
+      double gw_lnchoose( const double , const double ) const;
+      double gw_hypergeometric_pmf(const unsigned int , const unsigned int , const unsigned int , const unsigned int ) const;
+      double gw_hypergeometric_cmf(const unsigned int , const unsigned int , const unsigned int , const unsigned int ) const;
+
+      
+    };
+    
+
   }  
   
 }

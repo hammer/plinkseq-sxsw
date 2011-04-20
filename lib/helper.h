@@ -395,6 +395,8 @@ namespace Helper
   
 
   void str2upper( std::string & );
+  std::string search_replace( std::string & , const std::string & , const std::string & );
+  std::string header( const std::string & s , const int len = 60 , const std::string & rep = "." ); 
 
   std::string int2str(int);
   std::string longint2str(long int);
@@ -668,13 +670,20 @@ class int_range {
   }
 
   int_range() { reset(); }
-  int_range( const std::string & );
-  void set( const std::string & );
+
+  // smode =  0  2 means  2:2
+  //         -1  2 means  *:2 
+  //         +1  2 means  2:*
+
+  int_range( const std::string & , const int smode = 0 ); 
+  void set( const std::string & , const int smode = 0 );
   void reset();
   void set( const int a, const int b ) { lwr=a; upr=b; has_lwr=has_upr=true; }
   bool in( const int i ) const; 
   int lower() const { return has_lwr ? lwr : -1; }
   int upper() const { return has_upr ? upr : -1; }  
+  bool has_lower() const { return has_lwr; } 
+  bool has_upper() const { return has_upr; } 
 
   bool operator<( const int_range & rhs ) const
   {
@@ -708,13 +717,15 @@ class dbl_range {
     return out;
   }
   dbl_range() { reset(); }
-  dbl_range( const std::string & );
-  void set( const std::string & );
+  dbl_range( const std::string & , const int smode = 0 );
+  void set( const std::string & , const int smode = 0 );
   void reset();
   void set( const double a, const double b ) { lwr=a; upr=b; has_lwr=has_upr=true; }
   bool in( const double d ) const; 
   double lower() const { return has_lwr ? lwr : 0; }
   double upper() const { return has_upr ? upr : 0; }  
+  bool has_lower() const { return has_lwr; } 
+  bool has_upper() const { return has_upr; } 
   bool operator<( const dbl_range & rhs ) const
   {
     if ( rhs.has_lwr && ! has_lwr ) return true;

@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include "pseq.h"
 
 class Variant;
 class VariantGroup;
@@ -72,12 +73,12 @@ struct OptSimpleCounts
   bool dichot_pheno;
   bool show_filter;
   std::set<std::string> meta;
+  bool genotypes;
 };
-
 
 struct OptVView {
 
-  OptVView() 
+  OptVView() : vars( dummy )
   {
     vmeta = false;
     geno = false;
@@ -87,6 +88,7 @@ struct OptVView {
     show_nonmissing_geno = true;
     show_only_minor = false;
     show_only_alt = false;
+    mview = false;
   }
   
   bool vmeta;
@@ -97,6 +99,11 @@ struct OptVView {
   bool show_nonmissing_geno;
   bool show_only_minor;
   bool show_only_alt;
+  bool mview;
+
+  // for m-view
+  Mask dummy;
+  VariantGroup vars;
 };
 
 
@@ -129,9 +136,11 @@ struct OptGMatrix {
   OptGMatrix(GStore * g ) : g(g)  
   {
     hide_zero_variance = false;
+    collapse_01 = false;
   }
   GStore * g;
   bool hide_zero_variance;
+  bool collapse_01;
 };
 
 struct OptUniq {

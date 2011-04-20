@@ -16,6 +16,13 @@ void f_view( Variant & v , void * p )
 
   OptVView * opt = (OptVView*)p;
 
+  // do not show now: accumulate for a ind x var display of (rare) genotypes:
+  if ( opt->mview ) 
+    {
+      opt->vars.force_add( v );
+      return;
+    }
+  
   plog << v << "\t";
   
   plog << "." << "\t" 
@@ -419,22 +426,20 @@ void f_view_gene_matrix( VariantGroup & vars , void * p )
   // for each gene
   
   const int nv = vars.size();
-
-
+  
   std::vector<bool> altmin( vars.size() , false );
   for (int v = 0 ; v < nv ; v++)
     altmin[v] = vars(v).n_minor_allele();
   
-  std::string s = vars.name() + "\t" + Helper::int2str( nv );
-     
+  std::string s = vars.name() + "\t" + Helper::int2str( nv );  
   bool variation = false;
-
-  const int ni = vars(0).size();
-
+  const int ni = vars.n_individuals();
+  
   for (int i = 0 ; i < ni ; i++)
     {
+
       bool valid = false;
-      bool flag = false;
+      int cnt = 0;
       
       for (int v = 0 ; v < nv ; v++)
 	{
@@ -445,15 +450,15 @@ void f_view_gene_matrix( VariantGroup & vars , void * p )
 	  // we are searching for minor alleles:
 	  if ( vars.geno(v,i).minor_allele( altmin[v] ) )
 	    {
-	      flag = true;	    
+	      cnt += vars.geno(v,i).minor_allele_count( altmin[v] );
 	      variation = true;
 	    }
 	}
       
       if ( valid ) 
-	s += "\t" + Helper::int2str( (int)flag );
+	s += "\t" + Helper::int2str( opt->collapse_01 ? ( cnt ? 1 : 0 ) : cnt  );
       else
-	s += "\tNA";      
+	s += "\tNA";
     }
   
   if( ! ( opt->hide_zero_variance && ! variation ) )
@@ -783,37 +788,84 @@ void f_simple_counts( Variant & var , void * p )
 	annot = var.meta.get1_string( PLINKSeq::META_ANNOT() );
     }
 
-  int case_count = 0 , case_tot = 0; 
-  int control_count = 0 , control_tot = 0;
-  
-  bool ma, control_ma;
-
-  if ( data->dichot_pheno ) 
-    {
-      ma = var.n_minor_allele( case_count , case_tot , CASE );
-      control_ma = var.n_minor_allele( control_count , control_tot , CONTROL );
-      // flip alleles?
-      if ( control_ma != ma ) control_count = control_tot - control_count; 
-    }
-  else    
-    ma = var.n_minor_allele( case_count , case_tot );
   
   // Output
 
   plog << Helper::chrCode( var.chromosome() ) << ":" << var.position() ;
-  plog << "\t" << ( ma ? var.alternate() + "/" + var.reference() : var.reference() + "/" + var.alternate() ) ;
 
-  if ( data->dichot_pheno )
-    plog << "\t" << case_count
-	 << "\t" << control_count ;
-  else
-    plog << "\t" << case_count ;
+  
 
-  if ( data->dichot_pheno )
-    plog << "\t" << case_tot 
-	 << "\t" << control_tot;
+  // Alleles, or genotype counts
+  
+  if ( data->genotypes )
+    {
+      // print ref/alt allele(s)
+      plog << "\t" << var.reference() << "/" << var.alternate();
+
+      std::map<std::string,int> gcnta;
+      std::map<std::string,int> gcntu;
+      
+      if ( data->dichot_pheno )
+	{
+	  gcnta = var.consensus.genotype_counts( CASE , &var , true );
+	  gcntu = var.consensus.genotype_counts( CONTROL , &var , true );
+
+	  plog << "\t";
+	  std::map<std::string,int>::iterator ii = gcnta.begin();
+	  while ( ii != gcnta.end() )
+	    {
+	      if ( ii != gcnta.begin() ) plog << " ";
+	      plog << ii->first << "=" << ii->second << ":" << gcntu[ ii->first ] ;
+	      ++ii;
+	    }	  
+	}
+      else
+	{
+	  gcntu = var.consensus.genotype_counts( UNKNOWN_PHE , &var , true );
+      
+	  plog << "\t";
+	  std::map<std::string,int>::iterator ii = gcntu.begin();
+	  while ( ii != gcntu.end() )
+	    {
+	      if ( ii != gcntu.begin() ) plog << " ";
+	      plog << ii->first << "=" << ii->second ;
+	      ++ii;
+	    }
+	}
+
+    }
   else
-    plog << "\t" << case_tot;
+    {
+      int case_count = 0 , case_tot = 0; 
+      int control_count = 0 , control_tot = 0;
+      
+      bool ma, control_ma;
+      
+      if ( data->dichot_pheno ) 
+	{
+	  ma = var.n_minor_allele( case_count , case_tot , CASE );
+	  control_ma = var.n_minor_allele( control_count , control_tot , CONTROL );
+	  // flip alleles?
+	  if ( control_ma != ma ) control_count = control_tot - control_count; 
+	}
+      else    
+	ma = var.n_minor_allele( case_count , case_tot );
+
+      // print minor/major allele(s)
+      plog << "\t" << ( ma ? var.alternate() + "/" + var.reference() : var.reference() + "/" + var.alternate() ) ;            
+
+      if ( data->dichot_pheno )
+	plog << "\t" << case_count
+	     << "\t" << control_count ;
+      else
+	plog << "\t" << case_count ;
+      
+      if ( data->dichot_pheno )
+	plog << "\t" << case_tot 
+	     << "\t" << control_tot;
+      else
+	plog << "\t" << case_tot;
+    }
 
 
   if ( data->apply_annot ) 

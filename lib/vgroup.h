@@ -211,7 +211,8 @@ class VariantGroup {
 		     bool gmeta = false , 
 		     bool transpose = false , 
 		     bool rarelist = false , 
-		     bool show_phenotype = false );
+		     bool show_phenotype = false , 
+		     bool only_minor = false );
 
 
  private:

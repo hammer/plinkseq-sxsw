@@ -369,8 +369,8 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
   // From LOCDB, take set of gene-groups
   // From REFDB, take set of ref-variants
   
-  std::set<std::string> locs = options.get_set( "loc-group" );
-  std::set<std::string> refs = options.get_set( "ref-group" );
+  std::set<std::string> locs = options.get_set( "loc" );
+  std::set<std::string> refs = options.get_set( "ref" );
 
   bool append_phe = g.vardb.attached() && g.inddb.attached() && g.phmap.type() == PHE_DICHOT;    
   bool append_loc = g.locdb.attached() && locs.size() > 0;
@@ -993,15 +993,15 @@ void f_proxscan( Variant & var , void * p )
 	  int either = 0, both = 0;
 	  for (int ii=0; ii<n; ii++) 
 	    {
-	      if ( ( (!alt1.masked(ii)) && alt1(ii) ) 
-		   || 
-		   ( (!alt2.masked(ii)) && alt2(ii) ) ) ++either;	      
-	      if ( ( ! ( alt1.masked(ii) || alt2.masked(ii) ) ) && d(ii,0) && d(ii,1) ) ++both;
+	      if ( ! ( alt1.masked(ii) || alt2.masked(ii) ) )
+		{
+		  either += alt1(ii) || alt2(ii);
+		  both += alt1(ii) && alt2(ii);
+		}
 	    }
-	  
+	 	  
 	  // Non-ref genotype counts
 	  
-
 	  // FREQ1, OBS1
 	  plog.data( n1 ) ; 
 	  plog.data( n2 ) ; 

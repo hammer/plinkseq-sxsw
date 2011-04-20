@@ -88,9 +88,10 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   shortform( "-f" , "--file" );
   shortform( "-g" , "--group" );
   shortform( "-p" , "--phenotype" );
+  shortform( "-h" , "--help" );
   
   
-  if ( n == 2 && argv[1] == "help" ) 
+  if ( n == 2 && std::string(argv[1]) == "--help"  )
     {
       std::cout << desc() << "\n";
       exit(0);
@@ -127,7 +128,12 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
 	{
 	  ++i;
 	  if ( i == n ) break;
-	  const std::string b = argv[i];
+	  
+	  std::string b = argv[i];
+
+	  if ( shortcuts.find( b ) != shortcuts.end() ) 
+	    b = shortcuts[b];
+	  
 	  if ( b.substr(0,2) == "--" ) 
 	    {
 	      --i; 
