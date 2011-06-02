@@ -25,7 +25,8 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   reg("seqdb", STRING, "sequence database location" );
   reg("segdb", STRING, "segent database location" );
   reg("locdb", STRING, "locus database location" );
-  
+  reg("netdb", STRING, "network database location" );  
+  reg("ibddb", STRING, "IBD segment database location" );  
   
   reg("file" , STRING_VECTOR , "generic input file(s)" );
   reg("group" , STRING_VECTOR , "generic group label(s)" );
@@ -81,7 +82,10 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
 
   reg("perm" , INT, "number of permutations");
   reg("aperm" , INT_VECTOR , "adaptive perm min, max");
+
+  reg("weights" , STRING , "name of variant weights tag");
   
+
   //
   // Register some short-cuts
   //
@@ -92,7 +96,13 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   shortform( "-g" , "--group" );
   shortform( "-p" , "--phenotype" );
   shortform( "-h" , "--help" );
-  
+  shortform( "-n" , "--name" );
+  shortform( "-w" , "--weights" );
+
+  shortform( "--out" , "--output" );
+  shortform( "--pheno" , "--phenotype" );
+  shortform( "--phe" , "--phenotype" );
+  shortform( "--weight" , "--weights" );
   
   if ( n == 2 && std::string(argv[1]) == "--help"  )
     {

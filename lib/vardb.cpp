@@ -554,58 +554,69 @@ void VarDBase::detachMemoryDB()
 
 bool VarDBase::release()
 {
-    
-    sql.finalise( stmt_insert_header );
-    sql.finalise( stmt_insert_metatype ); 
-    sql.finalise( stmt_insert_file ); 
-    sql.finalise( stmt_insert_variant_key ); 
-    sql.finalise( stmt_insert_variant_data ); 
-    sql.finalise( stmt_insert_individual ); 
+  sql.finalise( stmt_dump_indep_meta_group );
+  sql.finalise( stmt_fetch_chr_code );
+  sql.finalise( stmt_fetch_chr_name );
+  sql.finalise( stmt_fetch_file_from_tag );
+  sql.finalise( stmt_fetch_file_summary  );
+  sql.finalise( stmt_fetch_tag_from_file );
+  sql.finalise( stmt_fix_chr_code );
+  sql.finalise( stmt_insert_chr_code );
+  sql.finalise( stmt_insert_file_summary );
+  sql.finalise( stmt_insert_file_tag );
+  sql.finalise( stmt_lookup_group_name );    
+  
+  sql.finalise( stmt_insert_header );
+  sql.finalise( stmt_insert_metatype ); 
+  sql.finalise( stmt_insert_file ); 
+  sql.finalise( stmt_insert_variant_key ); 
+  sql.finalise( stmt_insert_variant_data ); 
+  sql.finalise( stmt_insert_individual ); 
+  
+  sql.finalise( stmt_fetch_var_from_position );
+  sql.finalise( stmt_fetch_var_from_position2 );
+  sql.finalise( stmt_fetch_var_from_name );
+  
+  sql.finalise( stmt_fetch_headers ); 
+  sql.finalise( stmt_fetch_metatypes ); 
+  sql.finalise( stmt_fetch_variant_key ); 
+  sql.finalise( stmt_fetch_variant_pos ); 
+  sql.finalise( stmt_fetch_variant_range ); 
+  sql.finalise( stmt_fetch_variant_data ); 
+  sql.finalise( stmt_fetch_files );
+  sql.finalise( stmt_fetch_file_id );
+  
+  sql.finalise( stmt_insert_bcf_n );
+  sql.finalise( stmt_fetch_bcf );
+  sql.finalise( stmt_fetch_bcfs );
+  sql.finalise( stmt_insert_bcf_idx ); 
+  
+  sql.finalise( stmt_insert_indep_meta_group );
+  sql.finalise( stmt_fetch_indep_meta_group );
+  sql.finalise( stmt_insert_indep_meta_type );
+  sql.finalise( stmt_fetch_indep_meta_type );
+  sql.finalise( stmt_insert_indep_meta_value );
+  sql.finalise( stmt_fetch_indep_meta_value );
 
-    sql.finalise( stmt_fetch_var_from_position );
-    sql.finalise( stmt_fetch_var_from_position2 );
-    sql.finalise( stmt_fetch_var_from_name );
-
-    sql.finalise( stmt_fetch_headers ); 
-    sql.finalise( stmt_fetch_metatypes ); 
-    sql.finalise( stmt_fetch_variant_key ); 
-    sql.finalise( stmt_fetch_variant_pos ); 
-    sql.finalise( stmt_fetch_variant_range ); 
-    sql.finalise( stmt_fetch_variant_data ); 
-    sql.finalise( stmt_fetch_files );
-    sql.finalise( stmt_fetch_file_id );
-    
-    sql.finalise( stmt_insert_bcf_n );
-    sql.finalise( stmt_fetch_bcf );
-    sql.finalise( stmt_fetch_bcfs );
-    sql.finalise( stmt_insert_bcf_idx ); 
-    
-    sql.finalise( stmt_insert_indep_meta_group );
-    sql.finalise( stmt_fetch_indep_meta_group );
-    sql.finalise( stmt_insert_indep_meta_type );
-    sql.finalise( stmt_fetch_indep_meta_type );
-    sql.finalise( stmt_insert_indep_meta_value );
-    sql.finalise( stmt_fetch_indep_meta_value );
-
-    sql.finalise( stmt_fetch_individual ); 
-    sql.finalise( stmt_fetch_individuals ); 
-    sql.finalise( stmt_iterate_variants ); 
-
-    sql.finalise( stmt_insert_group );
-    sql.finalise( stmt_lookup_group );
-    sql.finalise( stmt_insert_group_member );
-    sql.finalise( stmt_insert_group_variant );
-    sql.finalise( stmt_iterate_group ); 
-    sql.finalise( stmt_fetch_set_names1 ); 
-    sql.finalise( stmt_fetch_set_names2 ); 
-    sql.finalise( stmt_fetch_sets );
-
-    sql.finalise( stmt_vcount );
-    sql.finalise( stmt_totvcount );
-    sql.finalise( stmt_indcount );
-    sql.finalise( stmt_setcount );
-
-    return true;
+  sql.finalise( stmt_fetch_individual ); 
+  sql.finalise( stmt_fetch_individuals ); 
+  sql.finalise( stmt_iterate_variants ); 
+  
+  sql.finalise( stmt_insert_group );
+  sql.finalise( stmt_lookup_group );
+  sql.finalise( stmt_insert_group_member );
+  sql.finalise( stmt_insert_group_variant );
+  sql.finalise( stmt_iterate_group ); 
+  sql.finalise( stmt_fetch_set_names1 ); 
+  sql.finalise( stmt_fetch_set_names2 ); 
+  sql.finalise( stmt_fetch_sets );
+  
+  sql.finalise( stmt_vcount );
+  sql.finalise( stmt_totvcount );
+  sql.finalise( stmt_indcount );
+  sql.finalise( stmt_setcount );
+  
+  return true;
 }
 
 

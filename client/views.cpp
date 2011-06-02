@@ -299,7 +299,7 @@ void f_view_lik( Variant & v , void * p )
 	    }
 	  else
 	    {
-	      int ac = g.allele_count();
+	      int ac = g.allele_count( &v );
 	      if ( ac == 0 ) plog << "\t1\t0\t0";
 	      else if ( ac == 1 ) plog << "\t0\t1\t0";
 	      else if ( ac == 2 ) plog << "\t0\t0\t1"; 
@@ -330,7 +330,7 @@ void f_view_matrix( Variant & v , void * p )
       if ( v(i).null() ) 
 	plog << "\tNA";
       else
-	plog << "\t" << v(i).allele_count();
+	plog << "\t" << v(i).allele_count( &v );
     }
   plog << "\n";
   

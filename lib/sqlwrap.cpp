@@ -55,7 +55,7 @@ void SQL::close()
     }
 }
 
-bool SQL::query(string q)
+bool SQL::query( const std::string & q )
 {  
   char * db_err;
   rc = sqlite3_exec( db , q.c_str() , 0 , 0 , &db_err );
@@ -63,26 +63,28 @@ bool SQL::query(string q)
   return rc == 0;
 }
 
-sqlite3_stmt * SQL::prepare(string q)
+sqlite3_stmt * SQL::prepare( const std::string & q )
 {   
   sqlite3_stmt * p;
   int rc = sqlite3_prepare_v2( db , q.c_str() , q.size() , &p , NULL );   
   if ( rc ) plog.warn( "database warning preparing query " + std::string( sqlite3_errmsg(db) ) );
+  else qset.insert(p);
   return rc ? NULL : p;
 }
 
-sqlite3_stmt * SQL::prepare(string q, string key)
+sqlite3_stmt * SQL::prepare( const std::string & q, const std::string & key )
 {   
   sqlite3_stmt * p;
   int rc = sqlite3_prepare( db , q.c_str() , q.size() , &p , NULL );   
   if ( rc ) Helper::halt( db_err );
+  else qset.insert( p );
   qmap.insert( make_pair( key , p ) );
   return rc ? NULL : p;
 }
 
-sqlite3_stmt * SQL::fetch_prepared(string key)
+sqlite3_stmt * SQL::fetch_prepared( const std::string & key )
 {
-  map<string,sqlite3_stmt*>::iterator i = qmap.find(key);
+  std::map<std::string,sqlite3_stmt*>::iterator i = qmap.find(key);
   if ( i == qmap.end() ) return NULL;
   return i->second;
 }
@@ -97,7 +99,12 @@ void SQL::begin()
 
 void SQL::finalise(sqlite3_stmt * stmt)
 {
-  if ( stmt ) sqlite3_finalize( stmt );  
+  std::set<sqlite3_stmt*>::iterator i = qset.find( stmt );
+  if ( stmt && i != qset.end() ) 
+    {
+      qset.erase( i ); 
+      sqlite3_finalize( stmt );  
+    }
   stmt = NULL;
 }
 
@@ -217,12 +224,12 @@ void SQL::commit()
   query( "COMMIT;" );
 }
 
-vector<int> SQL::intTable(string q, int cols)
+std::vector<int> SQL::intTable( const std::string & q, int cols)
 {  
   return intTable( prepare(q) , cols );
 }
 
-vector<int> SQL::intTable(sqlite3_stmt * stmt, int cols)
+std::vector<int> SQL::intTable(sqlite3_stmt * stmt, int cols)
 {
   vector<int> res;
   rc = sqlite3_step( stmt );
@@ -236,14 +243,14 @@ vector<int> SQL::intTable(sqlite3_stmt * stmt, int cols)
   return res;
 }
 
-vector<uint64_t> SQL::int64Table(string q, int cols)
+std::vector<uint64_t> SQL::int64Table( const std::string & q, int cols)
 {  
   return int64Table( prepare(q) , cols );
 }
 
-vector<uint64_t> SQL::int64Table(sqlite3_stmt * stmt, int cols)
+std::vector<uint64_t> SQL::int64Table(sqlite3_stmt * stmt, int cols)
 {
-  vector<uint64_t> res;
+  std::vector<uint64_t> res;
   rc = sqlite3_step( stmt );
   while ( rc == SQLITE_ROW )
     {
@@ -264,7 +271,7 @@ int SQL::lookup_int(sqlite3_stmt * stmt)
   return r;
 }
 
-int SQL::lookup_int(string q)
+int SQL::lookup_int( const std::string & q )
 {
   sqlite3_stmt * s = prepare(q);
   int r = -1;

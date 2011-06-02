@@ -66,8 +66,30 @@ void f_vstat( Variant & v , void * p)
       vstat->cnt_dp++;      
       vstat->score( vstat->depth , dp ); 
     }
-  
-  
+  else if ( v.multi_sample() ) // try summing multi sample depths
+    {
+      v.set_first_sample();
+      int dp = 0;
+      bool obs = false;
+      while ( 1 ) 
+	{
+	  const SampleVariant & sample = v.sample();
+	  if ( sample.meta.has_field( vstat->var_depth_label ) )
+	    {
+	      dp += sample.meta.get1_int( vstat->var_depth_label ) ;
+	      obs = true;
+	    }
+	  if ( ! v.next_sample() ) break;
+	}         
+    
+      if ( obs ) 
+	{
+	  vstat->mean_dp += dp;
+	  vstat->cnt_dp++;      
+	  vstat->score( vstat->depth , dp ); 
+	}      
+    }
+ 
   // Quality score
   
   bool has_qual = v.consensus.quality() >= 0;
@@ -96,14 +118,16 @@ void f_vstat( Variant & v , void * p)
   // FILTERs
   
   bool pass = true;
-  std::vector<std::string> fltrs = v.consensus.filters();  
-  for (int ft=0; ft < fltrs.size(); ft++)
-    {      
-      vstat->n_filter[ fltrs[ft] ]++;    
+  std::set<std::string> fltrs = v.meta_filter();  
+  std::set<std::string>::iterator ft = fltrs.begin();
+  while ( ft != fltrs.end() )
+    {
+      vstat->n_filter[ *ft ]++;    
       // this is used only in i-stats (from --options filter=StrandBias, for example
-      if ( vstat->n_istat_filter.find( fltrs[ft] ) != vstat->n_istat_filter.end() )
-	vstat->n_istat_filter[ fltrs[ft] ]++;
-      if ( fltrs[ft] != "PASS" ) pass = false;
+      if ( vstat->n_istat_filter.find( *ft ) != vstat->n_istat_filter.end() )
+	vstat->n_istat_filter[ *ft  ]++;
+      if ( *ft != "PASS" ) pass = false;
+      ++ft;
     }
 
   if ( pass )
@@ -845,7 +869,7 @@ void f_istat( Variant & v , void * p)
 	  if ( altgen ) istat->nalt[ id ]++;	      
 	  if ( mingen ) istat->nmin[ id ]++;
 	  if ( genotype.heterozygote() ) istat->nhet[id]++;
-	  if ( vstat->n_singleton ) s.n_singleton++;
+	  if ( altgen && vstat->n_singleton ) s.n_singleton++;
 	  
 
 	  // 1) For all variant-level statistics, calculate per individual, only 

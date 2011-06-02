@@ -143,13 +143,6 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 	{
 	  continue;
 	}
-
-//       if ( l == VCFReader::VCF_HEADER ) 
-// 	{
-// //	  int n = imap.populate( tmpdb , GP->phmap , mask );
-// 	  int n = GP->indmap.populate( GP->vardb , GP->phmap , mask );
-// 	}
-      
       
       // If a variant line has been processed and meets criteria, pv
       // will be non-NULL which also implies that a Variant has been
@@ -160,10 +153,11 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 	  
 	  // So that the Variant functions know not to look for data
 	  // in a BLOB	  
+	  
 	  pv->consensus.vcf_direct = true;
 	  
 	  // Apply all mask filters, and decide whether to call function
-//	  if ( eval_and_call( mask, &imap , *pv , f , data ) ) 
+	  
 	  if ( eval_and_call( mask, &(GP->indmap) , *pv , f , data ) ) 
 	    {
 	      if ( ! irep.accepted_variant() ) break;
@@ -172,7 +166,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 	    {
 	      irep.rejected_variant();
 	    }
-
+	  
 	  // and now clean up 	  
 	  delete pv;
 	  
@@ -182,7 +176,6 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 
   // Wrap up
   
-//  tmpdb.commit();
   GP->vardb.commit();
   
   // If we had to use any positional filters or grouping, now run the 

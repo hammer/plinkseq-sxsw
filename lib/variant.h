@@ -114,7 +114,7 @@ struct SampleVariant {
   // Collapse all alternate alleles
   //
   
-  void collapse_alternates( int altcode = 0 );
+  void collapse_alternates( const Variant * , int altcode = 0 );
   
 
   //
@@ -705,6 +705,7 @@ class Variant {
   std::string print_samples( const std::string & delim = " " ) const;
   std::string print_meta( const std::string & key , const std::string & delim = " ") const;
   std::string print_meta_filter( const std::string & delim = " ") const;
+  std::set<std::string> meta_filter( ) const;
   
 
   //

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 
 #include "pseq.h"
 
@@ -15,6 +16,11 @@ namespace Pseq {
     
     void test_wrapper( const std::string & segment_list , const std::string & gwas_phenotypes , int, Mask & m );
     
+    void load_wrapper( const std::string & segment_list , const std::string & ibddb );
+    
+    void sharing_wrapper( const std::string & database , Mask & m );
+
+
     struct IBDPartner {
       IBDPartner(std::string id, int affected ) 
 	: id(id) , affected(affected) { } 
@@ -23,20 +29,18 @@ namespace Pseq {
     };
     
     
-    class IBDSegmentHandler {
+    class IBDDBase {
       
     public:
       
-      IBDSegmentHandler( const std::string & db );
-      ~IBDSegmentHandler();
+      IBDDBase( const std::string & db );
+      ~IBDDBase();
       
-      // Load all pairwise segments
-      
+      // Load all pairwise segments      
       void load( const std::string & db );
       
       // For a proband, get IDs of all other individuals who 
       // share at least one segment at this position
-      
       std::vector<IBDPartner> fetch( const std::string & id , const Region & r);
       
       int2 case_control_count( const std::string & id , const Region & r );
@@ -44,6 +48,9 @@ namespace Pseq {
 			       std::map<std::string,int> & imap, 
 			       std::vector<int> & pmap,
 			       std::vector<int> & permed );
+
+      // Given a pair of individuals, return all segments they share 
+      std::set<Region> shared_for_pair( const std::string & id1 , const std::string & id2 );
       
     private:
       
@@ -53,6 +60,7 @@ namespace Pseq {
       
       sqlite3_stmt * stmt_insert;
       sqlite3_stmt * stmt_fetch;
+      sqlite3_stmt * stmt_fetch_pair;
       
     };
     
@@ -60,7 +68,7 @@ namespace Pseq {
     struct Aux {
       Aux() { rseed = 0; g = NULL; }
       GStore * g;
-      IBDSegmentHandler * ibd;
+      IBDDBase * ibd;
       long int rseed;
       int minm;
       int maxm;

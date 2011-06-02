@@ -363,7 +363,6 @@ bool Pseq::VarDB::check_concordance( Mask & m )
 bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
 {
 
-
   Helper::checkFileExists( filename );
 
   // From LOCDB, take set of gene-groups
@@ -371,106 +370,129 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
   
   std::set<std::string> locs = options.get_set( "loc" );
   std::set<std::string> refs = options.get_set( "ref" );
-
+  
   bool append_phe = g.vardb.attached() && g.inddb.attached() && g.phmap.type() == PHE_DICHOT;    
   bool append_loc = g.locdb.attached() && locs.size() > 0;
   bool append_ref = g.refdb.attached() && refs.size() > 0;
   bool vardb = g.vardb.attached();
-  bool append_annot = g.seqdb.attached() && options.key("annot");
+  bool append_annot = g.seqdb.attached() && ( options.key("annot") || options.key( "annotate" ) );
   if ( append_annot ) 
     {
-      Annotate::load_transcripts( LOCDB, PLINKSeq::DEFAULT_LOC_GROUP() );
+      std::string annot_transcripts = PLINKSeq::DEFAULT_LOC_GROUP() ;
+      if ( options.key( "annot" ) ) annot_transcripts = options.as<std::string>( "annot" );
+      else if ( options.key( "annotate" ) ) annot_transcripts = options.as<std::string>( "annotate" );      
+      Annotate::load_transcripts( LOCDB, annot_transcripts );
     }
-
+  
   InFile F1( filename );
-
+  
   if ( vardb )
-    plog << "_VAR" << "\t"
-	 << "QUERY" << "\t"
-	 << "N" << "\t"
-	 << "VAR" << "\t"
-	 << ( append_phe ? "AFF\tUNAFF\t" : "COUNTS\t" ) 
-	 << "\n";
+    {
+      if ( append_phe ) plog << "##casecon,1,String,\"Case/control minor allele counts\"\n";
+      else plog << "##count,1,String,\"Minor allele counts\"\n";
+    }
   
   if ( append_loc )
-    plog << "_REFLOC" << "\t"
-	 << "QUERY" << "\t"
-	 << "LOCGRP" << "\t"
-	 << "LOC" << "\n";
-      
-  if ( append_ref )
-    plog << "_REFVAR" << "\t"
-	 << "QUERY" << "\t"
-	 << "REFGRP" << "\t"
-	 << "REFVAR" << "\n";
+    {
+      std::set<std::string>::iterator i = locs.begin();
+      while ( i != locs.end() )
+	{
+	  plog << "##" << *i << ",String,\"LOCDB group\"\n";
+	  ++i;
+	}
+    }
   
+  if ( append_ref ) 
+    {
+      std::set<std::string>::iterator i = refs.begin();
+      while ( i != refs.end() )
+	{
+	  plog << "##" << *i << ",String,\"REFDB group\"\n";
+	  ++i;
+	}
+    }
   
+  if ( append_annot )
+    {
+      plog << "##func,1,String,\"Genomic annotation\"\n";
+      plog << "##transcript,1,String,\"Genomic annotation\"\n";
+      plog << "##codon,1,String,\"Any nonsynon codon change\"\n";
+      plog << "##protein,1,String,\"Any nonsynon amino acid change\"\n";
+      plog << "##worst,1,String,\"'Worst' annotation\"\n";
+      plog << "##class,1,String,\"Summary of all annotations\"\n";
+    }
+
+  if ( ! ( vardb || append_loc || append_ref || append_annot ) ) Helper::halt("no information to append");
+
   while ( !F1.eof() )
     {
+  
       bool okay = true;
-      std::string s;
       
-      F1 >> s;
-
-      if ( s == "" ) 
-	continue;
-
+      std::string s;      
+      F1 >> s;      
+      if ( s == "" ) continue;
+      
       Region region(s,okay);
-
+      
       std::string ref_allele , alt_allele;
+
       if ( append_annot && okay ) 
 	{
-	  F1 >> ref_allele >> alt_allele; 
-	  Variant var;
 
+	  F1 >> ref_allele >> alt_allele; 
+	  
+	  Variant var;
 	  var.chromosome( region.start.chromosome() );
 	  var.position( region.start.position() );
-	  var.stop( var.position() + alt_allele.size() );
+	  var.stop( var.position() + alt_allele.size() - 1 );
 	  var.consensus.reference( ref_allele );
 	  var.consensus.alternate( alt_allele );
-
+	  
 	  bool exonic = Annotate::annotate( var );
-
+	  
 	  std::string annot = var.meta.get1_string( PLINKSeq::ANNOT() );
 	  
-	  plog << "_ANNOT" << "\t"
-	       << s << "\t"
-	       << exonic << "\t"
-	       << annot << "\t";
-
-	  if ( exonic && annot == "Nonsynonymous" ) 
-	    {
-	      std::vector<std::string> atype = var.meta.get_string( PLINKSeq::ANNOT_TYPE() );
-	      std::vector<std::string> agene = var.meta.get_string( PLINKSeq::ANNOT_GENE() );
-	      std::vector<std::string> aprot = var.meta.get_string( PLINKSeq::ANNOT_PROTEIN() );
-	      // should all be same length
-	      if ( atype.size() == agene.size() && agene.size() == aprot.size() ) 
-		{
-		  for (int i=0; i<atype.size(); i++)
-		    plog << atype[i] << "|" << agene[i] << "|" << aprot[i] << " ";
-		}
-	      else
-		plog.warn("internal problem in lookup/annotation");
-	    }
-	  else 
-	    plog << ".";
+	  // detailed annotation vector, primary annotation
 	  
-	  plog << "\n";
+	  plog << var.coordinate() << "\t"
+	       << "func" << "\t"
+	       << var.meta.as_string( PLINKSeq::ANNOT_TYPE() , "," ) << "\n";
+	  
+	  plog << var.coordinate() << "\t"
+	       << "transcript" << "\t"
+	       << var.meta.as_string( PLINKSeq::ANNOT_GENE() , "," ) << "\n";
+	  
+	  plog << var.coordinate() << "\t"
+	       << "codon" << "\t"
+	       << var.meta.as_string( PLINKSeq::ANNOT_CODON() , "," ) << "\n";
+				      
+	  plog << var.coordinate() << "\t"
+	       << "protein" << "\t"
+	       << var.meta.as_string( PLINKSeq::ANNOT_PROTEIN() , "," ) << "\n";
+
+	  // worst-case consensus annotation
+	  
+	  plog << var.coordinate() << "\t"
+	       << "worst" << "\t"
+	       << annot << "\n";
+          
+	  // summary annotation
+	  
+	  plog << var.coordinate() << "\t"
+	       << "class" << "\t"
+	       << var.meta.get1_string( PLINKSeq::ANNOT_SUMMARY()) << "\n";
 	  
 	}
-          
-     
       
+
       if ( ! okay ) 
 	{
-	  plog << s << "\t"
-	       << "NA" << "\t"
-	       << "_NOT_VALID_REGION" << "\n";    
+	  plog.warn( "not a valid region" , s );
 	  continue;
 	}
       
-      
-      
+            
       // Fetch from VARDB 
       
       std::set<Variant> vars = g.vardb.fetch( region );
@@ -928,11 +950,11 @@ void f_proxscan( Variant & var , void * p )
   Aux_proximity * aux = (Aux_proximity*)p;
   
   // Is this close enough to the last variant seen?
-  
+
   if ( var.chromosome() == aux->lastvar.chromosome() && 
        var.position() - aux->lastvar.stop() <= aux->dist ) 
     {
-      
+
       aux->store.insert( aux->lastvar );
 
       const int n = var.size();
@@ -940,9 +962,9 @@ void f_proxscan( Variant & var , void * p )
       std::set<Variant>::iterator i = aux->store.begin();
       while ( i != aux->store.end() )
 	{
-	  
-	  plog.data_group( i->displaycore() + "," + var.displaycore() );
 
+	  plog.data_group( i->displaycore() + "," + var.displaycore() );
+	  
 	  // Counts
 
 	  int n1, m1, n2, m2;
@@ -952,29 +974,22 @@ void f_proxscan( Variant & var , void * p )
 	  // DIST
 	  plog.data( var.position() - aux->lastvar.stop() );
 
-	  
 	  // Calculate correlation coefficient between pair of SNPs
 	  
 	  Data::Vector<double> alt1 = VarFunc::alternate_allele_count( var );	  
 	  Data::Vector<double> alt2 = VarFunc::alternate_allele_count( *i  );
-	  
+
 	  Data::Matrix<double> d( n , 0 );
 	  d.add_col( alt1 );
 	  d.add_col( alt2 );
 	  
-	  //	  std::cout << "init d = " << d.dim1() << " " ; 
-
 	  int mis = 0;
 	  for (int ik=0; ik<d.dim1(); ik++)
 	    if ( d.masked(ik) ) ++mis; 
 
-
 	  d = d.purge_rows();
-	  
+
 	  Data::Matrix<double> cov = Statistics::covariance_matrix( d );
-	  
-// 	  std::cout << "d = " << d.dim1() << " "<< d.dim2() << " : " 
-// 		    << cov(0,0) << " " << cov(1,0) << " " << cov(0,1) << " " << cov(1,1) << "\n";
 	  
 	  double r = cov(0,1) / sqrt( cov(0,0) * cov(1,1) ) ; 
 	  
@@ -1014,7 +1029,10 @@ void f_proxscan( Variant & var , void * p )
 
 	  plog.data( both  );
 	  plog.data( either  );
-	  plog.data( both/(double)either );
+	  if ( either ) 
+	    plog.data( both/(double)either );
+	  else 
+	    plog.data( "NA" );
 
 	  if ( Helper::realnum( r ) ) plog.data( r ) ; 
 	  else plog.data( "NA" ) ; 	  
@@ -1057,8 +1075,6 @@ bool Pseq::VarDB::proximity_scan( Mask & mask )
   plog.data_header( "CONC" );
 
   plog.data_header( "R" );
-
-
 
   plog.data_header_done();
   

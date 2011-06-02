@@ -23,6 +23,8 @@ void i_view( Individual & );
 
 // Specialist views
 
+void g_geneseq( VariantGroup & , void * p );
+
 void f_view_lik( Variant & , void * p );
 
 void f_view_matrix( Variant & , void * p );
@@ -130,6 +132,12 @@ struct OptGView {
 };
 
 
+struct Opt_geneseq {
+  Opt_geneseq() 
+  { pheno = false; ref = 0; }
+  bool pheno;
+  int ref;
+};
 
 struct OptGMatrix {
 

@@ -47,7 +47,7 @@ class Genotype {
   
   // Which variant does this genotype belong to? 
   
-  const Variant * parent;
+  //  const Variant * parent;
   
   // Header byte 
   
@@ -83,12 +83,17 @@ class Genotype {
  
  public:
   
-  Genotype( Variant * parent = NULL ) 
-    : parent(parent) 
+/*   Genotype( Variant * parent = NULL )  */
+/*     : parent(parent)  */
+/*     {  */
+/*       initialise();  */
+/*     } */
+    
+  Genotype( ) 
     { 
       initialise(); 
     }
-    
+
     Genotype( const Genotype & g )
       {
 	*this = g;
@@ -97,22 +102,22 @@ class Genotype {
     Genotype & operator=( const Genotype & g ) 
       {
 	this->bs = g.bs;
-	this->parent = g.parent;
+	//	this->parent = g.parent;
 	gcode = g.gcode;
 	meta = g.meta;
 	return *this;
       }
     
     
-    void variant( const Variant * var )
-    {
-      parent = var;
-    }
+/*     void variant( const Variant * var ) */
+/*     { */
+/*       parent = var; */
+/*     } */
     
-    const Variant * variant()
-    {
-      return parent;
-    }
+/*     const Variant * variant() */
+/*     { */
+/*       return parent; */
+/*     } */
 
   /// Extensible meta-information, e.g. read-depth, soft-calls, etc
   
@@ -189,13 +194,13 @@ class Genotype {
   //
 
   // number of nonreference alleles 
-  int allele_count( ) const;
+  int allele_count( const Variant * ) const;
   
   // number of a particular non-refernece allele (number 1,2,...)
   // 0 implies reference
-  int allele_count( const int altcode ) const;
-  int allele_count( const std::string & ) const;
-  
+
+  int allele_count( const int altcode , const Variant * ) const;
+  int allele_count( const std::string & , const Variant * ) const;  
   
   int copy_number() const 
     {
@@ -341,9 +346,9 @@ class GenotypeSet{
     // null, we assume calls will be empty ( by definition) We also
     // assume we do not add/remove variants to a mirroring set --
     // i.e. the mirroring is designed for read-operations only
-
+    
     SampleVariant * svar;
-
+    
     std::vector<int> * incon;
 
  public:

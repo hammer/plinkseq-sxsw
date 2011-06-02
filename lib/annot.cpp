@@ -21,19 +21,20 @@ std::map<seq_annot_t,std::string> populate_seqinfo()
 {
   std::map<seq_annot_t,std::string> m;
   m[UNDEF]    = ".";
-  m[MONO]     = "Monomorhpic";
-  m[IGR]      = "Intergenic region";
-  m[INTRON]   = "Intronic";
+  m[MONO]     = "monomorhpic";
+  m[IGR]      = "intergenic-region";
+  m[INTRON]   = "intronic";
   m[UTR5]     = "5'UTR";
   m[UTR3]     = "3'UTR";
-  m[SYN]      = "Synonymous";
-  m[MIS]      = "Missense";
-  m[NON]      = "Nonsense";
-  m[PART]     = "Partial codon";
-  m[SPLICE]   = "Splice site";
-  m[BOUNDARY] = "Intron/exon boundary";
-  m[FS]       = "Frameshift";
-  m[RT]       = "Readthrough";
+  m[SYN]      = "silent";
+  m[MIS]      = "missense";
+  m[NON]      = "nonsense";
+  m[PART]     = "partial-codon";
+  m[SPLICE5]  = "5'splice-site";
+  m[SPLICE3]  = "3'splice-site";
+  m[BOUNDARY] = "intron/exon-boundary";
+  m[FS]       = "frameshift";
+  m[RT]       = "readthrough";
   return m;
 }
 
@@ -187,46 +188,110 @@ bool Annotate::load_transcripts( uint64_t id , const std::set<Region> & regions 
   return true;
 }
 
-bool Annotate::annotate(Variant & var)
+
+bool Annotate::annotate(Variant & var , Region * pregion )
 {
-  std::set<SeqInfo> s = annotate( var.chromosome() , 
-				  var.position() , 
-				  var.alternate() , 
-				  var.reference() ) ; 
+  
+  std::set<SeqInfo> s; 
+  if ( ! pregion ) 
+    s = annotate( var.chromosome() , 
+		  var.position() , 
+		  var.alternate() , 
+		  var.reference() ) ; 
+  else
+    s = annotate( var.chromosome() , 
+		  var.position() , 
+		  var.alternate() , 
+		  var.reference() , 
+		  *pregion ) ; 
+
   bool annot = false;
 
   // summary of 'worst' annotation (int, syn, nonsyn)
-
-  bool is_exonic = false;
-  bool is_nonsyn = false;
   
+  int is_silent = 0;
+  int is_missense = 0;
+  int is_splice = 0;
+  int is_nonsense = 0;
+  int is_readthrough = 0;
+  int is_intergenic = 0;
+  int is_intronic = 0;
+
   std::set<SeqInfo>::iterator i = s.begin();
   while ( i != s.end() )
     {
       
-      // track whether this is coding, for a return code
-      if ( i->exonic() ) is_exonic = true;
-      if ( i->coding() ) is_nonsyn = true;
-
-      // add annotations
+      // track whether this is coding, for a 'single' return code      
       
+      if ( i->synon() ) ++is_silent;
+      if ( i->missense() ) ++is_missense;
+      if ( i->nonsense() ) ++is_nonsense;
+      if ( i->splice() ) ++is_splice;
+      if ( i->readthrough() ) ++is_readthrough;
+      if ( i->intergenic() ) ++is_intergenic;
+      if ( i->intronic() ) ++is_intronic;
+    
+      // add annotations      
       var.meta.add( PLINKSeq::ANNOT_TYPE() , i->status() );
       var.meta.add( PLINKSeq::ANNOT_GENE() , i->gene_name() );
       var.meta.add( PLINKSeq::ANNOT_CODING() , i->coding() );
-      var.meta.add( PLINKSeq::ANNOT_EXONIC() , i->exonic() );
+ // var.meta.add( PLINKSeq::ANNOT_EXONIC() , i->exonic() );
       var.meta.add( PLINKSeq::ANNOT_CODON() , i->codon() );
-      var.meta.add( PLINKSeq::ANNOT_PROTEIN() , i->protein() );
+
+      // for splice, use this slot for the details, for now
+      if ( i->splice() )
+	{
+	  std::string s = "dist=" + Helper::int2str( i->splicedist );
+	  var.meta.add( PLINKSeq::ANNOT_PROTEIN() , s );	  
+	}
+      else
+	{
+	  var.meta.add( PLINKSeq::ANNOT_PROTEIN() , i->protein() );
+	}
       ++i;
     }
   
-  if ( is_nonsyn ) var.meta.set( PLINKSeq::ANNOT() , "Nonsynonymous" );
-  else if ( is_exonic ) var.meta.set( PLINKSeq::ANNOT() , "Synonymous" );
-  else var.meta.set( PLINKSeq::ANNOT() , "." );
+  // what is the 'worst' annotation?
+  std::string aworst = "";
+
+  if ( is_nonsense ) aworst = "nonsense"; 
+  else if ( is_splice ) aworst = "splice";
+  else if ( is_readthrough ) aworst = "readthrough";
+  else if ( is_missense ) aworst = "missense";
+  else if ( is_silent ) aworst = "silent";
+  else if ( is_intronic ) aworst = "intronic";
+  else aworst = "intergenic"; 
+
+  var.meta.set( PLINKSeq::ANNOT() , aworst );
+  
+  // what is the 'summary/consensus' annotation?
+  int acount = 0;
+
+  if ( is_silent ) ++acount;
+  if ( is_missense ) ++acount;
+  if ( is_nonsense ) ++acount;
+  if ( is_splice ) ++acount;
+  if ( is_readthrough ) ++acount;
+  if ( is_intergenic ) ++acount;
+  
+  std::string annot_summary = aworst;
+  if ( acount > 1 ) annot_summary = "mixed";  
+
+  annot_summary += ",NON=" + Helper::int2str( is_nonsense );
+  annot_summary += ",MIS=" + Helper::int2str( is_missense );
+  annot_summary += ",SYN=" + Helper::int2str( is_silent );
+  annot_summary += ",SPL=" + Helper::int2str( is_splice );
+  annot_summary += ",RTH=" + Helper::int2str( is_readthrough );
+  annot_summary += ",INT=" + Helper::int2str( is_intronic );
+  annot_summary += ",IGR=" + Helper::int2str( is_intergenic );
+
+  var.meta.set( PLINKSeq::ANNOT_SUMMARY() , annot_summary );
   
   // did we receive any annotation?
-  return is_exonic;
+  return is_silent || is_nonsense || is_missense || is_splice || is_readthrough;
   
 }
+
 
 std::set<SeqInfo> Annotate::lookup(Variant & var)
 {
@@ -377,45 +442,146 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  std::map<int,int> exon_pos;
 	  int pos = 1;
 	  int in_exon = 0;
-
-	  for ( unsigned int s = 0 ; s < r->subregion.size(); s++ )
-	    {		
-	      
-	      exon_pos[s] = pos;
-	      pos += r->subregion[s].stop.position() - r->subregion[s].start.position() + 1;
-	      if ( bp1 >= r->subregion[s].start.position() && 
-		   bp1 <= r->subregion[s].stop.position() ) 
-		{
-		  exons.insert(s);
-		  in_exon = s;
-		  if ( bp1 - r->subregion[s].start.position() < 3 && s>0 ) 
-		    exons.insert(s-1);
-		  if ( r->subregion[s].stop.position() - bp1 < 3 && s < r->subregion.size()-1 )
-		    exons.insert(s+1);
-		}
-	    }
 	  
 
 	  //
-	  // If no exons attached, implies an intronic SNP
-	  //
-	  
-	  if ( exons.size() == 0 ) 
-	    {	      
-	      annot.insert( SeqInfo( r->name , INTRON ) );
-	      ++r; // next region
-	      continue;
-	    }
-	  
-	  
-	  //
-	  // Get strand
+	  // Strand and exon status
 	  //
 	  
 	  bool negative_strand = r->subregion[0].meta.get1_string( PLINKSeq::TRANSCRIPT_STRAND() ) == "-";
 	  
 	  int first_exon = negative_strand ? 0 : r->subregion.size()-1;
-    	  
+
+	  int last_exon = negative_strand ? r->subregion.size()-1 : 0;
+	  
+	  
+	  //
+	  // Does variant fall within an exon, or near an intron/exon splice-site boundary
+	  //
+	  
+	  for ( unsigned int s = 0 ; s < r->subregion.size(); s++ )
+	    {	      
+	    
+	      exon_pos[s] = pos;
+	      
+	      pos += r->subregion[s].stop.position() - r->subregion[s].start.position() + 1;
+	      
+	      if ( bp1 >= r->subregion[s].start.position() && 
+		   bp1 <= r->subregion[s].stop.position() ) 
+		{
+
+		  exons.insert(s);
+		  
+		  in_exon = s;
+		  
+		  if ( bp1 - r->subregion[s].start.position() < 3 && s>0 ) 
+		    exons.insert(s-1);
+		  
+		  if ( r->subregion[s].stop.position() - bp1 < 3 && s < r->subregion.size()-1 )
+		    exons.insert(s+1);
+		  
+		}
+	      
+		  
+	      // Is this a SPLICE-SITE? 
+	      
+// 	      std::cout << "s = " << s << " " << first_exon << " " << last_exon << " " << r->subregion.size() << "\n";
+// 	      std::cout << "bp1 = " << bp1 << "\t" << r->subregion[s].start.position() << " " << r->subregion[s].stop.position() << "\n";
+	      
+	      bool splice = false;
+	      int splicedist = 0;
+	      
+	      // Intronic -2 would be the second base before the
+	      // splice acceptor site (that is, the A of the invariant
+	      // AG that ends an intron) 
+
+	      // Intronic + would be after a 5' donor site Synonymous
+	      // +2 would be the second base of an exon,
+
+	      //  5'splice site
+	      //    Syn -1 would be last base of exon.
+	      //    In  +1
+
+	      // 3'
+	      //    Syn +1
+	      //    In  -1
+
+	      //  --> + ve strand
+
+	      //  --exon1---|        |--exon2---
+	      //             GU    AG
+	      // 5' splice site     3' splice site
+
+
+	      
+	      //  ---> +ve strand
+	      //
+	      //   |---------|          |------------|
+	      //             5'         3'
+	      // +            123       123
+	      // -         321       321
+	      
+
+	      //                       <--- -ve strand
+	      //
+	      //   |---------|          |------------|
+	      //             3'         5'
+	      // +         321       321 
+	      // -            123       123
+	      
+
+
+	      if ( s != first_exon  &&  abs( r->subregion[s].start.position() - bp1 ) < 3 )
+		{
+		  if ( negative_strand )
+		    {
+		      SeqInfo si = SeqInfo( r->name , SPLICE5 );
+		      si.splicedist = r->subregion[s].start.position() - bp1 ;		      
+		      if ( si.splicedist <= 0 ) --si.splicedist;
+		      if ( si.splicedist > -3 ) annot.insert( si );			       
+		    }
+		  else
+		    {
+		      SeqInfo si = SeqInfo( r->name , SPLICE3 );
+		      si.splicedist = bp1 - r->subregion[s].start.position() ;		      
+		      if ( si.splicedist >= 0 ) ++si.splicedist;
+		      if ( si.splicedist < 3 ) annot.insert( si );			       
+		    }
+		}
+	      
+	      if ( s != last_exon && abs( r->subregion[s].stop.position() - bp1 ) < 3 )
+		{
+		  if ( negative_strand )
+		    {
+		      SeqInfo si = SeqInfo( r->name , SPLICE5 );
+		      si.splicedist = r->subregion[s].stop.position() - bp1;
+		      if ( si.splicedist >= 0 ) ++si.splicedist;
+		      if ( si.splicedist < 3 ) annot.insert( si );			       		    
+		    }
+		  else
+		    {
+		      SeqInfo si = SeqInfo( r->name , SPLICE5 );
+		      si.splicedist = bp1 - r->subregion[s].stop.position() ;
+		      if ( si.splicedist <= 0 ) --si.splicedist;
+		      if ( si.splicedist > -3 ) annot.insert( si );			       		    
+		    }
+		}
+	      
+	    }
+	  
+	  
+	  //
+	  // If no exons attached, implies an intronic SNP (or splice site)
+	  //
+	  
+	  if ( exons.size() == 0 ) 
+	    {	      
+	      // Otherwise
+	      annot.insert( SeqInfo( r->name , INTRON ) );
+	      ++r; // next region
+	      continue;
+	    }
+	  
 	  
 	  //
 	  // Get reference sequence 
@@ -553,7 +719,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      continue;
 	    }
 	  
-
+	  
 	  //
 	  // For indels, will need a better check of synon that above...
 	  //
@@ -567,28 +733,30 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  //
 	  // Make calls
 	  //
-
+	  
 	  std::vector<std::string> difs;
 	  
-	  bool nonsense = false;
-
-
 	  for ( unsigned int i=0; i< trans_var.size(); i++ )
 	    {
 	      
 	      // for reference -- for substitutions,
 	      // ref allele = ref_cds.substr( pos_extracted_seq-1 , 1 )  
 	      // alt allele = var_allele
-
+	      
 	      if ( trans_ref[i] != trans_var[i] )
 		{
-
+		  
 		  seq_annot_t type = MIS;
+
 		  if ( trans_var[i] == '*' ) type = NON;
 		  else if ( trans_ref[i] == '*' ) type = RT;
+
+// 		  else 
+// 		    {
+// 		      // need to assess frameshifts, and also splice/UTRs
+// 		    }
 		  
-		  // need to assess frameshifts, and also splice/UTRs
-		  
+
 		  annot.insert( SeqInfo( r->name , 
 					 type , 
 					 pos_whole_transcript , 
@@ -597,7 +765,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 					 (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
 					 trans_ref.substr(i,1) , 
 					 trans_var.substr(i,1) ) );
-		}	      
+		}
 	    }
 	  
 	  ++r;
@@ -616,6 +784,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 
 std::string SeqInfo::codon() const
 { 
+  if ( intergenic() || intronic() ) return ".";
   return cpos1 == 0 ? 
     "." : 
     "c." + Helper::int2str( cpos1 ) + ref_seq + ">" + alt_seq ;
@@ -624,6 +793,7 @@ std::string SeqInfo::codon() const
 
 std::string SeqInfo::protein() const
 {
+  if ( intergenic() || intronic() ) return ".";
   return ppos1 == 0 ? 
     "." : 
     "p." + Helper::int2str( ppos1 ) + ref_aa + ">" + alt_aa ;

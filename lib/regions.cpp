@@ -14,7 +14,7 @@ bool Subregion::overlaps(const Region & b) const
 } 
 
 
-bool Region::within( set<Region> & s )
+bool Region::within( std::set<Region> & s )
 {
     
   // Find lower and upper bound
@@ -33,7 +33,7 @@ bool Region::within( set<Region> & s )
 }
 
 
-Region::Region(const string & s, bool & flag)
+Region::Region(const std::string & s, bool & flag)
 {
 
   id = 0;

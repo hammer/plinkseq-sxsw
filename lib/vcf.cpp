@@ -325,8 +325,10 @@ void VCFReader::getMetaInformation(const std::string & s)
       // and also BCFv4.0
       if ( tok[1].size() >= 3 && tok[1].substr( tok[1].size() - 3 ) == "3.3" ) 
 	version = VCF_3_3;
-      else if ( tok[1].size() >= 3 && tok[1].substr( tok[1].size() - 3  ) == "4.0" ) 
+      else if ( tok[1].size() >= 3 && tok[1].substr( tok[1].size() - 3  ) == "4.0" )
 	version = VCF_4_0;
+      else if ( tok[1].size() >= 3 && tok[1].substr( tok[1].size() - 3  ) == "4.1" ) 
+	version = VCF_4_1;
       else 
 	Helper::halt( "could not recognize VCF version " + tok[1] );
     }
@@ -400,7 +402,7 @@ void VCFReader::getMetaInformation(const std::string & s)
 	  else 
 	    plog.warn("malformed VCF3.3 " + tok[0] + " line", tok[1] );
 	}
-      else if ( version == VCF_4_0 )
+      else if ( version == VCF_4_0 || version == VCF_4_1 )
 	{
 
 	  if ( tok[1].substr(0,1) != "<" ) 
@@ -530,7 +532,7 @@ void VCFReader::getMetaInformation(const std::string & s)
 	   else
 	     plog.warn("malformed FILTER line in VCF", tok[1] );
 	 }
-       else if ( version == VCF_4_0 )
+       else if ( version == VCF_4_0 || version == VCF_4_1 )
 	 {
 	   // VCF4.0:  ##FILTER=<ID=ID,Description=description>
 

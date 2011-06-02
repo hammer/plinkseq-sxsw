@@ -58,7 +58,7 @@ std::string & PLINKSeq::ANNOT_CODING()  { static std::string s = "_ANNOT_CODING"
 std::string & PLINKSeq::ANNOT_EXONIC()  { static std::string s = "_ANNOT_EXONIC"; return s; }
 std::string & PLINKSeq::ANNOT_CODON()   { static std::string s = "_ANNOT_CODON"; return s; }
 std::string & PLINKSeq::ANNOT_PROTEIN() { static std::string s = "_ANNOT_PROTEIN"; return s; }
-
+std::string & PLINKSeq::ANNOT_SUMMARY() { static std::string s = "_ANNOT_SUMMARY"; return s; }
 
 
 void PLINKSeq::register_standard_metatypes()

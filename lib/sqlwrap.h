@@ -23,12 +23,12 @@ class SQL {
   void synchronous(bool);
   void close();
   bool is_open() const { return db; }
-  bool query(std::string q);
+  bool query( const std::string & q);
   bool table_exists( const std::string & );
 
-  sqlite3_stmt * prepare(std::string q);
-  sqlite3_stmt * prepare(std::string q, std::string key);
-  sqlite3_stmt * fetch_prepared(std::string key);
+  sqlite3_stmt * prepare(const std::string & q);
+  sqlite3_stmt * prepare(const std::string & q, const std::string & key);
+  sqlite3_stmt * fetch_prepared(const std::string & key);
 
   bool step(sqlite3_stmt * stmt);
   void reset( sqlite3_stmt * stmt );
@@ -56,12 +56,12 @@ class SQL {
   blob get_blob( sqlite3_stmt *, int );
 
   int lookup_int(sqlite3_stmt *);
-  int lookup_int(std::string q);
+  int lookup_int(const std::string & q);
   uint64_t lookup_int64(sqlite3_stmt *);
-  std::vector<int> intTable(std::string q, int cols);
+  std::vector<int> intTable( const std::string & q, int cols);
   std::vector<int> intTable(sqlite3_stmt * stmt, int cols);
 
-  std::vector<uint64_t> int64Table(std::string q, int cols);
+  std::vector<uint64_t> int64Table(const std::string & q, int cols);
   std::vector<uint64_t> int64Table(sqlite3_stmt * stmt, int cols);
 
   static std::string header_version() 
@@ -77,6 +77,9 @@ class SQL {
   sqlite3 * pointer() { return db; }
 
  private:
+  
+  // Keep track of all prepared statements
+  std::set<sqlite3_stmt*> qset;
   
   // Map of prepared statements
   std::map<std::string,sqlite3_stmt*> qmap;

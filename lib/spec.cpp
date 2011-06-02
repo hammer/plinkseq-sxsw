@@ -22,6 +22,14 @@ void specDecoder::displayCache()
     }
 }
 
+
+int VariantSpec::allele_count( const int i, const int a )
+{
+  if ( i < 0 || i >= genotypes.size() ) return 0;
+  return genotypes[i]->alleleCount(a);
+}
+
+
 VariantSpec * specDecoder::decode(std::string s )
 {
 
@@ -37,7 +45,7 @@ VariantSpec * specDecoder::decode(std::string s )
   
   // First check if we need to prune the cache 
 
-  if ( cache.size() > 100 )
+  if ( cache.size() > 100 && false )
     {
       map<string,CachedSpec>::iterator i = cache.begin();
       while ( i != cache.end() )
@@ -264,7 +272,7 @@ Genotype VariantSpec::callGenotype( const std::string & s, const Variant * paren
   
   Genotype g;
   
-  g.variant( parent );
+  //  g.variant( parent );
   
   std::vector<std::string> tok = Helper::char_split( s , ':' );
   

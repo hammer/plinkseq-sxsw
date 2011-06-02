@@ -1855,7 +1855,7 @@ SEXP Rdirect_load_vcf( SEXP rfilename , SEXP m , SEXP retn )
   std::vector<Variant> vars;   
   IterationReport rep = gtmp.vardb.iterate( R_accumulate_func , &vars , pmask );    
   plog << rep.report() << "\n";
-  
+
 
   // Compile as R list
   Rdisplay_options opt;
@@ -1881,8 +1881,9 @@ SEXP Rdirect_load_vcf( SEXP rfilename , SEXP m , SEXP retn )
   UNPROTECT( 5 );
 
   gp = GP = orig;
-
+  
   return vcflist;
+
 
 }
 

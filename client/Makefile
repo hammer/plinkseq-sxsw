@@ -12,10 +12,10 @@ PLINKSEQ = ../lib
 
 SRC = main.cpp func.cpp summaries.cpp views.cpp assoc.cpp genic.cpp	\
 compare.cpp ibd.cpp ibs.cpp loaders.cpp clusters.cpp varfunc.cpp	\
-util.cpp glm-tests.cpp stepup.cpp kbac.cpp
+util.cpp glm-tests.cpp stepup.cpp kbac.cpp netassoc.cpp gseq.cpp
 
 HDR = func.h summaries.h views.h assoc.h genic.h compare.h ibd.h ibs.h	\
-loaders.h clusters.h
+loaders.h clusters.h netassoc.h
 
 OBJ = $(SRC:.cpp=.o)
 

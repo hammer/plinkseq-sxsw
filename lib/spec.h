@@ -305,11 +305,7 @@ class VariantSpec {
 	genotypes[i]->print() ;
     }
 
-  int allele_count( const int i, const int a )
-  {
-    if ( i < 0 || i >= genotypes.size() ) return 0;
-    return genotypes[i]->alleleCount(a);
-  }
+  int allele_count( const int i, const int a );
 
   int allele_count( const int i , const std::string & a )
   {

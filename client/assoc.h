@@ -30,6 +30,8 @@ namespace Pseq
       bool glm_assoc_test( Mask & , Aux_glm &  );
       
       bool set_assoc_test( Mask & , const Pseq::Util::ArgMap & , const Pseq::Util::Options & options );
+
+      bool net_assoc_test( Mask & , const Pseq::Util::ArgMap & );
       
       struct Aux 
       {
@@ -100,5 +102,6 @@ void f_variant_association( Variant & v , void * p );
 
 void g_set_association( VariantGroup & vars , void * p );
 
+void g_net_assoc_collector( VariantGroup & vars , void * p );
 
 #endif

@@ -20,7 +20,6 @@ class LocDBase {
   ~LocDBase()
     {
       dettach();
-      sql.close();
     }
   
   bool wipe( const std::string & name );
@@ -57,6 +56,7 @@ class LocDBase {
   bool  contains( const std::string & grp , const int chr , const int bp1 , const int bp2 );
   bool  contains( const int grp , const int chr , const int bp1 , const int bp2 );
   
+
   //
   // Group level function
   //

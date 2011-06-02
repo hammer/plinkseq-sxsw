@@ -10,7 +10,8 @@ class SeqDBase;
 
 enum VCF_version { VCF_UNKNOWN , 
 		   VCF_3_3 , 
-		   VCF_4_0  };
+		   VCF_4_0 , 
+		   VCF_4_1  };
 
 
 class VCFReader {

@@ -32,5 +32,6 @@
 #include "eval.h"
 #include "statistics.h"
 #include "glm.h"
+#include "netdb.h"
 
 #endif

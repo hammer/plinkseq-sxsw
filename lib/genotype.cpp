@@ -73,8 +73,9 @@ void GenotypeSet::summarise_meta( std::map<meta_typed_key_t,std::pair<int,int> >
 // Allele count for allele 'altcode' for a particular allele 
 // non-simple genotype
 
-int Genotype::allele_count( const int altcode ) const
+int Genotype::allele_count( const int altcode , const Variant * parent ) const
 {
+
   VariantSpec * s = parent->consensus.specification();
   if ( !s ) return 0;
   return s->allele_count( gcode , altcode ) ;
@@ -92,15 +93,16 @@ std::vector<int> Genotype::allele_list() const
 
 // ANy alternate allele count for a simple genotype
 
-int Genotype::allele_count( ) const
+int Genotype::allele_count( const Variant * parent ) const
 { 
+
   if ( null() ) 
     {
       return -1;           // missing
     }
   else if ( more() )       // multi-allelic
     {
-      VariantSpec * s = parent->consensus.specification();
+      VariantSpec * s = parent->consensus.specification();      
       if ( !s ) return 0;
       return s->copy_count( gcode ) - s->allele_count( gcode , 0 );
     }
@@ -113,7 +115,7 @@ int Genotype::allele_count( ) const
 
 // Alternate allele count for a simple genotype
 
-int Genotype::allele_count( const std::string & acode ) const
+int Genotype::allele_count( const std::string & acode , const Variant * parent ) const
 { 
   if ( null() ) return 0; // missing
   else if ( more() )       // multi-allelic
@@ -124,8 +126,8 @@ int Genotype::allele_count( const std::string & acode ) const
     }
   else // basic biallelic variant
      {
-      if ( parent->consensus.ref == acode ) return copy_number() - allele_count();
-      else return allele_count();  // hmm, check this is okay
+       if ( parent->consensus.ref == acode ) return copy_number() - allele_count(parent);
+       else return allele_count(parent);  // hmm, check this is okay
     }
 }
 

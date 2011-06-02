@@ -1087,7 +1087,7 @@ double Helper::hwe( const Variant & v , int * phom1 , int * phets , int * phom2 
   for (int i=0; i<v.size(); i++)
     if ( v(i).notnull() )
       {
-	int ac = v(i).allele_count();
+	int ac = v(i).allele_count( &v );
 	if ( ac == 0 ) ++hom1;
 	else if ( ac == 1 ) ++hets;
 	else if ( ac == 2 ) ++hom2;

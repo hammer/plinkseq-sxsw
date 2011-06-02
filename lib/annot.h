@@ -32,13 +32,29 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
 		   // non-synon coding
 		   MIS      =  20 ,    // missense allele
  		   PART     =  21 ,    // partial codon  -- not used
-		   SPLICE   =  22 ,    // split-site allele 
- 		   NON      =  23 ,    // nonsense allele		   		  
- 		   FS       =  24 ,    // frameshift 
-		   RT       =  25 };   // readthrough
+		   SPLICE5  =  22 ,    // 5' splice-site
+		   SPLICE3  =  23 ,    // 3' splice-site 
+ 		   NON      =  24 ,    // nonsense allele		   		  
+ 		   FS       =  25 ,    // frameshift 
+		   RT       =  26 };   // readthrough
 
 struct SeqInfo { 
+  
+  // note -- these function depend on exact coding of seq_annot_t (see above)
 
+  bool missense() const { return type == 20 ; } 
+  bool nonsense() const { return type == 24 ; }
+  bool readthrough() const { return type == 26 ; }
+  bool frameshift() const { return type == 25 ; }    
+  bool splice() const { return type == 22 || type == 23; }   
+
+  bool coding() const { return type > 9 ; } 
+  bool synon() const { return type == 10 ; } 
+  bool nonsyn() const { return type > 19 ; }   
+  bool intergenic() const { return type == 2 ; }
+  bool intronic() const { return type == 3 ; }
+  bool invalid() const { return type < 2 ; }
+  
   static std::map< seq_annot_t , std::string> types;
   
   SeqInfo( seq_annot_t t ) : type(t) { } 
@@ -56,9 +72,10 @@ struct SeqInfo {
       alt_seq(alt_seq), alt_aa(alt_aa),
       cpos1(cpos1), cpos2(cpos1), 
       ppos1(ppos1), ppos2(ppos1) 
-  { } 
-  
-  
+  {
+    splicedist = 0;
+  } 
+    
   bool operator<( const SeqInfo & rhs ) const
   {
     if ( transcript < rhs.transcript ) return true;
@@ -71,6 +88,8 @@ struct SeqInfo {
   
   std::string transcript;
 
+  int splicedist; // for splice-sites only
+  
   int cpos1;  // position in DNA
   int cpos2;
 
@@ -83,27 +102,24 @@ struct SeqInfo {
   std::string alt_seq;
   std::string alt_aa;  
   
-  // note -- these function depend on exact coding of seq_annot_t (see above)
-  bool coding() const { return type > 19 ; } 
-  bool exonic() const { return type > 9 ; }   
-  
+
   std::string codon() const;
   
   std::string protein() const;
-  
+    
   std::string status() const 
   { 
     std::map<seq_annot_t,std::string>::iterator i = types.find(type);
     if ( i == types.end() ) return ".";
     return i->second;
   }
-
-  std::string summary() const 
+  
+  std::string summary() const
   {
-
+    return transcript + ":" + status() + ":" + codon() + ":" + protein(); 
   }
-
-  std::string gene_name() const { return transcript; }
+  
+  std::string gene_name() const { return transcript == "" ? "." : transcript ; }
   
 };
 
@@ -159,8 +175,7 @@ class Annotate {
 
     static bool load_transcripts( fType d , const std::string & );
 
-    
-    static bool annotate(Variant & var);
+    static bool annotate(Variant & var , Region * pregion = NULL );
 
     static std::set<SeqInfo> lookup(Variant & var);
     

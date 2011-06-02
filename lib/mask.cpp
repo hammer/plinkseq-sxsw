@@ -27,25 +27,28 @@ std::set<std::string> populate_known_commands()
 {
   std::set<std::string> s;
   s.insert("var");
+  s.insert("var.inc");
   s.insert("var.subset"); 
   s.insert("var.skip"); 
   s.insert("var.ex"); 
   s.insert("var.req");
   s.insert("loc"); 
+  s.insert("loc.inc"); 
   s.insert("loc.subset"); 
   s.insert("loc.skip"); 
   s.insert("loc.ex"); 
   s.insert("loc.req");
   s.insert("gene");
   s.insert("locset"); 
+  s.insert("locset.inc"); 
   s.insert("locset.subset"); 
   s.insert("locset.skip"); 
   s.insert("locset.ex"); 
   s.insert("locset.req");
   s.insert("ref"); 
-  s.insert("ref.ex"); 
+  s.insert("ref.ex");   
   s.insert("ref.req");
-
+  
   // People masks
   s.insert("file");
   s.insert("file.ex");
@@ -70,6 +73,7 @@ std::set<std::string> populate_known_commands()
   s.insert("fail.nfile");
   
   s.insert("reg"); 
+  s.insert("reg.inc"); 
 
   s.insert("reg.ex"); 
   s.insert("reg.req");  
@@ -137,9 +141,8 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   is_simple = false; 
  
   //
-  // Swap in any file-lists with "#" include 
+  // Swap in any file-lists with @includes
   //
-
 
   std::string d2 = Helper::filelist2commalist(d);
 
@@ -149,6 +152,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   //
   
   construct();
+
 
   //
   // Is any expression set? (for SampleVariants)
@@ -191,10 +195,8 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     }
   
   if ( m.has_field( "v-include" ) )
-    {
-     std::cout << "j1\n";
-      std::string k = m.get1_string( "v-include" );      
-      std::cout << "j2\n";
+    {      
+      std::string k = m.get1_string( "v-include" );            
       var_set_filter_expression( k );
     }
 
@@ -731,7 +733,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   
   if ( m.has_field( "maf" ) )
     {
-      dbl_range r( m.get1_string( "maf" ) , +1 ); // 0.05  means include 0.05 or more
+      dbl_range r( m.get1_string( "maf" ) , -1 ); // 0.05  means include 0.05 or lower
       minor_allele_frequency( r.has_lower() ? r.lower() : 0 , r.has_upper() ? r.upper() : 1 );
     }
   

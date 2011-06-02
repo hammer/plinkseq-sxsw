@@ -55,6 +55,8 @@ void f_IBS_calculator( Variant & v , void * p )
 
   Pseq::IBS::Aux * aux = (Pseq::IBS::Aux*)p;
   
+  if ( ! v.biallelic() ) return;
+
   int c, c_tot;
   bool altmin = v.n_minor_allele( c , c_tot );
   const int n = v.size();

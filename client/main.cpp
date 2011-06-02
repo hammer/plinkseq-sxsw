@@ -18,7 +18,7 @@ using namespace std;
 GStore g;
 Pseq::Util::Options options;
 std::string PSEQ_VERSION = "0.05";
-std::string PSEQ_DATE    = "7-Apr-2011";
+std::string PSEQ_DATE    = "21-Apr-2011";
 
 int main(int argc, char ** argv)
 {
@@ -48,6 +48,9 @@ int main(int argc, char ** argv)
 	<< "delete-loc|" 
 	<< "index-loc|" 
 	<< "drop-index-loc|"         
+	<< "load-net|"
+	<< "*net-view|"
+	<< "*net-assoc|"
 	<< "load-seg|" 
 	<< "merge-seg|" 
 	<< "load-segset|" 
@@ -88,6 +91,7 @@ int main(int argc, char ** argv)
 	<< "mv-view|view multiple variants|VCF" 
 	<< "mrv-view|view multiple rare variants|VCF" 
 	<< "*g-view|" 
+	<< "*gs-view|view gene variants in sequence"
 	<< "i-view|individuals in project/file|VCF" 
 	<< "v-stats|variant statistics|VCF" 
 	<< "*g-stats|" 
@@ -101,6 +105,8 @@ int main(int argc, char ** argv)
 	<< "v-assoc|single-variant association|VCF" 
 	<< "glm|general linear models|VCF"
 	<< "s-assoc|"
+	<< "load-ibd|load IBD segment data"
+	<< "ibd-sharing|pairwise IBD sharing around rare variants|VCF"
 	<< "counts|summary/count statistics|VCF"
 	<< "gcounts|genotype summary/count statistics|VCF"
 	<< "v-freq|variant frequency data|VCF"
@@ -112,7 +118,7 @@ int main(int argc, char ** argv)
 	<< "*simple-sim|"
 	<< "ibs-matrix|IBS matrix calculation|VCF"
 	<< "intersect|"
-	<< "lookup|annotate a list of positions with various fields";
+	<< "annotate|annotate a list of positions with various fields";
 
   
 
@@ -509,6 +515,23 @@ int main(int argc, char ** argv)
       exit(0);
     }
   
+
+  if ( command == "load-net" )
+    {
+      if ( ! args.has( "netdb" ) ) Helper::halt( "no --netdb specified" );
+      if ( ! args.has( "file" ) ) Helper::halt( "no --file specified" );
+      Pseq::NetDB::loader( args.as_string( "netdb" ) , args.as_string( "file" ) );
+      exit(0);
+    }
+
+  if ( command == "net-view" )
+    {
+      if ( ! args.has( "name" ) ) Helper::halt( "no --name specified" );
+      if ( ! args.has( "netdb" ) ) Helper::halt( "no --netdb specified" );
+      if ( ! args.has( "group" ) ) Helper::halt( "no --group specified" );
+      Pseq::NetDB::lookup( args.as_string( "netdb" ) , args.as_string( "name" ) , args.as_string( "group" ) );
+      exit(0);
+    }
 
 
   if ( command == "load-segset" )
@@ -1181,6 +1204,9 @@ int main(int argc, char ** argv)
       }
 
 
+    
+
+
     //
     // Data-views
     //
@@ -1240,6 +1266,20 @@ int main(int argc, char ** argv)
 	exit(0);
       }
     
+
+    if ( command == "gs-view" )
+      {
+	Opt_geneseq opt;
+	if ( options.key("ref") ) 
+	  opt.ref = g.refdb.lookup_group_id( options.as<std::string>( "ref" ) );
+	opt.pheno = g.phmap.type() == PHE_DICHOT;
+	if ( ! g.seqdb.attached() ) Helper::halt( "no SEQDB attached" );
+	if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
+	IterationReport report = g.vardb.iterate( g_geneseq , &opt , m );
+	exit(0);
+      }
+
+
     if ( command == "i-view" )
       {
 	
@@ -1384,7 +1424,7 @@ int main(int argc, char ** argv)
     // Lookup DB information for a list of positions
     //
 
-    if ( command == "lookup" )
+    if ( command == "annotate" )
       {
 	std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
 	Pseq::VarDB::lookup_list( filename , m );
@@ -1651,6 +1691,13 @@ int main(int argc, char ** argv)
 	
       }
     
+    if ( command == "net-assoc" )
+      {
+	if ( g.phmap.type() != PHE_DICHOT ) 
+	  Helper::halt("no dichotomous phenotype specified");
+	Pseq::Assoc::net_assoc_test( m , args );
+      }
+
     if ( command == "s-assoc" )
       {
 	if ( g.phmap.type() != PHE_DICHOT ) 
@@ -1668,6 +1715,24 @@ int main(int argc, char ** argv)
 
 	Pseq::IBD::test_wrapper( s[0], s[1] , args.as_int( "perm" ) , m );
 
+	exit(0);
+      }
+
+
+    if ( command == "load-ibd" )
+      {
+	if ( !args.has("file") ) Helper::halt("need to specify --file");
+	if ( !args.has("ibddb") ) Helper::halt("need to specify --ibddb");
+	Pseq::IBD::load_wrapper( args.as_string( "file" ) , args.as_string( "ibddb" ) );
+	exit(0);
+      }
+    
+    if ( command == "ibd-sharing" )
+      {
+	if ( g.phmap.type() != PHE_DICHOT ) 
+	  Helper::halt("no dichotomous phenotype specified");
+	if ( !args.has("ibddb") ) Helper::halt("need to specify --ibddb");
+	Pseq::IBD::sharing_wrapper( args.as_string( "ibddb" ) , m );
 	exit(0);
       }
 

@@ -94,6 +94,16 @@ namespace Pseq
     bool score( Mask & m , const std::string & dbname ); 
   }
 
+  namespace NetDB
+  {
+
+    bool loader( const std::string & db , const std::string & file );
+
+    bool lookup( const std::string & db , const std::string & gene , const std::string & grp );
+
+  }
+
+
   namespace LocDB
     {
 

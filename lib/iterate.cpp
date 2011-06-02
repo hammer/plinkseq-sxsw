@@ -1114,10 +1114,8 @@ bool VarDBase::eval_and_call( Mask & mask,
 
       if ( downcode_mode == DOWNCODE_MODE_ALL_ALT )
 	{
-	  // perform a once-off downcoding (of the consensus variant only)
-	  
-	  var.consensus.collapse_alternates();
-	  
+	  // perform a once-off downcoding (of the consensus variant only)	  
+	  var.consensus.collapse_alternates( &var );	  
 	  f( var , data );
 	}
       else if ( downcode_mode == DOWNCODE_MODE_EACH_ALT )
@@ -1126,7 +1124,7 @@ bool VarDBase::eval_and_call( Mask & mask,
 	  for (int k=0; k<na; k++)
 	    {
 	      Variant var2 = var;
-	      var2.consensus.collapse_alternates( k );	      
+	      var2.consensus.collapse_alternates( &var2 , k );	      
 	      f( var2 , data );
 	    }
 	}

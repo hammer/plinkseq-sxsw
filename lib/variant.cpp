@@ -112,8 +112,10 @@ bool Variant::make_consensus( IndividualMap * a )
   if ( align->multi_sample() && align->flat() )
     {
       for (int i = 0 ; i < svar.size(); i++ )
-	svar[i].calls.set_consensus_slotmap( &consensus , 
+	{
+	  svar[i].calls.set_consensus_slotmap( &consensus , 
 					     GP->indmap.svar2consensus( svar[i].fileset() ) );
+	}
     }
 
   
@@ -156,7 +158,7 @@ bool Variant::make_consensus( IndividualMap * a )
 
 	      // should probably just halt?
 
-	      Helper::halt( "incompatible REF sequences " + coordinate() );	      
+	      plog.warn(  " **serious** incompatible REF sequences " , coordinate() ); 
 
 	    }
 	  else
@@ -660,7 +662,7 @@ bool Variant::n_minor_allele( int & m , int & n , const affType & aff ) const
 	  const Genotype * g = genotype(i);
 	  if ( g->notnull() )
 	    {
-	      int a = g->allele_count();
+	      int a = g->allele_count( this );
 	      if ( a >= 0 ) 
 		{
 		  m += a;
@@ -678,7 +680,7 @@ bool Variant::n_minor_allele( int & m , int & n , const affType & aff ) const
 	      const Genotype * g = genotype(i);
 	      if ( g->notnull() )
 		{
-		  int a = g->allele_count();
+		  int a = g->allele_count( this );
 		  if ( a >= 0 ) 
 		    {
 		      m += a;
@@ -1485,8 +1487,10 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	  // better geno1 representation.
 
 
-	  Genotype g( parent );
-	  
+	  //	  Genotype g( parent );
+
+	  Genotype g;
+
 	  g.unpack( buf.geno1(i) );
       
 	  if ( g.more() ) 
@@ -2340,6 +2344,25 @@ std::string Variant::print_meta_filter(const std::string & delim) const
   return r;
 }
 
+std::set<std::string> Variant::meta_filter( ) const
+{  
+  std::set<std::string> r;
+  
+  if ( align->single_sample() ) 
+    {
+      std::vector<std::string> f = consensus.filters();
+      for (int i=0; i<f.size(); i++) r.insert(f[i]);
+      return r;
+    }
+ 
+ for (int i=0; i < svar.size(); i++ )
+    {
+      std::vector<std::string> f = svar[i].filters();
+      for (int i=0; i<f.size(); i++) r.insert(f[i]);           
+    }
+  return r;
+}
+
 std::string Variant::print_samples( const std::string & delim ) const
 {
   std::stringstream s;
@@ -2424,7 +2447,7 @@ void SampleVariant::set_allelic_encoding()
   VariantSpec * ps = SampleVariant::decoder.decode( "GT " + ref + " " + alt );
 
   VariantSpec::set_format( 0 , NULL ); // 0 just means GT is first field (e.g. if GT:DP:GL etc)
-  
+
   specification( ps ); 
 
   // TODO: revisit this, but for now a "safe" way to determine this is whether 
@@ -2694,7 +2717,7 @@ bool SampleVariant::align_reference_alleles( SampleVariant & s1 , SampleVariant 
 }
 
 
-void SampleVariant::collapse_alternates( int altcode )
+void SampleVariant::collapse_alternates( const Variant * parent , int altcode )
 {
   
   // if altcode == 0, then collapse all alt alleles into a single class
@@ -2727,12 +2750,12 @@ void SampleVariant::collapse_alternates( int altcode )
 	{
 	  if ( altcode )
 	    {
-	      int ac = g.allele_count( altcode );
+	      int ac = g.allele_count( altcode , parent );
 	      g.set_alternate_allele_count( ac );
 	    }
 	  else // merge all alts into ONE
 	    {
-	      int ac = g.allele_count( ) ;
+	      int ac = g.allele_count( parent ) ;
 	      g.set_alternate_allele_count( ac );
 	    }
 	}

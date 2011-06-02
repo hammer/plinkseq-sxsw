@@ -1,5 +1,6 @@
 #include "loaders.h"
 #include "func.h"
+#include "netdb.h"
 
 extern GStore g;
 extern Pseq::Util::Options options;
@@ -44,7 +45,7 @@ bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & g
     excludes = options.get_set( "meta.ex" );
   
   std::string comment;
-  if ( options.key("description") ) comment = options.as<std::string>( "comment" );
+  if ( options.key("description") ) comment = options.as<std::string>( "description" );
   
   if ( ! options.key("check-reference") ) g.seqdb.dettach();
 
@@ -435,5 +436,16 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
 
 }
 
+
+
+
+bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
+{
+  NetDBase netdb;
+  netdb.attach( db );
+  if ( ! netdb.attached() ) Helper::halt( "problem creating/attaching database" );
+  netdb.load( file );
+  return true;
+}
 
 

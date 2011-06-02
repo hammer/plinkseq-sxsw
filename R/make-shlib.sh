@@ -66,8 +66,7 @@ $REXE CMD SHLIB \
  -lpseq \
  -lsqlite3 \
  -lprotobuf \
- -lRmath \
- -lz  \
+  -lz  \
  -lpthread
 
 
@@ -75,45 +74,3 @@ $REXE CMD SHLIB \
 
 exit
 
-
- ../lib/gstore.o \
- ../lib/variant.o \
- ../lib/genotype.o \
- ../lib/meta.o \
- ../lib/regions.o \
- ../lib/filemap.o  \
- ../lib/vcf.o  \
- ../lib/spec.o \
- ../lib/zfstream.o \
- ../lib/sqlwrap.o \
- ../lib/options.o \
- ../lib/globals.o \
- ../lib/locdb.o \
- ../lib/vardb.o \
- ../lib/iterate.o \
- ../lib/vcfiterate.o \
- ../lib/segments.o \
- ../lib/varfunc.o \
- ../lib/variant.pb.o \
- ../lib/refdb.o \
- ../lib/seqdb.o \
- ../lib/annot.o \
- ../lib/inddb.o \
- ../lib/mask.o \
- ../lib/reffuncs.o \
- ../lib/vgroup.o \
- ../lib/allele.o \
- ../lib/individual.o \
- ../lib/indmap.o \
- ../lib/phmap.o \
- ../lib/permute.o \
- ../lib/crandom.o \
- ../lib/defs.o \
- ../lib/em.o \
- ../lib/bed.o \
- ../lib/varmeta.o \
- ../lib/pp.o \
- ../lib/pp.pb.o \
- ../lib/eval.o \
- ../lib/token.o \
- ../lib/statistics.o \

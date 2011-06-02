@@ -232,8 +232,8 @@ void LocDBase::set_metatypes( bool clear )
 
 bool LocDBase::dettach()
 {
-    release();
-    sql.close();
+  release();
+  sql.close();
 }
 
 
@@ -463,10 +463,10 @@ bool LocDBase::init()
 
 bool LocDBase::release()
 {
+
   sql.finalise(stmt_loc_insert_group_name );
   sql.finalise(stmt_loc_lookup_group_name ); 
   sql.finalise(stmt_loc_lookup_group_id ); 
-  sql.finalise(stmt_loc_lookup_id_group_and_range ); 
   sql.finalise(stmt_loc_update_temp_status ); 
   sql.finalise(stmt_loc_lookup_temp_status ); 
   sql.finalise(stmt_loc_remove_group1 );
@@ -509,6 +509,29 @@ bool LocDBase::release()
 
   sql.finalise(stmt_set_names_fetch);
   sql.finalise(stmt_set_members_fetch);
+
+  sql.finalise(stmt_fetch_metatypes);
+  sql.finalise(stmt_fetch_segment);
+  sql.finalise(stmt_insert_indiv);
+  sql.finalise(stmt_insert_segment);
+  sql.finalise(stmt_loc_get_submeta);
+  sql.finalise(stmt_loc_lookup_group_and_range);
+  sql.finalise(stmt_loc_lookup_group_with_overlap_p1);
+  sql.finalise(stmt_loc_lookup_group_with_overlap_p2);
+  sql.finalise(stmt_loc_lookup_group_with_overlap);
+
+  sql.finalise(stmt_loc_lookup_set);
+  sql.finalise(stmt_loc_name_list);
+  sql.finalise(stmt_loc_submeta_insert);
+  sql.finalise(stmt_loc_targetted_group_alias_lookup);
+  sql.finalise(stmt_lookup_indiv_id);
+  sql.finalise(stmt_set_data_insert);
+  sql.finalise(stmt_set_group_insert);
+  sql.finalise(stmt_set_group_lookup);
+  sql.finalise(stmt_set_member_insert);
+  sql.finalise(stmt_set_member_lookup);
+
+  sql.finalise(stmt_loc_lookup_id_group_and_range ); 
 
 }
 
@@ -1072,7 +1095,7 @@ uint64_t LocDBase::lookup_set_id(const std::string & grp, const std::string & na
 uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & grp, bool use_transcript_id)
 {
 
-  if ( ! attached() ) return 0;
+  if ( ! attached() ) Helper::halt( "no LOCDB attached" );
 
   if ( ! Helper::fileExists( filename ) ) return 0;
   
@@ -1132,7 +1155,7 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
       
       // Name (from gene_id
 
-      std::vector<std::string> tok2 = Helper::char_split( tok[8] , ' ');
+      std::vector<std::string> tok2 = Helper::char_split( tok[8] , ' ' , false );
       
       // requires atleast 4 manadatory fields: gene_id XXX transcript_id XXX
       
@@ -1186,8 +1209,10 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
 
       r.meta.set( PLINKSeq::TRANSCRIPT_STRAND() , tok[6] );
       
-      int frame;
-      
+      int frame = 0;
+
+      // implies "." --> 0  (i.e. for stop_codon )
+
       if ( Helper::str2int( tok[7] , frame ) ) 
 	r.meta.set( PLINKSeq::TRANSCRIPT_FRAME() , frame );
       

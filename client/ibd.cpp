@@ -1,12 +1,141 @@
 #include "ibd.h"
+#include "pseq.h"
 
 using namespace std;
 
 extern GStore g;
 
-Pseq::IBD::IBDSegmentHandler::IBDSegmentHandler( const std::string & db )
+
+void Pseq::IBD::load_wrapper( const std::string & segment_list , const std::string & ibddb )
+{
+
+  Helper::checkFileExists( segment_list );
+
+  // Expected format for IBD segments, tab-delimited
+  // no header, 
+  // exome ID, GWAS ID, CHR, BP1, BP2
+
+  // 00028296        PT-BPA2 1       1       1120590 4182860
+  // 00028296        Sw1_PT-1S7Q     2       1       1120590 4558398
+  // 00028296        Sw3_PT-8VRU     1       1       1120590 4342968
+
+  // Load data   
+  IBDDBase ibd( ibddb ); 
+  ibd.load( segment_list );
+  
+}
+
+
+struct Aux_ibd_sharing { 
+  Pseq::IBD::IBDDBase * ibddb;  
+};
+ 
+
+void f_ibd_sharing( Variant & v , void * p )
+{
+
+  Aux_ibd_sharing * aux = (Aux_ibd_sharing*)p;
+  
+  // Find all individuals who carry a rare variant (which will
+  // typically be a doubleton) and output all IBD sharing information
+  // on those pairs.
+  
+  std::vector<std::string> p1, p2;
+
+  const int n = v.size();
+  
+  // which is the minor allele?
+  int c     = 0; // minor allele
+  int c_tot = 0; // total counts	  
+  bool refmin = v.n_minor_allele( c , c_tot );      
+
+  std::vector<int> carrier;
+
+  for (int i=0; i<n; i++)
+    {
+      if ( v(i).null() ) continue;
+      int ac1 = v(i).minor_allele_count( refmin );
+      if ( ac1 == 0 ) continue;
+      carrier.push_back( i );
+    }
+  
+  if ( carrier.size() < 2 ) return;
+
+  Region vregion( v.chromosome() , v.position() , v.stop() );
+
+  int pcnt = 0, scnt = 0;
+  
+  for (int i=0; i<carrier.size()-1; i++)
+    for (int j=i+1; j<carrier.size(); j++)
+      {
+
+	// get segments shared by this pair that span the region.
+	std::set<Region> regions = aux->ibddb->shared_for_pair( v.ind( carrier[i] )->id() , v.ind( carrier[j] )->id() );
+	
+	// does a region overlap this position? 
+	bool overlap = vregion.within( regions );
+	
+	// find size of largest overlapping segment. 
+	Region olap(1,0,0);
+	
+	std::set<Region>::iterator ii = regions.begin();
+	while ( ii != regions.end() )
+	  {
+	    if ( vregion.overlaps( *ii ) && ii->length() > olap.length() ) olap = *ii;	  
+	    ++ii;
+	  }
+	
+	plog << "_P" << "\t" 
+	     << v << "\t"	     
+	     << carrier.size() << "\t"
+	     << regions.size() << "\t"
+	     << v.ind( carrier[i] )->id() << "\t"
+	     << v.ind( carrier[j] )->id() << "\t"
+	     << ( v.ind( carrier[i] )->affected() == CASE ) << "\t"
+	     << ( v.ind( carrier[j] )->affected() == CASE ) << "\t"	  
+	     << overlap << "\t";
+	if ( overlap ) 
+	  plog << olap << "\n";
+	else 
+	  plog << "NA" << "\n";       
+	
+	++pcnt;
+	if ( overlap ) ++scnt;
+	
+      }
+  
+  plog << "_S" << "\t"
+       << v << "\t"
+       << carrier.size() << "\t"
+       << scnt << "\t"
+       << pcnt << "\n";
+  
+} 
+ 
+void Pseq::IBD::sharing_wrapper( const std::string & ibddb_filename , Mask & m )
+{  
+  Helper::checkFileExists( ibddb_filename );
+  IBDDBase ibddb( ibddb_filename );
+  Aux_ibd_sharing aux;
+  aux.ibddb = &ibddb;
+  g.vardb.iterate( f_ibd_sharing , &aux , m );  
+}
+
+
+
+Pseq::IBD::IBDDBase::IBDDBase( const std::string & db )
 {
   
+  // Assume this database will be used in two ways
+
+  // 1) where proband is in VARDB but partner is not (i.e. for
+  //    s-assoc, which is why we store partner phenotype information
+  //    here also)
+
+  // 2) also where both members of a pair are in VARDB.  Here we do not double enter, 
+  //    and there is no distinction between 'proband' and 'partner'. Here the basic query
+  //    will be just to return all regions that a pair share
+
   sql.open(db);
   
   sql.synchronous(false);
@@ -19,19 +148,22 @@ Pseq::IBD::IBDSegmentHandler::IBDSegmentHandler( const std::string & db )
 	    "   bp1          INTEGER NOT NULL  , "
 	    "   bp2          INTEGER NOT NULL  ); " );
   
-  sql.query( "CREATE INDEX IF NOT EXISTS sIndex ON segs(proband_id,chr);" );
-  
+  sql.query( "CREATE INDEX IF NOT EXISTS sIndex1 ON segs(proband_id,chr);" );
+  sql.query( "CREATE INDEX IF NOT EXISTS sIndex2 ON segs(proband_id,partner_id);" );
+
   stmt_insert = sql.prepare(" INSERT OR IGNORE INTO segs"
 			    " (proband_id, partner_id,partner_phe,chr,bp1,bp2) "
 			    " values( :proband_id, :partner_id, :partner_phe, :chr, :bp1, :bp2 ) ; " );
   
   stmt_fetch = sql.prepare(" SELECT partner_id,partner_phe,bp1,bp2 "
  			   " FROM segs WHERE proband_id == :proband_id AND chr == :chr; ");
-  
+
+  stmt_fetch_pair = sql.prepare(" SELECT chr,bp1,bp2 "
+				" FROM segs WHERE proband_id == :proband_id AND partner_id == :partner_id; ");
   
 }
 
-Pseq::IBD::IBDSegmentHandler::~IBDSegmentHandler()
+Pseq::IBD::IBDDBase::~IBDDBase()
 {
   sql.finalise( stmt_insert );
   sql.finalise( stmt_fetch );
@@ -39,7 +171,7 @@ Pseq::IBD::IBDSegmentHandler::~IBDSegmentHandler()
 }
 
 
-void Pseq::IBD::IBDSegmentHandler::load( const std::string & filename )
+void Pseq::IBD::IBDDBase::load( const std::string & filename )
 {
   
   Helper::checkFileExists( filename );
@@ -88,7 +220,7 @@ void Pseq::IBD::IBDSegmentHandler::load( const std::string & filename )
 }
 
 
-std::vector<Pseq::IBD::IBDPartner> Pseq::IBD::IBDSegmentHandler::fetch( const std::string & id , const Region & r)
+std::vector<Pseq::IBD::IBDPartner> Pseq::IBD::IBDDBase::fetch( const std::string & id , const Region & r)
 {
   
   sql.bind_text( stmt_fetch , ":proband_id" , id );
@@ -113,9 +245,25 @@ std::vector<Pseq::IBD::IBDPartner> Pseq::IBD::IBDSegmentHandler::fetch( const st
   return shared;
 }
 
+std::set<Region> Pseq::IBD::IBDDBase::shared_for_pair( const std::string & id1 , const std::string & id2 )
+{
+  std::set<Region> r;
+  sql.bind_text( stmt_fetch_pair , ":proband_id" , id1 );
+  sql.bind_text( stmt_fetch_pair , ":partner_id" , id2 );
+  while ( sql.step( stmt_fetch_pair ) )
+    {
+      int chr = sql.get_int( stmt_fetch_pair , 0 );
+      int bp1 = sql.get_int( stmt_fetch_pair , 1 );
+      int bp2 = sql.get_int( stmt_fetch_pair , 2 );
+      Region reg( chr , bp1 , bp2 );
+      r.insert( reg );
+    }
+  sql.reset( stmt_fetch_pair );
+  return r;
+}
 
 
-int2 Pseq::IBD::IBDSegmentHandler::case_control_count( const std::string & id , const Region & r )
+int2 Pseq::IBD::IBDDBase::case_control_count( const std::string & id , const Region & r )
 {
   std::vector<Pseq::IBD::IBDPartner> p = fetch( id , r );
   
@@ -128,7 +276,7 @@ int2 Pseq::IBD::IBDSegmentHandler::case_control_count( const std::string & id , 
 
 
 
-int2 Pseq::IBD::IBDSegmentHandler::case_control_count( const std::string & id , const Region & r , 
+int2 Pseq::IBD::IBDDBase::case_control_count( const std::string & id , const Region & r , 
 						       std::map<std::string,int> & imap, 
 						       std::vector<int> & pmap,
 						       std::vector<int> & permed )
@@ -178,7 +326,10 @@ void random_draw( vector<int> & a )
 
 
 
-void Pseq::IBD::test_wrapper( const std::string & segment_list , const std::string & gwas_phenotypes , int nrep, Mask & m )
+void Pseq::IBD::test_wrapper( const std::string & segment_list , 
+			      const std::string & gwas_phenotypes , 
+			      int nrep, 
+			      Mask & m )
 {
   
   Helper::checkFileExists( segment_list );
@@ -188,7 +339,7 @@ void Pseq::IBD::test_wrapper( const std::string & segment_list , const std::stri
   
   bool db_exists = Helper::fileExists( segment_list + ".db" );
   
-  IBDSegmentHandler ibd( segment_list + ".db" );
+  IBDDBase ibd( segment_list + ".db" );
   
   // Expected format for IBD segments, tab-delimited
   // no header, 
