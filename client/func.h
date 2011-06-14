@@ -10,6 +10,8 @@ class OptUniq;
 
 namespace Pseq 
 {
+  
+  void finished();
 
   namespace Util {
     class Options;
@@ -179,7 +181,18 @@ namespace Pseq
       
       bool meta_summary();
       
+      // helper class for Options and ArgMap
+      // (to let Commands know which options/arguments are appropriate for a 
+      //  given command)
 
+      struct opt_t { 	
+        opt_t( const std::string & name , const std::string & type ) : name(name) , type(type) { } 
+	std::string name;  // e.g. file 
+	std::string type;   //      str
+	bool operator<( const opt_t & rhs ) const { return name < rhs.name; } 
+      };
+      
+      
       class Options {
 	
       public:
@@ -263,10 +276,42 @@ namespace Pseq
 	    return Helper::lexical_cast<T>( *(i->second.begin()) );	    
 	  }
 	  
+	void attach( const std::string & command , const std::string & opt )
+	{
+	  // opt will be comma-delimited list, with types
+	  // ref=str-list,loc=str-list
+	  std::vector<std::string> opts = Helper::char_split( opt , ',' );
+	  for (int i=0; i<opts.size(); i++)
+	    {
+	      std::vector<std::string> o = Helper::char_split( opts[i] , '=' );
+	      if ( o.size() == 2 ) 
+		comm2opt[ command ].insert( opt_t( o[0] , o[1] ) );
+	    }
+	}
+	
+	std::string attached( const std::string & command ) 
+	  {
+	    std::map<std::string,std::set<opt_t> >::iterator i = comm2opt.find( command );
+	    std::string s = "";
+	    while ( i != comm2opt.end() )
+	      {
+		std::set<opt_t>::iterator j = i->second.begin();
+		while ( j != i->second.end() )
+		  {
+		    s += "OPT\t" + i->first + "\t" + j->name + "\t" + j->type + "\n";
+		    ++j;
+		  }      
+		++i;
+	      }
+	    return s;
+	  }
+
       private:
 	
 	std::map< std::string, std::set< std::string> > optdata;
 	std::map< std::string,std::string> simpledata;
+	
+	std::map< std::string,std::set<opt_t> > comm2opt;
 	
       };
       
@@ -308,7 +353,24 @@ namespace Pseq
 	std::string project_file() const { return project_str; } 
 	
 	void shortform( const std::string & a , const std::string & b );
+
+	void attach( const std::string & command , const std::string & arg );
 	
+	std::string attached( const std::string & );
+	
+	std::string type( const std::string & arg )
+	  {
+	    std::map<std::string,type_t>::iterator i = known_type.find( arg );
+	    if ( i == known_type.end() ) return ".";
+	    if ( i->second == NONE ) return ".";
+	    if ( i->second == STRING ) return "str";
+	    if ( i->second == INT ) return "int";
+	    if ( i->second == FLOAT ) return "float";
+	    if ( i->second == STRING_VECTOR ) return "str-list";
+	    if ( i->second == INT_VECTOR ) return "int-list";
+	    if ( i->second == FLOAT_VECTOR ) return "float-list";
+	  }
+
       private:
 	
 	
@@ -319,6 +381,9 @@ namespace Pseq
 	std::map<std::string,type_t> known_type;
 	std::map<std::string,std::string> known_desc;
 	std::map<std::string,std::string> shortcuts;
+	
+	// attached args to commands
+	std::map<std::string,std::set<std::string> > comm2arg;
 
 	std::string command_str;
 	std::string project_str;
@@ -331,15 +396,82 @@ namespace Pseq
 	
 	Commands & operator<<( const std::string & s )
 	  {
-	    bool grp = s.substr(0,1) == "*";
-	    std::vector<std::string> d = Helper::char_split( grp ? s.substr(1) : s , '|' );
-	    comm_desc[ d[0] ] = d.size() == 1 ? "" : d[1] ;
-	    if ( grp ) comm_group.insert( d[0] ) ;
-	    if ( d.size() == 3  && d[2] == "VCF" ) comm_single_vcf.insert( d[0] ); 
+
+	    // command|group|description|GRP|VCF
+	    // aleays 3 |-delimited fields
+	    // optionally, GRP meaning group-iteration
+	    //             VCF meaning applicable to individual VCFs
+	    //             ARG:arg1,arg2
+	    //             OPT:opt1=str-list,opt2=str   (we need format for opt)
+
+	    std::vector<std::string> d = Helper::char_split( s, '|' );
+	    
+	    if ( d.size() < 3 ) 
+	      Helper::halt( "internal error: malformed command spec:" + s );
+	    
+	    // first 3 standard arguments
+
+	    // description
+	    comm_desc[ d[0] ] = d[2];
+
+	    // 1 or more groups (comma-delimited)
+	    std::vector<std::string> grps = Helper::char_split( d[1] , ',' );
+	    for (int g = 0; g < grps.size(); g++)
+	      {
+		check_defined( grps[g] );
+		add_command( grps[g] , d[0] );
+	      }	    
+	    
+	    // process optional arguments
+	    for (int i=3; i<d.size(); i++)
+	      {
+		if ( d[i] == "GRP" ) comm_group_iteration.insert( d[0] );
+		if ( d[i] == "VCF" ) comm_single_vcf.insert( d[0] );
+		if ( d[i].substr(0,4) == "ARG:" ) pargs->attach( d[0] , d[i].substr(4) );
+		if ( d[i].substr(0,4) == "OPT:" ) popt->attach( d[0] , d[i].substr(4) );
+	      }
+	    
 	    return *this;
 	  }
-		
-	bool known( const std::string & c ) 
+	
+	void attach( ArgMap * p ) { pargs = p; }
+
+	void attach( Options * p ) { popt = p; }
+
+	std::string group_description( const std::string & group ) const
+	  {
+	    std::map<std::string,std::string>::const_iterator i = group_desc.find( group );
+	    return i == group_desc.end() ? "." : i->second;
+	  }
+	
+	void new_group( const std::string & group , const std::string & desc )
+	{
+	  group_desc[ group ] = desc;
+	}
+
+	void check_defined( const std::string & g ) const
+	{
+	  if ( group_desc.find(g) == group_desc.end() ) 
+	    Helper::halt( "internal error, command-group not defined: " + g );
+	}
+
+	void add_to_group( const std::string & group1 , const std::string & group2 )
+	{
+	  check_defined( group1 );
+	  check_defined( group2 );
+
+	  // 1-to-many relationship between groups 
+	  group_group[ group1 ].push_back( group2 );
+	  group_group_rmap[ group2 ] = group1 ;
+	}
+	
+	void add_command( const std::string & g , const std::string & c )
+	{
+	  comm_group[ g ].push_back( c );
+	  comm_group_rmap[ c ].insert( g );
+	}
+
+	bool known( const std::string & c ) const 
 	{
 	  return comm_desc.find(c) != comm_desc.end() ;
 	}
@@ -351,19 +483,74 @@ namespace Pseq
 
 	bool groups( const std::string & c ) 
 	{
-	  return comm_group.find(c) != comm_group.end();
+	  return comm_group_iteration.find(c) != comm_group_iteration.end();
 	}
 
 	bool single_VCF_mode( const std::string & c )
 	{
 	  return comm_single_vcf.find(c) != comm_single_vcf.end();
 	}
+	
+	std::set<std::string> command_belongs_to() const
+	  {
+	    std::set<std::string> s;
+	    return s;
+	  }
+	
+	void display( const std::string & n ) const
+	{
+
+	  if ( group_group.find(n) != group_group.end() )
+	    {
+	      const std::vector<std::string> & s = group_group.find(n)->second;
+	      std::vector<std::string>::const_iterator i = s.begin();
+	      while ( i != s.end())
+		{
+		  plog << "GROUP" << "\t"
+		       << *i << "\t"
+		       << group_desc.find( *i )->second << "\n";
+		  ++i;
+		}
+	    }
+	  
+	  if ( comm_group.find(n) != comm_group.end() )
+	    {
+	      const std::vector<std::string> & s = comm_group.find(n)->second;
+	      std::vector<std::string>::const_iterator i = s.begin();
+	      while ( i != s.end())
+		{
+		  plog << "COMM" << "\t"
+		       << *i << "\t"
+		       << comm_desc.find( *i )->second << "\n";
+		  ++i;
+		}
+	    }
+
+	  // if a command (rather than a group) the list all args/opts
+	  
+	  if ( known(n) ) 
+	    {
+	      plog << pargs->attached( n ) 
+		   << popt->attached( n );
+	    }
+	  
+	}
+
 
       private:
 	
-	std::map<std::string,std::string> comm_desc;
-	std::set<std::string> comm_group;
+	std::map<std::string, std::string> comm_desc;
+	std::set<std::string> comm_group_iteration;
 	std::set<std::string> comm_single_vcf;
+	
+	std::map<std::string,std::vector<std::string> > comm_group;
+	std::map<std::string,std::set<std::string> > comm_group_rmap;
+	std::map<std::string,std::string> group_desc;
+	std::map<std::string,std::vector<std::string> > group_group;
+	std::map<std::string,std::string> group_group_rmap;
+
+	ArgMap * pargs;
+	Options * popt;
 	
       };
 

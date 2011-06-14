@@ -14,18 +14,19 @@ std::string Rversion()
   return vmaj + "-" + vmin;
 }
 
+
 void R_init_pseqr(DllInfo *info)
 {
-    gp = new GStore;    
-    Rprintf("PLINK/Seq genetics library | v0.05-alpha | 16-Mar-2011\n");
+  gp = new GStore;    
+  Rprintf("PLINK/Seq genetics library for R | v0.06-alpha | 7-Jun-2011\n");
 }
 
 
 SEXP Rattach(SEXP d)
 {
-    string s = CHAR(STRING_ELT(d, 0));  
-    gp->vardb_attach(s);
-    return(R_NilValue);
+  std::string s = CHAR(STRING_ELT(d, 0));  
+  gp->vardb_attach(s);
+  return(R_NilValue);
 }
 
 void R_error( const std::string & s )
@@ -46,99 +47,100 @@ void R_flush_plog()
 
 SEXP Rvardb_new(SEXP d)
 {
-    string s = CHAR(STRING_ELT(d, 0));  
-    gp->vardb_new(s);
-    return(R_NilValue);
+  std::string s = CHAR(STRING_ELT(d, 0));  
+  gp->vardb_new(s);
+  return(R_NilValue);
 }
  
 
 SEXP Rdettach()
 {
-    gp->vardb_dettach();
-    return(R_NilValue);
+  gp->vardb_dettach();
+  return(R_NilValue);
 }
+
 
 template<class T> 
 SEXP Rmeta( const MetaInformation<T> & m )
 {
-    
-    vector<string> metaKeys = m.keys();   
-    int nm = metaKeys.size();
-    
-    SEXP vmlist_names;
-    PROTECT(vmlist_names = allocVector( STRSXP, nm ));    
-    
-    SEXP vmlist;
-    PROTECT(vmlist = allocVector( VECSXP, nm )); 
-    
-    for(int i = 0; i < nm; i++)   
+  
+  std::vector<std::string> metaKeys = m.keys();   
+  int nm = metaKeys.size();
+  
+  SEXP vmlist_names;
+  PROTECT(vmlist_names = allocVector( STRSXP, nm ));    
+  
+  SEXP vmlist;
+  PROTECT(vmlist = allocVector( VECSXP, nm )); 
+  
+  for(int i = 0; i < nm; i++)   
     {
-
-	SET_STRING_ELT(vmlist_names,i,mkChar( metaKeys[i].c_str() )); 
-		
-	mType mt = MetaInformation<T>::type( metaKeys[i] );
-	
-	SEXP vmval;
-	
-	switch (mt) {
-	    case META_INT :
-	    {		
-		int s = m.size( metaKeys[i] );
-		PROTECT(vmval = allocVector( INTSXP, s ));		
-		vector<int> d = m.get_int( metaKeys[i] );
-		for (int j =0; j<s; j++)
-		    INTEGER(vmval)[j] = d[j];
-		break;
-	    }	    
-	    case META_FLOAT :
-	    {		
-		int s = m.size( metaKeys[i] );
-		PROTECT(vmval = allocVector( REALSXP, s ));		
-		vector<double> d = m.get_double( metaKeys[i] );
-		for (int j =0; j<s; j++)
-		    REAL(vmval)[j] = d[j];
-		break;
-	    }	    
-	    case META_BOOL :
-	    {		
-		int s = m.size( metaKeys[i] );
-		PROTECT(vmval = allocVector( INTSXP, s ));		
-		vector<int> d = m.get_int( metaKeys[i] );
-		for (int j =0; j<s; j++)
-		    INTEGER(vmval)[j] = (int)d[j];
-		break;
-	    }	    
-	    default :
-	    {
-		int s = m.size( metaKeys[i] );
-		PROTECT(vmval = allocVector( STRSXP , s ));		
-		vector<string> d = m.get_string( metaKeys[i] );
-		for (int j =0; j<s; j++)
-		    SET_STRING_ELT( vmval,j,mkChar( d[j].c_str() ) );
-	    }
-	    
+      
+      SET_STRING_ELT(vmlist_names,i,mkChar( metaKeys[i].c_str() )); 
+      
+      mType mt = MetaInformation<T>::type( metaKeys[i] );
+      
+      SEXP vmval;
+      
+      switch (mt) {
+      case META_INT :
+	{		
+	  int s = m.size( metaKeys[i] );
+	  PROTECT(vmval = allocVector( INTSXP, s ));		
+	  std::vector<int> d = m.get_int( metaKeys[i] );
+	  for (int j =0; j<s; j++)
+	    INTEGER(vmval)[j] = d[j];
+	  break;
+	}	    
+      case META_FLOAT :
+	{		
+	  int s = m.size( metaKeys[i] );
+	  PROTECT(vmval = allocVector( REALSXP, s ));		
+	  std::vector<double> d = m.get_double( metaKeys[i] );
+	  for (int j =0; j<s; j++)
+	    REAL(vmval)[j] = d[j];
+	  break;
+	}	    
+      case META_BOOL :
+	{		
+	  int s = m.size( metaKeys[i] );
+	  PROTECT(vmval = allocVector( INTSXP, s ));		
+	  std::vector<int> d = m.get_int( metaKeys[i] );
+	  for (int j =0; j<s; j++)
+	    INTEGER(vmval)[j] = (int)d[j];
+	  break;
+	}	    
+      default :
+	{
+	  int s = m.size( metaKeys[i] );
+	  PROTECT(vmval = allocVector( STRSXP , s ));		
+	  std::vector<string> d = m.get_string( metaKeys[i] );
+	  for (int j =0; j<s; j++)
+	    SET_STRING_ELT( vmval,j,mkChar( d[j].c_str() ) );
 	}
 	
-	SET_VECTOR_ELT( vmlist, i, vmval ); 
-
-	// Clean-up value
-	UNPROTECT(1);
+	}
+      
+      SET_VECTOR_ELT( vmlist, i, vmval ); 
+      
+      // Clean-up value
+      UNPROTECT(1);
     }
-    
-    // Attach the vector of names
-
-    setAttrib(vmlist, R_NamesSymbol, vmlist_names); 
-
-    UNPROTECT(2);
-
-    return( vmlist );
+  
+  // Attach the vector of names
+  
+  setAttrib(vmlist, R_NamesSymbol, vmlist_names); 
+  
+  UNPROTECT(2);
+  
+  return( vmlist );
 }
 
 
 
 SEXP Rvariant_group(VariantGroup & v, Rdisplay_options & opt) 
 {
-
+  
   // Take a list of variants and make an R object that 
   // corresponds to that variant group
   
@@ -146,14 +148,14 @@ SEXP Rvariant_group(VariantGroup & v, Rdisplay_options & opt)
   //
   // Attach variants to group
   //
-
+  
 
   SEXP vlist;
   PROTECT(vlist = allocVector( VECSXP, v.size() ));   
   for (int i=0; i<v.size(); i++)
     SET_VECTOR_ELT(vlist, i, Rvariant(v.var(i) , opt) ); 
-
-
+  
+  
   //
   // Header information
   //
@@ -167,9 +169,10 @@ SEXP Rvariant_group(VariantGroup & v, Rdisplay_options & opt)
 
   SEXP list_names;  
   PROTECT(list_names = allocVector(STRSXP,sz));    
-  for(int i = 0; i < sz; i++)   
+  for(int i = 0; i < sz; i++)
     SET_STRING_ELT(list_names,i,mkChar(names[i].c_str())); 
   
+
  // 
  // Store variantgroup meta-information, and variant list in 
  // a final list
@@ -223,7 +226,7 @@ SEXP Rvariant(Variant & v , Rdisplay_options & opt )
     names[3] = "ID";
     names[4] = "NS";
     names[5] = "META";
-
+    
     if ( opt.show_consensus ) 
       {
 	names.push_back( "CON" );
@@ -304,20 +307,28 @@ SEXP Rvariant(Variant & v , Rdisplay_options & opt )
     // Consensus
     if ( opt.show_consensus ) 
       {
-	SET_VECTOR_ELT(vlist, s++, Rsample_variant( v.consensus , opt ) );
+	plog << "adding con...\n";
+	SET_VECTOR_ELT(vlist, s++, Rsample_variant( v.consensus , v, opt ) );
+	plog << "...DONE\n";
       }
 
+
     // Individual sample variants
+    
     if ( opt.show_multi_sample )
       {
 	// creating a problem?
 	v.set_first_sample();
 	for (int i=0; i<v.n_samples(); i++)
 	  {
+
+	    plog << "now adding Sample\n";
 	    
-	    SET_VECTOR_ELT(vlist, 
-			   s++, 
-			   Rsample_variant( v.sample() , opt ) );	    
+	    SET_VECTOR_ELT( vlist, 
+			    s++, 
+			    Rsample_variant( v.sample() , v , opt ) );	    
+
+	    plog << "...&Done\n";
 
 	    v.next_sample();
 	  }
@@ -333,9 +344,11 @@ SEXP Rvariant(Variant & v , Rdisplay_options & opt )
   
 
 
-SEXP Rsample_variant(SampleVariant & v , Rdisplay_options & opt )
+SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & opt )
 {
-    
+  
+  plog << " parent found " << parent.coordinate() << "\n";
+  
   // Construct an R list object to represent this 
   // variant, it's meta-information; its genotypes
   // and their meta-information
@@ -452,7 +465,7 @@ SEXP Rsample_variant(SampleVariant & v , Rdisplay_options & opt )
   
   setAttrib(vmlist, R_NamesSymbol, vmlist_names); 
   
-
+  plog << "GENO\n";
   
   //
   // Genotypes, and genotype meta-information
@@ -470,6 +483,8 @@ SEXP Rsample_variant(SampleVariant & v , Rdisplay_options & opt )
       
       int n = v.calls.size();
       
+      std::cout << "n = " << n << "\n";
+
       // Number of genotype meta-fields (if showing any)
       
       std::set<std::string> mk;
@@ -478,7 +493,11 @@ SEXP Rsample_variant(SampleVariant & v , Rdisplay_options & opt )
 	{
 	  for (int i = 0 ; i < n; i++)
 	    {	
+	      plog << "ii= " << i << " " << v.calls.size() << "\n";
+
 	      std::vector<std::string> keys = v.calls.genotype(i).meta.keys();
+	      std::cout << "m\n";
+
 	      for (int k=0; k<keys.size(); k++) 
 		mk.insert(keys[k]);
 	    }
@@ -501,16 +520,19 @@ SEXP Rsample_variant(SampleVariant & v , Rdisplay_options & opt )
       PROTECT(glist_names = allocVector( STRSXP, 1 + mk.size() ));    
       SET_STRING_ELT( glist_names , 0 , mkChar("GT" ) ) ;
       
-      
+      plog << "S0\n";
+
       //
       // Actual genotype calls
       //
 	
       SEXP g_calls;
       PROTECT(g_calls = allocVector( INTSXP, n ));
-	
+      
       for (int i = 0 ; i < n; i++)
 	{
+	  plog << "i = " << i << "\n";
+
 	  // For now, just add allele-count code	
 	  if (  v.calls.genotype(i).more() || v.calls.genotype(i).null() )
 	    {
@@ -518,7 +540,9 @@ SEXP Rsample_variant(SampleVariant & v , Rdisplay_options & opt )
 	    }
 	  else
 	    {
-	      INTEGER(g_calls)[i] = v.calls.genotype(i).allele_count();
+	      plog << "about to all\n";
+	      INTEGER(g_calls)[i] = v.calls.genotype(i).allele_count( &parent );
+	      plog << "not done\n";
 	    }
 	}
       
@@ -746,6 +770,8 @@ SEXP Rsample_variant(SampleVariant & v , Rdisplay_options & opt )
     }
   
 
+
+  plog << "FINAL\n";
        
     //
     // Make final variant list:
@@ -794,6 +820,7 @@ SEXP Rsample_variant(SampleVariant & v , Rdisplay_options & opt )
     setAttrib(list, R_NamesSymbol, list_names); 
     
 
+    plog << "DONE1\n";
 
     //
     // Free up protected resources
@@ -804,6 +831,8 @@ SEXP Rsample_variant(SampleVariant & v , Rdisplay_options & opt )
     if ( opt.show_genotypes ) 
       UNPROTECT(2); // geno, glist_names
     
+    plog << "DONEDONE\n";
+
     return list;
     
 }
@@ -1367,7 +1396,7 @@ SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
   
   delete d;  
   
-
+  
   //
   // Return list of variants, or nothing, as specified
   //
@@ -1382,14 +1411,15 @@ SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
 	  SEXP rvars;
 	  PROTECT( rvars = allocVector( VECSXP, varGroups.size() ));
 	  for (int j=0; j<varGroups.size(); j++)
-	  {
-	      SET_VECTOR_ELT( rvars , j , Rvariant_group( varGroups[j] , opt ) );
-	  }
+	    {
+	    SET_VECTOR_ELT( rvars , j , Rvariant_group( varGroups[j] , opt ) );
+	    }
 	  UNPROTECT(1);
 	  return(rvars);
 	}
       else // return list of single variants
 	{
+	  plog << "about to ret. list\n";
 	  SEXP rvars;
 	  PROTECT( rvars = allocVector( VECSXP, vars.size() ));
 	  for (int j=0; j<vars.size(); j++)

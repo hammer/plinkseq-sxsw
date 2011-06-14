@@ -14,7 +14,7 @@ locdb.h vardb.h segments.h varfunc.h variant.pb.h refdb.h seqdb.h	\
 annot.h inddb.h individual.h indmap.h phmap.h mask.h vgroup.h allele.h	\
 permute.h crandom.h iterrep.h em.h bed.h pp.h pp.pb.h eval.h token.h	\
 statistics.h matrix.h cdflib.h dcdflib.h ipmpar.h bcf.h knetfile.h	\
-khash.h bgzf.h fisher.h glm.h netdb.h
+khash.h bgzf.h fisher.h glm.h netdb.h 
 
 LIBSRC = gstore.cpp globals.cpp variant.cpp genotype.cpp meta.cpp	\
 regions.cpp filemap.cpp vcf.cpp bcf.cpp spec.cpp zfstream.cpp		\
@@ -24,7 +24,7 @@ mask.cpp reffuncs.cpp vgroup.cpp allele.cpp individual.cpp indmap.cpp	\
 phmap.cpp permute.cpp crandom.cpp defs.cpp em.cpp bed.cpp varmeta.cpp	\
 pp.cpp pp.pb.cpp eval.cpp token.cpp statistics.cpp dcdflib.cpp		\
 bgzf.cpp knetfile.cpp bcf.cpp fisher.cpp glm.cpp matrix.cpp		\
-iterate.cpp vcfiterate.cpp netdb.cpp
+iterate.cpp vcfiterate.cpp netdb.cpp 
 
 LIBOBJ = $(LIBSRC:.cpp=.o)
 

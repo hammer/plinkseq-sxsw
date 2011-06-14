@@ -374,8 +374,11 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
   bool append_phe = g.vardb.attached() && g.inddb.attached() && g.phmap.type() == PHE_DICHOT;    
   bool append_loc = g.locdb.attached() && locs.size() > 0;
   bool append_ref = g.refdb.attached() && refs.size() > 0;
+  bool append_seq = g.seqdb.attached();
+
   bool vardb = g.vardb.attached();
   bool append_annot = g.seqdb.attached() && ( options.key("annot") || options.key( "annotate" ) );
+
   if ( append_annot ) 
     {
       std::string annot_transcripts = PLINKSeq::DEFAULT_LOC_GROUP() ;
@@ -415,37 +418,57 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
   if ( append_annot )
     {
       plog << "##func,1,String,\"Genomic annotation\"\n";
-      plog << "##transcript,1,String,\"Genomic annotation\"\n";
-      plog << "##codon,1,String,\"Any nonsynon codon change\"\n";
+      plog << "##transcript,1,String,\"Transcript ID\"\n";
+      plog << "##genomic,1,String,\"Genomic DNA change\"\n";
+      plog << "##codon,1,String,\"Codon change\"\n";
       plog << "##protein,1,String,\"Any nonsynon amino acid change\"\n";
-      plog << "##worst,1,String,\"'Worst' annotation\"\n";
+      plog << "##worst,1,String,\"Worst annotation\"\n";
       plog << "##class,1,String,\"Summary of all annotations\"\n";
     }
 
-  if ( ! ( vardb || append_loc || append_ref || append_annot ) ) Helper::halt("no information to append");
+  if ( append_seq )
+    {
+      plog << "##seqdb_ref,1,String,\"SEQDB reference sequence\"\n";
+    }
 
+  if ( append_ref ) 
+    {
+
+      std::set<std::string>::iterator i = refs.begin();
+      while ( i != refs.end() )
+	{
+	  plog << "##ref_" << *i << ",.,String,\"REFDB annotation for group " << *i << "\"\n";
+	  ++i;
+	}
+    }
+
+  if ( ! ( vardb || append_loc || append_ref || append_seq || append_annot ) ) 
+    Helper::halt("no information to append");
+  
+  // Assume format is either a) a single site (1 col) OR b) single, REF and ALT (3 col)
   while ( !F1.eof() )
     {
-  
+      
       bool okay = true;
       
-      std::string s;      
-      F1 >> s;      
-      if ( s == "" ) continue;
+      std::vector<std::string> line = F1.tokenizeLine( " \t" );
       
-      Region region(s,okay);
+      if ( ! ( line.size() == 1 || line.size() == 3 ) ) continue;
       
-      std::string ref_allele , alt_allele;
+      const std::string s = line[0];
 
+      Region region( s , okay);
+      
+      std::string ref_allele = line.size() == 3 ? line[1] : ".";
+      std::string alt_allele = line.size() == 3 ? line[2] : ".";
+      
       if ( append_annot && okay ) 
 	{
-
-	  F1 >> ref_allele >> alt_allele; 
 	  
 	  Variant var;
 	  var.chromosome( region.start.chromosome() );
 	  var.position( region.start.position() );
-	  var.stop( var.position() + alt_allele.size() - 1 );
+	  var.stop( var.position() + ref_allele.size() - 1 );
 	  var.consensus.reference( ref_allele );
 	  var.consensus.alternate( alt_allele );
 	  
@@ -462,7 +485,11 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
 	  plog << var.coordinate() << "\t"
 	       << "transcript" << "\t"
 	       << var.meta.as_string( PLINKSeq::ANNOT_GENE() , "," ) << "\n";
-	  
+
+	  plog << var.coordinate() << "\t"
+	       << "genomic" << "\t"
+	       << var.meta.as_string( PLINKSeq::ANNOT_CHANGE() , "," ) << "\n";
+
 	  plog << var.coordinate() << "\t"
 	       << "codon" << "\t"
 	       << var.meta.as_string( PLINKSeq::ANNOT_CODON() , "," ) << "\n";
@@ -492,7 +519,17 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
 	  continue;
 	}
       
-            
+
+      // Fetch from SEQDB
+
+      if ( append_seq ) 
+	{
+	  plog << s << "\t" 
+	       << "seqdb_ref" << "\t"
+	       << g.seqdb.lookup( region ) << "\n";	  
+	}
+
+      
       // Fetch from VARDB 
       
       std::set<Variant> vars = g.vardb.fetch( region );
@@ -566,19 +603,19 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
 	      if ( rregs.size() == 0 ) 
 		{
 		  plog << "_REFLOC" << "\t"
-			    << s << "\t"
-			    << *i << "\t"
-			    << "_NO_LOCI" << "\n";
+		       << s << "\t"
+		       << *i << "\t"
+		       << "_NO_LOCI" << "\n";
 		}
 	      
 	      std::set<Region>::iterator j = rregs.begin();
 	      while ( j != rregs.end() )
 		{
 		  plog << "_REFLOC" << "\t"
-			    << s << "\t"
-			    << *i << "\t"
-			    << j->coordinate() << ":"
-			    << j->name << "\n";
+		       << s << "\t"
+		       << *i << "\t"
+		       << j->coordinate() << ":"
+		       << j->name << "\n";
 		  ++j;
 		}
 	      ++i;
@@ -595,23 +632,22 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
 	  std::set<std::string>::iterator i = refs.begin();
 	  while ( i != refs.end() )
 	    {
+
 	      std::set<RefVariant> rvars = g.refdb.lookup( region , *i );
+	      
 	      if ( rvars.size() == 0 ) 
 		{
-		  plog << "_REFVAR" << "\t"
-			    << s << "\t"
-			    << *i << "\t"
-			    << "_NO_REFVAR" << "\n";
+		  plog << s << "\t"
+		       << "ref_" << *i << "\t"
+		       << "." << "\n";
 		}
-
-
+	      
 	      std::set<RefVariant>::iterator j = rvars.begin();
 	      while ( j != rvars.end() )
 		{
-		  plog << "_REFVAR" << "\t"
-			    << s << "\t"
-			    << *i << "\t"
-			    << *j << "\n";
+		  plog << s << "\t"
+		       << "ref_" << *i << "\t"
+		       << *j << "\n";
 		  ++j;
 		}
 	      ++i;

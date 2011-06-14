@@ -15,6 +15,35 @@ class VarDBase;
 class LocDBase;
 class RefDBase;
 
+struct mask_command_t 
+{ 
+  mask_command_t(const std::string & n, 
+		 const int no = 0 , 
+		 const std::string & g = "", 
+		 const int go = 0 , 
+		 const std::string & a = "", 
+		 const std::string & d = "", 
+		 const bool h = false ) 
+  : name(n) , name_order(no) , group(g), group_order(go) , argtype(a) , desc(d) , hidden(h) 
+  { } 
+  
+  std::string name;
+  std::string group;
+  int group_order;
+  int name_order;
+  std::string desc;
+  std::string argtype;
+  bool hidden;
+  
+  bool operator<( const mask_command_t & rhs ) const 
+  { 
+    if ( group == "" || rhs.group == "" ) 
+      return name_order < rhs.name_order;       
+    if ( group_order < rhs.group_order ) return true;
+    if ( group_order > rhs.group_order ) return false;    
+    return name_order < rhs.name_order;       
+  }
+};
 
 
 typedef bool(*mask_func_t)(Variant &, void *);
@@ -38,7 +67,10 @@ class Mask {
 
  public:    
   
-  Mask( const std::string & , const std::string & expr = "" , const bool finclude = true , bool groups = false );
+  Mask( const std::string & , 
+	const std::string & expr = "" , 
+	const bool finclude = true , 
+	bool groups = false );
   
   Mask(VarDBase * vardb = NULL, 
        LocDBase * locdb = NULL, 
@@ -728,8 +760,11 @@ class Mask {
   
   void append_annotation() { is_simple = false; annot = true; }
   
-  
-    
+  //
+  // Get a dump of all mask options
+  //
+
+  static std::string describe_options();     
 
   //
   // Helper functions
@@ -1289,9 +1324,10 @@ class Mask {
       } 
     
     void searchDB();
-
-    static std::set<std::string> known_commands; // mask commands
     
+    static std::set<mask_command_t> known_commands; // mask commands
+    static std::set<std::string> known_commands_str; // simple str duplicate
+           
     bool group_mode;  // will the mask be used in a group-iteration context?
     bool group_region;
 

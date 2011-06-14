@@ -51,8 +51,7 @@ double Pseq::Assoc::Aux_kbac::gw_hypergeometric_pmf(const unsigned int k,
   
   /*
     if (k > n1 || k > t || t - k > n2 || t > n1 + n2) {
-    cout << "error!" << endl; 
-    exit(-1);
+    Helper::halt( "problem in KBAC" );
     }
   */ 
   
@@ -77,8 +76,7 @@ double Pseq::Assoc::Aux_kbac::gw_hypergeometric_cmf(const unsigned int k,
     
   /*    
     if (k > n1 || k > t || t - k > n2 || t > n1 + n2) {
-    cout << "error!" << endl; 
-        exit(-1);
+    Helper::halt( "problem in KBAC" );
     }
   */
   

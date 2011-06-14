@@ -19,71 +19,73 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   reg( "scratch" , STRING , "scratch folder" );
   reg( "metameta" , STRING , "meta-information meta-information" );
 
-  reg("vardb", STRING, "variant database location" );
-  reg("inddb", STRING, "individual database location" );
-  reg("refdb", STRING, "reference database location" );
-  reg("seqdb", STRING, "sequence database location" );
-  reg("segdb", STRING, "segent database location" );
-  reg("locdb", STRING, "locus database location" );
-  reg("netdb", STRING, "network database location" );  
-  reg("ibddb", STRING, "IBD segment database location" );  
+  reg( "history" , STRING_VECTOR , "use a .history file with GSEQ" );
   
-  reg("file" , STRING_VECTOR , "generic input file(s)" );
-  reg("group" , STRING_VECTOR , "generic group label(s)" );
-  reg("region" , STRING_VECTOR , "region(s) ");
-  reg("alias" , STRING_VECTOR , "locus alias group(s)" );
-  reg("name" , STRING_VECTOR , "generic name(s) variable" );
-  reg("type", STRING , "type of project entry");
-  reg("id" , INT_VECTOR , "generic numeric IDs" );
-  reg("options" , STRING_VECTOR, "context-specific options\n");
-  reg("output", STRING, "output folder\n" );
-  reg("whitespace", NONE , "allow whitespace delimited input" );
-
-  reg("new-project" , STRING , "new project specification filename" );
-  reg("new-vardb" , STRING , "new VARDB name, for write-vardb" );
+  reg( "vardb", STRING, "variant database location" );
+  reg( "inddb", STRING, "individual database location" );
+  reg( "refdb", STRING, "reference database location" );
+  reg( "seqdb", STRING, "sequence database location" );
+  reg( "segdb", STRING, "segent database location" );
+  reg( "locdb", STRING, "locus database location" );
+  reg( "netdb", STRING, "network database location" );  
+  reg( "ibddb", STRING, "IBD segment database location" );  
   
-  reg("debug", NONE , "set debug mode");
-  reg("silent", NONE , "set silent mode");
-  reg("ignore-warnings" , NONE , "turn off warnings");
+  reg( "file" , STRING_VECTOR , "generic input file(s)" );
+  reg( "group" , STRING_VECTOR , "generic group label(s)" );
+  reg( "region" , STRING_VECTOR , "region(s) ");
+  reg( "alias" , STRING_VECTOR , "locus alias group(s)" );
+  reg( "name" , STRING_VECTOR , "generic name(s) variable" );
+  reg( "type", STRING , "type of project entry");
+  reg( "id" , INT_VECTOR , "generic numeric IDs" );
+  reg( "options" , STRING_VECTOR, "context-specific options\n");
+  reg( "output", STRING, "output folder\n" );
+  reg( "whitespace", NONE , "allow whitespace delimited input" );
 
-  reg("out-file", STRING , "set main output file");
-  reg("debug-file", STRING , "debug file name");
-  reg("prolix-file", STRING, "prolix output filename");
-  reg("long" , NONE , "set long output mode");
-  reg("long-header" , NONE , "set header/long output mode");
+  reg( "new-project" , STRING , "new project specification filename" );
+  reg( "new-vardb" , STRING , "new VARDB name, for write-vardb" );
   
-  reg("mask", STRING_VECTOR, "mask specification");
-  reg("include", STRING, "filter specification");
-  reg("exclude", STRING , "filter specification");
-  reg("gene", STRING_VECTOR, "gene-group gene1 gene2 ...");
-  reg("em", FLOAT , "EM calculation of P(geno|data) from GL or PL");
+  reg( "debug", NONE , "set debug mode");
+  reg( "silent", NONE , "set silent mode");
+  reg( "ignore-warnings" , NONE , "turn off warnings");
 
-  reg("assume-ref" , NONE , "convert null genotypes to reference homozygote");
+  reg( "out-file", STRING , "set main output file");
+  reg( "debug-file", STRING , "debug file name");
+  reg( "prolix-file", STRING, "prolix output filename");
+  reg( "long" , NONE , "set long output mode");
+  reg( "long-header" , NONE , "set header/long output mode");
+  
+  reg( "mask", STRING_VECTOR, "mask specification");
+  reg( "include", STRING, "filter specification");
+  reg( "exclude", STRING , "filter specification");
+  reg( "gene", STRING_VECTOR, "gene-group gene1 gene2 ...");
+  reg( "em", FLOAT , "EM calculation of P(geno|data) from GL or PL");
 
-  reg("hide", STRING_VECTOR,"hide specific meta-fields");
-  reg("show", STRING_VECTOR,"show specific meta-fields" );
+  reg( "assume-ref" , NONE , "convert null genotypes to reference homozygote");
 
-  reg("vmeta", NONE, "show variant meta-information" );
-  reg("samples", NONE, "show specific sample variants in v-view");
-  reg("verbose", NONE, "verbose output");
-  reg("geno", NONE, "show genotypes (g-view)");
-  reg("gmeta", NONE, "show genotype meta-information" );
-  reg("transpose", NONE, "transposed g-view output");
+  reg( "hide", STRING_VECTOR,"hide specific meta-fields");
+  reg( "show", STRING_VECTOR,"show specific meta-fields" );
+
+  reg( "vmeta", NONE, "show variant meta-information" );
+  reg( "samples", NONE, "show specific sample variants in v-view");
+  reg( "verbose", NONE, "verbose output");
+  reg( "geno", NONE, "show genotypes (g-view)");
+  reg( "gmeta", NONE, "show genotype meta-information" );
+  reg( "transpose", NONE, "transposed g-view output");
       
-  reg("variant", STRING , "show specific variant (v-view)");
-  reg("indiv", STRING_VECTOR , "specify individual(s)");
+  reg( "variant", STRING , "show specific variant (v-view)");
+  reg( "indiv", STRING_VECTOR , "specify individual(s)");
     
-  reg("annot" , STRING_VECTOR , "transcript(s) group for annotation" );
+  reg( "annot" , STRING_VECTOR , "transcript(s) group for annotation" );
 	
-  reg("phenotype" , STRING_VECTOR, "phenotype specification");
-  reg("make-phenotype" , STRING, "dichotomise factor");
-  reg("strata" , STRING,"stratifier variable");
-  reg("covar" , STRING_VECTOR , "covariate(s)");
+  reg( "phenotype" , STRING_VECTOR, "phenotype specification");
+  reg( "make-phenotype" , STRING, "dichotomise factor");
+  reg( "strata" , STRING,"stratifier variable");
+  reg( "covar" , STRING_VECTOR , "covariate(s)");
 
-  reg("perm" , INT, "number of permutations");
-  reg("aperm" , INT_VECTOR , "adaptive perm min, max");
+  reg( "perm" , INT, "number of permutations");
+  reg( "aperm" , INT_VECTOR , "adaptive perm min, max");
 
-  reg("weights" , STRING , "name of variant weights tag");
+  reg( "weights" , STRING , "name of variant weights tag");
   
 
   //
@@ -231,8 +233,35 @@ double Pseq::Util::ArgMap::as_float( const std::string & a ) const
   return d;
 }
 
-
 std::string Pseq::Util::ArgMap::desc() const 
 {
   return "usage: pseq {project-file} {command} {--options}\n";
+}
+
+
+void Pseq::Util::ArgMap::attach( const std::string & command , const std::string & arg )
+{
+  // arg will be comma-delimited list, with types
+  // ref=str-list,loc=str-list
+  std::vector<std::string> opts = Helper::char_split( arg , ',' );
+  for (int i=0; i<opts.size(); i++)
+    comm2arg[ command ].insert( opts[i] );
+}
+
+
+std::string Pseq::Util::ArgMap::attached( const std::string & command )
+{
+  std::map<std::string,std::set<std::string> >::iterator i = comm2arg.find( command );
+  std::string s = "";
+  while ( i != comm2arg.end() )
+    {
+      std::set<std::string>::iterator j = i->second.begin();
+      while ( j != i->second.end() )
+	{
+	  s += "ARG\t" + i->first + "\t" + *j + "\t" + type( *j ) + "\n";
+	  ++j;
+	}      
+      ++i;
+    }
+  return s;
 }

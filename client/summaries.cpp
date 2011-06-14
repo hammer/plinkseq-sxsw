@@ -1009,6 +1009,9 @@ void f_vdist( Variant & v , void * p)
 	  
 	  int ac = v(i).minor_allele_count( altmin );
 	  
+	  // ignore homozygotes (i.e. so cannot be same self)
+	  //	  if ( ac == 2 ) continue; std::cout << "minor hom " << v << "\n";
+	  
 	  if ( d->use_binary_phenotype )
 	    {
 	      if ( d->match_on_strata ) 

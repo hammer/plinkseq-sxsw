@@ -24,15 +24,14 @@ std::map<seq_annot_t,std::string> populate_seqinfo()
   m[MONO]     = "monomorhpic";
   m[IGR]      = "intergenic-region";
   m[INTRON]   = "intronic";
-  m[UTR5]     = "5'UTR";
-  m[UTR3]     = "3'UTR";
+  m[UTR5]     = "5-UTR";
+  m[UTR3]     = "3-UTR";
   m[SYN]      = "silent";
   m[MIS]      = "missense";
   m[NON]      = "nonsense";
   m[PART]     = "partial-codon";
-  m[SPLICE5]  = "5'splice-site";
-  m[SPLICE3]  = "3'splice-site";
-  m[BOUNDARY] = "intron/exon-boundary";
+  m[SPLICE5]  = "5-splice";
+  m[SPLICE3]  = "3-splice";
   m[FS]       = "frameshift";
   m[RT]       = "readthrough";
   return m;
@@ -236,6 +235,8 @@ bool Annotate::annotate(Variant & var , Region * pregion )
       var.meta.add( PLINKSeq::ANNOT_GENE() , i->gene_name() );
       var.meta.add( PLINKSeq::ANNOT_CODING() , i->coding() );
  // var.meta.add( PLINKSeq::ANNOT_EXONIC() , i->exonic() );
+      
+      var.meta.add( PLINKSeq::ANNOT_CHANGE() , i->genomic() );
       var.meta.add( PLINKSeq::ANNOT_CODON() , i->codon() );
 
       // for splice, use this slot for the details, for now
@@ -344,11 +345,10 @@ std::set<SeqInfo> Annotate::annotate( int chr,
   // Assumptions:
   //
   
-  // Upper-case allele codes
-  
   // At any one position, we assume an individual has either a 
 
-  // *Either* a SNP, insertion or deletion
+  // *Either* a SNP, insertion or deletion:
+
   // snp .. just flip the base
   
   //  deletions .. obliterates relevant bases in cds splice range, but does
@@ -362,13 +362,14 @@ std::set<SeqInfo> Annotate::annotate( int chr,
   
   //
   // Currently, only annot single-base pair polymorphisms
-  // // this also skips A/C,T for example
+  // 
 
-  if ( reference.size() > 1 || alternate.size() > 1 )
+  if ( reference.size() > 1 )    
     {
       annot.insert( SeqInfo( UNDEF ) ) ;
       return annot; 
     }
+  
 
   //
   // Get all transcripts that overlap this position
@@ -411,12 +412,20 @@ std::set<SeqInfo> Annotate::annotate( int chr,
   // Consider each alternate allele, one at a time
   //
   
-  std::set<std::string> alt = parseCommaList( alternate ); 
-
+  std::set<std::string> alt = Helper::parseCommaList( alternate ); 
+  
   std::set<std::string>::iterator a = alt.begin();
   while ( a != alt.end() )
     {
+      
+      if ( a->size() > 1 )    
+	{
+	  annot.insert( SeqInfo( UNDEF ) ) ;
+	  ++a; 
+	  continue;
+	}
 
+      
       std::set<Region>::iterator r = pregions->begin();
       
       while ( r != pregions->end() )
@@ -756,9 +765,11 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 // 		      // need to assess frameshifts, and also splice/UTRs
 // 		    }
 		  
-
+		  
 		  annot.insert( SeqInfo( r->name , 
 					 type , 
+					 reference , 
+					 *a , 
 					 pos_whole_transcript , 
 					 ref_codon[i] , 
 					 alt_codon[i] , 
@@ -790,6 +801,13 @@ std::string SeqInfo::codon() const
     "c." + Helper::int2str( cpos1 ) + ref_seq + ">" + alt_seq ;
 }
 
+std::string SeqInfo::genomic() const
+{ 
+  if ( intergenic() || intronic() ) return ".";
+  return cpos1 == 0 ? 
+    "." : 
+    "g." + Helper::int2str( cpos1 ) + genomic_ref + ">" + genomic_alt ;
+}
 
 std::string SeqInfo::protein() const
 {

@@ -23,116 +23,219 @@ void Mask::searchDB()
   
 }
 
-std::set<std::string> populate_known_commands()
+void mask_add( std::set<mask_command_t> & s , 
+	       const int gn , 
+	       const int nn , 
+	       const std::string & g , 
+	       const std::string & n , 
+	       const std::string & a , 
+	       const std::string & d , 
+	       bool h = false ) 
 {
-  std::set<std::string> s;
-  s.insert("var");
-  s.insert("var.inc");
-  s.insert("var.subset"); 
-  s.insert("var.skip"); 
-  s.insert("var.ex"); 
-  s.insert("var.req");
-  s.insert("loc"); 
-  s.insert("loc.inc"); 
-  s.insert("loc.subset"); 
-  s.insert("loc.skip"); 
-  s.insert("loc.ex"); 
-  s.insert("loc.req");
-  s.insert("gene");
-  s.insert("locset"); 
-  s.insert("locset.inc"); 
-  s.insert("locset.subset"); 
-  s.insert("locset.skip"); 
-  s.insert("locset.ex"); 
-  s.insert("locset.req");
-  s.insert("ref"); 
-  s.insert("ref.ex");   
-  s.insert("ref.req");
+  s.insert( mask_command_t(n,nn,g,gn,a,d,h) );
   
-  // People masks
-  s.insert("file");
-  s.insert("file.ex");
+}
 
-  // Variant masks, but on whether present in file, etc
-  s.insert("obs.file");
-  s.insert("obs.file.req");
-  s.insert("obs.file.ex");
+std::set<mask_command_t> populate_known_commands()
+{
+  std::set<mask_command_t> s;
+
+  // str             (single string)
+  // str-list
+
+  // int
+  // int-list        
+  // int-range       (single int-range)
+  // int-range-list  (comma-sep int-range list)
+
+  // float
+  // float-range
+  // float-range-list
+  
+  // flag
+
+  int g = 0;
+  int c = 0; 
+  std::string gl = "";
+
+  // locus-groups
+  ++g; c=0; gl="locus-groups";
+  mask_add( s , g , c++ , gl , "loc", "str-list" , "included loci" ); 
+  mask_add( s , g , c++ , gl , "loc.inc", "str-list" , "included loci" , true ); //hidden 
+  mask_add( s , g , c++ , gl , "loc.group" , "str" , "group variants by locus group" ); 
+  mask_add( s , g , c++ , gl , "loc.subset", "str-list" , "subsetted loci" ); 
+  mask_add( s , g , c++ , gl , "loc.skip", "str-list" , "skipped loci" ); 
+  mask_add( s , g , c++ , gl , "loc.ex", "str-list" , "excluded loci" ); 
+  mask_add( s , g , c++ , gl , "loc.req", "str-list" , "required loci");
+  mask_add( s , g , c++ , gl , "gene" , "str-list" , "included genes" );
+  mask_add( s , g , c++ , gl , "loc.append" , "str-list" , "append meta-information from LOCDB groups" );
+
+
+  // regions
+  ++g; c=0; gl="regions";
+  mask_add( s , g , c++ , gl , "reg" , "str-list" , "include region(s)" ); 
+  mask_add( s , g , c++ , gl , "reg.inc" , "str-list" , "include regions(s)" , true ); // hidden 
+  mask_add( s , g , c++ , gl , "reg.ex" , "str-list" , "require regions(s)" ); 
+  mask_add( s , g , c++ , gl , "reg.req" , "str-list" , "exclude regions(s)" ); 
+  mask_add( s , g , c++ , gl , "reg.group" , "str-list" , "group variants by list of regions (not implemented)" ); 
+
+  // locus-sets
+  ++g; c=0; gl="locus-set-groups";
+  mask_add( s , g , c++ , gl , "locset" , "str-list" , "included locus-sets" ); 
+  mask_add( s , g , c++ , gl , "locset.inc" , "str-list" , "included locus-sets" , true ); 
+  mask_add( s , g , c++ , gl , "locset.group" , "str" , "group variants by locus-set group" ); 
+  mask_add( s , g , c++ , gl , "locset.subset", "str-list" , "subsetted locus-sets" ); 
+  mask_add( s , g , c++ , gl , "locset.skip" , "str-list" , "skipped locus-sets" ); 
+  mask_add( s , g , c++ , gl , "locset.ex" , "str-list" , "excluded locus-sets" ); 
+  mask_add( s , g , c++ , gl , "locset.req" , "str-list" , "required locus-sets" );
+  mask_add( s , g , c++ , gl , "locset.append" , "str-list" , "append meta-information from LOCDB locus-sets" );
+
+
+  // variant-groups -- All hidden for now
+  ++g; c=0; gl="variant-groups";
+  mask_add( s , g , c++ , gl , "var" , "str-list" , "variant include list(s)" , true );
+  mask_add( s , g , c++ , gl , "var.inc" , "str-list" , "variant include list(s)" , true ); // hidden
+  mask_add( s , g , c++ , gl , "var.group" , "str" , "group variants by VARDB group" , true ); //hidden 
+  mask_add( s , g , c++ , gl , "var.subset", "str-list" , "subsetted variants" , true ); 
+  mask_add( s , g , c++ , gl , "var.skip", "str-list" , "skipped variants" , true ); 
+  mask_add( s , g , c++ , gl , "var.ex", "str-list" , "excluded variants" , true ); 
+  mask_add( s , g , c++ , gl , "var.req", "str-list" , "required variants" , true );
+  mask_add( s , g , c++ , gl , "var.append" , "str-list" , "append meta-information from VARDB groups (not implemented)" );
+
+
+  // Reference databases
+  ++g; c = 0 ; gl="ref-variants";
+  mask_add( s , g , c++ , gl , "ref" , "str-list" , "include variants in reference variant groups" ); 
+  mask_add( s , g , c++ , gl , "ref.ex" , "str-list" , "exclude variants in reference variant groups" );  
+  mask_add( s , g , c++ , gl , "ref.req" , "str-list" , "include only variants in all listed reference variant groups" ); 
+  mask_add( s , g , c++ , gl , "ref.append" , "str-list" , "append meta-information from REFDB groups" );
+  
+
+  // People/sample masks
+  ++g; c = 0 ; gl="samples";
+  mask_add( s , g , c++ , gl , "file" , "str-list" , "files included" );
+  mask_add( s , g , c++ , gl , "file.ex", "str-list" , "files excluded" );
+  mask_add( s , g , c++ , gl , "indiv" , "str-list" , "include only these individuals" ); 
+  mask_add( s , g , c++ , gl , "indiv.ex" , "str-list" , "exclude these individuals" ); 
+
+  // Variant masks, but on whether present in file, etc  
+  mask_add( s , g , c++ , gl , "obs.file" , "str-list" , "include variants observed in file(s)" );
+  mask_add( s , g , c++ , gl , "obs.file.req" , "str-list" , "require variants observed in file(s)" );
+  mask_add( s , g , c++ , gl , "obs.file.ex", "str-list" , "exclude variants observed in file(s)" );
+  
+  mask_add( s , g , c++ , gl , "obs.nfile" , "int-range" , "include if observed in [n-m] files" );
+  mask_add( s , g , c++ , gl , "alt.nfile" , "int-range" , "include if alt-allele present in [n-m] files" );
+  mask_add( s , g , c++ , gl , "fail.nfile" , "int-range" , "include if variant FILTERed in [n-m] files" );
 
   // as above, but whether alt-allele in ... etc
-  s.insert("alt.file");
-  s.insert("alt.file.req");
-  s.insert("alt.file.ex");
+  mask_add( s , g , c++ , gl , "alt.file" , "str-list" , "include variants with alt-alleles in file(s)" );
+  mask_add( s , g , c++ , gl , "alt.file.req" , "str-list" , "require variants have alt-alleles in file(s)" );
+  mask_add( s , g , c++ , gl , "alt.file.ex" , "str-list" , "exclude variants with alt-alleles in file(s)" );
 
   // as above, but with arbitrary groups of people
-  s.insert("alt.group");
-  s.insert("alt.group.req");
-  s.insert("alt.group.ex");
+  mask_add( s , g , c++ , gl , "alt.group" , "str-list" , "not implemented" , true ); //hidden
+  mask_add( s , g , c++ , gl , "alt.group.req" , "str-list" , "not implemented" , true ); //hidden
+  mask_add( s , g , c++ , gl , "alt.group.ex" , "str-list" , "not implemented" , true ); //hidden
   
-  s.insert("obs.nfile");
-  s.insert("alt.nfile");
-  s.insert("fail.nfile");
-  
-  s.insert("reg"); 
-  s.insert("reg.inc"); 
 
-  s.insert("reg.ex"); 
-  s.insert("reg.req");  
-  s.insert("filter"); 
-  s.insert("filter.ex"); 
-  s.insert("filter.req");
-  s.insert("any.filter"); 
-  s.insert("any.filter.ex"); 
-  s.insert("any.filter.req");
-  s.insert("biallelic"); 
-  s.insert("biallelic.ex"); 
-  s.insert("monomorphic"); 
-  s.insert("monomorphic.ex");
-  s.insert("meta.attach");
-  s.insert("meta"); 
-  s.insert("meta.req"); 
-  s.insert("geno"); 
-  s.insert("geno.req"); 
-  s.insert("mac"); 
-  s.insert("hwe"); 
-  s.insert("maf");
-  s.insert("null"); 
-  s.insert("qual");
-  s.insert("assume-ref");
-  s.insert("downcode");
-  s.insert("collapse");
-  s.insert("overlap-merge");
-  s.insert("case.control"); 
-  s.insert("case.uniq"); 
-  s.insert("control.uniq");
-  s.insert("em");
-  s.insert("var.append");   
-  s.insert("loc.append");   
-  s.insert("locset.append");   
-  s.insert("ref.append");   
-  s.insert("annot"); 
-  s.insert("annot.ex"); 
-  s.insert("annot.req"); 
-  s.insert("annot.append"); 
-  s.insert("indiv"); 
-  s.insert("indiv.ex"); 
-  s.insert("phe.obs");
-  s.insert("phe.allow.missing");
-  s.insert("phe"); 
-  s.insert("phe.ex"); 
-  s.insert("phe.req"); 
-  s.insert("var.group"); 
-  s.insert("loc.group"); 
-  s.insert("reg.group");
-  s.insert("locset.group"); 
-  s.insert("fail.single.file"); 
-  s.insert("empty.group");
-  s.insert("limit");
-  s.insert("v-include");
-  s.insert("ex-vcf");
+  // FILTERs and QUALs
+  ++g; c = 0 ; gl="filters";
+  mask_add( s , g , c++ , gl , "qual", "float-range" , "include variants with QUAL in [n-m]" );
+  mask_add( s , g , c++ , gl , "filter" , "str-list" , "include variants meeting at least one FILTER criterion" ); 
+  mask_add( s , g , c++ , gl , "filter.ex" , "str-list" , "exclude variants meeting at least one FILTER criterion" ); 
+  mask_add( s , g , c++ , gl , "filter.req" , "str-list" , "include variants meeting all FILTER criteria" );
+  mask_add( s , g , c++ , gl , "any.filter" , "flag" , "include variants with any non-PASS FILTER" ); 
+  mask_add( s , g , c++ , gl , "any.filter.ex" , "flag" , "exclude variants with any non-PASS FILTER" );
+  mask_add( s , g , c++ , gl , "any.filter.req" , "flag" , "include only variants with all non-PASS FILTERs" );
+  mask_add( s , g , c++ , gl , "fail.single.file" , "flag" , "only include variants PASSing in all files it is observed in" ); 
+
+
+  // variant meta-information
+  ++g; c = 0 ; gl="vmeta";
+  mask_add( s , g , c++ , gl , "include" , "expr" , "filter sample-variants based on logical expression" );
+  mask_add( s , g , c++ , gl , "v-include" , "expr" , "filter variants based on logical expression" );
+  mask_add( s , g , c++ , gl , "meta" , "str-list" , "include variants passing any meta-field criterion" );
+  mask_add( s , g , c++ , gl , "meta.req"  , "str-list" , "require variants passing all meta-field criteria" ); 
+  mask_add( s , g , c++ , gl , "meta.attach" , "str-list" , "attach meta-fields uploaded to VARDB" );
+
+
+  // Presence/frequency masks
+  
+  // Frequency 
+  ++g; c = 0 ; gl="frequency";
+  mask_add( s , g , c++ , gl , "mac" , "int-range" , "include variants with minor allele counts between [n-m]" ); 
+  mask_add( s , g , c++ , gl , "maf" , "float-range" , "include variants with minor allele frequency in [n-m]" );
+  mask_add( s , g , c++ , gl , "biallelic" , "flag" , "include only biallelic sites" ); 
+  mask_add( s , g , c++ , gl , "biallelic.ex" , "flag" , "exclude biallelic sites" ); 
+  mask_add( s , g , c++ , gl , "monomorphic" , "flag" , "include only monomorphic sites" ); 
+  mask_add( s , g , c++ , gl , "monomorphic.ex" , "flag" , "exclude monomorphic sites" );
+  mask_add( s , g , c++ , gl , "hwe" , "float-range" , "include variants with HWE p-value in [n-m]" ); 
+
+
+  // Genotype 
+  ++g; c = 0 ; gl="genotype";
+  mask_add( s , g , c++ , gl , "geno" , "str-list" , "retain genotypes passing any meta-field criterion" ); 
+  mask_add( s , g , c++ , gl , "geno.req" , "str-list" , "retain genotypes passing all meta-field criteria" ); 
+  mask_add( s , g , c++ , gl , "null" , "int-range" , "include variants with number of null genotypes in [n-m]" ); 
+  mask_add( s , g , c++ , gl , "assume-ref" , "flag" , "assume null/missing genotypes are reference" );
+  
+  
+  // Phenotype
+  ++g; c = 0 ; gl="phenotype";
+  mask_add( s , g , c++ , gl , "phe" , "str-list" , "include individuals meeting at least one phenotype criterion" ); 
+  mask_add( s , g , c++ , gl , "phe.ex" , "str-list" , "exclude individuals meeting at least one phenotype criterion" ); 
+  mask_add( s , g , c++ , gl , "phe.req" , "str-list" , "require individuals meet all phenotype criteria" ); 
+  mask_add( s , g , c++ , gl , "phe.obs" , "str" , "require phenotype observed" , true ); // hidden  
+  mask_add( s , g , c++ , gl , "phe.allow.missing" , "flag" , "do not exclude individuals with missing --pheno" );
+
+
+  // Case/control
+  ++g; c = 0 ; gl="case-control";
+  mask_add( s , g , c++ , gl , "case.control" , "int-range-list" , "include variants with alt-alleles [n-m] cases and [i-j] controls" ); 
+  mask_add( s , g , c++ , gl , "case.uniq" , "int-range" , "include variants with alt-alleles in [n-m] cases, no controls" ); 
+  mask_add( s , g , c++ , gl , "control.uniq" , "int-range" , "include variants with alt-alleles in [n-m] controls, no cases" ); 
+
+ 
+  // Annotation
+  ++g; c = 0 ; gl="annot";  
+  mask_add( s , g , c++ , gl , "annot" , "str" , "include variants with coding annotation using locus-group (under revision) ");
+  mask_add( s , g , c++ , gl , "annot.ex" , "str" , "exclude variants with coding annotations using locus-group (under revision) ");
+  mask_add( s , g , c++ , gl , "annot.req" , "str" , "require variant have coding annotations using locus-group (under revision) ");
+  mask_add( s , g , c++ , gl , "annot.append" , "str" , "append annotations using locus-group (under revision) ");
+
+      
+  // Misc.
+  ++g; c = 0 ; gl="misc";
+  mask_add( s , g , c++ , gl , "em" , "float" , "apply GL/PL-based EM; keep genotypes with prob > n" );
+  mask_add( s , g , c++ , gl , "empty.group" , "flag" , "in group-iteration, include groups with no variants" );
+  mask_add( s , g , c++ , gl , "limit" , "int" , "limit iteration to first n results" );
+  mask_add( s , g , c++ , gl , "downcode" , "flag" , "represent multi-allelic variants as k-1 biallelic variants" );
+  mask_add( s , g , c++ , gl , "collapse" , "flag" , "represent multi-allelic variants as single biallelic variant" );
+  mask_add( s , g , c++ , gl , "overlap-merge" , "flag" , "combine overlapping variants" );
+  
+  mask_add( s , g , c++ , gl , "ex-vcf" , "flag" , "name of external VCF" , true ); // hidden 
+
   return s;
 }
 
-std::set<std::string> Mask::known_commands = populate_known_commands();
+std::set<mask_command_t> Mask::known_commands = populate_known_commands();
+
+std::string Mask::describe_options()
+{
+  std::stringstream ss;
+  std::set<mask_command_t>::iterator i = known_commands.begin();
+  while ( i != known_commands.end() )
+    {
+      if ( ! i->hidden )
+	ss << i->group << "\t" 
+	   << i->name << "\t"
+	   << i->argtype << "\t"
+	   << i->desc << "\n";
+      ++i;
+    }
+  return ss.str();
+}
+
 
 Mask::Mask( const std::string & d , const std::string & expr , const bool filter_mode , const bool group_mode ) 
   : vardb(NULL) , locdb(NULL) , refdb(NULL) , group_mode( group_mode ) 
@@ -182,7 +285,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   std::vector<std::string> keys = m.keys();
   for( int i=0; i<keys.size(); i++)
     {
-      if ( known_commands.find( keys[i] ) == known_commands.end() )
+      if ( known_commands.find( mask_command_t( keys[i] ) ) == known_commands.end() )
 	{
 	  // is this a single region? 
 	  bool okay = false;

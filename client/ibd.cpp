@@ -1,5 +1,6 @@
 #include "ibd.h"
 #include "pseq.h"
+#include "func.h"
 
 using namespace std;
 
@@ -423,7 +424,7 @@ void Pseq::IBD::test_wrapper( const std::string & segment_list ,
 
   g.vardb.iterate( g_STEST_association , &a , m );
   
-  exit(0);
+  Pseq::finished();
 }
 
 

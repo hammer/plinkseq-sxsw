@@ -31,6 +31,14 @@ void Helper::halt( const std::string & msg )
  R_error( msg );
 #else
  std::cerr << "pseq error : " << msg << "\n";
+ if ( GP && GP->gseq_mode() )
+   {
+     std::ofstream O1( GP->gseq_history().c_str() , std::ios::out | std::ios::app );
+     O1 << "_STATUS" << "\t"
+	<< GP->gseq_job() << "\t"
+	<< "error: "<< msg  << "\n";
+     O1.close();
+   } 
  exit(1);
 #endif
 }
@@ -106,6 +114,16 @@ void Helper::NoMem()
   std::cerr << "*****************************************************\n"
 	    << "* FATAL ERROR    Exhausted system memory            *\n"
 	    << "*****************************************************\n\n";
+
+  if ( GP && GP->gseq_mode() )
+    {
+      std::ofstream O1( GP->gseq_history().c_str() , std::ios::out | std::ios::app );
+      O1 << "_STATUS" << "\t"
+	 << GP->gseq_job() << "\t"
+	 << "failed: out of memory" << "\n";
+      O1.close();
+    }
+    
   exit(1);
 }
 

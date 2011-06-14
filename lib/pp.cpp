@@ -54,85 +54,82 @@ bool PPH2DBase::score( const Variant & v , double & score , int & prediction )
 						     v.reference() ,
 						     *i );
 
-      //
-      // this *should* result in a single entry here 
-      //
-
-      if ( seqann.size() != 1 ) 
-	Helper::halt("internal problem in PPH2DBase::score()");
-      
       
       std::set<SeqInfo>::iterator j = seqann.begin();
-
-      
-      //
-      // is this a synomous change? 
-      //
-
-      if ( j->ref_aa == j->alt_aa ) 
-	{
-	  ++i;
-	  continue;
-	}
-      
-      nonsynon = true;
-
-      //
-      // See if we have a match for this position and reference/alternate AA PPH2
-      //
-      
-      const PPH2Position * p = s->position( j->ppos1 , j->ref_aa , j->alt_aa );
-      
-      if ( ! p ) 
-	{
-	  ++i;
-	  continue;
-	}
-      
-      
-      //
-      // Some temporary output
-      //
-
-//        plog << " transcript  = " << j->transcript << "\n"
-//  		<< " aa position = " << j->ppos1 << " " << j->ppos2 << "\n"
-//  		<< " aa change   = " << j->ref_aa << ">" << j->alt_aa << "\n"
-//  		<< " status      = " << j->status() << "\n";
-      
-      std::string ref_aa = Annotate::translate_reference( *i );
-
-//        plog << "PSEQ entry contains " << ref_aa.size() << " positions\n";
-//        plog << "PPH2 entry contains " << s->max_position() << " AAs\n";
-      
-      //
-      // does the implied length in PPH2 match PSEQ?
-      //
-
-      // if ( ref_aa.size() != s->max_position() )
-      //   plog << "flagging " << s->protein_name << " " << s->transcript_name << " with discrepant lengths\n";
-      
-       
-      //        plog << "_found PPH2: " << p->reference << ">" << p->alternate 
-      // 		 << " = " << p->prediction << " " << p->score << "\n";
-
-      
-      if ( p->prediction > 0 ) 
+      while ( j != seqann.end() )
 	{
 	  
-	  observed = true;
+	  //
+	  // is this a synomous change? 
+	  //
 	  
-	  if ( p->prediction > prediction ) 
-	    prediction = p->prediction;
+	  if ( j->ref_aa == j->alt_aa ) 
+	    {
+	      ++j;
+	      continue;
+	    }
 	  
-	  if ( p->score > score ) 
-	    score = p->score;
+	  nonsynon = true;
 	  
+	  //
+	  // See if we have a match for this position and reference/alternate AA PPH2
+	  //
+	  
+	  const PPH2Position * p = s->position( j->ppos1 , j->ref_aa , j->alt_aa );
+	  
+	  if ( ! p ) 
+	    {	      
+	      ++j;
+	      continue;
+	    }
+	  
+	  
+	  //
+	  // Some temporary output
+	  //
+	  
+	  //        plog << " transcript  = " << j->transcript << "\n"
+	  //  		<< " aa position = " << j->ppos1 << " " << j->ppos2 << "\n"
+	  //  		<< " aa change   = " << j->ref_aa << ">" << j->alt_aa << "\n"
+	  //  		<< " status      = " << j->status() << "\n";
+	  
+	  std::string ref_aa = Annotate::translate_reference( *i );
+	  
+	  //        plog << "PSEQ entry contains " << ref_aa.size() << " positions\n";
+	  //        plog << "PPH2 entry contains " << s->max_position() << " AAs\n";
+	  
+	  //
+	  // does the implied length in PPH2 match PSEQ?
+	  //
+	  
+	  // if ( ref_aa.size() != s->max_position() )
+	  //   plog << "flagging " << s->protein_name << " " << s->transcript_name << " with discrepant lengths\n";
+	  
+	  
+	  //        plog << "_found PPH2: " << p->reference << ">" << p->alternate 
+	  // 		 << " = " << p->prediction << " " << p->score << "\n";
+	  
+	  
+	  if ( p->prediction > 0 ) 
+	    {
+	      
+	      observed = true;
+	      
+	      if ( p->prediction > prediction ) 
+		prediction = p->prediction;
+	      
+	      if ( p->score > score ) 
+		score = p->score;
+	      
+	    }
+	 
+	  ++j;
 	}
-
+      
       ++i;
     }
   
-  if ( !observed ) prediction = nonsynon ? -1 : 0 ;
+  if ( ! observed ) prediction = nonsynon ? -1 : 0 ;
   
   return observed;
 }
@@ -143,8 +140,8 @@ bool PPH2DBase::attach( const std::string & name )
 
   sql.open(name);
 
-  sqlite3_create_function( sql.pointer(), "mycompress", 1, SQLITE_UTF8, 0, &compressFunc, 0, 0);
-  sqlite3_create_function( sql.pointer(), "myuncompress", 1, SQLITE_UTF8, 0, &uncompressFunc, 0, 0);
+//   sqlite3_create_function( sql.pointer(), "mycompress", 1, SQLITE_UTF8, 0, &compressFunc, 0, 0);
+//   sqlite3_create_function( sql.pointer(), "myuncompress", 1, SQLITE_UTF8, 0, &uncompressFunc, 0, 0);
   
   sql.synchronous(false);
   

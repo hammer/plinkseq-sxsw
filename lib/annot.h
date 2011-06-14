@@ -24,8 +24,7 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
 		   INTRON  =  3 ,     // intronic		   
 		   UTR5    =  4 ,     // 5' UTR allele -- not used
 		   UTR3    =  5 ,     // 3' UTR allele -- not used		   
-		   BOUNDARY =  6 ,    // intron/exon boundary (but not essential SPLICE site)
-
+		   
 		   // exonic
 		   SYN      =  10 ,    // synonymous allele 		   		   
 		   
@@ -61,6 +60,8 @@ struct SeqInfo {
   
   SeqInfo( const std::string & transcript, 
 	   const seq_annot_t & type , 
+	   const std::string & genomic_ref = "", 
+	   const std::string & genomic_alt = "" ,
 	   const int cpos1 = 0, 
 	   const std::string & ref_seq = "",
 	   const std::string & alt_seq = "",
@@ -68,6 +69,7 @@ struct SeqInfo {
 	   const std::string & ref_aa = "",
 	   const std::string & alt_aa = "" )
     : transcript(transcript), type(type), 
+      genomic_ref(genomic_ref) , genomic_alt(genomic_alt),
       ref_seq(ref_seq), ref_aa(ref_aa), 
       alt_seq(alt_seq), alt_aa(alt_aa),
       cpos1(cpos1), cpos2(cpos1), 
@@ -80,7 +82,9 @@ struct SeqInfo {
   {
     if ( transcript < rhs.transcript ) return true;
     if ( transcript > rhs.transcript ) return false;
-    return type < rhs.type;
+    if ( type < rhs.type ) return true;
+    if ( type > rhs.type ) return false;
+    return genomic_alt < rhs.genomic_alt;
   }
   
   
@@ -96,12 +100,17 @@ struct SeqInfo {
   int ppos1;  // position in protein
   int ppos2;
 
+  std::string genomic_ref;
+  std::string genomic_alt;
+
   std::string ref_seq;
   std::string ref_aa;
   
   std::string alt_seq;
   std::string alt_aa;  
   
+
+  std::string genomic() const;
 
   std::string codon() const;
   

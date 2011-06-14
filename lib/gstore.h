@@ -113,7 +113,7 @@ class GStore {
   /////////////////////////////////////////////////
   // Initialise a genotype store
 
-    GStore(bool r = false);
+  GStore(bool r = false);
   
   
   /////////////////////////////////////////////////
@@ -261,9 +261,21 @@ class GStore {
   // Misc. parameters
   //
   
+  void gseq_tracking( const std::string &  h , const std::string & n ) { gseq=true; ghist=h; gjobn=n; }
+  
+  bool gseq_mode() const { return gseq; }
+  std::string gseq_history() const { return ghist; }
+  std::string gseq_job() const { return gjobn; }  
+
  private:
   
   bool r_mode;
+  
+  bool gseq;
+  
+  std::string ghist;
+
+  std::string gjobn;
 
   bool in_single_file_mode;
 

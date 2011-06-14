@@ -191,12 +191,20 @@ int GenotypeSet::size() const
 // Return Genotype for individual i
 Genotype & GenotypeSet::genotype(int i) 
 { 
+
+//   std::cout << " svar = " << ( svar ? "Y" : "NULL" ) << " "
+// 	    << calls.size() << " "
+// 	    << ( svar ? svar->calls.size() : -1 ) << "\n";
+
   return svar ? svar->calls.genotype( (*incon)[i] ) : calls[i]; 
 }
 
 /// Return const Genotype for individual i
 const Genotype & GenotypeSet::genotype(int i) const 
 { 
+//   std::cout << " svarX = " << svar << " "
+// 	    << calls.size() << " "
+// 	    << ( svar ? svar->calls.size() : -1 ) << "\n";
   return svar ? svar->calls.genotype( (*incon)[i] ) : calls[i]; 
 }
     

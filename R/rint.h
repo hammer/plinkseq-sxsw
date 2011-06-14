@@ -93,7 +93,7 @@ extern "C" {
   //
   
   SEXP Rvariant(Variant & var, Rdisplay_options & );
-  SEXP Rsample_variant(SampleVariant & sample, Rdisplay_options &);
+  SEXP Rsample_variant(SampleVariant & sample, Variant&, Rdisplay_options &);
   SEXP Rvariant_group(VariantGroup & vars, Rdisplay_options &);
   
   

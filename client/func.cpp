@@ -13,6 +13,19 @@ using namespace std;
 extern GStore g;
 extern Pseq::Util::Options options;
 
+void Pseq::finished()
+{  
+  if ( g.gseq_mode() )
+    {
+      std::ofstream O1( g.gseq_history().c_str() , std::ios::out | std::ios::app );
+      O1 << "_STATUS" << "\t"
+	 << g.gseq_job() << "\t"
+	 << "Done" << "\n";
+      O1.close();
+    } 
+  exit(0);
+}
+
 bool Pseq::new_project( std::string project , Pseq::Util::ArgMap & args )
 {
   
@@ -1428,7 +1441,7 @@ bool Pseq::PPH2DB::score( Mask & m , const std::string & dbname )
   PPH2DBase ppdb;
   ppdb.attach( dbname );
   ppdb.set_locdb( &g.locdb );
-  Annotate::init();
+  Annotate::load_transcripts( LOCDB , PLINKSeq::DEFAULT_LOC_GROUP() );
   IterationReport report = g.vardb.iterate( f_pph2_scoring , &ppdb , m );
 }
 

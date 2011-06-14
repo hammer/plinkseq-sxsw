@@ -7,7 +7,7 @@ rm pseqr.so
 g++ -shared -fPIC -O2 -pg -c rint.cpp -I../lib -I../share/include  -I../share/lib64/R/include/
 
 # also, compile a different version of helper, that handles errors differently (i.e. via the R error())
-g++ -shared -fPIC -O2 -c ../lib/helper.cpp -DR_SHLIB=1 -I. -I../lib -I../share/include  -I../share/lib64/R/include/
+#g++ -shared -fPIC -O2 -c ../lib/helper.cpp -DR_SHLIB=1 -I. -I../lib -I../share/include  -I../share/lib64/R/include/
 
 $REXE CMD SHLIB \
  -o pseqr.so \

@@ -17,110 +17,11 @@ using namespace std;
 
 GStore g;
 Pseq::Util::Options options;
-std::string PSEQ_VERSION = "0.05";
-std::string PSEQ_DATE    = "21-Apr-2011";
+std::string PSEQ_VERSION = "0.06";
+std::string PSEQ_DATE    = "4-Jun-2011";
 
 int main(int argc, char ** argv)
 {
-
-  
-  // known PSEQ commands, and descriptions
-
-  Pseq::Util::Commands pcomm;
-  
-  pcomm << "new-project|set a new project" 
-	<< "version|display version information"
-	<< "load-vcf|load all VCF files not already in VARDB" 
-	<< "reload-vcf|clear VARDB, then reload all VCF"
-	<< "index-bcf|add index to VARDB for a BCF"
-	<< "write-bcf|output from VARDB to BCF|VCF"
-	<< "append|add a file to the project"
-	<< "drop|drop a file from the project"
-	<< "load-plink|load a PLINK binary PED file (BED)" 
-	<< "load-meta|load meta-information for existing VARDB variants" 
-	<< "delete-meta|remove meta-information"    
-	<< "load-loc|load loci into LOCDB" 
-	<< "merge-loc|" 
-	<< "load-locset|" 
-	<< "load-alias-loc|" 
-	<< "delete-alias-loc|"
-	<< "swap-names-loc|" 
-	<< "delete-loc|" 
-	<< "index-loc|" 
-	<< "drop-index-loc|"         
-	<< "load-net|"
-	<< "*net-view|"
-	<< "*net-assoc|"
-	<< "load-seg|" 
-	<< "merge-seg|" 
-	<< "load-segset|" 
-	<< "load-alias-seg|" 
-	<< "delete-alias-seg|"
-	<< "delete-seg|" 
-	<< "index-seg|" 
-	<< "drop-index-seg|"            
-	<< "load-ref|"
-	<< "load-seq|" 
-	<< "load-pph2|" 
-	<< "score-pph2|"
-	<< "tag-file|" 
-	<< "delete-var|" 
-	<< "vacuum|"     
-	<< "write-vardb|"
-	<< "write-vcf||VCF" 
-	<< "write-ped||VCF" 
-	<< "write-lik||VCF" 
-	<< "v-matrix||VCF" 
-	<< "*g-matrix|"
-	<< "meta-matrix||VCF" 
-	<< "v-meta-matrix||VCF"
-	<< "annotate-loc|"
-	<< "load-pheno|"
-	<< "load-pedigree|"    
-	<< "summary|" 
-	<< "vardb-summary|" 
-	<< "locdb-summary|" 
-	<< "segdb-summary|"
-	<< "inddb-summary|" 
-	<< "refdb-summary|" 
-	<< "seqdb-summary|"   
-	<< "file-summary|" 
-	<< "meta-summary||VCF"    
-	<< "v-view|view variant data|VCF" 
-	<< "rv-view|view rare alleles|VCF" 
-	<< "mv-view|view multiple variants|VCF" 
-	<< "mrv-view|view multiple rare variants|VCF" 
-	<< "*g-view|" 
-	<< "*gs-view|view gene variants in sequence"
-	<< "i-view|individuals in project/file|VCF" 
-	<< "v-stats|variant statistics|VCF" 
-	<< "*g-stats|" 
-	<< "i-stats|per-individual statistics|VCF"    
-	<< "v-dist||VCF"
-	<< "loc-view|" 
-	<< "loc-stats|" 
-	<< "loc-translate|"    
-	<< "seq-view|"     
-	<< "*assoc|" 
-	<< "v-assoc|single-variant association|VCF" 
-	<< "glm|general linear models|VCF"
-	<< "s-assoc|"
-	<< "load-ibd|load IBD segment data"
-	<< "ibd-sharing|pairwise IBD sharing around rare variants|VCF"
-	<< "counts|summary/count statistics|VCF"
-	<< "gcounts|genotype summary/count statistics|VCF"
-	<< "v-freq|variant frequency data|VCF"
-	<< "clusters|"
-	<< "proximity-scan||VCF"
-	<< "concordance|"
-	<< "group-comparison|"
-	<< "unique||VCF"
-	<< "*simple-sim|"
-	<< "ibs-matrix|IBS matrix calculation|VCF"
-	<< "intersect|"
-	<< "annotate|annotate a list of positions with various fields";
-
-  
 
   //
   // Get command-line options into a sensible form
@@ -129,7 +30,185 @@ int main(int argc, char ** argv)
   // pseq {project} {command} {--options}
   
   Pseq::Util::ArgMap args( argc , argv );
+
+
+  // connect with GSEQ job tracking?
+
+  if ( args.has( "history" ) )
+    {
+      std::vector<std::string> tok = args.as_string_vector( "history" );
+      if ( tok.size() != 2 ) Helper::halt( "--history {file} {job#}" );
+      g.gseq_tracking( tok[0] , tok[1] );
+    }
+
   
+  // known PSEQ commands, and descriptions
+
+  Pseq::Util::Commands pcomm;
+  pcomm.attach( &args );
+  pcomm.attach( &options );
+
+  // command|group|description|VCF|GRP|ARG|OPT 
+  
+  // add groups
+
+  pcomm.new_group( "root"        , "All commands groups" );
+  pcomm.new_group( "input"       , "Data input" );
+  pcomm.new_group( "output"      , "Variant data output" );
+  pcomm.new_group( "project"     , "Project functions" );
+  pcomm.new_group( "stats"       , "Variant summary statistics" );
+  pcomm.new_group( "association" , "Genotype-phenotype association" );
+  pcomm.new_group( "qc"          , "Quality control metrics and tests" );
+  pcomm.new_group( "views"       , "Viewing variant and other data" );
+  pcomm.new_group( "annot"       , "Annotation functions" );
+  pcomm.new_group( "varop"       , "Variant database operations" );
+  pcomm.new_group( "locop"       , "Locus database operations" );
+  pcomm.new_group( "refop"       , "Reference database operations" );
+  pcomm.new_group( "segop"       , "Segment database operations" );
+  pcomm.new_group( "seqop"       , "Sequence database operations" );
+  pcomm.new_group( "indop"       , "Individual database operations" );
+  pcomm.new_group( "ibd"         , "IBD analysis" );
+  pcomm.new_group( "net"         , "Network-based analysis" );
+  pcomm.new_group( "misc"        , "Misc." );
+  pcomm.new_group( "system"      , "System functions" ); // not shown in GUI
+  
+  pcomm.add_to_group( "root" , "input" );
+  pcomm.add_to_group( "root" , "output" );
+  pcomm.add_to_group( "root" , "project" );
+  pcomm.add_to_group( "root" , "stats" );  
+  pcomm.add_to_group( "root" , "association" );
+  pcomm.add_to_group( "root" , "qc" );
+  pcomm.add_to_group( "root" , "views" );
+  pcomm.add_to_group( "root" , "annot" );
+  pcomm.add_to_group( "root" , "varop" );
+  pcomm.add_to_group( "root" , "locop" );
+  pcomm.add_to_group( "root" , "segop" );
+  pcomm.add_to_group( "root" , "seqop" );
+  pcomm.add_to_group( "root" , "refop" );
+  pcomm.add_to_group( "root" , "indop" );
+  pcomm.add_to_group( "root" , "ibd" );
+  pcomm.add_to_group( "root" , "net" );
+  pcomm.add_to_group( "root" , "misc" );
+  pcomm.add_to_group( "root" , "system" );
+
+
+  // add commands (will be grouped in order of entry)
+
+  pcomm << "commands|misc|list commands/groups"
+	<< "masks|misc|list mask options"
+	<< "new-project|project,input|set a new project"
+           "|ARG:vcf,resources,locdb,refdb,vardb,seqdb,inddb,output,scratch,metameta"
+           "|OPT:opt1=str,opt2=str-list"
+	<< "version|project|display version information"
+	<< "append|project,input|add a file to the project|ARG:file,type"
+	<< "drop|project|drop a file from the project|ARG:file,type"
+
+	<< "load-vcf|input|load all VCF files not already in VARDB|ARG:file|OPT:filter" 
+	<< "reload-vcf|input|clear VARDB, then reload all VCF (not implemented yet)"
+	<< "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id" 
+
+	<< "load-meta|input|load meta-information for existing VARDB variants" 
+	<< "delete-meta|varop|remove meta-information"    
+
+	<< "index-bcf|input|add index to VARDB for a BCF|ARG:bcf"
+	<< "write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf"
+
+	<< "load-loc|input,locop|load loci into LOCDB|ARG:file,group" 
+	<< "load-locset|input,locop|load a locus-set|ARG:file,name,group" 
+	<< "load-alias-loc|input,locop|load a gene-alias table|ARG:file" 
+
+	<< "merge-loc|locop|merge a LOCDB group|ARG:group" 
+	<< "delete-alias-loc|locop|remove gene-alias table"
+	<< "swap-names-loc|locop|swap LOCDB names" 
+	<< "delete-loc|locop|remove a LOCDB group" 
+	<< "index-loc|locop|index a LOCDB" 
+	<< "drop-index-loc|locop|remove index from LOCDB"         
+
+	<< "load-seg|input,segop|input segment data to SEGDB" 
+	<< "merge-seg|segop|merge intervals in SEGDB" 
+	<< "load-segset|input,segop|load locus-sets in SEGDB" 
+	<< "load-alias-seg|input,segop|load alias-table" 
+	<< "delete-alias-seg|segop|remove alias-table"
+	<< "delete-seg|segop|remove segment group" 
+	<< "index-seg|segop|index SEGDB" 
+	<< "drop-index-seg|segop|index"            
+
+	<< "load-ref|input,refop|load data (VCF or flat-file) into REFDB|ARG:file,group"
+	<< "load-seq|input,seqop|load FASTA into SEQDB|ARG:file" 
+	<< "load-weights|input,refop|load weight table|ARG:name,file" 
+	<< "score-weights|annot|score varints for weights|VCF|ARG:name"
+
+	<< "tag-file|varop|add file-tags to VARDB|ARG:file,id" 
+	<< "delete-var|varop|remove file from VARDB|ARG:id" 
+	<< "vacuum|varop|clean-up unused disk-space in VARDB"     
+
+	<< "write-vardb|output,varop|write a new VARDB|ARG:new-vardb,new-project"
+	<< "write-vcf|output|write a new VCF file|VCF" 
+	<< "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name|OPT:family-id" 
+	<< "write-lik|output|write a BEALGE likelihood file|VCF" 
+	<< "v-matrix|output|write a matrix of allele counts|VCF" 
+	<< "g-matrix|output|write a matix of gene-based allele counts|GRP"
+	<< "meta-matrix|output|write a matrix of variant meta-information|VCF" 
+	<< "v-meta-matrix|output|write a matrix of individual genotype meta-information|VCF|ARG:name"
+	<< "annotate-loc|locop,annot|annotate loci|ARG:group"
+	<< "load-pheno|input,indop|load phenotypes into INDB|ARG:file"
+	<< "load-pedigree|input,indop|load pedigree information into INDDB|ARG:file"    
+
+	<< "summary|project|summary of all databases" 
+	<< "vardb-summary|project|summary of VARDB" 
+	<< "locdb-summary|project|summary of LOCDB" 
+	<< "segdb-summary|project|summary of SEQDB" 
+	<< "inddb-summary|project|summary of INDDB" 
+	<< "refdb-summary|project|summary of REFDB" 
+	<< "seqdb-summary|project|summary of SEQDB" 
+	<< "file-summary|project|summary of project files" 
+	<< "meta-summary|project|summary of variant meta-information|VCF"  
+
+	<< "v-view|views|view variant data|VCF|ARG:vmeta,verbose,geno,gmeta,samples|OPT:hide-null,only-minor,only-alt,pheno" 
+	<< "rv-view|views|view rare alleles|VCF|ARG:pheno" 
+	<< "mv-view|views|view multiple variants|VCF" 
+	<< "mrv-view|views|view multiple rare variants|VCF" 
+	<< "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta|OPT:rarelist" 
+	<< "gs-view|views|view gene variants in sequence|GRP"
+	<< "i-view|views|individuals in project/file|VCF|ARG:pheno"
+
+	<< "v-stats|stats|variant statistics|VCF|OPT:counts,gcount,mean,gmean"
+	<< "g-stats|stats|gene-based summary statistics|GRP|OPT:counts,gcount,mean,gmean"
+	<< "i-stats|stats|per-individual statistics|VCF|OPT:counts,gcount,mean,gmean"
+	<< "v-dist|stats,association|comparison of rare-variant group distributions|VCF|OPT:whole-sample-counts"
+	<< "v-freq|stats,qc|variant frequency data|VCF|ARG:em"
+
+	<< "loc-view|views,locop|view loci in a LOCDB"
+	<< "loc-stats|views,locop|locus-based stats"
+	<< "loc-translate|locop|AA sequence of loci"
+	<< "seq-view|views|view regions of sequence from SEQDB"
+
+	<< "counts|views,association|summary/count statistics|VCF"
+	<< "gcounts|views,association|genotype summary/count statistics|VCF"
+	<< "assoc|association|gene-based association tests|GRP" 
+	<< "v-assoc|association|single-variant association|VCF" 
+	<< "glm|association|general linear models|VCF"
+	<< "s-assoc|association,ibd|segment-based IBD test"
+	<< "unique|views,association|view variants specific to individual groups|VCF"
+
+	<< "load-ibd|input,ibd|load IBD segment data|ARG:ibddb"
+	<< "ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb"
+
+	<< "load-net|input,net|populate a NETDB|ARG:netdb,file"
+	<< "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
+	<< "net-assoc|net,association|network-based gene-association|GRP|ARG:netdb,pheno"
+
+	<< "clusters|qc|."
+	<< "proximity-scan|qc|VCF"
+	<< "concordance|qc|genotypic concordance checks"
+	<< "group-comparison|qc,association|"
+
+	<< "ibs-matrix|qc|IBS matrix calculation|VCF"
+	<< "intersect|locop|intersect locus groups"
+	<< "annotate|misc|annotate a list of positions with various fields"
+    
+	<< "simple-sim|misc|simple gene variant simulation|GRP";
+    
   
   
   //
@@ -213,7 +292,26 @@ int main(int argc, char ** argv)
   //
   // Functions that do not depend on any databases
   //
+
   
+  //
+  // Query command table, or Mask options
+  //
+
+  if ( command == "commands" ) 
+    {
+      std::string n = args.as_string( "name" );      
+      if ( n == "" || n == "." ) n = "root";
+      pcomm.display( n );
+      Pseq::finished();
+    }
+
+  if ( command == "masks" )
+    {
+      plog << Mask::describe_options();
+      Pseq::finished();
+    }
+
 
   //
   // Create a new project file?
@@ -222,7 +320,7 @@ int main(int argc, char ** argv)
   if ( command == "new-project" ) 
     {
       Pseq::new_project( project_file , args );
-      exit(0);
+      Pseq::finished();
     }
   
   
@@ -233,14 +331,13 @@ int main(int argc, char ** argv)
   if ( command == "version" ) 
     {
       
-      plog << "PSEQ\t" 
-	   << "\t"
+      plog << "PSEQ" << "\t" 
 	   << PSEQ_VERSION << "("
 	   << PSEQ_DATE << ")\n";
       
       g.show_version();
 	
-      exit(0);
+      Pseq::finished();
   
     }
 
@@ -254,10 +351,10 @@ int main(int argc, char ** argv)
   if ( command == "simple-sim" ) 
     {
       Pseq::VarDB::simple_sim();
-      exit(0);
+      Pseq::finished();
     }
   
-
+  
   //
   // Otherwise, open existing project
   //
@@ -333,7 +430,7 @@ int main(int argc, char ** argv)
 	Helper::halt("no --file, --name or --type specified");      
       
       g.fIndex.remove_from_projectfile( s );
-      exit(0);
+      Pseq::finished();
     }
 
   if ( command == "append" ) 
@@ -351,7 +448,7 @@ int main(int argc, char ** argv)
       std::string type = args.as_string( "type" );
       
       g.fIndex.append_to_projectfile( Helper::fullpath( pname ) , type );
-      exit(0);
+      Pseq::finished();
     }
   
 
@@ -409,7 +506,7 @@ int main(int argc, char ** argv)
       else 
 	Helper::halt("no file or VCF specified");
       
-      exit(0);	
+      Pseq::finished();	
     }
   
 
@@ -423,7 +520,7 @@ int main(int argc, char ** argv)
       
       Pseq::SeqDB::load_FASTA( s[0] );
       
-      exit(0);
+      Pseq::finished();
     }
   
   
@@ -432,12 +529,12 @@ int main(int argc, char ** argv)
   // PPH2 scoring
   //
   
-  if ( command == "load-pph2" )
+  if ( command == "load-weights" )
     {
       std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
       std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
       Pseq::PPH2DB::load( dbname , filename );
-      exit(0);
+      Pseq::finished();
     }
   
 
@@ -481,7 +578,7 @@ int main(int argc, char ** argv)
       
       Pseq::LocDB::intersection( s[0] , grp[0] , segdb );
       
-      exit(0);
+      Pseq::finished();
     }
   
 
@@ -512,7 +609,7 @@ int main(int argc, char ** argv)
 					use_altname ) )
 	Helper::halt("problem loading locset");
       
-      exit(0);
+      Pseq::finished();
     }
   
 
@@ -521,7 +618,7 @@ int main(int argc, char ** argv)
       if ( ! args.has( "netdb" ) ) Helper::halt( "no --netdb specified" );
       if ( ! args.has( "file" ) ) Helper::halt( "no --file specified" );
       Pseq::NetDB::loader( args.as_string( "netdb" ) , args.as_string( "file" ) );
-      exit(0);
+      Pseq::finished();
     }
 
   if ( command == "net-view" )
@@ -530,7 +627,7 @@ int main(int argc, char ** argv)
       if ( ! args.has( "netdb" ) ) Helper::halt( "no --netdb specified" );
       if ( ! args.has( "group" ) ) Helper::halt( "no --group specified" );
       Pseq::NetDB::lookup( args.as_string( "netdb" ) , args.as_string( "name" ) , args.as_string( "group" ) );
-      exit(0);
+      Pseq::finished();
     }
 
 
@@ -558,7 +655,7 @@ int main(int argc, char ** argv)
 					options.key("altname") ) )
 	Helper::halt("problem loading segset");
       
-      exit(0);
+      Pseq::finished();
     }
   
   
@@ -667,7 +764,7 @@ int main(int argc, char ** argv)
 
       Pseq::VarDB::load_VCF();
 
-      exit(0);
+      Pseq::finished();
     }
  
   
@@ -731,7 +828,7 @@ int main(int argc, char ** argv)
 	  int2 niv = g.vardb.make_summary( t[f] );
 
 	}
-      exit(0);
+      Pseq::finished();
     }
   
   
@@ -750,7 +847,7 @@ int main(int argc, char ** argv)
       
       Pseq::VarDB::load_PLINK( args.as_string_vector( "file" ) , options , tag );
       
-      exit(0);
+      Pseq::finished();
     }
   
   
@@ -765,7 +862,7 @@ int main(int argc, char ** argv)
       std::string group = Pseq::Util::single_argument<std::string>( args , "group" );
       for (int i=0;i<id.size();i++)
 	g.vardb.loader_indep_meta( file , g.vardb.file_tag( id[i] ) , group );
-      exit(0);
+      Pseq::finished();
     }
   
   if ( command == "delete-meta" )
@@ -777,7 +874,7 @@ int main(int argc, char ** argv)
 	  std::string group = Pseq::Util::single_argument<std::string>( args , "group" );
 	  g.vardb.flush_indep_meta( group );
 	}
-      exit(0);
+      Pseq::finished();
     }
   
 
@@ -791,7 +888,7 @@ int main(int argc, char ** argv)
       std::string oldtag = Pseq::Util::single_argument<std::string>( args , "id" );
       int file_id = g.vardb.file_tag( oldtag );
       if ( file_id ) g.vardb.insert_file_tag( file_id , newtag );
-      exit(0);
+      Pseq::finished();
     }
   
 
@@ -811,14 +908,14 @@ int main(int argc, char ** argv)
 	  if ( n ) fi.push_back( n );
 	}
       Pseq::VarDB::flush( fi );	
-      exit(0);
+      Pseq::finished();
     }
   
   
   if ( command == "vacuum" )
     {
       Pseq::VarDB::vacuum();
-      exit(0);
+      Pseq::finished();
     }
   
   
@@ -848,7 +945,7 @@ int main(int argc, char ** argv)
 	  Pseq::LocDB::load_generic_regions( s[0], grp[0] , options , true );
 	else Helper::halt("invalid file name, expecting extension: .gtf .gtf.gz .reg .reg.gz");
 	
-	exit(0);
+	Pseq::finished();
       }
     
     if ( command == "swap-names-loc" )
@@ -870,7 +967,7 @@ int main(int argc, char ** argv)
 
 	Pseq::LocDB::merge( grp[0] , grp[1] , true );
 
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -886,7 +983,7 @@ int main(int argc, char ** argv)
 	std::vector<std::string> f = args.as_string_vector( "file" );
 	for (int i=0; i<f.size(); i++ )
 	  g.locdb.load_alias( f[i] );
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -894,7 +991,7 @@ int main(int argc, char ** argv)
       {	
 	if ( ! g.locdb.attached() ) Helper::halt("LOCDB not attached");
 	g.locdb.delete_aliases( );
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -909,7 +1006,7 @@ int main(int argc, char ** argv)
 	std::vector<std::string> grp = args.as_string_vector( "group" );
 	for (int i=0; i<grp.size(); i++ )
 	  g.locdb.flush( grp[i] );
-	exit(0);
+	Pseq::finished();
       }
 
     //
@@ -920,13 +1017,13 @@ int main(int argc, char ** argv)
       {	
 	g.locdb.drop_index();
 	g.locdb.index();
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "drop-index-loc" )
       {	
 	g.locdb.drop_index();
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -941,7 +1038,7 @@ int main(int argc, char ** argv)
 	std::vector<std::string> grp = args.as_string_vector( "group" );
 	for (int i=0; i<grp.size(); i++ )
 	  g.segdb.flush( grp[i] );	
-	exit(0);
+	Pseq::finished();
       }
 
     //
@@ -952,13 +1049,13 @@ int main(int argc, char ** argv)
       {	
 	g.segdb.drop_index();
 	g.segdb.index();
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "drop-index-seg" )
       {	
 	g.segdb.drop_index();
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -996,7 +1093,7 @@ int main(int argc, char ** argv)
 
 	  }
 	
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1012,14 +1109,14 @@ int main(int argc, char ** argv)
 	std::vector<std::string> f = args.as_string_vector( "file" );
 	for (int i=0; i<f.size(); i++ )
 	  g.segdb.load_alias( f[i] );
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "delete-alias-seg" )
       {	
 	if ( ! g.segdb.attached() ) Helper::halt("SEGDB not attached");
 	g.segdb.delete_aliases( );
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1038,7 +1135,7 @@ int main(int argc, char ** argv)
 	
 	Pseq::LocDB::merge( grp[0] , grp[1] , false );
 
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1058,7 +1155,7 @@ int main(int argc, char ** argv)
 	  {
 	    Pseq::IndDB::load_phenotypes( s[f] );	
 	  }
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1069,7 +1166,7 @@ int main(int argc, char ** argv)
 	std::vector<std::string> s = args.as_string_vector( "file" );
 	for ( int f=0; f<s.size(); f++)
 	  Pseq::IndDB::load_ped_info( s[f] );
-	exit(0);
+	Pseq::finished();
       }
     
 
@@ -1246,7 +1343,7 @@ int main(int argc, char ** argv)
 				   g.phmap.type() != PHE_NONE , 
 				   rview ) << "\n";
 	  }
-	exit(0);
+	Pseq::finished();
       }
     
     if ( command == "g-view" )
@@ -1263,7 +1360,7 @@ int main(int argc, char ** argv)
 	
 	IterationReport report = g.vardb.iterate( g_view , &opt , m );	
 
-	exit(0);
+	Pseq::finished();
       }
     
 
@@ -1276,7 +1373,7 @@ int main(int argc, char ** argv)
 	if ( ! g.seqdb.attached() ) Helper::halt( "no SEQDB attached" );
 	if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
 	IterationReport report = g.vardb.iterate( g_geneseq , &opt , m );
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1289,7 +1386,7 @@ int main(int argc, char ** argv)
 	  Pseq::VarDB::dump_indiv();
 	else
 	  Pseq::IndDB::dump_table( m );
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1300,7 +1397,7 @@ int main(int argc, char ** argv)
     if ( command == "v-dist" )
       {	
 	Pseq::VarDB::vdist_summary( m );
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1361,7 +1458,7 @@ int main(int argc, char ** argv)
 	
 	// Flush out remaining items
 	x.flush();
-	exit(0);
+	Pseq::finished();
       }
     
     
@@ -1370,11 +1467,11 @@ int main(int argc, char ** argv)
     // PolyPhen2 scoring of variants in database 
     //
 
-    if ( command == "score-pph2" )
+    if ( command == "score-weights" )
       {
 	std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
 	Pseq::PPH2DB::score( m , dbname );
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1385,7 +1482,7 @@ int main(int argc, char ** argv)
     if ( command == "clusters" )
       {
 	Pseq::VarDB::cluster_scan( m );
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1396,7 +1493,7 @@ int main(int argc, char ** argv)
     if ( command == "proximity-scan" )
       {
 	Pseq::VarDB::proximity_scan( m );
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1417,7 +1514,7 @@ int main(int argc, char ** argv)
 	    bool genotypes = options.key("genotypes") || command == "gcounts" ;
 	    Pseq::VarDB::simple_counts( m , genotypes );
 	  }
-	exit(0);
+	Pseq::finished();
       }
 
     //
@@ -1428,7 +1525,7 @@ int main(int argc, char ** argv)
       {
 	std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
 	Pseq::VarDB::lookup_list( filename , m );
-	exit(0);
+	Pseq::finished();
       }
     
 
@@ -1446,56 +1543,56 @@ int main(int argc, char ** argv)
 	Pseq::SeqDB::summary();	
 	Pseq::Util::file_summary();
 	Pseq::Util::meta_summary();
-	exit(0);
+	Pseq::finished();
       }
 
     
     if ( command == "vardb-summary" )
       {
 	Pseq::VarDB::summary(m);
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "inddb-summary" )
       {
 	Pseq::IndDB::summary();
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "locdb-summary" )
       {
 	Pseq::LocDB::summary( &g.locdb );
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "segdb-summary" )
       {
 	Pseq::LocDB::summary( &g.segdb );
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "refdb-summary" )
       {
 	Pseq::RefDB::summary();
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "seqdb-summary" )
       {
 	Pseq::SeqDB::summary();
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "file-summary" )
       {
 	Pseq::Util::file_summary();
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "meta-summary" )
       {
 	Pseq::Util::meta_summary();
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1516,7 +1613,7 @@ int main(int argc, char ** argv)
 	
 	vstat.report();
 
-	exit(0);
+	Pseq::finished();
       }
     
     if ( command == "g-stats" )
@@ -1536,7 +1633,7 @@ int main(int argc, char ** argv)
 	Pseq::VarDB::gene_stats_header( vstat );
 
 	IterationReport report = g.vardb.iterate( g_gstat , &aux , m );	
-	exit(0);
+	Pseq::finished();
       }
     
     if ( command == "i-stats" )
@@ -1544,7 +1641,7 @@ int main(int argc, char ** argv)
 	Pseq::IStat istat(&g);
 	IterationReport report = g.vardb.iterate( f_istat , &istat , m );	
 	istat.report();
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1568,7 +1665,7 @@ int main(int argc, char ** argv)
 
 	Pseq::LocDB::loc_view( grp[0] , alias );
 
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "loc-stats" )
@@ -1585,7 +1682,7 @@ int main(int argc, char ** argv)
 	for (int i=0; i<grp.size(); i++) 
 	  Pseq::SeqDB::loc_stats( grp[i] , options.as<std::string>("ref-group") );
 	
-	exit(0);
+	Pseq::finished();
       }
     
     //
@@ -1598,7 +1695,7 @@ int main(int argc, char ** argv)
 	if ( ! g.seqdb.attached() ) Helper::halt("no SEQDB attached");	
 	std::string grp = Pseq::Util::single_argument<std::string>( args , "group" );	
 	Pseq::SeqDB::loc_translate( grp );	
-	exit(0);
+	Pseq::finished();
       }
 
     //
@@ -1626,7 +1723,7 @@ int main(int argc, char ** argv)
 	      Helper::halt("could not parse region: " + regions[i] );
 	  }
 
-	exit(0);
+	Pseq::finished();
       }
 
     // 
@@ -1648,7 +1745,7 @@ int main(int argc, char ** argv)
 	  opt.outgroup_allow = options.as<int>( "allow" );
 
 	Pseq::VarDB::uniq_report( indiv , m , opt );
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1659,7 +1756,7 @@ int main(int argc, char ** argv)
     if ( command == "concordance" )
       {
 	Pseq::VarDB::check_concordance(m);
-	exit(0);
+	Pseq::finished();
       }
 
     //
@@ -1669,7 +1766,7 @@ int main(int argc, char ** argv)
     if ( command == "ibs-matrix" )
       {
 	Pseq::IBS::calculate(m);
-	exit(0);
+	Pseq::finished();
       }
 
     // 
@@ -1715,7 +1812,7 @@ int main(int argc, char ** argv)
 
 	Pseq::IBD::test_wrapper( s[0], s[1] , args.as_int( "perm" ) , m );
 
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1724,7 +1821,7 @@ int main(int argc, char ** argv)
 	if ( !args.has("file") ) Helper::halt("need to specify --file");
 	if ( !args.has("ibddb") ) Helper::halt("need to specify --ibddb");
 	Pseq::IBD::load_wrapper( args.as_string( "file" ) , args.as_string( "ibddb" ) );
-	exit(0);
+	Pseq::finished();
       }
     
     if ( command == "ibd-sharing" )
@@ -1733,7 +1830,7 @@ int main(int argc, char ** argv)
 	  Helper::halt("no dichotomous phenotype specified");
 	if ( !args.has("ibddb") ) Helper::halt("need to specify --ibddb");
 	Pseq::IBD::sharing_wrapper( args.as_string( "ibddb" ) , m );
-	exit(0);
+	Pseq::finished();
       }
 
     
@@ -1755,7 +1852,7 @@ int main(int argc, char ** argv)
 
 	Pseq::Assoc::variant_assoc_test( m , aux , options );
 
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1803,7 +1900,7 @@ int main(int argc, char ** argv)
 	
 	Pseq::Assoc::glm_assoc_test( m , aux );
 
-	exit(0);
+	Pseq::finished();
       }
 
 
@@ -1819,14 +1916,14 @@ int main(int argc, char ** argv)
 	std::string proj_file = Pseq::Util::single_argument<std::string>( args , "new-project" );
 	std::string db_file = Pseq::Util::single_argument<std::string>( args , "new-vardb" );	
 	Pseq::VarDB::write_vardb( proj_file , db_file ,  m);
-	exit(0);
+	Pseq::finished();
       }
     
     
     if ( command == "write-vcf" )
       {
 	Pseq::VarDB::write_VCF(m);
-	exit(0);
+	Pseq::finished();
       }
 
     
@@ -1835,7 +1932,7 @@ int main(int argc, char ** argv)
 	if ( ! args.has( "bcf" ) ) 
 	  Helper::halt( "need to specify --bcf output.bcf" );
 	Pseq::VarDB::write_BCF( m , args.as_string( "bcf" ) );
-	exit(0);
+	Pseq::finished();
       }
     
     
@@ -1845,42 +1942,42 @@ int main(int argc, char ** argv)
 	  Helper::halt("no output file given, use --name");
 	string filename = args.as_string( "name" );
 	Pseq::VarDB::write_PED(m,filename, options.key( "family-id" ) );
-	exit(0);
+	Pseq::finished();
       }
 
 
     if ( command == "write-lik" )
       {
 	Pseq::VarDB::write_lik(m);
-	exit(0);
+	Pseq::finished();
       }    
     
 
     if ( command == "v-matrix" )
       {	
 	Pseq::VarDB::write_matrix(m);
-	exit(0);
+	Pseq::finished();
       }
 
 
     if ( command == "meta-matrix" )
       {	
 	Pseq::VarDB::write_meta_matrix(m);
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "v-meta-matrix" )
       {	
 	std::string name = Pseq::Util::single_argument<std::string>( args, "name" );
 	Pseq::VarDB::write_var_meta_matrix(m,name);
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "annotate-loc" )
       {
 	std::string grp = Pseq::Util::single_argument<std::string>( args , "group" );
 	Pseq::VarDB::annotate_loc(grp,m);
-	exit(0);
+	Pseq::finished();
       }
 
     if ( command == "g-matrix" )
@@ -1894,11 +1991,11 @@ int main(int argc, char ** argv)
 	if ( options.key( "collapse" ) ) 
 	  opt.collapse_01 = true;
 	Pseq::VarDB::write_gene_matrix(m,opt);
-	exit(0);
+	Pseq::finished();
       }
 
-  
-  return 0;
-  
+    Pseq::finished();
+    return 0;
+    
 }
 

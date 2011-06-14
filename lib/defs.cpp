@@ -56,6 +56,7 @@ std::string & PLINKSeq::ANNOT_TYPE()    { static std::string s = "_ANNOT_TYPE"; 
 std::string & PLINKSeq::ANNOT_GENE()    { static std::string s = "_ANNOT_GENE"; return s; }
 std::string & PLINKSeq::ANNOT_CODING()  { static std::string s = "_ANNOT_CODING"; return s; }
 std::string & PLINKSeq::ANNOT_EXONIC()  { static std::string s = "_ANNOT_EXONIC"; return s; }
+std::string & PLINKSeq::ANNOT_CHANGE()  { static std::string s = "_ANNOT_CHANGE"; return s; }
 std::string & PLINKSeq::ANNOT_CODON()   { static std::string s = "_ANNOT_CODON"; return s; }
 std::string & PLINKSeq::ANNOT_PROTEIN() { static std::string s = "_ANNOT_PROTEIN"; return s; }
 std::string & PLINKSeq::ANNOT_SUMMARY() { static std::string s = "_ANNOT_SUMMARY"; return s; }
