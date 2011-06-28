@@ -1,6 +1,7 @@
 
 #include "vcf.h"
 #include "gstore.h"
+#include "genotype.h"
 
 #include <set>
 #include <string>
@@ -849,19 +850,19 @@ Variant VCFReader::getVariant(const std::string & s)
   var.chromosome( Helper::chrCode(chr) );
   var.position( pos );
   var.stop( pos + ref.size() - 1 );
-
+  
   // SampleVariant (consensus) fields
   var.consensus.reference(ref);   
   var.consensus.alternate(alt); 
   var.consensus.quality(qual); 
 
+
   // Here we supply the info to be able to 
   // put the meta-header info into the VARDB
   // if it hasn't already been declared...
-
+  
   var.consensus.filter(filter , vardb , file_id );
   var.consensus.info(info , vardb , file_id);
- 
   
     
   //
@@ -916,7 +917,6 @@ Variant VCFReader::getVariant(const std::string & s)
 
   set_format( format );
 
-
  
   // If we are to add genotypes, we need to have some individuals 
   // specified
@@ -924,13 +924,6 @@ Variant VCFReader::getVariant(const std::string & s)
   if ( file_id < 0 ) 
     Helper::halt("No individuals specified but genotypes are present");
   
-
-  // Parse the format specifier, and attach the the variant, so that
-  // genotypes can be called.
-  
-  VariantSpec * ps = SampleVariant::decoder.decode( format + " " + ref + " " + alt );
-  
-  var.consensus.specification( ps );
 
 
   //
@@ -947,17 +940,21 @@ Variant VCFReader::getVariant(const std::string & s)
     }
 
 
-  //
-  // If reading directly from a VCF, do not bother parsing genotypes yet
-  // i.e. unless we have to
-  //
 
+  //
+  // If reading from a single VCF, then create a single SVAR and attach the unparsed 
+  // VCF line to that. If needed, it will later be expanded into the consensus.
+  //
+  
 
-   if ( return_var ) 
-     {
-       var.consensus.vcf_direct_buffer = tok;       
-       return var;
-     }
+  if ( return_var ) 
+    {
+      // Add a sibdummy, single SampleVariant, just to keep everything happy downstream      
+      var.add(1);
+      var.set_vcf_buffer( tok );
+      return var;
+    }
+  
 
   
   //
@@ -967,8 +964,8 @@ Variant VCFReader::getVariant(const std::string & s)
   int gcnt = 0;
   while ( ++tok_iter != tok.end() ) 
     {
-      Genotype g = ps->callGenotype( *tok_iter , &var ); 
-      var.consensus.calls.add( g );
+      Genotype g( *tok_iter , gt_field , formats );
+      var.add( g );
       ++gcnt;
     }
   
@@ -993,6 +990,7 @@ void VCFReader::set_region_mask( const std::set<Region> * myfilter )
        ++i;
     }
 }
+
 
 bool VCFReader::contains( int chr , int bp1, int bp2 )
 {
@@ -1067,18 +1065,18 @@ bool VCFReader::set_format( const std::string & f )
   current_format = f;
   formats.resize( tok.size() , NULL );
   
-  int gi = -1;
+  gt_field = -1;
   for ( int i = 0 ; i < tok.size() ; i++ )
     {
       
       fset.insert( tok[i] );
-
+      
       // genotype is not treated as meta-information
       // or if no value set in value  
       
       if ( tok[i] == "GT" ) 
       {
-        gi = i; 
+        gt_field = i; 
 	continue;
       }
 
@@ -1103,10 +1101,9 @@ bool VCFReader::set_format( const std::string & f )
   
   if ( fset.size() != tok.size() ) 
     Helper::halt( "problem in VCF FORMAT field: repeated tags: " + f ); 
-
-  // update variant Spec
-  VariantSpec::set_format( gi , &formats );
+  
+  if ( gt_field == -1 ) 
+    Helper::halt( "no GT field specified in VCF genotype" );
 
   return true; // indicates a change was made
 }
-

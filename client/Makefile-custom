@@ -24,7 +24,7 @@ INC += -I../share/include/
 INC += -I../share/lib64/R/include/ 
 LIBDIR = -L../share/lib -L$(PLINKSEQ)
 
-LIB  = -lpseq 
+LIB  = -lplinkseq 
 LIB += -lsqlite3
 LIB += -lprotobuf
 LIB += -lRmath

@@ -203,6 +203,15 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "annot.req" , "str" , "require variant have coding annotations using locus-group (under revision) ");
   mask_add( s , g , c++ , gl , "annot.append" , "str" , "append annotations using locus-group (under revision) ");
 
+
+  // Skip data
+  ++g; c = 0 ; gl="skip";
+  mask_add( s , g , c++ , gl , "no-vmeta" , "flag"       , "skip all variant meta-data" ); 
+  mask_add( s , g , c++ , gl , "no-geno"  , "flag"       , "skip all genotype data" );  
+  mask_add( s , g , c++ , gl , "no-gmeta" , "flag"       , "skip all genotype meta-data" ); 
+  mask_add( s , g , c++ , gl , "load-vmeta" , "str-list" , "load only these variant meta-fields" );
+  mask_add( s , g , c++ , gl , "load-gmeta" , "str-list" , "load only these genotype meta-fields" );
+
       
   // Misc.
   ++g; c = 0 ; gl="misc";
@@ -241,7 +250,6 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   : vardb(NULL) , locdb(NULL) , refdb(NULL) , group_mode( group_mode ) 
 {
   
-  is_simple = false; 
  
   //
   // Swap in any file-lists with @includes
@@ -577,7 +585,6 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
   if ( m.has_field("meta.attach") )
     {
-      is_simple = false;
       std::vector<std::string> s = m.get_string( "meta.attach" );
       if ( s.size() == 0 || s[0] == "ALL" ) 
 	attach_all_meta(true);
@@ -593,25 +600,21 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
   if ( m.has_field( "biallelic" ) )
     {
-      is_simple = false;
       require_biallelic(true);
     }
 
   if ( m.has_field( "biallelic.ex" ) )
     {
-      is_simple = false;
       exclude_biallelic(true);
     }
 
   if ( m.has_field( "monomorphic" ) )
     {
-      is_simple = false;
       require_monomorphic(true);
     }
 
   if ( m.has_field( "monomorphic.ex" ) )
     {
-      is_simple = false;
       exclude_monomorphic(true);
     }
 
@@ -827,7 +830,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     {
       std::string s = m.get1_string("em");
       double t;
-      if ( str2dbl(s,t) )
+      if ( Helper::str2dbl(s,t) )
 	{
 	  EM_caller( true );
 	  EM_threshold( t );
@@ -1086,6 +1089,47 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       if ( ! m.has_field("phe.allow.missing") ) 
 	require_nonmissing_phenotype( m.get_string( "phe.obs" ) );
     }
+
+  
+  // Options to skip certain types of input from the VARDB
+
+  if ( m.has_field( "no-geno" ) )
+    {
+      load_genotype_data( false );      
+      load_genotype_meta( false );
+    }
+  
+  if ( m.has_field( "no-vmeta" ) )
+    {
+      load_variant_meta( false );
+    }
+
+  if ( m.has_field( "no-gmeta" ) )
+    {
+      load_genotype_meta( false );
+    }
+
+  if ( m.has_field( "load-vmeta" ) )
+    {
+      
+    }
+
+  if ( m.has_field( "load-gmeta" ) )
+    {
+      std::vector<std::string> t = m.get_string( "load-gmeta" );
+      for (int i=0;i<t.size(); i++) set_load_genotype_meta( t[i] );      
+    }
+
+  if ( m.has_field( "load-vmeta" ) )
+    {
+      std::vector<std::string> t = m.get_string( "load-vmeta" );
+      for (int i=0;i<t.size(); i++) set_load_variant_meta( t[i] );      
+    }
+
+
+  // TODO: Based on the command and the mask/options/arguments, determine what needs to be loaded and automatically set this.
+  //       Will have to be careful/conservative in doing that...
+
   
 }
 
@@ -1162,7 +1206,6 @@ int Mask::include_loc( int x )
 {  
   if ( locdb ) 
     {
-      is_simple = false; 
       in_locset.insert(x); 
     }
   else return 0;
@@ -1183,7 +1226,6 @@ int Mask::include_var( int x )
 {  
     if ( vardb ) 
       {
-	is_simple = false; 
 	in_varset.insert(x); 
       }
     else return 0;
@@ -1212,7 +1254,6 @@ int Mask::include_ref( int x )
 {
   if ( refdb ) 
     {
-      is_simple = false; 
       in_refset.insert(x);
       append_ref(x);
     }
@@ -1237,7 +1278,6 @@ int Mask::require_loc( int x )
 {
   if ( locdb ) 
     {
-      is_simple = false; 
       req_locset.insert(x); 
     }
   else return 0;
@@ -1257,7 +1297,6 @@ int Mask::require_var( int x )
 {
     if ( vardb ) 
       {
-	is_simple = false; 
 	req_varset.insert(x); 
       }
     else return 0;
@@ -1276,7 +1315,6 @@ int Mask::require_ref( int x )
 {
   if ( refdb ) 
     {
-      is_simple = false; 
       req_refset.insert(x);      
       append_ref(x);
     }
@@ -1300,7 +1338,6 @@ int Mask::exclude_loc( int x )
 {  
     if ( locdb ) 
       {
-	is_simple = false; 
 	ex_locset.insert(x); 
       }
     else return 0;
@@ -1311,7 +1348,6 @@ int Mask::exclude_var( int x )
 {  
     if ( vardb ) 
       {
-	is_simple = false; 
 	ex_varset.insert(x); 
       }
     else return 0;
@@ -1340,7 +1376,6 @@ int Mask::exclude_ref( int x )
 {
   if ( refdb ) 
     {
-      is_simple = false; 
       ex_refset.insert(x);
       append_ref(x);
     }
@@ -1584,12 +1619,6 @@ void Mask::skip_var(const string & n, const vector<string>& d)
 // File inclusion/exclusion
 //
 
-// int Mask::include_file( const int id )
-// {
-//   is_simple = false;
-//   
-//   return in_files.size();
-// }
 
 int Mask::include_file( const string & filetag )
 {
@@ -1597,7 +1626,6 @@ int Mask::include_file( const string & filetag )
   if ( id != 0 ) 
     {
       in_files.insert(id);
-      is_simple = false;
     }
   return in_files.size();
 }
@@ -1616,7 +1644,6 @@ int Mask::exclude_file( const string & filetag )
   if ( id != 0 ) 
     {
       ex_files.insert(id); 
-      is_simple = false;
     }
   return ex_files.size();
 }
@@ -1630,7 +1657,6 @@ int Mask::append_loc( int x )
 {  
   if ( locdb ) 
     {
-      is_simple = false;
       app_locset.insert(x); 
       //include_loc(x);
     }
@@ -1655,7 +1681,6 @@ int Mask::append_var( int x )
 {  
     if ( vardb ) 
       {
-	is_simple = false;
 	app_varset.insert(x); 
 	// include_var(x);
       }
@@ -1680,7 +1705,6 @@ int Mask::append_ref( int x )
 {  
   if ( refdb ) 
     {
-      is_simple = false;
       app_refset.insert(x); 
     }
   else return 0;
@@ -1747,7 +1771,6 @@ void Mask::group_reg( const std::vector<std::string> & g )
 
 void Mask::include_annotation_nonsyn()
 {
-  is_simple = false;  
   annot = true;
   in_annotations.push_back("_MIS");
   in_annotations.push_back("_NON");
@@ -1755,7 +1778,6 @@ void Mask::include_annotation_nonsyn()
 
 void Mask::require_annotation_nonsyn()
 {
-  is_simple = false;  
   annot = true;
   req_annotations.push_back("_MIS");
   req_annotations.push_back("_NON");
@@ -1763,7 +1785,6 @@ void Mask::require_annotation_nonsyn()
 
 void Mask::exclude_annotation_nonsyn()
 {
-  is_simple = false;  
   annot = true;
   ex_annotations.push_back("_MIS");
   ex_annotations.push_back("_NON");
@@ -1772,21 +1793,18 @@ void Mask::exclude_annotation_nonsyn()
 
 void Mask::include_annotation(const string & s)
 {
-  is_simple = false;  
   annot = true;
   in_annotations.push_back(s);
 }
 
 void Mask::require_annotation(const string & s)
 {
-  is_simple = false;  
   annot = true;
   req_annotations.push_back(s);
 }
 
 void Mask::exclude_annotation(const string & s)
 {
-  is_simple = false;  
   annot = true;
   ex_annotations.push_back(s);
 }
@@ -1838,7 +1856,6 @@ int Mask::include_loc_set( int x )
 {
   if ( locdb ) 
     {
-      is_simple = false;  
       in_locset_set.insert( x ); 
     }
   else return 0;
@@ -1855,7 +1872,6 @@ int Mask::append_loc_set( int x )
 {
   if ( locdb ) 
     {
-      is_simple = false;  
       app_locset_set.insert(x); 
     }
   else return 0;
@@ -1877,7 +1893,6 @@ void Mask::group_loc_set(const int g)
   group_locus = 0;
   group_variant = 0;
   include_loc_set(g);
-  is_simple = false;
 }
 
 void Mask::group_loc_set(const string & n, const string & p)
@@ -1894,7 +1909,6 @@ int Mask::require_loc_set( int x )
 {
   if ( locdb ) 
     {
-      is_simple = false;  
       req_locset_set.insert(x); 
     }
   else return 0;
@@ -1915,7 +1929,6 @@ int Mask::exclude_loc_set( int x )
 {
   if ( locdb ) 
     {
-      is_simple = false;  
       ex_locset_set.insert(x); 
     }
   else return 0;
@@ -1936,19 +1949,16 @@ int Mask::exclude_loc_set( string n , string p )
 
 void Mask::include_filter( const string & s )
 {
-  is_simple = false;  
   inc_filter.insert(s);
 }
 
 void Mask::require_filter( const string & s )
 {
-  is_simple = false;  
   req_filter.insert(s);
 }
 
 void Mask::exclude_filter( const string & s )
 {
-  is_simple = false;  
   exc_filter.insert(s);
 }
 
@@ -2072,7 +2082,6 @@ bool Mask::polymorphism_filter( const Variant & v )
 
 void Mask::include_indiv( const std::string & id )
 {
-  is_simple = false;  
   in_indset.insert(id);
 }
 
@@ -2083,7 +2092,6 @@ void Mask::include_indiv( const std::vector<std::string> & id )
   
 void Mask::exclude_indiv( const std::string & id )
 {
-  is_simple = false;  
   ex_indset.insert(id);
 }
 
@@ -2110,7 +2118,6 @@ bool Mask::use_file( const int f ) const
 
 void Mask::include_phenotype( const std::vector< std::string > & val )
 {
-  is_simple = false;  
   for (int i=0;i<val.size();i++)
     {
       std::vector< std::string > k = Helper::parse( val[i] , ":" );
@@ -2121,7 +2128,6 @@ void Mask::include_phenotype( const std::vector< std::string > & val )
 
 void Mask::require_phenotype( const std::vector< std::string > & val )
 {
-  is_simple = false;  
   for (int i=0;i<val.size();i++)
     {
       std::vector< std::string > k = Helper::parse( val[i] , ":" );
@@ -2132,7 +2138,6 @@ void Mask::require_phenotype( const std::vector< std::string > & val )
 
 void Mask::exclude_phenotype( const std::vector< std::string > & val )
 {
-  is_simple = false;  
   for (int i=0;i<val.size();i++)
     {
       std::vector< std::string > k = Helper::parse( val[i] , ":" );
@@ -2143,7 +2148,6 @@ void Mask::exclude_phenotype( const std::vector< std::string > & val )
 
 void Mask::require_nonmissing_phenotype( const std::vector< std::string> & k)
 {
-  is_simple = false;
   for (int i=0; i<k.size(); i++)
     req_nonmissing_phenotype.insert( k[i] );
 }
@@ -2213,49 +2217,41 @@ bool Mask::pheno_screen( Individual * person ) const
 
 int Mask::meta_equals( const std::string & key , int value )
 {
-  is_simple = false;  
   meta_eq[key] = value;
 }
 
 int Mask::meta_not_equals( const std::string & key , int value )
 {
-  is_simple = false;  
   meta_ne[key] = value;
 }
 
 int Mask::meta_equals( const std::string & key , const std::string & value )
 {
-  is_simple = false;  
   meta_has_text[key].insert( value );
 }
 
 int Mask::meta_not_equals( const std::string & key , const std::string & value )
 {
-  is_simple = false;  
   meta_has_not_text[key].insert( value );
 }
 
 int Mask::meta_greater( const std::string & key , double value )
 {
-  is_simple = false;  
   meta_gt[key] = value;
 }
 
 int Mask::meta_greater_equal( const std::string & key , double value )
 {
-  is_simple = false;  
   meta_ge[key] = value;
 }
 
 int Mask::meta_less( const std::string & key , double value )
 {
-  is_simple = false;  
   meta_lt[key] = value;
 }
 
 int Mask::meta_less_equal( const std::string & key , double value )
 {
-  is_simple = false;  
   meta_le[key] = value;
 }
 
@@ -2263,49 +2259,41 @@ int Mask::meta_less_equal( const std::string & key , double value )
 
 int Mask::req_meta_equals( const std::string & key , int value )
 {
-  is_simple = false;  
   req_meta_eq[key] = value;
 }
 
 int Mask::req_meta_not_equals( const std::string & key , int value )
 {
-  is_simple = false;  
   req_meta_ne[key] = value;
 }
 
 int Mask::req_meta_equals( const std::string & key , const std::string & value )
 {
-  is_simple = false;  
   req_meta_has_text[key].insert( value );
 }
 
 int Mask::req_meta_not_equals( const std::string & key , const std::string & value )
 {
-  is_simple = false;  
   req_meta_has_not_text[key].insert( value );
 }
 
 int Mask::req_meta_greater( const std::string & key , double value )
 {
-  is_simple = false;  
   req_meta_gt[key] = value;
 }
 
 int Mask::req_meta_greater_equal( const std::string & key , double value )
 {
-  is_simple = false;  
   req_meta_ge[key] = value;
 }
 
 int Mask::req_meta_less( const std::string & key , double value )
 {
-  is_simple = false;  
   req_meta_lt[key] = value;
 }
 
 int Mask::req_meta_less_equal( const std::string & key , double value )
 {
-  is_simple = false;  
   req_meta_le[key] = value;
 }
 
@@ -2702,49 +2690,41 @@ bool Mask::eval( SampleVariant & svar )
 
 int Mask::geno_equals( const std::string & key , int value )
 {
-  is_simple = false;  
   geno_eq[key] = value;
 }
 
 int Mask::geno_not_equals( const std::string & key , int value )
 {
-  is_simple = false;  
   geno_ne[key] = value;
 }
 
 int Mask::geno_equals( const std::string & key , const std::string & value )
 {
-  is_simple = false;  
   geno_has_text[key] = value;
 }
 
 int Mask::geno_not_equals( const std::string & key , const std::string & value )
 {
-  is_simple = false;  
   geno_has_not_text[key] = value;
 }
 
 int Mask::geno_greater( const std::string & key , double value )
 {
-  is_simple = false;  
   geno_gt[key] = value;
 }
 
 int Mask::geno_greater_equal( const std::string & key , double value )
 {
-  is_simple = false;  
   geno_ge[key] = value;
 }
 
 int Mask::geno_less( const std::string & key , double value )
 {
-  is_simple = false;  
   geno_lt[key] = value;
 }
 
 int Mask::geno_less_equal( const std::string & key , double value )
 {
-  is_simple = false;  
   geno_le[key] = value;
 }
 
@@ -2752,49 +2732,41 @@ int Mask::geno_less_equal( const std::string & key , double value )
 
 int Mask::req_geno_equals( const std::string & key , int value )
 {
-  is_simple = false;  
   req_geno_eq[key] = value;
 }
 
 int Mask::req_geno_not_equals( const std::string & key , int value )
 {
-  is_simple = false;  
   req_geno_ne[key] = value;
 }
 
 int Mask::req_geno_equals( const std::string & key , const std::string & value )
 {
-  is_simple = false;  
   req_geno_has_text[key] = value;
 }
 
 int Mask::req_geno_not_equals( const std::string & key , const std::string & value )
 {
-  is_simple = false;  
   req_geno_has_not_text[key] = value;
 }
 
 int Mask::req_geno_greater( const std::string & key , double value )
 {
-  is_simple = false;  
   req_geno_gt[key] = value;
 }
 
 int Mask::req_geno_greater_equal( const std::string & key , double value )
 {
-  is_simple = false;  
   req_geno_ge[key] = value;
 }
 
 int Mask::req_geno_less( const std::string & key , double value )
 {
-  is_simple = false;  
   req_geno_lt[key] = value;
 }
 
 int Mask::req_geno_less_equal( const std::string & key , double value )
 {
-  is_simple = false;  
   req_geno_le[key] = value;
 }
 
@@ -3155,7 +3127,6 @@ bool Mask::eval( const Genotype & g ) const
 
 void Mask::null_filter( const int_range & r )
 {
-  is_simple = false;
   has_null_filter = true;
   null_fltr = r;
 }
@@ -3172,7 +3143,6 @@ bool Mask::null_filter( const int j ) const
 
 void Mask::case_control_filter( const std::string & a , const std::string & u )
 {
-  is_simple = false;
   has_case_control_filter = true;
   case_fltr.set(a);
   control_fltr.set(u);
@@ -3191,7 +3161,6 @@ bool Mask::case_control_filter( const int a, const int u) const
 
 void Mask::set_filter_expression(const std::string & e )
 {
-  is_simple = false;
   if ( ! eval_expr.parse(e) ) Helper::halt("could not parse expression: " + e + "\n" + eval_expr.errmsg() );
   eval_expr_set = true;
 }
@@ -3206,8 +3175,12 @@ bool Mask::calc_filter_expression( SampleVariant & svar )
   eval_expr.bind( svar );
   eval_expr.evaluate();
   bool passed = false;
-  bool valid = eval_expr.value(passed);
-  if ( ! valid ) Helper::halt( "could not evaluate filter expression: " + eval_expr.errmsg() );
+  bool valid = eval_expr.value( passed );
+  if ( ! valid ) 
+    {
+      plog.warn( "could not evaluate filter expression: " , eval_expr.errmsg() );
+      return false; //invalid expressions always evaluate as false
+    }
   if ( ! eval_filter_includes ) passed = ! passed;
   return passed;
 }
@@ -3217,8 +3190,12 @@ bool Mask::calc_filter_expression( SampleVariant & svar , SampleVariant & gvar )
   eval_expr.bind( svar , gvar );
   eval_expr.evaluate();
   bool passed = false;
-  bool valid = eval_expr.value(passed);
-  if ( ! valid ) Helper::halt( "could not evaluate filter expression: " + eval_expr.errmsg() );
+  bool valid = eval_expr.value( passed );
+  if ( ! valid ) 
+    {
+      plog.warn( "could not evaluate filter expression: " , eval_expr.errmsg() );
+      return false; //invalid expressions always evaluate as false
+    }
   if ( ! eval_filter_includes ) passed = ! passed;
   return passed;
 }
@@ -3227,7 +3204,6 @@ bool Mask::calc_filter_expression( SampleVariant & svar , SampleVariant & gvar )
 
 void Mask::var_set_filter_expression(const std::string & e )
 {
-  is_simple = false;
   if ( ! var_eval_expr.parse(e) ) Helper::halt("could not set filter expression: " + e + "\n" + var_eval_expr.errmsg() );
   var_eval_expr_set = true;
 }
@@ -3420,9 +3396,8 @@ bool Mask::eval_alt_file_filter( Variant & v ) const
 
   std::set<int>::iterator i = exc_alt_file.begin();
   while ( i != exc_alt_file.end() )
-    {
-      SampleVariant * svar = v.fsample( *i );
-      if ( svar && svar->has_nonreference() ) return false;
+    {      
+      if ( v.has_nonreference( *i ) ) return false;
       ++i;
     }
   
@@ -3431,9 +3406,9 @@ bool Mask::eval_alt_file_filter( Variant & v ) const
   i = req_alt_file.begin();
   while ( i != req_alt_file.end() )
     {
-      SampleVariant * svar = v.fsample( *i );
-      if ( ! svar ) return false;  // sample must be present, implicitly
-      if ( ! svar->has_nonreference() ) return false;
+      // sample must be present, implicitly
+      if ( ! v.fsample_svar_counts( *i ) ) return false;
+      if ( ! v.has_nonreference( *i ) ) return false;
       ++i;
     }
   
@@ -3447,8 +3422,7 @@ bool Mask::eval_alt_file_filter( Variant & v ) const
   i = inc_alt_file.begin();
   while ( i != inc_alt_file.end() )
     {
-      SampleVariant * svar = v.fsample( *i );
-      if ( svar && svar->has_nonreference() ) return true;
+      if ( v.has_nonreference( *i ) ) return true;
       ++i;
     } 
   
@@ -3478,14 +3452,14 @@ bool Mask::eval_file_count( Variant & v ) const
   // Do we have to see at least N samples with at least one non-reference variant?
   if ( alt_file_count || alt_file_max ) 
     {
-      v.set_first_sample();
+      
+      const int n = v.n_samples();
       int c=0;
-      while ( 1 )
-	{	  
-	  if ( v.sample().has_nonreference() ) ++c;
+      for (int s = 0 ; s < n ; s++ )
+	{	  	  
+	  if ( v.has_nonreference( s ) ) ++c;
 	  if ( c == alt_file_count ) return true;
-	  if ( alt_file_max && c >  alt_file_max   ) return false;
-	  if ( ! v.next_sample() ) break;
+	  if ( alt_file_max && c >  alt_file_max   ) return false;	  
 	}
       return false;
     }
@@ -3507,7 +3481,30 @@ bool Mask::test_fail_on_sample_variant(int n , int m ) const
 
 void Mask::fail_on_sample_variant( int n , int m )
 {
-  is_simple = false;
   fail_on_sample_variant_allow = n;
   fail_on_sample_variant_require = m;
+}
+
+void Mask::set_load_variant_meta( const std::string & m )
+{
+  load_vmeta = true;
+  load_partial_vmeta = true;
+  load_vmeta_list.insert( m );
+}
+
+bool Mask::load_variant_meta( const std::string & m ) const
+{
+  return load_partial_vmeta ? load_vmeta_list.find( m ) != load_vmeta_list.end() : load_vmeta ; 
+}
+
+void Mask::set_load_genotype_meta( const std::string & m )
+{
+  load_gmeta = true;
+  load_partial_gmeta = true;
+  load_gmeta_list.insert( m );
+}
+
+bool Mask::load_genotype_meta( const std::string & m ) const
+{
+  return load_partial_gmeta ? load_gmeta_list.find( m ) != load_gmeta_list.end() : load_gmeta ; 
 }

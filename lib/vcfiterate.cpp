@@ -64,23 +64,27 @@ bool VarDBase::vcf_iterate_read_header( Mask & mask )
 IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data , Mask & mask )
 {
   
+
   IterationReport irep( true , mask.any_grouping() , mask.variant_limit() );
+
 
   // VCF file name is kept in the Mask, by the 'ex-vcf' attribute
   
   std::string filename = mask.external_vcf_filename();
+  
   Helper::checkFileExists( filename );
 
-  //
+
   // Use VCFReader, into a temporary :memory: database
-  //
 
   // Load, parse VCF file; store variant and genotype information, and
   // meta-information, in vardb
 
+
   File vcffile( filename , VCF );
 
   VCFReader v( &vcffile , "" , &(GP->vardb) ,  NULL );
+
 
   // Selectively filter in/out meta-information?
   // or, add a region filter?
@@ -106,35 +110,31 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
     }
 
   // Add other "reg" from mask? 
+
   if ( filter.size() > 0 ) 
     v.set_region_mask( &filter );  
   
 
 
-  //
   // Misc. settings.
-  //
   
   downcode_mode = mask.downcode();
 
 
-  // 
   // Work through VCF
-  //
-
-//  tmpdb.begin();
+  
   GP->vardb.begin();
-
-
+  
   int inserted = 0;
 
   v.return_variant( true );
 
   Variant * pv = NULL;
   
+
   while ( 1 ) 
     { 
-
+      
       VCFReader::line_t l = v.parseLine( &pv );
       
       if ( l == VCFReader::VCF_EOF ) break;
@@ -144,6 +144,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 	  continue;
 	}
       
+
       // If a variant line has been processed and meets criteria, pv
       // will be non-NULL which also implies that a Variant has been
       // created and we are reponsible for cleaning up afterwards
@@ -152,9 +153,13 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 	{
 	  
 	  // So that the Variant functions know not to look for data
-	  // in a BLOB	  
+	  // in a BLOB; also, they they know how to parse it downstream
 	  
-	  pv->consensus.vcf_direct = true;
+	  pv->set_vcf_buffer( v.gt_field , &v.formats );
+	  
+	  // 	  pv->consensus.vcf_direct = true;
+	  // 	  pv->consensus.gt_field = v.gt_field;
+	  // 	  pv->consensus.formats = &v.formats;
 	  
 	  // Apply all mask filters, and decide whether to call function
 	  

@@ -2,9 +2,9 @@
 #include "defs.h"
 #include "meta.h"
 
-std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.04(7-Jan-2011)"; return s; }
+std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.07(21-Jun-2011)"; return s; }
 
-int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 2; return i; }
+int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 3; return i; }
 
 std::string & PLINKSeq::SQLITE_SCRATCH_FOLDER() { static std::string s = ""; return s; }
 
@@ -35,6 +35,7 @@ std::string & PLINKSeq::META_ANNOT_FLAG() { static std::string s = "Nonsense,Mis
 std::string & PLINKSeq::META_GENO_LIK() { static std::string s = "GL"; return s; }
 std::string & PLINKSeq::META_GENO_PHRED() { static std::string s = "PL"; return s; }
 std::string & PLINKSeq::META_GENO_POSTPROB() { static std::string s = "PP"; return s; }
+std::string & PLINKSeq::META_GENO_ALT_DOSAGE() { static std::string s = "ED"; return s; }
 
 std::string & PLINKSeq::META_GENO_DP() { static std::string s = "DP"; return s; }
 std::string & PLINKSeq::META_GENO_GQ() { static std::string s = "GQ"; return s; }

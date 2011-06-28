@@ -5,30 +5,12 @@
 #include <string>
 #include <stdint.h>
 #include <iostream>
-#include <bitset>
 #include <set>
 
 #include "defs.h"
 #include "individual.h"
 #include "meta.h"
 
-
-typedef std::bitset<8> bitset8;
-
-enum gCodes { G_UNKNOWN  =  0, 
-	      G_FAILED   =  1, 
-	      G_PAT      =  2, 
-	      G_MAT      =  3, 
-	      G_PHASED   =  4, 
-	      G_SWITCH   =  5,
-	      G_HAPLOID  =  6,
-	      G_MORE     =  7  };
-
-// If HAPLOID, implies known original of allele
-//   -> G_PAT/G_MAT indicates the original of allele
-//   -> if 00 or 11, means not known 
-
-// If PHASED, then PAT/MAT indicate 
 
 /*!
   @class Genotype
@@ -44,285 +26,269 @@ enum gCodes { G_UNKNOWN  =  0,
 class Genotype { 
   
  private:
+
+  // Core entities
   
-  // Which variant does this genotype belong to? 
+  bool      is_haploid;
   
-  //  const Variant * parent;
+  uint8_t   allele1; // 255 == missing
   
-  // Header byte 
+  uint8_t   allele2; // 255 == missing
   
-  bitset8 bs;
+  bool      is_null;
   
-  // G_UNKNOWN Data not available or not genotyped (T/F)
-  // G_FAILED  Genotyping performed but failed (T/F)
-  // G_PAT     Paternal allele (ref/alternate)
-  // G_MAT     Maternal allele (ref/alternate)
-  // G_PHASED  Phase-known genotype (T/F)
-  // G_SWITCH  Likely switch error (T/F)  
-  // G_HAPLOID Haploid (T/F)
-  // G_MORE    Has integer genotype code following (T/F)
-  
-  
-  // Core genotype store, a single integer; for a basic, non-missing
-  // SNP, this will simply be 0/1/2, i.e. the number of non-reference
-  // alleles
-  
-  int gcode;
+  bool      known_phase;
   
 
+
+  //
+  // Helpers: caching of known genotypes (numeric encoding)
+  //
+
+  static std::map<std::string,Genotype> gcache;
+
+  static void clear_genotype_cache();
   
-  //////////////////////////////////////////////////////////////////////
-  
-  void initialise()
-    {
-      bs.reset();
-      bs.set( G_UNKNOWN , true);  // is missing unless otherwise stated
-      gcode = -1;
-    }
-  
- 
- public:
-  
-/*   Genotype( Variant * parent = NULL )  */
-/*     : parent(parent)  */
-/*     {  */
-/*       initialise();  */
-/*     } */
-    
-  Genotype( ) 
-    { 
-      initialise(); 
-    }
-
-    Genotype( const Genotype & g )
-      {
-	*this = g;
-      }
-    
-    Genotype & operator=( const Genotype & g ) 
-      {
-	this->bs = g.bs;
-	//	this->parent = g.parent;
-	gcode = g.gcode;
-	meta = g.meta;
-	return *this;
-      }
-    
-    
-/*     void variant( const Variant * var ) */
-/*     { */
-/*       parent = var; */
-/*     } */
-    
-/*     const Variant * variant() */
-/*     { */
-/*       return parent; */
-/*     } */
-
-  /// Extensible meta-information, e.g. read-depth, soft-calls, etc
-  
-  MetaInformation<GenMeta> meta;
-  
-  /// Set missing status of genotype
-  void missing(bool b)  { bs.set(G_UNKNOWN,b); }
-
-  /// Get missing statis of genotype
-  bool missing() const { return bs.test( G_UNKNOWN ); } 
-  
-  /// Set failed status of genotype
-  void failed(bool b)  { bs.set(G_FAILED,b); }
-
-  /// Get failed status of genotype
-  bool failed() const { return bs.test( G_FAILED ); } 
-
-  /// Test for either a missing (not attempted) or failed (but attempted) genotype
-  bool null() const  { return bs.test( G_UNKNOWN) || bs.test(G_FAILED); }
-  bool notnull() const  { return ! ( bs.test( G_UNKNOWN ) || bs.test(G_FAILED) ) ; }
-
-  bool null(const bool b)  { missing(b); failed(b); }
-
-  /// Convenience function to set paternal allele, if a simple SNP
-  void pat(bool b)  { bs.set(G_PAT,b); }
-  
-  /// Convenience function to get paternal allele, assuming a simple SNP
-  bool pat() const { return bs.test( G_PAT ); }
+  static const Genotype * search_genotype_cache( const std::string & tok );
 
 
-  void mat(bool b)  { bs.set(G_MAT,b); }
-  
-  bool mat() const { return bs.test( G_MAT ); }
+  //
+  // Private member functions
+  //
 
-  /// Set genotype (assuming a simple SNP)
-  void set_alternate_allele_count(const int g)
+  /// Set to null and wipe all values
+  void set_null() 
   {
-    null(false);
-    if ( g == 0 ) { pat(false); mat(false); }
-    else if ( g == 1 ) { pat(true); mat(false); phased(false); }
-    else if ( g == 2 ) { pat(true); mat(true); }
-    else failed(true); // invalid code
+    is_haploid = true;
+    allele1 = allele2 = 0;      
+    is_null = true;
+    known_phase = false;     
   }
 
-  void haploid(bool b)  {  bs.set( G_HAPLOID, b); }
-  bool haploid() const  { return bs.test( G_HAPLOID); }
 
-  void diploid(bool b)  {  bs.set( G_HAPLOID, !b); }
-  bool diploid() const  { return ! bs.test( G_HAPLOID); }
+ public:
 
-  void phased(bool b)  { bs.set(G_PHASED,b); }
-  bool phased() const  { return bs.test( G_PHASED ); }
-
-  void pswitch(bool b)  { bs.set(G_SWITCH,b); }
-  bool pswitch() const { return bs.test( G_SWITCH ); }
-
-  void more(bool b)  { bs.set(G_MORE,b); }
-  bool more() const { return bs.test( G_MORE ); }
-
-
-  // BCF encoding 
   
-  uint8_t bcf() const;
-  void bcf( uint8_t );
+  
+  MetaInformation<GenMeta> meta;
 
-  /*!
-    @brief Genotype value lookups
-    @return 
-   */
+  
+  Genotype( ) 
+    { 
+      set_null();
+    }
 
+  Genotype( const std::string & str );
+  
+  Genotype( const std::string & str , 
+	    const int gt_field , 
+	    const std::vector<meta_index_t*> & formats ) ;
+  
+
+  /// Convert a numeric encoding of a genotype to a Genotype (w/ caching)  
+  void set_from_string( const std::string & str );
+  
+  /// Set to null (but preserve other values)
+  void null(const bool b)  { is_null = b; } 
+
+  /// Is this genotype null?
+  bool null() const { return is_null; } 
+
+  // e.g. for PED printing, is this genotype consistent with a biallelic variant 
+  //      (restricted to 0,1 ref,alt alleles only)
+
+  /// Is this genotype 'complex' or restricted to 0/1 alleles (e.g. for PED file printing)
+  bool more() const 
+  { 
+    if ( is_null ) return false;
+    if ( allele1 > 1 ) return true;
+    if ( is_haploid ) return false;
+    return allele2 > 1;
+  }
+
+  /// Set a diploid genotype given two allele codes
+  void genotype( const uint8_t a1 , const uint8_t a2 ) 
+  {
+    is_haploid = false;
+    allele1 = a1;
+    allele2 = a2;    
+    is_null = false;
+    known_phase = false;
+  }
+
+  /// Set a phased diploid genotype given two allele codes
+  void phased_genotype( const uint8_t a1 , const uint8_t a2 ) 
+  {
+    genotype(a1,a2);
+    known_phase = true;
+  }
+
+  /// Set a haploid genotype given one allele code
+  void genotype( const uint8_t a1 ) 
+  {
+    is_haploid = true;
+    allele1 = a1;
+    is_null = false;
+    known_phase = false;
+  }
+  
+  /// Set to diploid genotype w/ 0-2 alt-alleles (assumes basic SNP)
+  void set_alternate_allele_count(const int g)
+  {    
+    if      ( g == 0 ) genotype(0,0);
+    else if ( g == 1 ) genotype(0,1);
+    else if ( g == 2 ) genotype(1,1);
+    else is_null = true;
+  }
+
+  void haploid(const bool b)  { is_haploid = b; }
+  bool haploid() const  { return is_haploid; } 
+  
+  void diploid(const bool b)  { is_haploid = b; }
+  bool diploid() const  { return ! is_haploid; }
+  
+  void phased(const bool b)  { known_phase = b; }
+  bool phased() const  { return known_phase; }
+  
 
   //
   // Primary genotype value lookups
   //
-
-  // number of nonreference alleles 
-  int allele_count( const Variant * ) const;
   
-  // number of a particular non-refernece allele (number 1,2,...)
-  // 0 implies reference
+  // number of alternate alleles
+  int allele_count( ) const 
+  {
+    if ( is_null ) return 0;
+    if ( is_haploid ) return allele1 != 0;    
+    int ac = 0;
+    if ( allele1 ) ++ac;
+    if ( allele2 ) ++ac;
+    return ac;
+  }
+  
+  // number of observed alleles
+  int copy_number( ) const
+  { 
+    return is_null ? 0 : ( is_haploid ? 1 : 2 ) ;
+  }
+  
+  // number of a particular allele, numeric coding (0=ref, 1,2,3,...)
+  int allele_count( const int a ) const
+  {
+    if ( is_null ) return 0;
+    if ( is_haploid ) return allele1 == a;
+    return allele1 == a + allele2 == a;    
+  }
 
-  int allele_count( const int altcode , const Variant * ) const;
+  // Used when recalling a genotype (i.e. merging SampleVariants with 
+  // different alt-alleles
+
+  int acode1() const { return allele1; } 
+  void acode1(uint8_t a ) { allele1=a; } 
+
+  int acode2() const { return allele2; } 
+  void acode2(uint8_t a ) { allele2=a; } 
+
+
+  // number of a particular allele, string encoding
   int allele_count( const std::string & , const Variant * ) const;  
   
-  int copy_number() const 
-    {
-      if ( bs.test( G_HAPLOID ) ) return 1;
-      else return 2;
-    }
   
   bool nonreference() const
   {
-    return (!more()) && (!null()) && ( pat() || mat() ) ;
+    return is_null ? false : allele1 != 0 || allele2 != 0 ;
   }
-
+  
   bool heterozygote() const
   {
-    return (!more()) && (!null()) && ( pat() || mat() ) && ! ( pat() && mat() ) ;
+    if ( is_haploid || is_null ) return false;
+    return allele1 != allele2;
   }
   
   bool alternate_homozyote() const
   {
-    return (!more()) && (!null()) && ( pat() && mat() ) ;
+    if ( is_haploid || is_null ) return false;
+    return allele1 != 0 && allele2 != 0; 
   }
   
   bool reference() const
   {
-    return (!more()) && (!null()) && ! ( pat() || mat() ) ;
+    if ( is_null ) return false;
+    if ( is_haploid ) return allele1 == 0;
+    return allele1 == 0 && allele2 == 0;
+  }
+
+  // does this genotype carry at least one copy of a minor allele-class?
+  bool minor_allele( const bool reference_is_major ) const
+  {
+    if ( is_null ) return false;
+    if ( is_haploid ) return reference_is_major ? allele1 : allele1 != 0;
+    return reference_is_major ? allele1 || allele2 : allele1 != 0 || allele2 != 0;
   }
   
-  bool minor_allele(const bool altmin) const
-    {
-      return altmin ? nonreference() : minor_allele_count(altmin) > 0 ;
-    }
-
-  int minor_allele_count(const bool altmin) const
+  // number of minor alleles
+  int minor_allele_count( const bool reference_is_major ) const 
   {
-    // ignore multi-allelic, missing, CN!=2, etc, for now...
-    return altmin ? (int)pat() + (int)mat() : 2 - (int)pat() - (int)mat();
+    if ( is_null ) return 0;
+    if ( is_haploid ) return reference_is_major ? allele1 : allele1 != 0;
+    return reference_is_major ? allele1 + allele2 : allele1 != 0 + allele2 != 0; 
   }
-
-  std::vector<int> allele_list() const;
-
-
+  
+  // given we have na total alleles in the population, return a vector of counts for each allele
+  std::vector<int> allele_list( const int na ) const;
+  
+  
   //
   // Conversion function
   //
-
-  char pack() const { return bs.to_ulong(); }
-
-  void unpack(char c) { bs = c; } 
-
-  /*! 
-    @brief Get genotype code 
-    @return Integer that indicates genotype class for individual    
-  */
   
-  int code() const { return gcode; }
   
-  /*!
-    @brief Set non-simple genotype code 
-  */
+  // BCF encoding 
+  
+  uint8_t bcf() const;  
+  void bcf( uint8_t );
+  
 
-  void code(int g) { gcode = g; }
+  // VARDB encoding
 
+  uint32_t pack() const; 
+  bool unpack( uint32_t c);
+  
+
+   
+  // Comparison between Genotypes
+  
   static bool equivalent( const Genotype &, const Genotype & );
-		 
-  bool operator==(const Genotype & other) const 
-    {
-      return bs == other.bs && gcode == other.gcode;
-    }
   
-  bool operator!=(const Genotype & other) const 
-    {
-      return !(*this == other);
-    }
+  
+  bool operator==(const Genotype & rhs) const 
+  {
+    if ( is_null     !=  rhs.is_null     ) return false;
+    if ( is_haploid  !=  rhs.is_haploid  ) return false;
+    if ( allele1     !=  rhs.allele1     ) return false;
+    if ( allele2     !=  rhs.allele2     ) return false;
+    if ( known_phase !=  rhs.known_phase ) return false;
+    return true;
+  }
+  
 
+  bool operator!=(const Genotype & rhs ) const 
+  {
+    return !(*this == rhs);
+  }
 
-
-  // Display functions
-
-
-  std::string print_vcf() const
-    {
-      if ( more() ) return "-1/-1";       
-      std::string s1, s2;
-      if ( null() ) 
-	s1 = s2 = ".";
-      else
-	{
-	  s1 = pat() ? "1" : "0";
-	  s2 = mat() ? "1" : "0";
-	}      
-      if ( haploid() ) return s1;      
-      if ( pswitch() ) return s1 + "\\" + s2;
-      else if ( phased() ) s1 + "|" + s2;
-      else return s1 + "/" + s2;
-    }
-
-  friend std::ostream & operator<<( std::ostream & out, const Genotype & g)
-  { 
-    out << g.missing() << g.failed() << " - "; 
-    
-    out << g.pat();
-    if ( !g.haploid() )
-      {
-	if ( g.pswitch() ) out << "\\";
-	else if ( g.phased() ) out << "|";
-	else out << "/";	
-	out << g.mat();
-      }
-    
-    out << " - "
-	<< g.phased() 
-	<< g.pswitch() 
-	<< g.haploid()
-	<< g.more();
-    
-    if ( g.more() ) 
-      out << " " << g.gcode;
-    
+  
+  friend std::ostream & operator<<( std::ostream & out, const Genotype & g)  
+  {
+    if ( g.is_haploid ) { if ( g.is_null ) out << "."; else out << (int)g.allele1; }
+    else if ( g.is_null ) out << ( g.known_phase ? ".|." : "./." );
+    else out << (int)g.allele1 << ( g.known_phase ? "|" : "/" ) << (int)g.allele2 ;
     return out;
   }
   
+   
 };
+
 
 
 /*!
@@ -336,6 +302,8 @@ struct SampleVariant;
 
 class GenotypeSet{
 
+  friend class SampleVariant;
+  
  private:
   
     std::vector<Genotype> calls;
@@ -357,34 +325,27 @@ class GenotypeSet{
      
     /// Return number of individual genotype calls in set
     int size() const;
-
+    
     /*!
       @brief Allocate space for calls
       @param n Number of individuals      
     */
     
-    void size(int n) { if ( ! svar ) calls.resize(n); }
+    void size(int n) { calls.resize(n); }
     
-    void set_consensus_slotmap( SampleVariant * ps , std::vector<int> * pm )
-    { 
-      svar = ps;
-      incon = pm; 
-    } 
-
+    //    void set_consensus_slotmap( SampleVariant * ps , std::vector<int> * pm );
+    
     /// Add a Genotype to the GenotypeSet
-    void add(Genotype & g) { if ( ! svar ) calls.push_back(g); }
+    void add( const Genotype & g) { calls.push_back(g); }
     
     /// Add a Genotype at a particular individual index i
-    void add(Genotype & g, int i) { if ( ! svar ) calls[i] = g; }
-
+    void add( const Genotype & g, int i) { calls[i] = g; }
+    
     /// Return Genotype for individual i
     Genotype & genotype(int i);
-
+    
     /// Return const Genotype for individual i
     const Genotype & genotype(int i) const;
-    
-    /// Return genotype code an individual    
-    int code(int i);
     
     /// Wipe all genotype calls (only for actual calls)
     void clear() { if ( ! svar ) calls.clear(); }

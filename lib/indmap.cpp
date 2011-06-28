@@ -36,6 +36,15 @@ void IndividualMap::insert( const int file_id,
   int_string_pair  b( slot_k , id );
   ialign.insert( std::make_pair( a,b ) );
   wsample[ file_id][supposed_j] = slot_j;  
+  con2svar[ int2(file_id,slot_k) ] = slot_j;
+}
+
+int IndividualMap::sample_slot( const int i , const int file_id ) const
+{
+  // if f==0 then return 'i' as this is the consensus sample variant
+  if ( file_id == 0 ) return i;
+  std::map<int2,int>::const_iterator ii = con2svar.find( int2(file_id , i) );
+  return ii == con2svar.end() ? -1 : ii->second;
 }
 
 std::vector<int> * IndividualMap::svar2consensus( int f )

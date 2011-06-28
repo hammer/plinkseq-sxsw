@@ -59,7 +59,7 @@ bool SQL::query( const std::string & q )
 {  
   char * db_err;
   rc = sqlite3_exec( db , q.c_str() , 0 , 0 , &db_err );
-  if ( rc ) plog.warn( "database warning: " + std::string(db_err) );
+  if ( rc ) plog.warn( std::string(db_err) );
   return rc == 0;
 }
 
@@ -67,7 +67,7 @@ sqlite3_stmt * SQL::prepare( const std::string & q )
 {   
   sqlite3_stmt * p;
   int rc = sqlite3_prepare_v2( db , q.c_str() , q.size() , &p , NULL );   
-  if ( rc ) plog.warn( "database warning preparing query " + std::string( sqlite3_errmsg(db) ) );
+  if ( rc ) plog.warn( "preparing query " + std::string( sqlite3_errmsg(db) ) );
   else qset.insert(p);
   return rc ? NULL : p;
 }

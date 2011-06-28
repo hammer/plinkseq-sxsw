@@ -46,16 +46,16 @@ void f_ibd_sharing( Variant & v , void * p )
   const int n = v.size();
   
   // which is the minor allele?
-  int c     = 0; // minor allele
-  int c_tot = 0; // total counts	  
-  bool refmin = v.n_minor_allele( c , c_tot );      
-
+//   int c     = 0; // minor allele
+//   int c_tot = 0; // total counts	  
+  bool altmin = v.n_minor_allele( );      
+  
   std::vector<int> carrier;
 
   for (int i=0; i<n; i++)
     {
       if ( v(i).null() ) continue;
-      int ac1 = v(i).minor_allele_count( refmin );
+      int ac1 = v(i).minor_allele_count( altmin );
       if ( ac1 == 0 ) continue;
       carrier.push_back( i );
     }

@@ -697,7 +697,8 @@ bool Eval::execute( const std::vector<Token> & input )
       
     }
 
-  
+ 
+
   // If there is only one value in the stack
   // That value is the result of the calculation.
   
@@ -715,8 +716,10 @@ bool Eval::execute( const std::vector<Token> & input )
       
       // store result in primary slot, e
       e = sc;
+
       return true;
     }
+
   
   // If there are more values in the stack
   // (Error) The user input has too many values.
@@ -756,9 +759,10 @@ bool Eval::parse( const std::string & input )
 
       if ( ! extract_gfunc( &(etok[i]) ) )
 	is_valid = false;
-      
+            
       if ( ! shunting_yard( etok[i], output[i] ) )
 	is_valid = false;
+      
     }
   
   // set pointers to all variables now construction of tokens is complete
@@ -771,6 +775,7 @@ bool Eval::parse( const std::string & input )
 
 bool Eval::extract_gfunc( std::string * s )
 {
+
   // if we have   " AB > 0.75 || gprop( DP < 10 || GQ < 0.95 ) > 0.8 "
   
   //  -->         " AB > 0.75 || _G1 > 0.8 "
@@ -937,23 +942,30 @@ template<class T> void Eval::bind( MetaInformation<T> & m , bool reset )
   while ( i != vartb.end() )
     { 
       std::set<Token*>::iterator tok = i->second.begin();
+
       while ( tok != i->second.end() )
 	{
+
 	  mType mt = MetaInformation<T>::type( i->first );
+	  
 	  if ( mt != META_UNDEFINED ) 
 	    {
+	      
 	      if ( mt == META_FLAG ) 
 		{
 		  (*tok)->set( m.has_field( i->first ) ) ; 
 		}
-	      else
-		if ( m.has_field( i->first ) )
-		  {
-		    if ( mt == META_INT ) { (*tok)->set( m.get1_int( i->first ) ); }
-		    else if ( mt == META_FLOAT ) { (*tok)->set( m.get1_double( i->first ) ); }
-		    else if ( mt == META_TEXT ) { (*tok)->set( m.get1_string( i->first ) ); }
-		    else if ( mt == META_BOOL ) { (*tok)->set( m.get1_bool( i->first ) ); }	      
-		  }
+	      else if ( m.has_field( i->first ) )
+		{
+		  if ( mt == META_INT ) { (*tok)->set( m.get1_int( i->first ) ); }
+		  else if ( mt == META_FLOAT ) { (*tok)->set( m.get1_double( i->first ) ); }
+		  else if ( mt == META_TEXT ) { (*tok)->set( m.get1_string( i->first ) ); }
+		  else if ( mt == META_BOOL ) { (*tok)->set( m.get1_bool( i->first ) ); }	      
+		}
+	      else 
+		{ 
+		  (*tok)->set(); // UNDEFINED
+		}
 	    }
 	  ++tok;
 	}
@@ -972,6 +984,7 @@ void Eval::eval_gfunc( SampleVariant & svar )
     {
 
       std::string expr = i->second.back();
+
       std::string genmf = i->second[0];  // (if used )
 
       Eval e;
@@ -985,9 +998,9 @@ void Eval::eval_gfunc( SampleVariant & svar )
 
       std::string gfunc_name = i->second[0];
       
-      bool gmean = gfunc_name == "gmean";
+      bool gmean  = gfunc_name == "gmean";
       bool gcount = gfunc_name == "g" || gfunc_name == "gn";
-      bool gprop = gfunc_name == "g";
+      bool gprop  = gfunc_name == "g";
 
       // If we have to look at a GenMeta field, get the type now
       

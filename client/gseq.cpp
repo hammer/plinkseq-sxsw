@@ -187,11 +187,11 @@ void g_geneseq( VariantGroup & vars , void * p )
 	  
 	  if ( aux->pheno )       
 	    {
-	      ma = pvar->n_minor_allele( case_count , case_tot , CASE );
-	      control_ma = pvar->n_minor_allele( control_count , control_tot , CONTROL );
+	      ma = pvar->n_minor_allele( &case_count , &case_tot , NULL , CASE );
+	      control_ma = pvar->n_minor_allele( &control_count , &control_tot , NULL , CONTROL );
 	    }
 	  else    
-	    ma = pvar->n_minor_allele( case_count , case_tot );
+	    ma = pvar->n_minor_allele( &case_count , &case_tot );
 	  
 	  // always report non-ref
 	  if ( ! ma ) case_count = case_tot - case_count;

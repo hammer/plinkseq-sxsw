@@ -15,7 +15,6 @@
 #include "seqdb.h"
 #include "annot.h"
 #include "regions.h"
-#include "spec.h"
 #include "sqlwrap.h"
 #include "variant.h"
 #include "varfunc.h"

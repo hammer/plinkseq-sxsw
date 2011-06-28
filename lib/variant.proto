@@ -1,4 +1,5 @@
-message VarMetaBuffer {
+
+message VariantMetaUnit {
 	enum Type { INT = 1; FLOAT = 2; TEXT = 3; BOOL = 4; }
 	     	
         required Type   type = 1;
@@ -11,7 +12,7 @@ message VarMetaBuffer {
 }
 
 
-message GenotypeMetaBuffer {
+message GenotypeMetaUnit {
 
 	enum Type { INT = 1; FLOAT = 2; TEXT = 3; BOOL = 4; }
 	     	
@@ -31,18 +32,22 @@ message GenotypeMetaBuffer {
 	repeated int32   missing_index = 11 [packed=true];
 }
 
-message VariantBuffer {
 
+message VariantBuffer {
 	optional string ref = 1;
 	optional string alt = 2;
-	optional string strand = 3;
-	optional double quality = 4;
-	repeated string filter  = 5;
-	
-	repeated VarMetaBuffer vmeta = 6;
+	optional double quality = 3;
+	repeated string filter  = 4;
+}
 
-	repeated int32    geno1   = 7 [packed=true];	
-	repeated int32    geno2   = 8 [packed=true];
+message VariantMetaBuffer { 	
+	repeated VariantMetaUnit vmeta = 1;
+}
 
-	repeated GenotypeMetaBuffer gmeta = 9;
+message GenotypeBuffer {
+	repeated uint32  geno     = 1 [packed=true];
+}
+
+message GenotypeMetaBuffer {
+	repeated GenotypeMetaUnit gmeta = 1;
 }

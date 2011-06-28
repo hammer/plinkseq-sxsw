@@ -412,12 +412,12 @@ void f_uniq_report( Variant & v , void * p )
   
   int a = 0;
   int c = 0;
-  bool altmin = v.n_minor_allele( a , c );
+  bool altmin = v.n_minor_allele( &a , &c );
   
   //  std::cout << opt->ingroup_req << " " << opt->outgroup_allow << "\n";
+ 
+  if ( a == 0 || a == c ) return;
   
-  if ( a == 0 || c == 0 ) return;
-
   int obs_group = 0;
   int obs_outgroup = 0;
 
@@ -425,7 +425,7 @@ void f_uniq_report( Variant & v , void * p )
 
   for (int i=0; i<v.size(); i++)
     {
-      if ( v(i).notnull() )
+      if ( ! v(i).null() )
 	{
 	  // Seen in non-group?
 	  if ( opt->indiv.find( v.ind(i) ) == opt->indiv.end() )
@@ -1463,21 +1463,20 @@ void f_counts_report( Variant & v , void * p )
   
   AuxCountReport * aux = (AuxCountReport*)p;
   
-  v.set_first_sample();
+  const int ns = v.n_samples();
   
-  while ( 1 ) 
+  for (int s = 0 ; s < ns ; s++ )
     {
-      
-      SampleVariant & svar = v.sample();
-      
-      SampleVariant & svar_meta = v.multi_sample() ? svar : v.consensus;
 
-      SampleVariant & svar_genotypes = v.multi_sample() ? svar : v.consensus;
-
-	//      SampleVariant & svar_genotypes = v.flat() ? v.consensus : svar;
-
-      std::string sample_label = g.vardb.file_tag( svar.fileset() );
+      // Attach sample, along with storage, etc
       
+      SampleVariant &             svar          =  v.sample( s );
+
+      SampleVariant &             svar_meta     =  v.sample_metainformation( svar );
+      
+      std::string                 sample_label  =  g.vardb.file_tag( svar.fileset() );
+      
+
       // phenotype
       
       int pi = aux->by_case_control ? 1 : 0;
@@ -1501,7 +1500,9 @@ void f_counts_report( Variant & v , void * p )
 	  std::string phe_label = pi == 0 ? "0" : pi == 1 ? "2" : "1" ;
 	  affType aff = pi == 0 ? UNKNOWN_PHE : pi == 1 ? CASE : CONTROL ;
 	  
-	  std::map<std::string,int> c = svar_genotypes.genotype_counts( aff , &v , aux->unphased );  
+	  //	  std::map<std::string,int> c = svar_genotypes.genotype_counts( aff , &v , aux->unphased );  
+	  
+	  std::map<std::string,int> c = v.genotype_counts( svar , aff , aux->unphased );
 	  
 	  std::map<std::string,int>::iterator i = c.begin();
 	  while ( i != c.end() )
@@ -1533,7 +1534,7 @@ void f_counts_report( Variant & v , void * p )
 	   << v.name() << "\t"
 	   << svar_meta.reference() << "\t"
 	   << svar_meta.alternate() << "\t";
-
+      
       if ( svar_meta.quality() < 0 ) 
 	plog << ".\t";
       else
@@ -1548,8 +1549,6 @@ void f_counts_report( Variant & v , void * p )
 	   << svar_meta.meta << "\n";
       
       // next sample
-      if ( ! v.next_sample() ) break;
-
     }
 
 }
@@ -1570,11 +1569,11 @@ bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
 	    << "##source=pseq\n"
 	    << "##_PROJ=" << name << "\n";
 
-  std::set<int> w = GP->indmap.samples();
+  std::set<int> w = g.indmap.samples();
   std::set<int>::iterator i = w.begin();
   while ( i != w.end() )
     {
-      plog << "##_N=" << *i << "," << GP->indmap.size( *i ) << "\n";
+      plog << "##_N=" << *i << "," << g.indmap.size( *i ) << "\n";
       ++i;
     }
 
@@ -1603,21 +1602,23 @@ bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
   opt.genotypes = genotypes;
 
   plog << "VAR";
-  plog << "\tALLELES";  
-
+  plog << "\tREF/ALT";
+  
   if ( genotypes )
     {
       plog << "\tGENOTYPES";
     }
   else
     {      
+      plog << "\tMINOR";
+
       // binary phenotype?
       if ( g.phmap.type() == PHE_DICHOT )
-	plog << "\tALTA"
-	     << "\tALTU"
+	plog << "\tCNTA"
+	     << "\tCNTU"
 	     << "\tTOTA\tTOTU";
       else
-	plog << "\tALT\tTOT";
+	plog << "\tCNT\tTOT";
     }
 
   if ( opt.apply_annot )

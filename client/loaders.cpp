@@ -34,7 +34,7 @@ bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & g
   bool region_mask = options.key("filter");
   
   std::set<Region> filter;
-  if ( region_mask ) filter = GP->locdb.get_regions( options.as<std::string>("filter") );  
+  if ( region_mask ) filter = g.locdb.get_regions( options.as<std::string>("filter") );  
   std::set<Region> * pfilter = region_mask ? &filter : NULL  ;
   
   // filters on meta-fields?

@@ -19,8 +19,9 @@ extern "C" {
 #include <Rversion.h>
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
+#include <R_ext/Utils.h>
         
-  void R_init_pseqr(DllInfo *info);
+  void R_init_Rplinkseq(DllInfo *info);
   
   // Attach/dettach a database
   
@@ -93,7 +94,7 @@ extern "C" {
   //
   
   SEXP Rvariant(Variant & var, Rdisplay_options & );
-  SEXP Rsample_variant(SampleVariant & sample, Variant&, Rdisplay_options &);
+  SEXP Rsample_variant( const int si, Variant&, Rdisplay_options &);
   SEXP Rvariant_group(VariantGroup & vars, Rdisplay_options &);
   
   

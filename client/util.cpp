@@ -47,6 +47,7 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   reg( "debug", NONE , "set debug mode");
   reg( "silent", NONE , "set silent mode");
   reg( "ignore-warnings" , NONE , "turn off warnings");
+  reg( "early-warnings" , NONE , "display warning as soon as happens");
 
   reg( "out-file", STRING , "set main output file");
   reg( "debug-file", STRING , "debug file name");

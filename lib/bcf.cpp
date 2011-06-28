@@ -373,35 +373,44 @@ bool BCF::index_record( )
 bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & svar_g )
 {
 
-  int32_t seq_id;                 // 'chromosome' code  
-  int32_t bp;                     // position (BP1)  
-  float qual;                     // quality score
-  std::vector<std::string> mstr;  // ID REF ALT FILTER INFO FORMAT (null padded)
+  // Here we are reading genotpe data for a particular Variant 'var'
+  // Variant meta-information goes into 'svar'
+  // Genotypes go into 'svar_g' 
+
+  // 'svar' and 'svar_g' may or may not be the same, depending on the structure of
+  // the project.
+
+
+  int32_t                    seq_id;     // 'chromosome' code  
+  int32_t                    bp;         // position (BP1)  
+  float                      qual;       // quality score
+  std::vector<std::string>   mstr;       // ID REF ALT FILTER INFO FORMAT (null padded)
   
-  if ( ! read( seq_id ) ) return false;
-  if ( ! read( bp ) ) return false;
-  if ( ! read( qual ) ) return false;
-  if ( ! read( mstr ) ) return false;  
-  if ( mstr.size() < 6 ) return false;
+
+  if ( ! read( seq_id )   ) return false;
+  if ( ! read( bp )       ) return false;
+  if ( ! read( qual )     ) return false;
+  if ( ! read( mstr )     ) return false;  
+  if (   mstr.size() < 6  ) return false;
   
+
   // check that Variant spec (chr/bp) from VARDB matches what is in
-  // the BCF (although chr. coding will be different -- can check that
-  // bp matches though)
+  // the BCF. Although the chr-coding will be different, so let's just 
+  // check base-position
   
   if ( bp != var.position() )
     plog.warn( "mismatching physical position between VARDB and BCF" , 
-	       Helper::int2str(bp) + " vs " + Helper::int2str( var.position() ) );
+	       Helper::int2str(bp) + " vs " + var.coordinate() );
   
+
   // Read genotype; # alleles based on ALT tag, comma-sep values
   
   std::vector<std::string> alt = Helper::char_split( mstr[2] , ',' );
   int nallele = alt.size() + 1;
   int ngen = (int) (nallele * (nallele+1) * 0.5);
+  
 
-
-  //
   // Populate Sample Variant -- variant-level information
-  //
 
   // chr, bp1, bp2 and name should already be populated (from VARDB)
   // so we can skip these Variant-level attributes here
@@ -419,26 +428,31 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
   // Add in genotype information
   //
   
-  // BCF::n (sample size) will have been populated already (from VARDB)
-  //                      *but*, we might not want to read it all in... (Masks...)
-  
 
-  svar_g.calls.size( n );
-  
   // Genotype fields to expect based on 
   // use set_format() function in vcf.cpp
   
   std::vector<std::string> format = Helper::char_split( mstr[5] , ':' );
 
+
   // Indicate that this SampleVariant contains a BCF-derived buffer
   // Fill buffer as direct raw byte sequence from BCF, for later parsing
 
   // set 'target', so that VMETA is also appropriately not handled as a BLOB
-  svar.bcf = this;
 
+  // BCF::n (sample size) will have been populated already (from VARDB)
+  //                      *but*, we might not want to read it all in... (Masks...)
+  
   // but genotype specific info stays w/ genotypes
-  svar_g.bcf_format = mstr[5];
-  svar_g.bcf_genotype_buf.clear();
+
+
+  svar.set_pointer_to_bcf( this );
+    
+  svar_g.set_for_bcf_genotypes( n , mstr[5] );
+
+
+
+  // Start reading
 
   int32_t buf_sz = 0;
   
@@ -461,32 +475,32 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
       if ( ii->second.type == BCF_uint16 )
 	{
 	  buf_sz += n * nelem * sizeof(uint16_t);
-	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(uint16_t) );
+	  svar_g.bcf_genotype_buf_resize( buf_sz );
+	  read(  svar_g.bcf_pointer(p) , n * nelem * sizeof(uint16_t) );
 	}
       else if ( ii->second.type == BCF_float )
 	{
 	  buf_sz += n * nelem * sizeof(float);
-	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(float) );	  
+	  svar_g.bcf_genotype_buf_resize( buf_sz );
+	  read(  svar_g.bcf_pointer(p) , n * nelem * sizeof(float) );
 	}
       else if ( ii->second.type == BCF_uint8 )
 	{
 	  buf_sz += n * nelem * sizeof(uint8_t);
-	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(uint8_t) );	  
+	  svar_g.bcf_genotype_buf_resize( buf_sz );
+	  read(  svar_g.bcf_pointer(p) , n * nelem * sizeof(uint8_t) );	  
 	}
       else if ( ii->second.type == BCF_double )
 	{
 	  buf_sz += n * nelem * sizeof(double);
-	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(double) );	  
+	  svar_g.bcf_genotype_buf_resize( buf_sz );
+	  read(  svar_g.bcf_pointer(p) , n * nelem * sizeof(double) );	  
 	}
       else if ( ii->second.type == BCF_int32 )
 	{
 	  buf_sz += n * nelem * sizeof(int32_t);
-	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(int32_t) );	  
+	  svar_g.bcf_genotype_buf_resize( buf_sz );
+	  read( svar_g.bcf_pointer(p) , n * nelem * sizeof(int32_t) );	  
 	}
       else if ( ii->second.type == BCF_string ) 
 	{
@@ -496,17 +510,18 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
 	      read( len );
 	      buf_sz += nelem * sizeof(int32_t) + len;
 	      
-	      svar_g.bcf_genotype_buf.resize( buf_sz );
+	      svar_g.bcf_genotype_buf_resize( buf_sz );
 	      
 	      // swap length in
 	      uint8_t * d = (uint8_t*)len;
-	      svar_g.bcf_genotype_buf[p] = d[0];
-	      svar_g.bcf_genotype_buf[p+1] = d[1];
-	      svar_g.bcf_genotype_buf[p+2] = d[2];
-	      svar_g.bcf_genotype_buf[p+3] = d[3];
+
+	      *svar_g.bcf_pointer(p)   = d[0];
+	      *svar_g.bcf_pointer(p+1) = d[1];
+	      *svar_g.bcf_pointer(p+2) = d[2];
+	      *svar_g.bcf_pointer(p+3) = d[3];
 	      
 	      // read text
-	      read( &(svar_g.bcf_genotype_buf)[ p+4 ] , len );
+	      read( svar_g.bcf_pointer(p+4) , len );
 	    }
 	  
 	}
@@ -516,8 +531,8 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
 	  // NOTE: currently, assume genotype is uint8_t
 	  
 	  buf_sz += n * nelem * sizeof(uint8_t);
-	  svar_g.bcf_genotype_buf.resize( buf_sz );
-	  read( &(svar_g.bcf_genotype_buf)[ p ] , n * nelem * sizeof(uint8_t) );	  
+	  svar_g.bcf_genotype_buf_resize( buf_sz );
+	  read( svar_g.bcf_pointer(p) , n * nelem * sizeof(uint8_t) );	  
 	}
 
     }
@@ -650,7 +665,7 @@ bool BCF::write_record( const Variant & var )
   std::set<std::string> allkeys;
   for (int i = 0 ; i < var.size(); i++)
     {
-      std::vector<std::string> keys = var.consensus.calls.genotype(i).meta.keys();
+      std::vector<std::string> keys = var(i).meta.keys();
       for (unsigned int j=0; j<keys.size(); j++) allkeys.insert( keys[j] );
     }
   

@@ -10,7 +10,7 @@ class EM {
   
  public:
 
-  EM() : EPS(1e-5) , maxiter(10) 
+  EM() : EPS(1e-4) , maxiter(10) 
     {
       // Ensure the we have a genotype meta-tag for posteriors
       MetaInformation<GenMeta>::field( PLINKSeq::META_GENO_POSTPROB(), 
@@ -28,8 +28,8 @@ class EM {
   /// Run EM, return iteration code (-1 failed)
   int estimate();
   
-  /// Call genotypes and place in a new SampleVariant
-  void call( bool, const double t) const;
+  /// Call genotypes and update consensus at threshold 't'
+  void call( const double t) const;
 
   /// For individual i, return posteriors
   std::vector<double> posteriors(const int i) const;

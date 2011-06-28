@@ -23,7 +23,7 @@ void f_vstat( Variant & v , void * p)
   int call_rate = 0;
   const int n = v.size();
   for (int i = 0 ; i < n ; i++)
-    if ( v(i).notnull() ) ++call_rate;
+    if ( ! v(i).null() ) ++call_rate;
   
   vstat->call_rate += (double) call_rate / (double) n;
 
@@ -35,7 +35,7 @@ void f_vstat( Variant & v , void * p)
   
   // track whether alternate is minor allele (used in IStat)
   
-  vstat->altmin = v.n_minor_allele( minor_allele_count, total_allele_count );
+  vstat->altmin = v.n_minor_allele( &minor_allele_count, &total_allele_count );
   
   // track minor allele count (for i-stats)
 
@@ -68,18 +68,18 @@ void f_vstat( Variant & v , void * p)
     }
   else if ( v.multi_sample() ) // try summing multi sample depths
     {
-      v.set_first_sample();
+      const int ns = v.n_samples();
+      
       int dp = 0;
       bool obs = false;
-      while ( 1 ) 
+      for (int s = 0 ; s < ns ; s++ )
 	{
-	  const SampleVariant & sample = v.sample();
+	  const SampleVariant & sample = v.sample( s );
 	  if ( sample.meta.has_field( vstat->var_depth_label ) )
 	    {
 	      dp += sample.meta.get1_int( vstat->var_depth_label ) ;
 	      obs = true;
 	    }
-	  if ( ! v.next_sample() ) break;
 	}         
     
       if ( obs ) 
@@ -850,7 +850,7 @@ void f_istat( Variant & v , void * p)
       Pseq::VStat & s = istat->stat[ id ];
             
             
-      if ( genotype.notnull() )
+      if ( ! genotype.null() )
 	{
 	
 	  // Genotype call-rate 
@@ -987,7 +987,7 @@ void f_vdist( Variant & v , void * p)
 
   int c     = 0; // minor allele
   int c_tot = 0; // total counts	  
-  bool altmin = v.n_minor_allele( c , c_tot );
+  bool altmin = v.n_minor_allele( &c , &c_tot );
   
   if ( ( ! d->within_stratum_counts ) &&  c < 1 || c > 4 ) return;
   

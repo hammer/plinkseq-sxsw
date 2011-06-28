@@ -13,7 +13,6 @@
 #include <set>
 #include <vector>
 
-extern GStore * GP;
 
 class Mask;
 class IndividualMap;
@@ -146,13 +145,15 @@ class VarDBase {
   void flush_indep_meta( );
   bool attach_indep_metadata( const uint64_t & svar_id , SampleVariant & t , const std::set<std::string> * keys = NULL );
 
+
   //
   // Chromosome codes
   //
 
-  bool chr_code( const int , const std::string & ); 
-  int chr_code( const std::string & );
+  bool chr_code( const int , const std::string & , const ploidy_t ); 
+  int chr_code( const std::string & , ploidy_t * p = NULL );
   std::string chr_name( const int ) ;
+  ploidy_t ploidy( const int c );
 
 
   //
@@ -357,8 +358,13 @@ class VarDBase {
   sqlite3_stmt * stmt_fetch_variant_key;
   sqlite3_stmt * stmt_fetch_variant_pos;
   sqlite3_stmt * stmt_fetch_variant_range;
-  sqlite3_stmt * stmt_fetch_variant_data;  
+	
+  sqlite3_stmt * stmt_fetch_variant_data_all;
+  sqlite3_stmt * stmt_fetch_variant_data_vmeta_geno;  
+  sqlite3_stmt * stmt_fetch_variant_data_vmeta;
+  sqlite3_stmt * stmt_fetch_variant_data_geno;
 
+  
   // ID-lookups
 
   sqlite3_stmt * stmt_fetch_var_from_position;
@@ -432,8 +438,11 @@ class VarDBase {
 
   std::map<std::string,int> chr_code_map;
   std::map<int,std::string> chr_name_map;
+  std::map<int,ploidy_t> chr_ploidy_map;
   
   std::map<int,BCF*> bcfmap;
+
+  enum fetch_mode_t { ALL = 0 , NO_GMETA , ONLY_VMETA , ONLY_GENO , ONLY_CORE } fetch_mode;
   
 };
 

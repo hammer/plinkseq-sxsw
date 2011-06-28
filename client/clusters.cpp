@@ -43,7 +43,7 @@ void g_clusterscan( VariantGroup & vars , void * p )
       
       int c     = 0; // minor allele
       int c_tot = 0; // total counts
-      altmin[v] = vars(v).n_minor_allele( c , c_tot );      
+      altmin[v] = vars(v).n_minor_allele( &c , &c_tot );      
            
       // Is this a unique doubleton? 
       

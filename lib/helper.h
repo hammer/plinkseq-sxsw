@@ -75,6 +75,7 @@ class Log {
   bool mode_tabular;      // mode (long or tabular)
   bool mode_header;       // header/numbers in long mode
   bool ignore_warnings; 
+  bool early_warn;
 
  public:
   
@@ -87,6 +88,7 @@ class Log {
       output_file = false;
       prolix_mode = false;      
       ignore_warnings = false;
+      early_warn = false;
 
       mode_tabular = true;
       mode_header = false;
@@ -355,6 +357,8 @@ class Log {
   void warn(const std::string & msg, const std::string & spec = "" );
   
   void show_warnings(const bool b ) { ignore_warnings = !b; } 
+
+  void early_warnings(const bool b ) { early_warn = b; }
   
   void print_warnings();
 
@@ -569,45 +573,38 @@ namespace Helper
 
 ////////////////////////////
 // SQL BLOB object
-    
-    class blob {
-	
-    public:
-	
-	std::string s;
-	
-	const char * p;
-	
-	int l;
-	
-	blob() { }
-	
-	blob(const std::string & t) 
-	    {
-		s = t;
-		p = s.data();
-		l = s.size();
-	}
-    
-/*     blob(const char * p_, int l_) */
-/* 	{ */
-	    
-/* 	    p = p_; */
-/* 	    l = l_; */
-/* 	} */
 
-    void setString(const std::string & tmp)
-	{
-	    s = tmp;
-	    p = s.data();
-	    l = s.size();
-	}
-    
-    std::string getString()
-	{
-	    return std::string((const char *)p,l);
-	}
-
+class blob {
+  
+ public:
+  
+  std::string s;
+  
+  const char * p;
+  
+  int l;
+  
+  blob() { }
+  
+  blob(const std::string & t) 
+    {
+      s = t;
+      p = s.data();
+      l = s.size();
+    }
+  
+  void set_string(const std::string & tmp)
+  {
+    s = tmp;
+    p = s.data();
+    l = s.size();
+  }
+  
+  std::string get_string()
+    {
+      return std::string((const char *)p,l);
+    }
+  
 };
 
 class GroupInfo {

@@ -11,26 +11,36 @@
 
 extern GStore * GP;
 
-using namespace std;
-using namespace Helper;
 
-specDecoder SampleVariant::decoder;
-
-std::ostream & operator<<( std::ostream & out, const SampleVariant & v)
+Variant::Variant( bool b ) 
 { 
-  //  out << GP->vardb.file_tag( v.fset )
-  out    << v.ref << "/" << v.alt;
-  //      << ":" << v.filter_info;      
-  return out;
+  init(); 
+  is_valid = b; 
+}
+  
+
+Variant::Variant( const std::string & n, int c, int b )
+{		
+  init();      
+  vname = n;
+  chr = c;
+  bp = bp2 = b;      
 }
 
-std::string SampleVariant::file_name() const 
+void Variant::init()
 {
-  return GP->vardb.attached() ? GP->vardb.file_tag( fset ) : ".";
+  chr = bp = bp2 = 0;    
+  vname = ".";
+  meta.clear();
+  align = NULL;
+  is_valid = true;
+  is_multi_sample = false;
 }
+
 
 bool Variant::make_consensus( IndividualMap * a )
 {
+
 
   //
   // We are entering this under one of three possible states:
@@ -91,34 +101,21 @@ bool Variant::make_consensus( IndividualMap * a )
       int n_alleles = consensus.parse_alleles();
 
       // for biallelic markers, we can leave now
-      if ( n_alleles == 2 ) return true;
+      if ( n_alleles == 2 ) 
+	{	  
+	  return true;
+	}
       
       consensus.set_allelic_encoding();
-
+            
       return true;
     }
   
   
-  //
-  // Do we have a flat, mutli-sample alignment?  If so, we need
-  // to add pointers to the constitute SampleVariants that point
-  // out that the genotype data are not stored there (for filters
-  // that want to assess, e.g. per-sample presence of the alternate
-  // allele -- i.e. in this way, calls to svar(i).genotype(j) will
-  // be automatically redirected to consensus.genotype(k) where k is
-  // the correct mapping for (sample-i, slot-j) -> consensus(k)
-  //
-  
-  if ( align->multi_sample() && align->flat() )
-    {
-      for (int i = 0 ; i < svar.size(); i++ )
-	{
-	  svar[i].calls.set_consensus_slotmap( &consensus , 
-					     GP->indmap.svar2consensus( svar[i].fileset() ) );
-	}
-    }
+  for (int i = 0 ; i < svar.size(); i++ )
+    svar[i].parse_alleles();
 
-  
+
   //
   // Align basic allelic informaiton
   //
@@ -167,7 +164,7 @@ bool Variant::make_consensus( IndividualMap * a )
       
     }
 
-  
+
   if ( expanded_ref ) 
     {
       // v. inefficient to redo all this, but hopefully these resolving functions
@@ -215,6 +212,7 @@ bool Variant::make_consensus( IndividualMap * a )
     }
   
 
+
   //
   // Parse this allele string for the Variant (i.e. create Allele
   // objects in alleles[] )  
@@ -258,6 +256,7 @@ bool Variant::make_consensus( IndividualMap * a )
   // Handle flat case, where ALT alleles are different between samples -- will need to 
   // recode the genotypes of some individuals
   //
+
   
   if ( align->flat() )
     {
@@ -283,8 +282,13 @@ bool Variant::make_consensus( IndividualMap * a )
 		  if ( p )  
 		    {		  
 		      Genotype & g = consensus(i);
-		      std::string label = p->label( g );	  
-		      g = consensus.spec->callGenotype( label , this , true );  //T=ACGT mode
+
+// 		      // Get ACGT label
+// 		      std::string label = p->label( g ); // get ACGT label
+
+		      // Recall with consensus encoding
+		      consensus.recall( g , p );
+		      
 		    }	 
 		}
 	    }
@@ -335,8 +339,9 @@ bool Variant::make_consensus( IndividualMap * a )
 		  
 		  if ( need_to_resolve )
 		    {
-		      std::string label = p->label( g );		  
-		      g = consensus.spec->callGenotype( label , this , true );  //T=ACGT mode
+		      //std::string label = p->label( g );		  
+		      //g = consensus.spec->callGenotype( label , this , true );  //T=ACGT mode
+		      consensus.recall( g , p );		      
 		    }	 
      	      
 		  consensus(i) = g;
@@ -410,8 +415,9 @@ bool Variant::make_consensus( IndividualMap * a )
 		 
 		  if ( need_to_resolve )
 		    {
-		      std::string label = p->label( g );
-		      g = consensus.spec->callGenotype( label , this , true ); // T=ACGT mode
+// 		      std::string label = p->label( g );
+// 		      g = consensus.spec->callGenotype( label , this , true ); // T=ACGT mode
+		      consensus.recall( g , p );
 		    }
 		  
 		  // Ignore null genotypes
@@ -458,7 +464,7 @@ bool Variant::make_consensus( IndividualMap * a )
       
 
   // In case we forced a non-flat encoding, revert back to normal now
-
+  
   align->force_unflat( false );
 
   return true;
@@ -470,9 +476,11 @@ bool Variant::make_consensus( IndividualMap * a )
 std::string Variant::print_PED(const Genotype & g, const std::string & delim ) const
 {
 
-  stringstream s; 
+  std::stringstream s; 
   
-  if ( g.more() ) // do not display multi-allelic variants for now
+  if ( ! biallelic() ) return "0" + delim + "0";
+  
+  if ( g.more() ) // do not display multi-allelic variants (but should not happen, given above)
     s << "0" << delim << "0";
   else
     {
@@ -481,19 +489,19 @@ std::string Variant::print_PED(const Genotype & g, const std::string & delim ) c
       else
 	{
 	  
-	  if ( g.pat() ) 
+	  if ( g.acode1() ) 
 	    s << consensus.alt; else s << consensus.ref;
-
+	  
 	  s << delim;
 	  
-	  if ( g.haploid() )
+	  if ( g.haploid() ) // Haploid --> homozygote in PED files...
 	    {
-	      if ( g.pat() ) 
+	      if ( g.acode1() ) 
 		s << consensus.alt; else s << consensus.ref;		  
 	    }
 	  else	    
 	    {
-	      if ( g.mat() ) 
+	      if ( g.acode2() ) 
 		s << consensus.alt; else s << consensus.ref;
 	    }
 	}
@@ -504,6 +512,26 @@ std::string Variant::print_PED(const Genotype & g, const std::string & delim ) c
 
 
 
+std::string Variant::geno_label( const Genotype & g ) const
+{
+  return consensus.label( g );
+}
+
+std::string Variant::geno_label( const int s , const Genotype & g ) const
+{
+  return svar[s].label( g );
+}
+
+
+std::string Variant::phased_geno_label( const Genotype & g ) const
+{
+  return consensus.label( g , true );
+}
+
+std::string Variant::phased_geno_label( const int s , const Genotype & g ) const
+{
+  return svar[s].label( g , true );
+}
 
 
 std::string Variant::label( const int i  , const std::string & delim ) const
@@ -525,13 +553,14 @@ std::string Variant::label( const int i  , const std::string & delim ) const
       j = gm.begin();	  
       while ( j != gm.end() )
 	{
-	  SampleVariant * svar = psample( j->first );
+	  const SampleVariant * svar = psample( j->first );
 	  if ( svar ) 
 	    s +=  ( j != gm.begin() ? delim : "" ) + svar->label( *(j->second) );	    
 	  ++j;
 	}
       s += "}";
     }
+
   return s;
 }
 
@@ -542,23 +571,18 @@ std::string Variant::gmeta_label( const int i , const std::string & delim ) cons
   std::stringstream ss;
   ss <<  consensus(i).meta; 
 
-  if ( flat() ) return ss.str();
+  if ( flat() && ! infile_overlap() ) return ss.str();
 
   std::map<int, const Genotype *> gm = all_genotype(i);	  
   std::map<int, const Genotype *>::iterator j = gm.begin();
   if ( gm.size() > 1 )
     {
-      ss << "{";
+      ss << " {";
       j = gm.begin();	  
       while ( j != gm.end() )
 	{
-	  SampleVariant * svar = psample( j->first );
-	  if ( svar ) 
-	    {
-	      
-	      ss << ( j != gm.begin() ? delim : "" ) << j->second->meta ;
-	      
-	    }
+	  const SampleVariant * svar = psample( j->first );
+	  if ( svar ) ss << ( j != gm.begin() ? delim : "" ) << j->second->meta ;
 	  ++j;
 	}
       ss <<  "}";
@@ -581,44 +605,15 @@ std::string Variant::sample_label( const int i, const std::string & delim ) cons
 }
 
 
-int SampleVariant::parse_alleles()
-{
-  
-  //
-  // We can improve performance here by use of a cache
-  //
-  
-  alleles.clear();
-  
-  //
-  // Reference allele
-  //
-  
-  alleles.push_back( Allele( ref ) );
-  
-  //
-  // One or more alternate alleles
-  //
-
-  std::vector<std::string> tok2 = Helper::char_split(alt , ',');
-  
-  for (int i=0; i<tok2.size(); i++)
-    {
-      alleles.push_back( Allele( tok2[i] ) );
-    }
-
-  // 
-  // If we only have two alleles, this is fine. If more than two, we need to build the 
-  //
-  
-  return alleles.size();
-}
-
-
 
 int Variant::n_alleles() const
 {
   return consensus.alleles.size();    
+}
+
+const Allele & Variant::allele(const int n) const
+{
+  return consensus.alleles[n];
 }
 
 
@@ -642,33 +637,31 @@ int Variant::n_notnull() const
 {
   int n = 0;
   for (int i=0; i< consensus.calls.size(); i++) 
-    if ( genotype(i)->notnull() ) ++n;
+    if ( ! genotype(i)->null() ) ++n;
   return n;
 }
 
-bool Variant::n_minor_allele( int & m , int & n , const affType & aff ) const
+
+bool Variant::n_minor_allele( int * m_ , int * n_ , double * maf_ , const affType & aff ) const
 {
   
   // returns counts of any non-reference allele
   // optionally, if aff is not UNKNOWN_PHE , split this by case/control
   
-  m = 0;
-  n = 0;
-
+  int m = 0;
+  int n = 0;
+  
   if ( aff == UNKNOWN_PHE )
     {
+
       for (int i=0; i< size() ; i++) 
 	{
-	  const Genotype * g = genotype(i);
-	  if ( g->notnull() )
+	  const Genotype * g = genotype(i);	  
+	  if ( ! g->null() )
 	    {
-	      int a = g->allele_count( this );
-	      if ( a >= 0 ) 
-		{
-		  m += a;
-		  n += g->copy_number();
-		}
-	    }      
+	      m += g->allele_count();
+	      n += g->copy_number();	    
+	    }
 	}
     }
   else  // alternate version, in which we look up phenotype
@@ -678,15 +671,11 @@ bool Variant::n_minor_allele( int & m , int & n , const affType & aff ) const
 	  if ( ind(i)->affected() == aff ) 
 	    {
 	      const Genotype * g = genotype(i);
-	      if ( g->notnull() )
+	      if ( ! g->null() )
 		{
-		  int a = g->allele_count( this );
-		  if ( a >= 0 ) 
-		    {
-		      m += a;
-		      n += g->copy_number();
-		    }
-		}      
+		  m += g->allele_count();
+		  n += g->copy_number();
+		}		      
 	    }
 	}      
     }
@@ -695,50 +684,27 @@ bool Variant::n_minor_allele( int & m , int & n , const affType & aff ) const
   // If reference allele is minor allele, swap the minor allele count,
   // and let the caller know about this
 
-  if ( (double)m / (double)n > 0.5 ) 
+  double maf = (double)m / (double)n ;
+  
+  bool altmin = true;
+  
+  if ( maf > 0.5 ) 
     {
       m = n - m;
-      return false;
+      maf = 1 - maf;
+      altmin = false;
     }
   
+  // Update external values
+  
+  if ( m_ ) *m_ = m;
+  if ( n_ ) *n_ = n;
+  if ( maf_ ) *maf_ = maf; 
+
   // Alternate allele is minor allele
-  return true;  
+  return altmin;  
 }
 
-
-std::map<std::string,int> SampleVariant::allele_counts( const affType & aff , const Variant * parent ) const 
-{
-  
-   std::map<std::string,int> c;
-  
-//   for (int i=0; i< calls.size() ; i++) 
-//     {
-//       const int j = GP->indmap.get_slot( fset , i );
-//       Individual * person = GP->indmap(j);
-
-//       bool count = true;
-//       if ( aff == CASE && person->affected() != CASE ) count = false;
-//       if ( aff == CONTROL && person->affected() != CONTROL ) count = false;
-      
-//       const Genotype * g = &calls.genotype(i);
-      
-//       if ( g->null() )
-// 	{
-// 	  c["."]++;
-// 	}
-//       else
-// 	{
-// 	  std::map<std::string,int> a = allele_count(i);
-// 	  std::map<std::string,int>::iterator k = a.begin();
-// 	  while ( k != a.end() )
-// 	    {
-// 	      c[ k->first ] += count ? k->second : 0;
-// 	      ++k;
-// 	    }
-// 	}
-//     }
-  return c;
-}
 
 
 std::map<std::string,int> Variant::allele_counts( const affType & aff ) const 
@@ -747,35 +713,21 @@ std::map<std::string,int> Variant::allele_counts( const affType & aff ) const
 }
 
 
-std::map<std::string,int> SampleVariant::genotype_counts( const affType & aff , const Variant * parent , bool unphased ) const 
+std::map<std::string,int> Variant::genotype_counts( const SampleVariant & svar , const affType & aff , bool unphased ) const
 {
-
-  std::map<std::string,int> c;
-
-  const int n = GP->indmap.size( fset );  
-  for (int i=0; i < n ; i++)
-    {
-      bool count = true;
-
-      if ( aff != UNKNOWN_PHE ) 
-	{
-	  Individual * person = parent->ind( GP->indmap.get_slot( fset , i ) );      	 
-	  if ( aff == CASE && person->affected() != CASE ) count = false;
-	  if ( aff == CONTROL && person->affected() != CONTROL ) count = false;
-	}
-
-      // so we also track unobserved counts (e.g. get 0 for genotype not seen in controls)
-      // using the function below will correctly point to consensus if needed
-
-      if ( parent->flat() ) 
-	c[ parent->consensus.label( *(parent->genotype( this , i ) ) , unphased ) ] += count ? 1 : 0 ;
-      else
-	c[ label( *(parent->genotype( this , i ) ) , unphased ) ] += count ? 1 : 0 ;
-
-    }
-
-  return c;
+  return sample_genotypes( svar ).genotype_counts( aff , this , unphased );
 }
+
+std::map<std::string,int> Variant::genotype_counts( const int si , const affType & aff , bool unphased ) const
+{  
+  return sample_genotypes( si ).genotype_counts( aff , this , unphased );
+}
+
+std::map<std::string,int> Variant::genotype_counts( const affType & aff , bool unphased ) const
+{  
+  return consensus.genotype_counts( aff , this , unphased );
+}
+
 
 
 bool Variant::biallelic() const
@@ -791,14 +743,9 @@ bool Variant::multiallelic() const
 
 bool Variant::monomorphic() const
 {
-  if ( consensus.alleles.size() == 1 ) return true;
-  
-  // TODO -- see if this is now needed below?
-  //         (and if so, needed above, so perhaps precompute?)
-  //          when making the variant in first place? 
-
+  if ( consensus.alleles.size() == 1 ) return true;   
   int n=0,m=0;
-  n_minor_allele(n,m);
+  n_minor_allele(&n,&m);
   return n==0 || n==m;
 }
 
@@ -838,8 +785,9 @@ bool Variant::simple_del() const
 }
 
 
-string Variant::VCF()
+std::string Variant::VCF()
 {
+
   // Construct a string that is a VCF format entry
   
   std::ostringstream s;
@@ -905,1150 +853,6 @@ string Variant::VCF()
 
 
 
-blob SampleVariant::encode_BLOB() const
-{
-
-  // Using Protocol Buffers, generate a BLOB object that represents
-  // this Variant Specification in variant.proto -> variant.pb.h and
-  // variant.pb.cc
-
-  VariantBuffer pbVar;
-  
-  // Set core variant fields (index, name, chr and position (bp1,bp2)
-  // handled separately)
-  
-  pbVar.set_alt( alt );
-  pbVar.set_ref( ref );
-  pbVar.set_quality( qual );
-  pbVar.set_strand( vstrand );
-
-
-  // TODO: Just add the filter (string) as a single element (for now)
-  //  actually, we should change filter_info to be a parsed list
-
-  pbVar.add_filter( filter_info );
-  
-  
-  //
-  // Set variant meta-data
-  //
-  
-  std::vector<std::string> keys = meta.keys();
-  
-  for (unsigned int k=0; k<keys.size(); k++) 
-    {
-      
-      VarMetaBuffer * m = pbVar.add_vmeta();
-      
-      meta_index_t midx = MetaInformation<VarMeta>::field( keys[k] );
-      
-      m->set_name( keys[k] );
-      
-      // Number of elements in meta-value?
-      
-      int num = meta.size( keys[k] );
-      
-      switch ( midx.mt ) {
-      case META_INT :
-	{
-	  m->set_type( VarMetaBuffer::INT );
-	  const std::vector<int> * v = meta.ptr_int( midx.key );
-	  for (int j=0; j<num; j++)
-	    m->add_int_value( (*v)[j] );
-	  break;
-	}
-      case META_FLOAT :
-	{
-	  m->set_type( VarMetaBuffer::FLOAT );
-	  const std::vector<double> * v = meta.ptr_double( midx.key );
-	  for (int j=0; j<num; j++)
-	    m->add_double_value( (*v)[j] );
-	  break;
-	}
-      case META_TEXT :
-	{
-	  m->set_type( VarMetaBuffer::TEXT );
-	  const std::vector<std::string> * v = meta.ptr_string( midx.key );
-	  for (int j=0; j<num; j++)
-	    m->add_string_value( (*v)[j] );
-	  break;
-	}
-      case META_BOOL :
-	{
-	  m->set_type( VarMetaBuffer::BOOL );
-	  const std::vector<bool> * v = meta.ptr_bool( midx.key );
-	  for (int j=0; j<num; j++)
-	    m->add_bool_value( (*v)[j]  );
-	  break;
-	}
-      case META_FLAG :
-	{
-	  m->set_type( VarMetaBuffer::BOOL );
-	  // TODO -- shoudn't something else be set here??
-	  m->add_bool_value( true );
-	  break;
-	}
-      default :
-	{
-	  m->set_type( VarMetaBuffer::TEXT );
-	  const std::vector<std::string> * v = meta.ptr_string( midx.key );
-	  for (int j=0; j<num; j++)
-	    m->add_string_value( (*v)[j] );
-	  break;
-	}
-      }
-      
-    }
-  
- 
-  //
-  // Set all genotypes 
-  //
-  
-  
-  unsigned int n = calls.size();
-  
-  for ( unsigned int i = 0 ; i < n; i++)
-    {
-
-      //
-      // Add genotype to BLOB for this individual
-      // 
- 
-     const Genotype & g = calls.genotype(i);
-      
-      pbVar.add_geno1( g.pack() );	
-      
-      if ( g.more() )
-	pbVar.add_geno2(g.code());	
-
-    }
-
-
-  //
-  // Genotype meta-data
-  //
-
-
-  // Also, compile list of all keys for this variant (i.e. allow new ones to
-  // have been added since original VCF specification)
-  //
-  // Also, determine the proportion of missing items, and also the whether or 
-  // not the length of the information is variable
-  //
-  
-  std::map<meta_typed_key_t,std::pair<int,int> >  mk;     // key --> # inds seen in / length
-  std::map<meta_typed_key_t,std::string>  mk_name;        // key  --> name
-  std::set<meta_typed_key_t> mk_varlen;                   // is variable-length?
-
-  // populate the above
-
-  calls.summarise_meta( mk , mk_name , mk_varlen ); 
-  
-  
-  //
-  // Write genotype meta-information
-  //
-  
-  std::map<meta_typed_key_t,std::pair<int,int> >::iterator k = mk.begin();
-
-  while ( k != mk.end() )
-    {
-
-      GenotypeMetaBuffer * m = pbVar.add_gmeta();
-
-      const std::string mk_label = mk_name[ k->first ];
-      const mType       mk_type  = k->first.first;
-      const meta_key_t  mk_key   = k->first.second;
-      
-      m->set_name( mk_label );	
-      
-      //      meta_index_t midx = MetaInformation<GenMeta>::field( k->first );
-
-           
-      // Do all non-missing entries have similar length? If so, do not
-      // bother storing a length field
-      
-      bool constant_length = mk_varlen.find( k->first ) == mk_varlen.end(); 
-      
-      if ( constant_length ) 
-	{
-	  m->set_fixed_len( k->second.second );
-	}
-      
-      // Do all individuals have a non-missing entry?
-      
-      // If inds: 1..10
-      //   1 2 3 4 5 6 7 8 9 10   -->  all_nonmissing, no indexes
-      //   . . . . . 6 . 8 . .    -->  majority missing, use indiv_index
-      //   1 2 3 4 . 6 7 8 9 10   -->  majority not missing, use missing_index
-      
-      bool all_nonmissing = k->second.first == (int)n;
-      
-      bool use_missing_index = false;
-      
-      if ( all_nonmissing ) 
-	{
-	  m->set_fixed_indiv( true );
-	}
-      else
-	{
-	  use_missing_index = (double)( k->second.first ) / ( double)(n) > 0.5;
-	}
-
-
-      //
-      // Save value for each individual
-      //
-      
-      for (unsigned int i = 0; i < n ; i++)
-	{
-	  
-	  if ( calls.genotype(i).meta.has_field( k->first ) )
-	    {
-	      
-	      if ( ! ( all_nonmissing || use_missing_index ) )
-		{
-		  m->add_indiv_index( i );
-		}
-
-	      const MetaInformation<GenMeta> & meta = calls.genotype(i).meta;
-	      
-	      switch ( mk_type )
-		{
-		case META_INT :
-		  {
-		    m->set_type( GenotypeMetaBuffer::INT );
-		    if ( ! constant_length )
-		      m->add_len( meta.size( k->first ) );
-		    const std::vector<int> * d = meta.ptr_int( mk_key );
-		    for (unsigned int j = 0 ; j < d->size(); j++) 
-		      m->add_int_value( (*d)[j] );
-		    break;
-		  }
-		case META_FLOAT :
-		  {
-		    m->set_type( GenotypeMetaBuffer::FLOAT );
-		    if ( ! constant_length )
-		      m->add_len( meta.size( k->first) );
-		    const std::vector<double> * d = meta.ptr_double( mk_key );
-		    for (unsigned int j = 0 ; j < d->size(); j++) 
-		      m->add_double_value( (*d)[j] );
-		    break;
-		  }
-		case META_TEXT :
-		  {
-		    m->set_type( GenotypeMetaBuffer::TEXT );
-		    if ( ! constant_length )
-		      m->add_len( meta.size( k->first ) );
-		    const std::vector<string> * d  = meta.ptr_string( mk_key );
-		    for (unsigned int j = 0 ; j < d->size(); j++) 
-		      m->add_string_value( (*d)[j] );
-		    break;
-		  }
-		case META_BOOL :
-		  {
-		    m->set_type( GenotypeMetaBuffer::BOOL );
-		    if ( ! constant_length )
-		      m->add_len( meta.size( k->first ) );
-		    const std::vector<bool> * d = meta.ptr_bool( mk_key );
-		    for (unsigned int j = 0 ; j < d->size(); j++) 
-		      m->add_bool_value( (*d)[j] );
-		    break;
-		  }
-		default : // add as text if unsure
-		  {
-		    m->set_type( GenotypeMetaBuffer::TEXT );
-		    if ( ! constant_length )			    
-		      m->add_len( meta.size( k->first ) );
-		    const std::vector<std::string> * d = meta.ptr_string( mk_key );
-		    for (unsigned int j = 0 ; j < d->size(); j++) 
-		      m->add_string_value( (*d)[j] );
-		  }
-		  
-		}
-	    }
-	  else if ( use_missing_index )
-	    {
-	      m->add_missing_index( i );
-	    }
-	  
-	}
-	
-      // Next genotype meta-field
-      ++k;
-    }
-
-    
-
-    
-  // Return a BLOB 
-  
-  string s;
-  
-  pbVar.SerializeToString(&s);
-  
-  // Debug code:
-
-  //  plog >> pbVar.DebugString() << "\n\n";
-  
-  return blob(s);
-  
-}
-
-
-
-void SampleVariant::store_BLOB(blob & b)
-{
-  buf.ParseFromString( b.getString() );
-}
-
-// bool SampleVariant::decode_BLOB(blob & b , Variant * parent )
-// {
-//   store_BLOB(b);
-//   return decode_BLOB( parent );
-// }
-
-bool SampleVariant::decode_BLOB( Variant * parent , 
-				 IndividualMap * align , 
-				 Mask * mask )
-{
-  
-  SampleVariant * target = ( ! align->multi_sample() ) ? &(parent->consensus) : this ;
-  
-  SampleVariant * genotype_target = align->flat() ? &(parent->consensus) : this ;  
-  
-  // Some of the core fields that aren't already populated
-  // extracted either to consensus or self
-  
-  decode_BLOB_basic( target );
-  
-  // Extract variant meta-information, either to consensus or self,
-  // optionally copying to Variant population-level static meta-fields
-  
-  if ( ! decode_BLOB_vmeta( mask , parent , target ) ) return false;
-    
-  // Extract genotypes, either into consensus or self
-  // this also returns a variant-level bool, if a include expression w/ a gfunc is in the mask
-
-  if ( ! decode_BLOB_genotype( align , mask , parent , this , target , genotype_target ) ) return false;
-  
-  return true;
-}
-
-
-bool SampleVariant::decode_BLOB_basic( SampleVariant * svar )
-{      
-
-  // If this SampleVariant was created from a BCF, we already will have 
-  // populated these fields, nothing to do here
-
-  if ( svar->bcf || svar->vcf_direct ) return true; 
-
-  //
-  // The index, chr, name and bp1,2 will be already set
-  // for the main Variant. Here we assign SampleVariant
-  // specific information.  If we have a non-null pointer
-  // to the parent Variant, this imples a single-sample
-  // Variant, and so use the Variant's consensus SampleVariant
-  // instead of that pointed to here.
-  //
-  
-  //
-  // Assign allele codes and other core features
-  //
-  
-  svar->alt = buf.alt();
-  svar->ref = buf.ref();
-  svar->qual = buf.quality();
-  svar->vstrand = buf.strand();
-
-  string my_filter = "";
-  unsigned int num = buf.filter().size();
-  for (int i=0;i<num; i++)    
-    my_filter += buf.filter(i);  
-  
-
-  //
-  // To help with some old VCF files, translate 0 and . to mean PASS
-  //
-
-  if ( my_filter == "0" || my_filter == "." ) 
-    my_filter = PLINKSeq::PASS_FILTER();
-
-
-  //
-  // Set and parse into meta_filter
-  //
-
-  svar->filter( my_filter );
-
-  return true;
-}
-
-
-
-bool SampleVariant::decode_BLOB_vmeta( Mask * mask, Variant * parent , SampleVariant * sample )
-{    
-
-  // SampleVariant meta-information
-  
-  // Two functions here:
-  //  1) to extract from a PB 
-  //  2) to apply some variants (i.e. if things fail here saves time not to have to extract all genotype information)
-  
-
-  // For BCF-derived SVs, or those read direct from a VCF,skip the first step
-  // i.e. genotypes already extracted
-
-  if ( ! ( sample->bcf || sample->vcf_direct ) ) 
-    {
-
-      unsigned int num = buf.vmeta().size();
-  
-      for (unsigned int k=0; k<num; k++)
-	{	
-	  
-	  // Any fields that are flagged in MetaMeta::pop_static() are 
-	  // also copied to the consensus variant:
-	  
-	  bool incon = parent && MetaMeta::static_variant( buf.vmeta(k).name() ) ; 
-	  
-	  switch ( buf.vmeta(k).type() ) {
-	    
-	  case VarMetaBuffer::INT :
-	    {
-	      vector<int> d( buf.vmeta(k).int_value().size() );
-	      for ( unsigned int j = 0 ; j < d.size(); j++ ) 
-		d[j] = buf.vmeta(k).int_value(j);
-	      sample->meta.set( buf.vmeta(k).name() , d );
-	      if ( incon ) parent->meta.set( buf.vmeta(k).name() , d );
-	      break;
-	    }
-	  case VarMetaBuffer::FLOAT :
-	    {
-	      vector<double> d( buf.vmeta(k).double_value().size() );
-	      for ( unsigned int j = 0 ; j < d.size(); j++ ) 
-		d[j] = buf.vmeta(k).double_value(j);
-	      sample->meta.set( buf.vmeta(k).name() , d );
-	      if ( incon ) parent->meta.set( buf.vmeta(k).name() , d );
-	      break;
-	    }
-	  case VarMetaBuffer::BOOL :
-	    {
-	      // Stored in PB as BOOL, but this could either be a flag or a bool
-	      
-	      meta_index_t midx = MetaInformation<VarMeta>::field( buf.vmeta(k).name() );
-	      if ( midx.mt == META_BOOL ) 
-		{
-		  vector<bool> d( buf.vmeta(k).bool_value().size() );
-		  for ( unsigned int j = 0 ; j < d.size(); j++ ) 
-		    d[j] = buf.vmeta(k).bool_value(j);
-		  sample->meta.set( buf.vmeta(k).name() , d );
-		  if ( incon ) parent->meta.set( buf.vmeta(k).name() , d );
-		}
-	      else if ( midx.mt == META_FLAG ) 
-		{
-		  sample->meta.set( buf.vmeta(k).name() );
-		  if ( incon ) parent->meta.set( buf.vmeta(k).name() );	      
-		}
-	      break;
-	    }
-	  default :
-	    {
-	      
-	      //
-	      // NOTE: legacy -- we now save FLAGs as BOOL in PB, so will only need the above
-	      //
-	      
-	      meta_index_t midx = MetaInformation<VarMeta>::field( buf.vmeta(k).name() );
-	      if ( midx.mt == META_FLAG ) 
-		{	      
-		  sample->meta.set( buf.vmeta(k).name() );
-		  if ( incon ) parent->meta.set( buf.vmeta(k).name() );	      
-		}
-	      else
-		{
-		  vector<string> d( buf.vmeta(k).string_value().size() );
-		  for ( unsigned int j = 0 ; j < d.size(); j++ ) 
-		    d[j] = buf.vmeta(k).string_value(j);
-		  sample->meta.set( buf.vmeta(k).name() , d );
-		  if ( incon ) 
-		    parent->meta.set( buf.vmeta(k).name() , d );
-		}
-	      break;
-	    }
-	    
-	  }
-	}
-
-    } // end of extracting/assigned from PB/BLOB
-  
-
-  //
-  // Any variant meta-information level filters?
-  //
-
-  if ( mask && mask->variant_mask() ) 
-    {
-      if ( ! mask->eval( *sample ) ) return false;
-    }
-
-  //
-  // Any include="expr" filters (that do not require genotype data)? 
-  // Ones that require genotype data are deferred until decode_BLOB_genotype() 
-  // 
-
-  if ( mask && mask->filter_expression() && ! mask->filter_expression_requires_genotypes() )
-    {
-      if ( ! mask->calc_filter_expression( *sample ) ) return false; 
-    }
-
-  return true;
-  
-}
-
-
-bool SampleVariant::decode_BLOB_genotype( IndividualMap * align , 
-					  Mask * mask , 
-					  Variant * parent , 
-					  SampleVariant * source ,
-					  SampleVariant * vtarget , 
-					  SampleVariant * target ) // genotype_target
-{
-  
-  
-  //
-  // Sample A : 1 2 3
-  // Sample B : 4 5 6
-  // Sample C : 3 4 
-
-  // Consensus
-  // Uniq      1(A1)  2(A2)                       5(B2)  6(B3)
-  // Mult                    3(A3,C1)  4(B1,C2)
-  //
-
-  
-  //
-  // Decode genotype information, for 0+ individuals If an optional
-  // alignment is specified, use that to only extract that subset
-  //
-  
-  
-  if ( ! ( target->bcf || target->vcf_direct ) ) 
-    {
-      
-      // Number of individuals in PBuffer
-      unsigned int n_buffer = buf.geno1().size();
-      
-      // Number of individuals we actually want
-      unsigned int n_variant = align ? align->size() : n_buffer ;
-      
-
-      //
-      // Allocate space as needed
-      //
-
-      target->calls.size( n_variant );
-
-  
-      //
-      // Add basic genotype information
-      //
-  
-      int j = 0; // geno2 counter
-
-      for ( unsigned i=0; i<n_buffer; i++)
-	{
-	  
-	  int slot = i;
-	  if ( align )
-	    {
-	      
-	      // get within-sample slot
-	      slot = align->sample_remapping( source->fileset() , i ) ;
-	      
-	      // under a flat alignment, we need to reset to the
-	      // consensus slot: check -- or should this be (fset,i) ?
-	      
-	      if ( align->flat() ) 
-		slot = align->get_slot( source->fileset() , slot );
-	      
-	    }
-
-
-	  //
-	  // Basic genotype
-	  //
-
-	  // TODO: the geno1/geno2 layout is silly, as we have to look at every
-	  // geno1 and unpack it to know where geno2 is, even if we are only interested
-	  // in a single sample. Think about changing layout. Likely solution is just a 
-	  // better geno1 representation.
-
-
-	  //	  Genotype g( parent );
-
-	  Genotype g;
-
-	  g.unpack( buf.geno1(i) );
-      
-	  if ( g.more() ) 
-	    g.code( buf.geno2( j++ ) );
-	  
-	  if ( slot != -1 )        	      
-	    {	      
-	      target->calls.add( g, slot );
-	    }	
-	}
-      
-
-      //
-      // Append genotype meta-information
-      //
-      
-      unsigned int m = buf.gmeta().size();
-
-
-      for ( unsigned int k = 0 ; k < m ; k++ )
-	{
-	  
-	  // Does this have a set length, how are missing individuals
-	  // handlded?
-      
-	  // Mode: 
-	  //  0) constant_length or no? 
-	  
-	  //  1) all_nonmissing -- no index, just list all values
-	  //  2) indiv_index    -- specify IDs for people w/ data
-	  //  3) missing_index  -- specify IDs for people w/out data
-	  
-	  bool constant_length = buf.gmeta(k).has_fixed_len();
-	  int  length = 0;
-	  if ( constant_length ) 
-	    length = buf.gmeta(k).fixed_len();
-	  
-	  // Should only get one of these:
-	  bool missing_index = buf.gmeta(k).missing_index().size() > 0;
-	  bool indiv_index = buf.gmeta(k).indiv_index().size() > 0;
-	  bool all_nonmissing = ! ( missing_index || indiv_index );
-	  
-	  // Set buffer sizes
-
-	  int nlen = indiv_index ?
-	    (int)buf.gmeta(k).indiv_index().size() :
-	    n_buffer;
-
-	  int idx = 0;
-
-	  if ( all_nonmissing ) 
-	    {
-
-	      switch (  buf.gmeta(k).type() ) {
-		
-	      case GenotypeMetaBuffer::INT :
-		{
-	      
-		  for (int j=0;j<nlen; j++)
-		    {
-		      
-		      idx = target->addIntGenMeta( j , source->fileset() , 
-						   buf, align, k, idx, 
-						   constant_length ? length : buf.gmeta(k).len(j) );		  
-		    }
-		  break;
-		}
-	      case GenotypeMetaBuffer::FLOAT :
-		{
-		  for (int j=0;j<nlen; j++)
-		    {
-		      idx = target->addFloatGenMeta( j,  source->fileset() ,
-						     buf, align, k, idx, 
-						     constant_length ? length : buf.gmeta(k).len(j) );
-		    }
-		  break;
-		}
-	      case GenotypeMetaBuffer::BOOL :
-		{
-		  for (int j=0;j<nlen; j++)
-		    {
-		      idx = target->addBoolGenMeta( j, source->fileset() ,
-						    buf, align, k, idx, 
-						    constant_length ? length : buf.gmeta(k).len(j) );
-		    }		   
-		  break;
-		}
-	      default :
-		{
-		  for ( int j=0;j<nlen; j++)
-		    {
-		      idx = target->addStringGenMeta( j, source->fileset() ,
-						      buf, align, k, idx, 
-						      constant_length ? length : buf.gmeta(k).len(j) );
-		    }
-		  
-		}
-	      }
-	    }
-	  
-	  //
-	  // Or using an individual-index?
-	  //
-	  
-	  else if ( indiv_index )
-	    {
-	      switch (  buf.gmeta(k).type() ) {
-		
-	      case GenotypeMetaBuffer::INT :
-		{
-		  for ( int j=0;j<nlen; j++)
-		    {
-		      idx = target->addIntGenMeta( buf.gmeta(k).indiv_index(j) , source->fileset() , 
-						   buf, align, k, idx, 
-						   constant_length ? length : buf.gmeta(k).len(j) );
-		    }
-		  break;
-		}
-	      case GenotypeMetaBuffer::FLOAT :
-		{
-		  for ( int j=0;j<nlen; j++)
-		    {
-		      idx = target->addFloatGenMeta( buf.gmeta(k).indiv_index(j) , source->fileset() , 
-						     buf, align, k, idx, 
-						     constant_length ? length : buf.gmeta(k).len(j) );
-		    }
-		  break;
-		}
-	      case GenotypeMetaBuffer::BOOL :
-		{
-		  for ( int j=0;j<nlen; j++)
-		    {
-		      idx = target->addBoolGenMeta( buf.gmeta(k).indiv_index(j) ,  source->fileset() ,
-						    buf, align, k, idx, 
-						    constant_length ? length : buf.gmeta(k).len(j) );
-		    }
-		  break;
-		}
-	      default :
-		{		
-		  for ( int j=0;j<nlen; j++)
-		    {
-		      idx = target->addStringGenMeta( buf.gmeta(k).indiv_index(j),  source->fileset() ,
-						      buf, align, k, idx, 
-						      constant_length ? length : buf.gmeta(k).len(j) );
-		    }
-		}
-		
-	      }
-	      
-	    }
-	  
-	  
-	  else // assume missing index
-	    {
-	      
-	      // Missing index 
-	      int skip = buf.gmeta(k).missing_index(0);
-	      int scnt = 0;
-	      int cnt = 0;
-	      
-	      switch (  buf.gmeta(k).type() ) {
-		
-	      case GenotypeMetaBuffer::INT :
-		{		    
-		  for (int j=0;j<nlen; j++)
-		    {
-		      if ( j == skip )
-			{
-			  ++scnt;
-			  skip = scnt < buf.gmeta(k).missing_index().size() ? 
-			    buf.gmeta(k).missing_index(scnt) : -1 ;
-			}
-		      else
-			{
-			  idx = target->addIntGenMeta( j, source->fileset() , 
-						       buf, align, k, idx, 
-						       constant_length ? length : buf.gmeta(k).len(cnt++) );
-			}
-		    }
-		  break;
-		}
-	      case GenotypeMetaBuffer::FLOAT :
-		{
-		  for (int j=0;j<nlen; j++)
-		    {
-		      if ( j == skip )
-			{
-			  ++scnt;
-			  skip = scnt < buf.gmeta(k).missing_index().size() ? 
-			    buf.gmeta(k).missing_index(scnt) : -1 ;
-			}
-		      else
-			{
-			  idx = target->addFloatGenMeta( j,  source->fileset() ,
-							 buf, align, k, idx, 
-							 constant_length ? length : buf.gmeta(k).len(cnt++) );
-			}
-		    }
-		  break;
-		}
-	      case GenotypeMetaBuffer::BOOL :
-		{
-		  
-		  for (int j=0;j<nlen; j++)
-		    {
-		      if ( j == skip )
-			{
-			  ++scnt;
-			  skip = scnt < buf.gmeta(k).missing_index().size() ? 
-			    buf.gmeta(k).missing_index(scnt) : -1 ;
-			}
-		      else
-			{
-			  idx = target->addBoolGenMeta( j,  source->fileset() ,
-							buf, align, k, idx, 
-							constant_length ? length : buf.gmeta(k).len(cnt++) );
-			}
-		    }
-		  break;
-		}
-	      default :
-		{
-		  for ( int j=0;j<nlen; j++)
-		    {
-		      if ( j == skip )
-			{
-			  ++scnt;
-			  skip = scnt < buf.gmeta(k).missing_index().size() ? 
-			    buf.gmeta(k).missing_index(scnt) : -1 ;
-			}
-		      else
-			{
-			  idx = target->addStringGenMeta( j ,  source->fileset() ,
-							  buf, align, k, idx, 
-							  constant_length ? length : buf.gmeta(k).len(cnt++) );
-			  
-			}
-		    }
-		  
-		}
-		
-	      }
-	      
-	    }
-	  
-	  
-	} // Next individual/genotype
-  
-
-    } // end of extracting all genotypic (meta) information from PB/BLOB
-
-
-  //
-  // Extract genotype information from a BCF-encoded buffer
-  //
-
-  else if ( target->bcf ) 
-    {     
-      
-      // The format of the genotype is a string in bcf_format
-      
-//       std::string           bcf_format;
-//       int                   bcf_n;
-//       std::vector<uint8_t>  bcf_genotype_buf;
-      
-
-      // Number of individuals in BCF buffer
-      unsigned int n_buffer = target->bcf->sample_n();
-
-      
-      // Number of individuals we actually want
-      unsigned int n_variant = align ? align->size() : n_buffer ;
-      
-
-      //
-      // Allocate space as needed
-      //
-
-      target->calls.size( n_variant );
-      
-      
-      // Add basic genotype information
-      
-      std::vector<std::string> format = Helper::char_split( target->bcf_format , ':' );
-
-      // really slow ways to get allele count duplicating previous effort, but 
-      // keep for now
-
-      int nalt = Helper::char_split( vtarget->alternate() , ',' ).size() + 1;
-      int ngen = (int) (nalt * (nalt+1) * 0.5);
-
-      // create mapping of source-to-target slots
-      std::vector<int> s2t( n_buffer );
-      
-      for ( int i=0; i < n_buffer ; i++ )
-	{
-	  int slot = i;	  
-	  if ( align )
-	    {	
-	      // get within-sample slot
-	      slot = align->sample_remapping( source->fileset() , i ) ;	      
-	      // under a flat alignment, we need to reset to the
-	      // consensus slot: check -- or should this be (fset,i) ?	      
-	      if ( align->flat() ) 
-		slot = align->get_slot( source->fileset() , slot );
-	    }	  
-	  s2t[ i ] = slot;	  
-	}
-      
-      // posiiton in genotype buffer
-      int p = 0;
-      
-      // consider each format-slot for all individuals      
-      for (int t = 0 ; t < format.size(); t++)
-	{	  
-	  
-	  const std::string & tag = format[t];
-	  
-	  // this should exist in the BCF, or else we would have received an error by now
-	  
-	  BCF::bcf_meta_t bt = target->bcf->bcftype[ tag ];
-	  
-	  int nalt = alt.size() + 1;
-	  int ngen = (int) (nalt * (nalt+1) * 0.5);
-	  if ( bt.len == -1 ) bt.len = nalt - 1;
-	  else if ( bt.len == -2 ) bt.len = nalt;
-	  else if ( bt.len == -3 ) bt.len = ngen;
-	  
-	  
-	  // Unpack
-	  
-	  if ( bt.type == BCF::BCF_genotype )
-	    {
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 )
-		    {
-		      // std::cout << "mapping genotype " << i << " " << s2t[i] << " " << "\n";
-		      target->calls.genotype( s2t[i] ).bcf( target->bcf_genotype_buf[ p ] );		      
-		      // std::cout << "geno = " << target->calls.genotype( s2t[i] ) << "\n";
-		    }
-		  ++p;
-		}
-	    }
-
-	  
-	  else if ( bt.type == BCF::BCF_int32 )
-	    {
-
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<int> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint32_t) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(uint32_t);
-		}
-	    }
-
-	  else if ( bt.type == BCF::BCF_uint8 )
-	    {
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<int> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint8_t) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(uint8_t);
-		}
-	    }
-	  
-	  else if ( bt.type == BCF::BCF_uint16 )
-	    {
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<int> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint16_t) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(uint16_t);
-		}
-	    }
-
-
-	  else if ( bt.type == BCF::BCF_double )
-	    {
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<double> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(double) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(double);
-		}
-	    }
-
-
-	  else if ( bt.type == BCF::BCF_float )
-	    {
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<double> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(float) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(float);
-		}
-	    }
-
-	  else if ( bt.type == BCF::BCF_string )
-	    {
-	      Helper::halt("BCF_string parsing not implemented yet for FORMAT");
-
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<std::string> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * tmp[j].size() ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(float);
-		}
-	    }
-	  
-	} // next tag
-      
-    }
-  
-  
-  //
-  // Reading directly from a VCF buffer
-  //
-
-  else if ( target->vcf_direct )    
-    {
-      
-      // If not a valid variant, do not try to expand genotypes
-      if ( ! parent->valid() ) return false;
-      
-      // Individual counter
-      int j = 0;
-
-      unsigned int n_variant = align ? align->size() : vcf_direct_buffer.size()-9 ;
-      target->calls.size( n_variant );
-
-      // Call genotypes, add to variant   
-      for ( int i=9; i < vcf_direct_buffer.size(); i++)
-	{
-	  
-	  int slot = j;
-	  
-	  if ( align )
-	    {
-	      // is this needed?? -- don't think both are needed
-	      slot = align->sample_remapping( 1 , j ) ;
-	      if ( align->flat() ) slot = align->get_slot( 1 , slot );	      
-	    }	  
-	  
-	  if ( slot != -1 )
-	    {
-	      Genotype g = target->spec->callGenotype( vcf_direct_buffer[i] , parent ); 
-	      target->calls.add( g , slot );
-	    }
-
-	  ++j;
-	}
-
-      // Clear buffer
-      target->vcf_direct_buffer.clear();
-
-    }
-
-
-  
-  //
-  // Now that we've extracted all the genotypic information and 
-  // meta-information: do we want to apply any genotype masks? 
-  //
-  
-  const int n_var = target->calls.size();
-
-  
-  // 1) mask 'assume-ref'.  Assume missing genotypes are
-  // obligatorarily homozygous for the reference allele; also populate
-  // PL fields to indicate this.
-  
-  if ( mask && mask->assuming_null_is_reference() )
-    {
-      std::vector<int> t(3);
-      t[0] = 0; t[1] = 255; t[2] = 255;
-      for ( unsigned int i = 0 ; i < n_var ; i++ )
-	{
-	  if ( target->calls.genotype(i).null() ) 
-	    {
-	      target->calls.genotype(i).set_alternate_allele_count(0);
-	      
-	      // also set PL to indicate this, with slight chance of HET
-	      target->calls.genotype(i).meta.set( PLINKSeq::META_GENO_PHRED() , t );
-	    }
-	}
-    }
-  
-
-  
-  //
-  // 2). mask 'geno' conditions -- i.e. determineing whether to zero-out specific genotypes
-  // because they meet/fail to meet certain criteria, e.g. geno=DP:ge:10
-  //
-  
-  if ( mask && mask->genotype_mask() ) 
-    {
-      for ( unsigned int i = 0 ; i < n_var ; i++ )
-	{
-	  if ( ! mask->eval( target->calls.genotype(i) ) )
-	    target->calls.genotype(i).failed( true );
-	}
-    }
-
-  
-  //
-  // Call variant meta-filter (include="expr") that depends on g-functions
-  // e.g.  include="g(DP>10) > 0.8 && DB" 
-  // note: expressions that did not include any g() would have been evaluated 
-  // earlier, so no need to do so again. The mask object let's us know whether or 
-  // not the expression requires genotypes
-  //
-
-  // Commented out, as this is done in vardb.cpp now
-  
-  //   if ( mask && mask->filter_expression() && mask->filter_expression_requires_genotypes() ) 
-  //     {
-  //       if ( ! mask->calc_filter_expression( parent->consensus , *target ) ) return false;
-  //     }
-  
-
-  return true;
-  
-}
-
-
 
 bool Variant::frequency_filter( Mask * mask )
 {
@@ -2066,16 +870,15 @@ bool Variant::frequency_filter( Mask * mask )
 	{
 	  int m = 0; // minor allele
 	  int c = 0; // total counts
-	  bool altmin = n_minor_allele( m , c );	  	  
+	  bool altmin = n_minor_allele( &m , &c );	  	  
 	  if ( ! mask->count_filter( m ) ) return false;	       
 	}      
 
       if ( mask->frequency_filter() )
 	{
-	  int m = 0; // minor allele
-	  int c = 0; // total counts	  
-	  bool altmin = n_minor_allele( m , c );
-	  if ( ! mask->frequency_filter( (double)m/(double)c ) ) return false;
+	  double maf;
+	  bool altmin = n_minor_allele( NULL , NULL , &maf );
+	  if ( ! mask->frequency_filter( maf ) ) return false;
 	}
       
     }
@@ -2101,8 +904,8 @@ bool Variant::case_control_filter( Mask * mask )
 
   int alta = 0 , tota = 0;
   int altu = 0 , totu = 0;
-  int dira = n_minor_allele( alta , tota , CASE );
-  int diru = n_minor_allele( altu , totu , CONTROL );
+  int dira = n_minor_allele( &alta , &tota , NULL , CASE );
+  int diru = n_minor_allele( &altu , &totu , NULL , CONTROL );
 
   return mask->case_control_filter( alta , altu );
 }
@@ -2120,6 +923,10 @@ int Variant::size() const
   return align ?  align->size() : 0 ;
 }
 
+void Variant::size(const int n ) 
+{
+  consensus.calls.size(n);
+}
 
 Individual * Variant::ind(const int i) const
 {
@@ -2136,17 +943,6 @@ int Variant::ind_n( const std::string & id ) const
   return align->ind_n(id);
 }
 
-Genotype * Variant::genotype(const int i)
-{
-  if ( i < 0 || i >= size() ) return NULL;
-  return &consensus(i);  
-}
-
-const Genotype * Variant::genotype(const int i) const
-{
-  if ( i < 0 || i >= size() ) return NULL;
-  return &(consensus(i));  
-}
 
 const Genotype * Variant::genotype( const SampleVariant * svar , const int j) const
 {
@@ -2155,7 +951,10 @@ const Genotype * Variant::genotype( const SampleVariant * svar , const int j) co
   // Under a flat alignment, no data would have been 
   // stored in the sample-variants 
   // otherwise, get from original slot
-  
+
+//   std::cout << "looking for person = " << j << "\n";
+//   std::cout << " align = " << align->get_slot( svar->fileset() , j ) << "\n";
+
   if ( align->flat() ) return genotype( align->get_slot( svar->fileset() , j ) ); 
   else return &(svar->calls.genotype(j));            
  
@@ -2184,7 +983,7 @@ std::map<int, const Genotype *> Variant::all_genotype(const int i) const
 	{
 	  const std::vector<int> & ii = j->second;
 	  for (int jj = 0 ; jj < ii.size(); jj++ )
-	    g.insert( make_pair( ii[jj], &(svar[ ii[jj] ]( k.p2 ) ) ) );
+	    g.insert( std::make_pair( ii[jj], &(svar[ ii[jj] ]( k.p2 ) ) ) );
 	}
       
     }
@@ -2223,7 +1022,7 @@ std::map<int, Genotype *> Variant::all_genotype(int i)
 	{
 	  std::vector<int> & ii = j->second;
 	  for (int jj = 0 ; jj < ii.size(); jj++ )
-	    g.insert( make_pair( ii[jj], &(svar[ ii[jj] ]( k.p2 ) ) ) );
+	    g.insert( std::make_pair( ii[jj], &(svar[ ii[jj] ]( k.p2 ) ) ) );
 	}
     }
   else
@@ -2260,17 +1059,18 @@ std::vector<int> Variant::samples() const
 // for a given file #, return the SVAR slot
 // or -1 if not present, or that file appears more than once
 
-int Variant::unique_svar_slot( int f ) const
+int Variant::unique_svar_slot( int file_id ) const
 {
-  std::map<int,std::vector<int> >::const_iterator i = ftosv.find( f );
+  std::map<int,std::vector<int> >::const_iterator i = ftosv.find( file_id );
   if ( i == ftosv.end() ) return -1;
   if ( i->second.size() != 1 ) return -1;
   return *(i->second.begin());
 }
 
-bool Variant::file_present( const int f ) const
+
+bool Variant::file_present( const int file_id ) const
 {
-  std::map<int,std::vector<int> >::const_iterator i = ftosv.find( f );
+  std::map<int,std::vector<int> >::const_iterator i = ftosv.find( file_id );
   if ( i == ftosv.end() ) return false;
   return i->second.size() != 0;
 }
@@ -2288,25 +1088,7 @@ std::set<int> Variant::unique_files() const
   return f;
 }
 
-void Variant::set_first_sample() 
-{
-  si = 0;
-}
 
-SampleVariant & Variant::sample()
-{
-  return svar.size() == 0 ? consensus : svar[si];
-}
-
-bool Variant::next_sample()
-{
-  return ++si < svar.size();
-}
-
-int Variant::sample_n()
-{
-  return si;
-}
 
 std::string Variant::print_meta(const std::string & key , const std::string & delim) const
 {
@@ -2375,195 +1157,28 @@ std::string Variant::print_samples( const std::string & delim ) const
 }
 
 
-void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id ) 
-{
-
-  // store original text 
-  other_info = s; 
-  
-  if ( s == "." ) return;
-  
-  // parse semi-colon delimited list
-  std::vector<std::string> f = Helper::parse(s,";");
-  
-  for (int i=0; i<f.size(); i++)
-    {      
-      
-      std::vector<std::string> k = Helper::char_split( f[i] , '=' );
-      mType mt = MetaInformation<VarMeta>::type( k[0] );
-      
-      if ( mt == META_UNDEFINED ) 
-	{	  
-	  MetaInformation<VarMeta>::field( k[0] , k.size() > 1 ? META_TEXT : META_FLAG , 1 , "undeclared tag" );	  
- 	  if ( vardb ) 
- 	    vardb->insert_metatype( file_id , k[0] , k.size() > 1 ? META_TEXT : META_FLAG , 1 , META_GROUP_VAR , "undeclared tag" );
-	  plog.warn("undefined INFO field (absent in VCF header)", k[0] );
-	}
-    }
-
-  // parse on ; separators into MetaInformation<VarMeta>   
-  // 3rd arg indicates that unknown fields should be 
-  // accepted (as a flag, or string value)
-
-  //  -- although, given the above fix, this should no longer
-  //     be necessary
-
-  meta.parse(s,";",true); 
-
-}
 
 
-
-void SampleVariant::filter( const std::string & s , VarDBase * vardb , int file_id )
-{ 
-  filter_info = ""; 
-  
-  // parse semi-colon delimited list
-  std::vector<std::string> f = Helper::parse(s,";");
-  
-  for (int i=0; i<f.size(); i++)
-    {
-      if ( f[i] == "." || f[i] == "0" ) f[i] = PLINKSeq::PASS_FILTER();      
-      
-      mType mt = MetaInformation<VarFilterMeta>::type( f[i] );      
-      if ( mt == META_UNDEFINED ) 
-	{	  
-	  MetaInformation<VarFilterMeta>::field( f[i] , META_FLAG , 1 , "undeclared filter tag" );	  
- 	  if ( vardb ) 
- 	    vardb->insert_metatype( file_id , f[i] , META_FLAG , 1 , META_GROUP_FILTER , "undeclared filter tag" );
-	  plog.warn("undefined FILTER field (absent in VCF header)", f[i] );
-	}
-
-      meta_filter.set( f[i] );      
-      filter_info += f[i];
-      if ( i < f.size()-1 ) filter_info += ";";
-    }
-}
-
-
-
-void SampleVariant::set_allelic_encoding()
-{
-  VariantSpec * ps = SampleVariant::decoder.decode( "GT " + ref + " " + alt );
-
-  VariantSpec::set_format( 0 , NULL ); // 0 just means GT is first field (e.g. if GT:DP:GL etc)
-
-  specification( ps ); 
-
-  // TODO: revisit this, but for now a "safe" way to determine this is whether 
-  //       alt has a comma in it (i.e. >1 alternate allele specified)
-
-  simple = alt.find(",") == std::string::npos;    
-
-}
-
-
-std::string SampleVariant::label( const Genotype & g , bool unphased ) const
+bool Variant::concordant( int s1, 
+			  const Genotype * g1, 
+			  int s2, 
+			  const Genotype * g2 ) const
 {
   
-  std::stringstream s; 
-
-  const std::string allele_delim = 
-    unphased ? "/" : ( g.phased() ? "|" : ( g.pswitch() ? "\\" : "/" ) ) ; 
-
-  if( g.null() )
-    {
-      s << ( g.haploid() ? "." : "." + allele_delim + "." );
-    }  
-  else if ( simple ) 
-    {
-      if ( g.haploid() )
-	{
-	  s << ( g.pat() ? alt : ref );
-	}
-      else
-	{
-	  std::string a1 = g.pat() ? alt : ref;
-	  std::string a2 = g.mat() ? alt : ref;
-	  if ( unphased && a1 > a2 ) { std::string t=a1;a1=a2; a2=t; }		  
-	  s << a1 << allele_delim << a2;		  
-	}    
-    }
-  else
-    {      
-      if( g.null() )
-	s << ( g.haploid() ? "." : "." + allele_delim + "." );      
-      else if ( g.more() )	
-	{
-	  s << spec->printGenotype( g.code() , unphased ) ;
-	}
-      else
-	{	  
-	  if ( g.haploid() )
-	    {
-	      s << ( g.pat() ? alt : ref );
-	    }
-	  else
-	    {
-	      std::string a1 = g.pat() ? alleles[1].name() : ref;
-	      std::string a2 = g.mat() ? alleles[1].name() : ref;
-	      if ( unphased && a1 > a2 ) { std::string t=a1;a1=a2; a2=t; }
-	      s << a1 << allele_delim << a2;
-	    }
-	}
-    }
-
-  return s.str();
-}
-
-
-std::string SampleVariant::num_label( const Genotype & g ) const
-{
-  
-  std::stringstream s; 
-
-  if( g.null() )
-    s << ( g.haploid() ? "." : "./." );  
-  else if ( simple ) 
-    {      
-      s << ( g.pat() ? "1" : "0" );
-      if ( !g.haploid() )
-	{	      
-	  if ( g.pswitch() ) s << "\\";
-	  else if ( g.phased() ) s << "|";
-	  else s << "/";	
-	  s << ( g.mat() ? "1" : "0" );
-	}
-    }      
-  else
-    {      
-
-      if( g.null() )
-	s << ( g.haploid() ? "." : "./." );
-      else if ( g.more() )	
-	s << spec->num_printGenotype( g.code() ) ;
-      else
-	{
-	  if ( g.pat() ) s << "1"; else s << "0";
-	  if ( !g.haploid() )
-	    {
-	      if ( g.pswitch() ) s << "\\";
-	      else if ( g.phased() ) s << "|";
-	      else s << "/";	
-	      if ( g.mat() ) s << "1"; else s << "0";
-	    }
-	}
-    }           
-    
-  return s.str();
-}
-
-
-bool Variant::concordant( int s1, const Genotype * g1, int s2, const Genotype * g2 ) const
-{
-  SampleVariant * p1 = psample(s1);
+  const SampleVariant * p1 = psample(s1);
   if ( ! p1 ) return true;
-  SampleVariant * p2 = psample(s2);
+  
+  const SampleVariant * p2 = psample(s2);
   if ( ! p2 ) return true;
+  
   return concordant( p1, g1, p2, g2 );
 }
 
-bool Variant::concordant( SampleVariant * s1, const Genotype * g1, SampleVariant * s2, const Genotype * g2 ) const
+
+bool Variant::concordant( const SampleVariant * s1,
+			  const Genotype * g1, 
+			  const SampleVariant * s2, 
+			  const Genotype * g2 ) const
 {
   if ( g1->null() || g2->null() ) return true;
   if ( *g1 == *g2 ) return true;
@@ -2573,57 +1188,21 @@ bool Variant::concordant( SampleVariant * s1, const Genotype * g1, SampleVariant
 }
 
 
-std::map<std::string,int> SampleVariant::allele_count(const int i ) const
-{
-
-  const Genotype & g = calls.genotype(i);
-
-  std::map<std::string,int> a;
-  
-  if( g.null() ) return a;
-  
-  if ( simple ) 
-    {      
-      if ( g.haploid() )
-	{
-	  a[ g.pat() ? alt : ref ]++;
-	}
-      else
-	{
-	  a[ g.pat() ? alt : ref ]++;
-	  a[ g.mat() ? alt : ref ]++;
-	}
-    }
-  else
-    {      
-      if ( g.more() )		
-	{
-	  std::map<std::string,int> b = spec->allele_counts( g.code() );
-	  std::map<std::string,int>::iterator i = b.begin();
-	  while ( i != b.end() )
-	    {
-	      a[ i->first ] += i->second;
-	      ++i;
-	    }
-	}
-      else
-	{
-	  if ( g.haploid() )
-	    {
-	      a[ g.pat() ? alleles[1].name() : ref ]++;
-	    }
-	  else
-	    {
-	      a[ g.pat() ? alleles[1].name() : ref ]++;
-	      a[ g.mat() ? alleles[1].name() : ref ]++;
-	    }
-	}
-    }
+std::map<std::string,int> SampleVariant::allele_count( const int i ) const
+{  
+  const Genotype & g = calls.genotype(i);  
+  std::map<std::string,int> a;  
+  if ( g.null() ) return a;  
+  a[ alleles[ g.acode1() ].name() ]++;
+  if ( ! g.haploid() ) a[ alleles[ g.acode2() ].name() ]++;
   return a;
 }
 
 
-bool SampleVariant::align_reference_alleles( SampleVariant & s1 , SampleVariant & s2 , bool alt )
+
+bool SampleVariant::align_reference_alleles( SampleVariant & s1 , 
+					     SampleVariant & s2 , 
+					     bool alt )
 {
 
   // get min and max posisitions on scale where 0 is Variant bp1
@@ -2705,10 +1284,10 @@ bool SampleVariant::align_reference_alleles( SampleVariant & s1 , SampleVariant 
   // the alt alleles may still be internally inconsistent, but this will be caught in the next section
   
   // this is wasteful / plenty of room for optimisation, but (hopefully) this scenario should not happen v often.
-
+  
   s1.parse_alleles();
   s2.parse_alleles();
-
+  
   // align offsets also, now that alleles are changed
   s1.offset = s2.offset = s1.offset < s2.offset ? s1.offset : s2.offset; 
   
@@ -2717,78 +1296,17 @@ bool SampleVariant::align_reference_alleles( SampleVariant & s1 , SampleVariant 
 }
 
 
-void SampleVariant::collapse_alternates( const Variant * parent , int altcode )
+bool Variant::has_nonreference( const SampleVariant & svar ) const
 {
-  
-  // if altcode == 0, then collapse all alt alleles into a single class
-  // if altcode > 1, then collapse all non-altcode alt alleles to either missing or reference
-
-  // (For the consensus) recode as a biallelic variant
-  
-  if ( alleles.size() < 3 ) return;
-  if ( altcode > alleles.size() -1 ) return;
-  if ( altcode == 0 ) 
-    {
-      // all ALT become ONE
-      alt = alleles[1].name();
-      for (int a = 2 ; a < alleles.size(); a++)
-	alt += "_" + alleles[a].name();
-    }
-  else // make other alleles as part of REF
-    {
-      alt = alleles[altcode].name();
-      for (int a = 1 ; a < alleles.size(); a++)
-	if ( a != altcode ) ref += "_" + alleles[a].name();
-    }
-  
-  parse_alleles();
-  
-  for (int i=0; i< calls.size(); i++)
-    {
-      Genotype & g = calls.genotype(i);
-      if ( ! g.null() )
-	{
-	  if ( altcode )
-	    {
-	      int ac = g.allele_count( altcode , parent );
-	      g.set_alternate_allele_count( ac );
-	    }
-	  else // merge all alts into ONE
-	    {
-	      int ac = g.allele_count( parent ) ;
-	      g.set_alternate_allele_count( ac );
-	    }
-	}
-      g.more( false );      
-    }
-
-  // as this is a simple biallelic variant, set the following
-  simple = true;
-  spec = NULL;
-  
+  return svar.has_nonreference();
 }
 
 
-
-
-bool SampleVariant::has_nonreference( const bool also_poly ) const
+bool Variant::has_nonreference( const int file_id ) const
 {
-  bool nonref = false;
-  std::set<int> npoly;
-
-  for (int i=0; i<calls.size(); i++)
-    {      
-      if ( calls.genotype(i).nonreference() ) 
-	{	  
-	  // leave when hit first non-reference call
-	  if ( ! also_poly ) return true;
-	  else 
-	    {
-	      std::vector<int> ac = calls.genotype(i).allele_list();
-	      for (int i=0; i<ac.size(); i++) npoly.insert( ac[i] );
-	      if ( npoly.size() > 1 ) return true;
-	    }
-	}
-    }
-  return false; // we never found a non-ref site (and also ref, if also_poly=T) in this file
+  std::vector<const SampleVariant *> svar = fsample( file_id );
+  for ( int s = 0 ; s < svar.size() ; s++ )
+    if ( svar[s]->has_nonreference() ) return true;    
+  return false;
 }
+

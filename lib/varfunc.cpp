@@ -34,7 +34,7 @@ Data::Vector<double> VarFunc::alternate_allele_count( const Variant & v )
 	  d.set_elem_mask( i );
 	}
       else
-	d(i) = v(i).allele_count( &v );
+	d(i) = v(i).allele_count( );
     }
   return d;
 }

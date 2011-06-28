@@ -49,12 +49,12 @@ void f_view( Variant & v , void * p )
   if ( opt->show_samples )
     {
       
-      v.set_first_sample();
-
-      while ( 1 ) 
+      const int ns = v.n_samples();
+      
+      for (int s = 0 ; s < ns; s++ )
 	{
 
-	  const SampleVariant & sample = v.sample();
+	  const SampleVariant & sample = v.sample(s);
 	  
 	  plog << v << "\t"
 	       << sample.file_name() << "\t"
@@ -69,7 +69,6 @@ void f_view( Variant & v , void * p )
 	  
 	  plog << "\n";
 	  
-	  if ( ! v.next_sample() ) break;
 	}      
     }
   
@@ -83,8 +82,7 @@ void f_view( Variant & v , void * p )
       bool altmin = true;
       if ( opt->show_only_minor ) 
 	{
-	  int c , c_tot;
-	  altmin = v.n_minor_allele( c , c_tot );
+	  altmin = v.n_minor_allele();
 	}
       
 	
@@ -97,7 +95,7 @@ void f_view( Variant & v , void * p )
 
 	  if ( (!opt->show_nonmissing_geno) && v(i).null() ) continue;
 	  if ( opt->show_only_alt   && ! v(i).nonreference() ) continue;
-	  if ( opt->show_only_minor && v(i).minor_allele_count( altmin ) <= 0 ) continue;	  
+	  if ( opt->show_only_minor && v(i).minor_allele_count( altmin ) <= 0 ) continue;
 	  
 	  plog << v.ind( i )->id() << "\t";
 	  
@@ -299,7 +297,7 @@ void f_view_lik( Variant & v , void * p )
 	    }
 	  else
 	    {
-	      int ac = g.allele_count( &v );
+	      int ac = g.allele_count( );
 	      if ( ac == 0 ) plog << "\t1\t0\t0";
 	      else if ( ac == 1 ) plog << "\t0\t1\t0";
 	      else if ( ac == 2 ) plog << "\t0\t0\t1"; 
@@ -325,12 +323,13 @@ void f_view_matrix( Variant & v , void * p )
        << v.alternate();
   
   int n = v.size(); 
+
   for (int i = 0 ; i < n ; i++)
     {
       if ( v(i).null() ) 
 	plog << "\tNA";
       else
-	plog << "\t" << v(i).allele_count( &v );
+	plog << "\t" << v(i).allele_count( );
     }
   plog << "\n";
   
@@ -342,16 +341,17 @@ void f_view_meta_matrix( Variant & v , void * p )
 
   std::map<int,std::string> * samples = (std::map<int,std::string>*)p;
   
-  //
+
   // Core variant information
-  //
   
   plog << v.chromosome() << "\t" 
        << v.position() << "\t"
        << v.name();
   
   int nelem_static = v.consensus.meta.n_visible_keys_static();
+  
   int nelem_nonstatic = v.consensus.meta.n_visible_keys_nonstatic();
+  
 
   // Need to separate out 'static' (Variant) and 'non-static'
   // (SampleVariant/Consensus) information
@@ -461,7 +461,7 @@ void f_view_gene_matrix( VariantGroup & vars , void * p )
       for (int v = 0 ; v < nv ; v++)
 	{
 	  // need to see at least 1 non-null variant
-	  if ( vars(v,i).notnull() ) 
+	  if ( ! vars(v,i).null() ) 
 	    valid = true;
 	  
 	  // we are searching for minor alleles:
@@ -557,32 +557,37 @@ void f_extra_qc_metrics( Variant & var , void * p )
   x->add( pos , var.print_meta_filter(",") , 0 );
   x->add( pos , var.consensus.quality() == -1 ? "." : Helper::dbl2str( var.consensus.quality() ) , 0 );
 
-  x->add( pos , var.transition() , 0 );
-  x->add( pos , var.transversion() , 0 );
-
+  bool ti = var.transition();
+  bool tv = var.transversion();
+  if ( ! ( ti || tv ) ) 
+    x->add( pos , "." , 0 );
+  else
+    x->add( pos , ti , 0 );
+  
   //
   // Frequency information for alternate allele(s)
   //
 
   int c     = 0; // minor allele
   int c_tot = 0; // total counts	  
-  bool altmin = var.n_minor_allele( c , c_tot );
-  
+  double maf;
+  bool altmin = var.n_minor_allele( &c , &c_tot , &maf );
+
   int naa, nab, nbb;
   double hwe = Helper::hwe( var , &naa , &nab , &nbb ) ;
   int t = naa + nab + nbb;
 
   // number of obs. genotypes
   x->add( pos , (double)t / (double)var.size() , 0 );
-
+  
   // MAF
   if ( c_tot == 0 ) 
     x->add( pos , "NA" , 1 ); 
   else
-    x->add( pos , (double)c/(double)c_tot , 1 ); 
-
-  // flag if alternate is major 
-  x->add( pos , !altmin , 1 );
+    x->add( pos , maf , 1 ); 
+  
+  // flag T is REF is minor allele
+  x->add( pos , ! altmin , 1 );
   
 
   // Hardy-Weinberg equilibrium, -log10(p), and heterozygote prop.
@@ -824,8 +829,8 @@ void f_simple_counts( Variant & var , void * p )
       
       if ( data->dichot_pheno )
 	{
-	  gcnta = var.consensus.genotype_counts( CASE , &var , true );
-	  gcntu = var.consensus.genotype_counts( CONTROL , &var , true );
+	  gcnta = var.genotype_counts( CASE );
+	  gcntu = var.genotype_counts( CONTROL );
 
 	  plog << "\t";
 	  std::map<std::string,int>::iterator ii = gcnta.begin();
@@ -838,7 +843,8 @@ void f_simple_counts( Variant & var , void * p )
 	}
       else
 	{
-	  gcntu = var.consensus.genotype_counts( UNKNOWN_PHE , &var , true );
+
+	  gcntu = var.genotype_counts( UNKNOWN_PHE );
       
 	  plog << "\t";
 	  std::map<std::string,int>::iterator ii = gcntu.begin();
@@ -860,17 +866,22 @@ void f_simple_counts( Variant & var , void * p )
       
       if ( data->dichot_pheno ) 
 	{
-	  ma = var.n_minor_allele( case_count , case_tot , CASE );
-	  control_ma = var.n_minor_allele( control_count , control_tot , CONTROL );
+	  ma = var.n_minor_allele( &case_count , &case_tot , NULL , CASE );
+	  control_ma = var.n_minor_allele( &control_count , &control_tot , NULL , CONTROL );
 	  // flip alleles?
 	  if ( control_ma != ma ) control_count = control_tot - control_count; 
 	}
-      else    
-	ma = var.n_minor_allele( case_count , case_tot );
+      else
+	ma = var.n_minor_allele( &case_count , &case_tot );
+
+      // print REF / ALT / Minor
+      
+      plog << "\t" << var.reference() << "/" << var.alternate() ;
 
       // print minor/major allele(s)
-      plog << "\t" << ( ma ? var.alternate() + "/" + var.reference() : var.reference() + "/" + var.alternate() ) ;            
-
+      
+      plog << "\t" << ( ma ? var.alternate()  : var.reference() ) ;            
+      
       if ( data->dichot_pheno )
 	plog << "\t" << case_count
 	     << "\t" << control_count ;
@@ -976,3 +987,9 @@ bool Pseq::VarDB::header_VCF( const bool show_meta ,
 
 }
 
+
+void g_loc_view( VariantGroup & vars , void * p )
+{
+  plog << vars.name() << "\t" 
+       << vars.coordinate() << "\n";
+}

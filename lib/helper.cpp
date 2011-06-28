@@ -53,7 +53,7 @@ void Log::warn(const std::string & msg , const std::string & spec )
 #ifdef R_SHLIB
   R_warning( msg );
 #else
-  if ( warnings[ msg ] == 0 )
+  if ( warnings[ msg ] == 0 && early_warn )
     {
       std::cerr << "plinkseq warning: " << msg << " : " << spec << "\n";
       std::cerr.flush();      
@@ -1103,9 +1103,9 @@ double Helper::hwe( const Variant & v , int * phom1 , int * phets , int * phom2 
     }
   int hets = 0, hom1 = 0 , hom2 = 0;
   for (int i=0; i<v.size(); i++)
-    if ( v(i).notnull() )
+    if ( ! v(i).null() )
       {
-	int ac = v(i).allele_count( &v );
+	int ac = v(i).allele_count( );
 	if ( ac == 0 ) ++hom1;
 	else if ( ac == 1 ) ++hets;
 	else if ( ac == 2 ) ++hom2;

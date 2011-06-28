@@ -1,0 +1,25 @@
+
+CXX = g++
+CXXFLAGS = -O2 
+OUTPUT = gseq.cgi
+LFLAGS = 
+
+SRC = pseqgui.cpp helper.cpp
+HDR = cgi.h pseqgui.h helper.h
+OBJ = $(SRC:.cpp=.o)
+
+all : $(OUTPUT)
+
+$(OUTPUT) :
+	$(CXX) $(CXXFLAGS) $(LFLAGS) -o $(OUTPUT) $(OBJ) $(LIBDIR) $(LIB)
+
+$(OBJ) : $(HDR) 
+
+.cpp.o : 
+	$(CXX) $(CXXFLAGS) -c $*.cpp $(INC)
+
+.SUFFIXES : .cpp .c .o $(SUFFIXES)
+
+$(OUTPUT) : $(OBJ)
+
+FORCE:

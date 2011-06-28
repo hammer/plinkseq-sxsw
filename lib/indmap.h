@@ -159,7 +159,10 @@ class IndividualMap {
       return k.p1 != -1 ? k.p1 : 0 ;
     }
   
+
+  /// Given the consensus position, return position of this individual in a given SVar (-1 if not present) 
   
+  int sample_slot( const int i , const int f ) const;
 
 
   //
@@ -206,6 +209,7 @@ class IndividualMap {
   void construct_wsint_vector();
   std::vector<int> * svar2consensus(const int f);
 
+
  private:
   
   //
@@ -247,7 +251,15 @@ class IndividualMap {
   // file
   
   std::map<int2,int_string_pair> ialign;
+
+  // given consensus 1..n mapping, which SVar slot (j) does this indiv
+  // belong to in sample 'i'. function (sample_slot() returns -1 if not in 
+  // that sample
   
+  // { slot-k , file-i } --> { slot-j } 
+  std::map<int2,int> con2svar;
+
+
   // Within-sample mapping (i.e. post filters)
   std::map<int,std::map<int,int> > wsample;
   // and a stable set of vectors vector

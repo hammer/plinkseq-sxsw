@@ -66,6 +66,17 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 
 
   //
+  // Get access to Mask in all functions
+  //
+      
+  if      (  mask.load_genotype_data()   && (!mask.load_genotype_meta())  &&  mask.load_variant_meta()    ) fetch_mode = NO_GMETA;
+  else if ( (!mask.load_genotype_data()) && (!mask.load_genotype_meta())  &&  mask.load_variant_meta()    ) fetch_mode = ONLY_VMETA;
+  else if ( mask.load_genotype_data()    && (!mask.load_genotype_meta())  &&  (!mask.load_variant_meta()) ) fetch_mode = ONLY_GENO;
+  else if ( (!mask.load_genotype_data()) && (!mask.load_genotype_meta())  &&  (!mask.load_variant_meta()) ) fetch_mode = ONLY_CORE;
+  else fetch_mode = ALL;
+
+
+  //
   // Is this looking at the VARDB fully, or just a single VCF/BCF?
   //
 
@@ -93,57 +104,13 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
   
   IterationReport rep( true , mask.any_grouping() , mask.variant_limit() );
 
-  //
-  // Are we performing a simple iteration on a single file with no filters, appends or groups, etc?
-  //
-  
-  // Alteration: if we want to allow for overlapping variants in the *same* VCF (that 
-  // therefore need to be resolved downstream) we cannot ever use this simple procedure. 
-  // Shouldn't make much difference in speed when no mask items are present, in any case
-  
-  // Thus, for now these lines commented out. Note -- if we are really skipping this always, then 
-  // we can probably also get rid of the "simple" mask thing (i.e. no need to track that state)
-
-
-  // START-------------------------------------------
-
-//    if ( mask.simple( n_files() ) )
-//      {
-    
-//        while ( sql.step( stmt_iterate_variants ) )
-//  	{
-	  
-//  	  Variant var;
-	  
-//  	  SampleVariant & sample = construct( var , stmt_iterate_variants , &indmap ); 
-	  
-//  	  sample.decode_BLOB( &var , &indmap, NULL );
-	  
-//  	  var.make_consensus( &indmap );
-	  
-//  	  f( var , data ); 
-	  
-//  	  if( ! rep.accepted_variant() ) 
-//  	    break;
-//  	}	
-    
-//        sql.reset( stmt_iterate_variants );    
-    
-//        return rep;
-    
-//      }
-
-  // END--------------------------------------------
-  
-
 
 
   //
-  // Otherwise, we need a crafted query
+  // Create crafted query
   //
   
   
-
   // and some other settings from the Mask: should overlapping
   // sample-variants be merged to make a single variant?
   
@@ -595,12 +562,11 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      // whether the next variant starts after the current
 	      // set. then update the spane of the current variant
 
-	      // NOTE: we will need to come up with a strategy to 
-	      // handle very large events (e.g. Mb CNVs) that 
-	      // will otherwise bring 100s of distinct variants
-	      // into one mega-variant, which will typically be 
-	      // unwieldy for analysis obviously and not what is
-	      // desired
+	      // NOTE: we will need to come up with a strategy to
+	      // handle very large events (e.g. Mb CNVs) that will
+	      // otherwise bring 100s of distinct variants into one
+	      // mega-variant, which will typically be unwieldy for
+	      // analysis obviously and not what is desired
 
 	      bool same_variant = exact_merge ? 
 		( nextrow.chromosome() == var.chromosome() && nextrow.position() == var.position() && nextrow.stop() == var.stop() ) :
@@ -683,7 +649,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 		
 		  var = nextrow;
 		  
-		  sample = &(var.first_sample());
+		  sample = var.psample( 0 ) ;
 		  
 		  addMetaFields( var , s, mask );	
 
@@ -714,7 +680,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      
 	      var = nextrow;
 
-	      sample = &(var.first_sample());
+	      sample = var.psample( 0 );
 
 	      addMetaFields( var , s, mask );
 	    
@@ -821,27 +787,26 @@ bool VarDBase::eval_and_call( Mask & mask,
   
   const int n = var.n_samples();
 
-  var.set_first_sample();
   
   bool good = false;
-
+  
   std::vector<int> svar_rlist; // any SampleVariants that need to be removed
-
+  
   int ngood = 0; // track # of passing sampels
-
-  while ( 1 ) 
+      
+  for (int s = 0 ; s < n ; s++ ) 
     {
 
-      SampleVariant & svar = var.sample();
-      
+      SampleVariant & svar = var.sample( s );
+
       SampleVariant * target = ( ! align->multi_sample() ) ? &(var.consensus) : &svar ;
       
       SampleVariant * genotype_target = align->flat() ? &(var.consensus) : &svar ;
 
       bool sample_okay = true;
-
+      
       svar.decode_BLOB_basic( target ); 
-
+      
       if ( mask.attach_meta() ) 
 	{	  
 	  if ( mask.attach_all_meta() ) 
@@ -862,7 +827,7 @@ bool VarDBase::eval_and_call( Mask & mask,
 	  else sample_okay = false;
 	}
       
-
+      
       //
       // At this point, we now have to create the full variant and all
       // meta-information and genotype information. Apply any
@@ -885,6 +850,7 @@ bool VarDBase::eval_and_call( Mask & mask,
       // SampleVariant at this level because of that
       
       //      if ( mask.individual_data() )
+
       
       if ( ! svar.decode_BLOB_genotype( align , &mask , &var, &svar , target , genotype_target ) )
 	{
@@ -923,25 +889,18 @@ bool VarDBase::eval_and_call( Mask & mask,
       // removed)
       //
 
-      if ( ! sample_okay ) svar_rlist.push_back( var.sample_n() - svar_rlist.size() );
+      if ( ! sample_okay ) svar_rlist.push_back( s - svar_rlist.size() );
       
-
-      //
-      // All done?
-      //
-
       
-      if ( ! var.next_sample() ) break;
+      // next SampleVariant
+    } 
 
-    }
-  
 
   //
   // Did we observe at least one good sample?
   //
 
   if ( ! good ) return false;
-
 
   // Evaluate fail.nfile (i.e. that we did not fail on more than nfailed
   // samples, and that we have at least 'ngood' good samples)
@@ -1096,7 +1055,7 @@ bool VarDBase::eval_and_call( Mask & mask,
     {
       var.em.load(var);
       var.em.estimate();
-      var.em.call( mask.EM_replace(), mask.EM_threshold() );
+      var.em.call( mask.EM_threshold() );
     }
   
   

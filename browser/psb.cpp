@@ -1027,23 +1027,23 @@ int main()
        
        for (int i=0; i < id_list.size(); i++)
 	 {
-	  vector<string> k = con.calls.genotype(i).meta.keys();
-	  for (int j=0; j<k.size(); j++) gmeta.insert(k[j]);
-	  Genotype & g = con.calls.genotype(i);
-	  if ( g.null() ) gMis.insert( id_list[i] ) ;
-	  else 
-	    {
-	      int ac = g.allele_count();
-	      if ( ac == 0 ) gRef.insert( id_list[i] );
-	      else if ( ac == 1 ) gHet.insert( id_list[i] );
-	      else if ( ac == 2 ) gHom.insert( id_list[i] );
-	    }	  
-	}
-
-      cout << "<table border=1><tr><th>Individual ID</th>";
+	   std::vector<std::string> k = con.calls.genotype(i).meta.keys();
+	   for (int j=0; j<k.size(); j++) gmeta.insert(k[j]);
+	   Genotype & g = con.calls.genotype(i);
+	   if ( g.null() ) gMis.insert( id_list[i] ) ;
+	   else 
+	     {
+	       int ac = g.allele_count( &var );
+	       if ( ac == 0 ) gRef.insert( id_list[i] );
+	       else if ( ac == 1 ) gHet.insert( id_list[i] );
+	       else if ( ac == 2 ) gHom.insert( id_list[i] );
+	     }	  
+	 }
+       
+       cout << "<table border=1><tr><th>Individual ID</th>";
       
-      cout << "<th nowrap>Sample #</th>";
-
+       cout << "<th nowrap>Sample #</th>";
+       
       if ( a.show_phenotype ) 
 	cout << "<th>Phenotype</th>";
             
@@ -1072,7 +1072,7 @@ int main()
 	    {
 	      
 	      if ( gt == 3 && ! con.calls.genotype(i).null() ) continue;
-	      else if ( con.calls.genotype(i).allele_count() != 2-gt ) continue;
+	      else if ( con.calls.genotype(i).allele_count( &var ) != 2-gt ) continue;
 	      
 	
 	      // Include link to individual-report
@@ -1501,7 +1501,7 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
       // Genotype; genotype meta-fields;
 
       int gt = con(ni).null() ? 3 : 
-	2 - con(ni).allele_count();
+	2 - con(ni).allele_count( &vars.var(i) );
       
       if ( gt == 0 ) 
 	cout << "<td bgcolor=\"red\">";

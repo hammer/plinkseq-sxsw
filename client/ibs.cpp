@@ -57,8 +57,8 @@ void f_IBS_calculator( Variant & v , void * p )
   
   if ( ! v.biallelic() ) return;
 
-  int c, c_tot;
-  bool altmin = v.n_minor_allele( c , c_tot );
+  bool altmin = v.n_minor_allele();
+  
   const int n = v.size();
   
   for (int i=1; i<n; i++)
@@ -71,7 +71,7 @@ void f_IBS_calculator( Variant & v , void * p )
 	{
 	
 	  // count only similar non-ref alleles at one of two indiv	  
-	  if ( v(j).notnull() )
+	  if ( ! v(j).null() )
 	    {	      
 	      // genotype counting (1=both non-reference)
  	      aux->obs(i,j,1);	      

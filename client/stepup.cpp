@@ -1,9 +1,6 @@
 
 #include "genic.h"
 
-#define MATHLIB_STANDALONE
-#include "Rmath.h"
-
 extern GStore g;
 
 Pseq::Assoc::Aux_hoffman_witte::Aux_hoffman_witte( const VariantGroup & vars, Aux_prelim * p )
@@ -86,7 +83,7 @@ Pseq::Assoc::Aux_hoffman_witte::Aux_hoffman_witte( const VariantGroup & vars, Au
       
       for(int i=0; i<I; i++)
 	{
-	  if ( var(i).notnull() )
+	  if ( ! var(i).null() )
 	    {
 	      xbar[k] += var(i).minor_allele_count( aux_prelim->altmin[k] ); 
 	      ++Iobs;
@@ -118,7 +115,7 @@ double Pseq::Assoc::Aux_hoffman_witte::calc_stat( const VariantGroup & vars,    
       for(int k=0; k<K; k++)
 	if( m[k] == 1 )
 	  {
-	    if ( vars.geno(k,i).notnull() )
+	    if ( ! vars.geno(k,i).null() )
 	      {
 		const double x = vars.geno(k, i).minor_allele_count( aux_prelim->altmin[k] );
 		const double t = dichot ? 
@@ -161,7 +158,7 @@ double Pseq::Assoc::stat_hoffman_witte( const VariantGroup & vars,
       
       for(int i=0; i<I; i++)
 	{
-	  if ( var(i).notnull() )
+	  if ( ! var(i).null() )
 	    {
 	      const double x = var(i).minor_allele_count( aux->aux_prelim->altmin[k] ) ; 
 	      const double y = aux->dichot ? ( var.ind( g.perm.pos(i) )->affected() == CASE ? 1.0 : 0.0 ) : var.ind( g.perm.pos(i) )->qt() ;	

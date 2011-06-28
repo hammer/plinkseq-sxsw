@@ -26,7 +26,6 @@
 
 // Helper functions, etc
 
-#include "spec.h"
 #include "defs.h"
 #include "options.h"
 
@@ -266,6 +265,8 @@ class GStore {
   bool gseq_mode() const { return gseq; }
   std::string gseq_history() const { return ghist; }
   std::string gseq_job() const { return gjobn; }  
+  
+  void R_mode( const bool b ) { r_mode = b; } 
 
  private:
   

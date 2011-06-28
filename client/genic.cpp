@@ -23,7 +23,7 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
       
       int c     = 0; // minor allele
       int c_tot = 0; // total counts	  
-      aux->altmin[v] = vars(v).n_minor_allele( c , c_tot );      
+      aux->altmin[v] = vars(v).n_minor_allele( &c , &c_tot );      
       if ( ! aux->altmin[v] ) aux->refmin.insert(v);
       if ( aux->minm == -1 || c < aux->minm ) aux->minm = c;
       if ( aux->maxm == -1 || c > aux->maxm ) aux->maxm = c;
@@ -40,7 +40,7 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
       int c_a = 0 , c_u = 0;
       for (int i = 0; i < n; i++)
 	{	  	  
-	  if ( vars.geno(v,i).notnull() )
+	  if ( ! vars.geno(v,i).null() )
 	    {
 	      int ac = vars.geno(v,i).minor_allele_count( aux->altmin[v] );
 	      if ( ac ) 
@@ -73,7 +73,7 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
       if ( aff == CASE || aff == CONTROL ) aux->n_t++;
       
       for (int v=0; v<vars.size(); v++ )
-	if ( vars.geno(v,i).notnull() && vars.geno(v,i).minor_allele( aux->refmin.find(v) == aux->refmin.end() ) )
+	if ( ! vars.geno(v,i).null() && vars.geno(v,i).minor_allele( aux->refmin.find(v) == aux->refmin.end() ) )
 	  aux->carriers[i].insert( v );		  	  
     }
 }

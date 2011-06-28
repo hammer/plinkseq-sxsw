@@ -3,11 +3,13 @@
 #include "helper.h"
 #include "variant.h"
 
+#include <iostream>
+
 #include <cmath>
 
 std::vector<double> EM::lik_to_probs( std::vector<double> & g , bool phred_scaled ) const
 {
-
+  
   std::vector<double> p(3,-1);
   
   // for now, only handle biallelic GLs/PLs
@@ -41,7 +43,7 @@ std::vector<double> EM::lik_to_probs( std::vector<double> & g , bool phred_scale
   
   double s = 1.0 / ( g0 + g1 + g2 );
   g0 *= s;  g1 *= s; g2 *= s;
-  
+
   if ( ! ( Helper::realnum( g0 ) 
 	   && Helper::realnum( g1 ) 
 	   && Helper::realnum( g2 ) ) )
@@ -58,27 +60,34 @@ std::vector<double> EM::lik_to_probs( std::vector<double> & g , bool phred_scale
   return p;
 }
 
+
 /// Load EM with genotype likelihoods (AA, AB, BB)
+
 void EM::load( Variant & v )
 {
   
   var = &v;
   
   n = v.size();
-
+  
   gl.resize( n );
   post.resize( n );
-
+  
   for (int i=0; i<n; i++)
     {
-
+      
       std::vector<double> g;
-      bool phred = true;
 
+      bool phred = true;
+      
       if ( v(i).meta.hasField( PLINKSeq::META_GENO_PHRED() ) )
-	g = v(i).meta.get_double( PLINKSeq::META_GENO_PHRED() );
-      else if ( v(i).meta.hasField( PLINKSeq::META_GENO_LIK() ) )
 	{
+	  std::vector<int> tmp = v(i).meta.get_int( PLINKSeq::META_GENO_PHRED() );
+	  g.resize( tmp.size() );
+	  for (int t=0; t<g.size(); t++) g[t] = tmp[t];
+	}
+      else if ( v(i).meta.hasField( PLINKSeq::META_GENO_LIK() ) )
+	{	  
 	  phred = false;
 	  g = v(i).meta.get_double( PLINKSeq::META_GENO_LIK() );
 	}
@@ -96,13 +105,16 @@ void EM::group( const int i , const int g )
 {
   //
 }
-  
+
+
 /// Run EM, return iteration code (-1 failed)
 int EM::estimate()
 {
 
 
-  //starting value for p 
+  
+  // starting value for p 
+
   f = 1.0 / ( (double)2*n ) ;
   
   int iter = 0;
@@ -133,23 +145,24 @@ int EM::estimate()
 	  p[0] = pref * denom;
 	  p[1] = phet * denom;
 	  p[2] = phom * denom;
-
+	  
 	}
       
+
       // Now estimate allele frequency
-
+      
       double of = f;
-
+      
       f = 0;
       
       for (int i=0; i<n; i++)
 	{            
-	  std::vector<double> & p = post[i];      
-	  
+	  std::vector<double> & p = post[i];      	  
 	  f += p[2] * 2 + p[1];
 	}
       
       f /= (double)(2*n);
+
       if ( f <= 0 ) 
 	{
 	  f = 0;
@@ -161,11 +174,16 @@ int EM::estimate()
 	  break;
 	}
       
-      if ( iter == maxiter ) break;
+      if ( ++iter == maxiter ) break;
+
       if ( fabs( f - of ) < EPS ) break;
+
     }
-    
+
+  std::cout << "iter = " << iter << "\n";
+
 }
+
 
 /// For individual i, return posteriors
 
@@ -179,62 +197,61 @@ double EM::frequency() const
   return f;
 }
 
+
 /// For group g, return allele frequency
 double EM::frequency(const int g) const
 {
   return 0;
 }
 
-void EM::call( bool replace, const double t) const
+
+void EM::call( const double t ) const
 {
 
   const int n = var->size();
-  replace = true;
-
-  SampleVariant * sample = &(var->consensus);
-
-  if ( ! replace )     
-    {
-      // make copy of consensus variant
-      sample = &( var->add( var->consensus ) );
-    }
-
-
+  
   for (int i=0; i<n; i++)
     {
-
+      
+      Genotype & g = (*var)(i);
+      
       const std::vector<double> & p = post[i];
 
       int m = 0;
+
       if ( p[1] > p[0] ) 
 	{
-	  if ( p[2] > p[1] ) m=2; else m=1;
+	  m = p[2] > p[1] ? 2 : 1 ;
 	}
       else
 	{
-	  if ( p[2] > p[0] ) m=2; else m=0;
+	  m = p[2] > p[0] ? 2 : 0 ;
 	}
       
+
       //
       // Does the maximum PP meet threshold?
       //
       
       if ( p[m] >= t ) 
 	{
-	  (*sample)(i).set_alternate_allele_count(m);
+	  g.set_alternate_allele_count(m);
 	}
       else // set to missing
 	{
-	  (*sample)(i).missing( true );
+	  g.null( true );
 	}
 
-
+      
       //
-      // Insert PP as genotype posterior probabilities 
+      // Insert PP as genotype posterior probabilities, and REF/ALT allele dosages
+      // TODO: assume biallelic for now... need to fix
       //
 
-      (*sample)(i).meta.set( PLINKSeq::META_GENO_POSTPROB() , p );
-
+      g.meta.set( PLINKSeq::META_GENO_POSTPROB() , p );
+      
+      g.meta.set( PLINKSeq::META_GENO_ALT_DOSAGE() , p[1] + 2 * p[2] );
+      
     }
 
 

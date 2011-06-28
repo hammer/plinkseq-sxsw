@@ -9,7 +9,6 @@
 #include <set>
 #include <iterator>
 
-#include "variant.pb.h"
 
 #include "genotype.h"
 #include "allele.h"
@@ -19,621 +18,45 @@
 #include "filemap.h"
 #include "em.h"
 #include "indmap.h"
-#include "spec.h"
+#include "svar.h"
 
 class Individual;
-class Mask;
 class Genotype;
-class BCF;
-
-/*!
-  
-  This is a key class, which represents a variant. This means basic
-  information such as chromosomal location, name, alleles, etc, as
-  well as extensible meta-information in the MetaInformation member
-  class. A variant can also hold genotype calls on 1 or more individuals,
-  in the calls members class.
-  
-  @class SampleVariant
-  
-  @brief Core class representing individual variants for one file
-
-*/
-
-struct SampleVariant {
-  
-
-  //
-  // A particular sample/variant combination
-  //
-  
-  uint64_t         vindex;
-  
-  
-  //
-  // Allelic, genotypic encoding
-  //
-  
-  std::string           vencoding;
-  
-  bool                  simple;
-
-  std::string           ref;
-  
-  std::string           alt;
-  
-  std::string           vstrand;  
-  
-  
-  // 
-  // Sample-specific meta-information (as specified in VCF)
-  // 
-  
-  double           qual;
-  
-  std::string      filter_info;
-   
-  bool             is_filtered;
-  
-  vType            vtype;
-  
-  std::string      other_info;  // converted -> meta()
-
-    
-  //
-  // Other information generated upon loading
-  //
-  
-
-  VariantSpec*      spec;
-  
-  void              set_allelic_encoding();
- 
-
-  // If this is >0, means this REF starts 'offset'
-  // bp after the Variant bp
-
-  int               offset;
-
-
-  /*! 
-    Construct internal alleles[] vector from reference() allele value(s)
-    @return Number of alleles 
-  */
-  
-  int parse_alleles();
-
-  //
-  // Representation of all alleles observed 
-  //
-
-
-  std::vector<Allele>   alleles;
-  
-  //
-  // Collapse all alternate alleles
-  //
-  
-  void collapse_alternates( const Variant * , int altcode = 0 );
-  
-
-  //
-  // Helper function to recode overlapping alleles
-  //
-
-  static bool align_reference_alleles( SampleVariant & s1 , SampleVariant & s2 , bool add_alt = false );
-
-
-  int              fset;
-  
-    
-  // Buffer (BLOB/PB -> variant)
-  
-  VariantBuffer buf;
-  
-  // Or, direct from a single VCF (and so no BLOB)
-  
-  bool                       vcf_direct;
-  std::vector<std::string>   vcf_direct_buffer;
-
-  
-  // Or, from a BCF (and so no BLOB to decode)
-
-  BCF *                 bcf;
-  std::string           bcf_format;
-  std::vector<uint8_t>  bcf_genotype_buf;
-  
-
-
- public:  
-     
-  SampleVariant() 
-    { 
-      init(); 
-    }
-
-  
-  SampleVariant(bool b) 
-    { 
-      init(); 
-    }
-  
-  SampleVariant(uint64_t idx)
-    {		
-      init();      
-      vindex = idx;
-    }
-  
-  /*!
-    Unless otherwise stated, variants are initialised as completely missing.
-  */
-
-  void init()
-    {
-      vindex = 0;
-      fset = 0;
-      alt = ref = ".";
-      filter_info = ".";
-      other_info = ".";
-      qual = -1;
-      is_filtered = false;
-      vstrand = ".";
-      meta.clear();
-      calls.clear();       
-      spec = NULL;
-      simple = true;
-      alleles.clear();
-
-      vcf_direct = false;
-      vcf_direct_buffer.clear();
-
-      // for BCF
-      offset = 0;
-      bcf = NULL;
-      bcf_genotype_buf.clear();
-    }
- 
-  
-  /// Variant specification 
-  
-  static specDecoder      decoder;
-  
-  
-  /// SampleVariant meta-information class
-  
-  MetaInformation<VarMeta>  meta;
-
-
-  /// Filter information
-
-  MetaInformation<VarFilterMeta> meta_filter;
-
-
-  /// Genotypes on 1 or more individuals for this variant
-
-  GenotypeSet      calls;
-
-  /// Overload () to access genotype calls for individual i
-  
-  Genotype & operator()(const int i) { return calls.genotype(i); }
-  
-  const Genotype & operator()(const int i) const { return calls.genotype(i); }
-  
-  /// Has at least one non-reference call
-  bool has_nonreference( const bool also_poly = false ) const;
-  
-  /// Set variant index
-  void index(uint64_t i) { vindex = i; }  
-
-  /// Get variant index
-  const uint64_t index() const { return vindex; }  
-
-
-  /// Set fileset ID (probably redundant now)
-  void fileset(int f) { fset = f; }
-
-  /// Get fileset ID
-  const int fileset() const { return fset; }
-
-  /// Set reference allele (string, 1+ characters)
-  void reference(std::string s) { ref = s; }
-
-  /// Get reference allele (string, 1+ characters)
-  std::string reference() const { return ref; }
-
-  /// Set alternate allele(s), comma-delimited list, e.g. A,T
-  void alternate(std::string s) { alt = s; }
-  
-  /// Get string of alternate allele(s), as comma-delimited string list
-  std::string alternate() const { return alt; }
-  
-  /// Return allele label of k-th allele (0 is reference)
-  std::string alternate( const int k ) const
-  {
-    if ( k < 0 || k >= alleles.size() ) return ".";
-    return alleles[k].name();
-  }
-  
-
-  std::string file_name() const;
-
-  std::string label( const Genotype & g , bool unphased = false ) const;
-
-  std::string num_label( const Genotype & g ) const;
-
-  std::map<std::string,int> allele_counts( const affType & aff , const Variant * parent) const;
-
-  std::map<std::string,int> allele_count(const int ) const;
-
-  std::map<std::string,int> genotype_counts( const affType & aff , const Variant * parent , bool unphased = true ) const;
-  
-  /// Set strand ("+", "-" or "?")
-  void strand(std::string s) { vstrand = s; }
-
-  /// Get strand
-  std::string strand() const { return vstrand; }
-
-  /// Set quality score, expected positive floating-point value
-  void quality(double d) { qual = d; }
-
-  /// Get quality score, 
-  double quality() const { return qual; }
-  
-  /// Set meta-information: keep as string, but also set in MetaInformation class meta
-  /// Uses semi-colon only as field separator
-
-  void info( const std::string & s , VarDBase * vardb = NULL , int file_id = 0 ) ;
-
-  /// Get meta-information string as specified by void info(string)
-  std::string info() const { return other_info; }
-
-  
-  /// Set filter string; currently no further processing 
-  void filter( const std::string & s , VarDBase * vardb = NULL , int file_id = 0);
-
-  /// Get filter string
-  std::string filter() const { return filter_info; }
-
-  /// Get set of filter strings
-  std::vector< std::string > filters() const 
-  {   
-    return meta_filter.get_flags();
-  }
-
-  /// Has a filter value?
-  bool has_filter( const std::string & s ) const;
-  
-  bool any_filter() const { return filter_info != PLINKSeq::PASS_FILTER(); }
-
-		   
-
-  /// Set boolean values on whether variant is filtered out (if T)
-  void filtered(bool b) { is_filtered = b; }
-
-  /// Get boolean value, T is variant is to be filtered out
-  bool filtered() const { return is_filtered; }
-
-
-
-  // Check which of the following are redundant...
-
-  void type(vType t) { vtype = t; }
-
-  vType type() { return vtype; }
-
-
-  // Get/set variant specification 
-
-  void specification(VariantSpec *s) { spec = s; }
-
-  VariantSpec * specification() const { return spec; }  
-  
-  std::string encoding() { return vencoding; }
-
-  void encoding(std::string s) { vencoding = s; }
-  
-
-  
-  /// Write core variant information to stream (no meta or genotype information)
-  
-  friend std::ostream & operator<<( std::ostream & out, const SampleVariant & v);
-/*     {  */
-/*       out << GP->vardb.file_tag( v.fset ) */
-/* 	  << ":" << v.ref << "/" << v.alt */
-/* 	  << ":" << v.filter_info;       */
-/*       return out; */
-/*     } */
-  
-      
-  blob encode_BLOB() const;
-  void store_BLOB(blob&);
-
-/*   bool decode_BLOB( blob & ,  */
-/* 		    Variant * parent = NULL); */
-
-  bool decode_BLOB( Variant * ,
-		    IndividualMap * , 
-		    Mask * );
-
-  bool decode_BLOB_basic( SampleVariant * target );
-
-  bool decode_BLOB_vmeta( Mask * mask ,             // for filters
-			  Variant * parent        , // for pop/static meta-info
-			  SampleVariant * target ); // for straight-to-consensus
-  
-  bool decode_BLOB_genotype( IndividualMap * align , 
-			     Mask * mask ,
-			     Variant * parent , 
-			     SampleVariant * source ,
-			     SampleVariant * vtarget ,
-                             SampleVariant * target );
-  
-
- private:
-
-
-  //
-  // Helper functions for reading in genotype meta-information
-  //
-  
-
- inline int addIntGenMeta( int j , int f , 
-			   const VariantBuffer & v, 
-			   IndividualMap * align, 
-			   int k,   // meta-info slot
-			   int idx, // current counter 		     
-			   int l )  // length arg 
-  {
-    
-    if ( align )
-      {
-	j = align->sample_remapping( f , j);
-	
-	if ( align->flat() )
-	  j = align->get_slot( f , j );
-      }
-    
-    if( j == -1 ) 
-      return idx + l; 
-          
-    MetaInformation<GenMeta> & gmeta = calls.genotype( j ).meta ;
-    
-    if ( l == 1 ) 
-      {
-	gmeta.set( v.gmeta(k).name() , 
-		   v.gmeta(k).int_value( idx++ ) );
-      }
-    else
-      {
-	std::vector<int> t(l);
-	for ( int i = 0 ; i < l; i++)
-	  t[i] = v.gmeta(k).int_value( idx++ );
-	gmeta.set( v.gmeta(k).name() , t );
-      }
-    
-    return idx;      
-  }
-  
-
-
-
-  
-  inline int addFloatGenMeta( int j , int f , 
-			      const VariantBuffer & v, 
-			      IndividualMap * align, 
-			      int k,   // meta-info slot
-			      int idx, // current counter 		     
-			      int l )  // length arg
-    {
-      
-      if ( align )
-	{
-	  j = align->sample_remapping( f , j);
-	  
-	  if ( align->flat() )
-	    j = align->get_slot( f , j );
-	}
-
-      if( j == -1 ) return idx + l;
-      MetaInformation<GenMeta> & gmeta = calls.genotype( j ).meta ;
-
-      if ( l == 1 ) 
-	gmeta.set( v.gmeta(k).name() , 
-		  v.gmeta(k).double_value( idx++ ) );
-      else
-	{
-	  std::vector<double> t(l);
-	  for ( int i = 0 ; i < l; i++)
-	    t[i] = v.gmeta(k).double_value( idx++ );
-	  gmeta.set( v.gmeta(k).name() , t );
-	}
-      
-      return idx;
-      
-    }
-  
-  inline int addStringGenMeta( int j , int f , 
-			       const VariantBuffer & v, 
-			       IndividualMap * align, 
-			       int k,   // meta-info slot
-			       int idx, // current counter 		     
-			       int l )  // length arg
-    {
-      
-      if ( align )
-	{
-	  j = align->sample_remapping( f , j);
-	  
-	  if ( align->flat() )
-	    j = align->get_slot( f , j );
-	}
-
-      if( j == -1 ) return idx + l;
-      MetaInformation<GenMeta> & gmeta = calls.genotype( j ).meta ;
-      
-      if ( l == 1 ) 
-	gmeta.set( v.gmeta(k).name() , 
-		   v.gmeta(k).string_value( idx++ ) );
-      else
-	{
-	  std::vector<std::string> t(l);
-	  for ( int i = 0 ; i < l; i++)
-	    t[i] = v.gmeta(k).string_value( idx++ );
-	  gmeta.set( v.gmeta(k).name() , t );
-	}  
-      return idx;  
-    }
-  
-  inline int addBoolGenMeta( int j , int f , 
-			    const VariantBuffer & v, 
-			    IndividualMap * align, 
-			    int k,   // meta-info slot
-			    int idx, // current counter 		     
-			    int l )  // length arg
-   {
-
-      if ( align )
-	{
-	  j = align->sample_remapping( f , j);
-	  
-	  if ( align->flat() )
-	    j = align->get_slot( f , j );
-	}
-
-      if( j == -1 ) return idx + l;
-      MetaInformation<GenMeta> & gmeta = calls.genotype( j ).meta ;
-
-     if ( l == 1 ) 
-       gmeta.set( v.gmeta(k).name() , 
-		  v.gmeta(k).bool_value( idx++ ) );
-     else
-       {
-	 std::vector<bool> t(l);
-	 for ( int i = 0 ; i < l; i++)
-	   t[i] = v.gmeta(k).bool_value( idx++ );
-	 gmeta.set( v.gmeta(k).name() , t );
-       }
-     return idx;
-   }
-  
- 
-};
-
+class SampleVariant;
 
 
 
 class Variant {
   
   
-
-  // 
-  // Core, invariant information for a variant
-  //
-
-  std::string      vname;
-  
-  int              chr;
-  
-  int              bp;
-  
-  int              bp2;
-  
-
-
-  //
-  // Storage of sample-specific variants
-  //
-
-  /// vector of sample variants
-  std::vector<SampleVariant> svar;
-  
-  /// map SV-IDs (0..NS-1) to file-IDs (any 1+ int)
-  std::vector<int> svtof;
-
-  /// file-ID --> list of SV-IDs (file-to-SampleVariant)
-  std::map<int,std::vector<int> > ftosv; 
-    
-  /// 'iterator' for looping over samples
-  int si;
-  
-  
-
-  //
-  // Pointer to individual alignment class
-  //
-  
-  IndividualMap * align;
-  
-
-  //
-  // Misc.
-  //
-
-  bool             is_valid;
-
-  bool             is_multi_sample;
-  
  public:
 
-
-  Variant() 
-    { 
-      init(); 
-    }
-
-
-  Variant(bool b) 
-    { 
-      init(); 
-      is_valid = b;  
-    }
-  
-  Variant(std::string n, int c, int b)
-    {		
-      init();      
-      vname = n;
-      chr = c;
-      bp = bp2 = b;      
-    }
-  
-
-  /*!
-    Unless otherwise stated, variants are initialised as completely missing.
-  */
-
-  void init()
-    {
-      chr = bp = bp2 = 0;
-      vname = ".";
-      meta.clear();
-      align = NULL;
-      is_multi_sample = false;
-     }
-  
-
-  void attach( IndividualMap * a)
-  {
-    align = a;
-  }
-  
-  EM em;
-  
-
   //
-  // A consensus/merged variant
+  // Major embedded structures that are publicly-visible
   //
-  
+
+  /// A consensus/merged sample-variant
   SampleVariant consensus;
   
-  bool  make_consensus(IndividualMap*);
-  
+  /// Population-level meta-information
+  MetaInformation<VarMeta>  meta;
+    
+
   
   //
-  // Population-level meta-information
+  // Primary interface for a Variant
   //
 
-  MetaInformation<VarMeta>  meta;
   
+  /// Optionally specify whether Variant is 'valid' or not
+  Variant( bool b = true );
+  
+  /// Construct variant given ID and chromosomal position
+  Variant( const std::string & n, int c, int b );
+
+  /// Attach an alignment (maps individuals to slots/IDs/phenotypes, etc) 
+  void attach( IndividualMap * a) { align = a; } 
+    
   /// Set name
   void name(std::string n) { vname = n; }
 
@@ -667,39 +90,140 @@ class Variant {
   /// Get length span in bases (bp2-bp1+1) 
   int length() const { return bp2-bp + 1 ; }
 
-  /// 
+  /// Return a 'chr1:12345' type string
   std::string coordinate() const { return Helper::coordinate( chr, bp, bp2 ); } 
-  
+
+
 
   //
-  // Some basic access functions for the consensus variant
+  // Primary workhorse functions
   //
-
-  /// Get reference allele (string, 1+ characters)
   
-  std::string reference() const 
-    { 
-      return consensus.ref; 
+  /// Create a consensus variant given 1 or more SampleVariants
+  bool  make_consensus( IndividualMap * );
+
+
+  //
+  // Genotype access functions (that might re-direct to consensus)
+  //
+  
+  Genotype * genotype( const int i ) 
+    {
+      return & consensus.calls.genotype(i);
     }
+  
+  const Genotype * genotype( const int i ) const
+    {
+      return & consensus.calls.genotype(i);
+    }
+
+  Genotype * genotype( const int svar_id , const int i ) 
+    {
+      
+      // We are being asked for the Genotype from a specific SampleVariant. 
+      
+      // The 'sv' index is 0-based and counts the total number of SVs for the Variant
+      // (which may be larger than the number of samples, if there is infile-overlap)
+
+      // The index 'i' is assumed to represent the position of the individual in the consensus
+      // i.e. the single 0..N-1 mapping of all individuals
+      
+      // A number of scenarios:
+      
+      //  1) Reading directly from VCF:                      :  look straight to consensus
+      //  2) Not multiple sample and no overlapping variants :  look straight to consensus
+      //  3) Not multiple sample but w/ overlapping variants :  ??check -- individual SampleVariant
+      //  4) Multiple samples but flat alignment             :  look at consensus
+      //  5) Multiple samples but non-flat alignment         :  look at individual SampleVariant
+
+      // i.e. if we have a non-flat alignment, or infile_overlap, then we need to consider the original SVs. 
+      // otherwise, always go to the consensus
+      
+
+      // 1) Under simple scenarios, we can work directly from the consensus
+      
+      if (  flat() &&  ! infile_overlap()  )
+	{
+	  return & consensus.calls.genotype( i );
+	}
+      
+      // 2) Get the file this SV belong to 
+      
+      const int file_id = svtof[ svar_id ];
+ 
+      // 3) Get the position in the file/SV given the individual's consensus slot 
+      
+      const int j = align->sample_slot( i , file_id );
+      
+      if ( j == -1 ) return NULL;
+
+      // 4) Return request genotype
+      
+      return &svar[ svar_id ].calls.genotype( j );
+      
+    }
+
+
+
+  //
+  // Creating and populating new Variants
+  //
+
+  /// When directly reading a VCF, store the line for (potential) later parsing. The VCFReader
+  /// will have created a single SVAR for this, so use that
+
+  void set_vcf_buffer( const std::vector<std::string> & tokens ) { svar[0].vcf_direct_buffer = tokens; }
+
+  void set_vcf_buffer( const int i , std::vector<meta_index_t*> * f )
+  { 
+    consensus.vcf_direct = true; // need to set for both source and target 
+    svar[0].vcf_direct = true;   // so that decode_BLOB functions do not try to use PB
+    svar[0].vcf_gt_field = i;
+    svar[0].vcf_formats = f;
+  }
+
+  
+  /// Add a new Genotype to the consensus SampleVariant (when reading from VCF, and so straight to consensus)
+  void add( const Genotype & g ) { consensus.calls.add(g); } 
+  
+
+  
+  
+
+
+  //
+  // Some basic access functions for Sample Variants. 
+  // By default these point to the consensus variant  
+  //
+  
+  /// Get reference allele (from consensus SampleVariant)
+  std::string reference() const { return consensus.ref; }
   
   /// Get string of alternate allele(s), as comma-delimited string list
-  std::string alternate() const 
-    { 
-      return consensus.alt; 
-    }
+  std::string alternate() const { return consensus.alt; }
+  
 
-  // Misc.
+  /// Misc.
 
-  void valid(bool b) { is_valid = b; } 
-
+  void valid( bool b ) { is_valid = b; } 
+ 
   bool valid() { return is_valid; } 
 
   bool invalid() { return ! is_valid; } 
 
-  bool concordant( int s1, const Genotype * g1, int s2, const Genotype * g2 ) const;
-
-  bool concordant( SampleVariant * s1, const Genotype * g1, SampleVariant * s2, const Genotype * g2 ) const;
   
+  //
+  // Access to genotype data and helper functions
+  //
+
+  /// Test for concordance between two genotypes
+  bool concordant( int s1, const Genotype * g1, int s2, const Genotype * g2 ) const;
+  
+  /// Test for concordance between two genotypes
+  bool concordant( const SampleVariant * s1, const Genotype * g1, 
+		   const SampleVariant * s2, const Genotype * g2 ) const;
+
+
   /// Printing access to meta-information 
 
   std::string print_samples( const std::string & delim = " " ) const;
@@ -707,24 +231,23 @@ class Variant {
   std::string print_meta_filter( const std::string & delim = " ") const;
   std::set<std::string> meta_filter( ) const;
   
-
   //
-  // Core individual access function -- look at the indmap, *align
+  // Access to individuals (assumes an attached IndidivualMap)
   //
 
-  
-  /// Return number of individuals with data for this variant
-  
+  /// Number of individuals with data for this variant  
   int size() const;
   
+  /// Set number of individuals with data for this variant  
+  void size(const int n);
 
-  /// Pointer to the k'th individual (0..N-1) in the consensus/indmap, given N or ID
-  
+  /// Pointer to an individual (0..N-1) in the consensus/indmap, given N
   Individual * ind(const int) const;
   
+  /// Pointer to an individual (0..N-1) in the consensus/indmap, given ID  
   Individual * ind(const std::string &) const;
   
-  /// vector of all IDs of for the consensus indmap
+  /// All IDs from the consensus indmap
   std::vector< std::string> ind_id() const { return align->ind_id(); }
 
   /// return N for individual given their ID
@@ -739,128 +262,192 @@ class Variant {
   /// show which fileset (1..NS) an individual belongs to, if they belong to a single fileset (else returns 0) 
   int ind_sample( const int i ) const { return align->sample(i); }
   
+
   //
   // Primary functions to access a (consensus) genotype, via a returned pointer
   //
   
-  Genotype * genotype(const int);
-  
-  const Genotype * genotype(const int) const;
-
-  /// Overload () to provide references to consensus genotypes
-  
+  /// Overload () to provide references to consensus genotypes  
   Genotype & operator()(const int i) { return consensus.calls.genotype(i); }
 
+  /// Overload () to provide const references to consensus genotypes  
   const Genotype & operator()(const int i) const { return consensus.calls.genotype(i); }
 
-  /// All genotypes for a given individual
-  std::map<int, Genotype *> all_genotype(const int);
+  /// All genotypes for this Variant for a given individual (SV->genotype map)
+  std::map<int, Genotype *> all_genotype( const int );
   
   /// All genotypes for a given individual (const version)
   std::map<int,const Genotype *> all_genotype(const int) const;
 
-
-  /// From a specific sample (but which will be consensus under a flat alignment)
-  
+  /// From a specific sample (but which will be consensus under a flat alignment)  
   const Genotype * genotype( const SampleVariant * svar , const int i) const;
   
 
   //
   // Sample-level access functions
   //
-  
-  bool infile_overlap() const
-  {
-    // if more SV-ids than file ids for this variant, implies that we
-    // saw at least one "merged" variant within a single file.
-    
-    return svtof.size() > ftosv.size();
-  }
 
-  /// Return list of all sv-ids (which index SampleVariants)
-  
+
+  /// Is any one sample repeated for this Variant (1:many mapping of sample:sample-variant)
+  bool infile_overlap() const { return svtof.size() > ftosv.size(); }
+
+  /// Return list of all SV IDs
   std::vector<int> samples() const;
   
   /// Return set of only unique file-IDs
-
   std::set<int> unique_files() const ;
   
-  // Return svar-slot given file ID (or -1 if no uniq mapping)
-  int unique_svar_slot( int f ) const;;
+  /// Return svar-slot given a file ID (or -1 if no uniq mapping)
+  int unique_svar_slot( int f ) const;
 
-  // Is this file-ID present in the Variant?
+  /// Is this file-ID present in the Variant?
   bool file_present( const int f ) const;
 
-  /// Set the internal iterator to the first sample
-
-  void set_first_sample();
-    
-  /// Return a reference for the current sample
-  
-  SampleVariant & sample();
-
-  /// Return int code to that sample
-
-  int sample_n();
-
-  /// Advance to next sample; return T if next sample is valid
-  
-  bool next_sample();
-  
   
   /// Return a pointer to a given sample
-
-  SampleVariant * psample(const int s) const 
+  SampleVariant * psample(const int s) 
     {
-      return s < 0 || s >= svar.size() ? NULL : (SampleVariant*)&(svar[s]);
+      if ( s == -1 ) return &consensus;
+      return s < 0 || s >= svar.size() ? NULL : &(svar[s]);
     }
+  
+  const SampleVariant * psample(const int s) const
+    {
+      if ( s == -1 ) return &consensus;
+      return s < 0 || s >= svar.size() ? NULL : &(svar[s]);
+    }
+
+  const SampleVariant & sample(const int s) const 
+    {
+      return s == -1 ? consensus : svar[ s ] ;
+    }
+
+  SampleVariant & sample(const int s) 
+    {
+      return s == -1 ? consensus : svar[ s ] ;
+    }
+
+  /// Point to svar that holds genotypes 
+  SampleVariant & sample_genotypes( const int s ) const
+    {
+      return flat() ? (SampleVariant&)svar[si] : (SampleVariant&)consensus;
+    }
+  
+  SampleVariant & sample_genotypes( const SampleVariant & sv ) const
+    {
+      return flat() ? (SampleVariant&)sv : (SampleVariant&)consensus;
+    }
+
+
+  SampleVariant & sample_metainformation( const int s ) const
+    {
+      return multi_sample() ? (SampleVariant&)svar[si] : (SampleVariant&)consensus;
+    }
+  
+  SampleVariant & sample_metainformation( const SampleVariant & sv ) const
+    {
+      return multi_sample() ? (SampleVariant&)sv : (SampleVariant&)consensus;
+    }
+
+
 
   /// As above, but via external file codes
-  // TODO: will need to return multiple sometimes (samefile can appear>1)
-  SampleVariant * fsample(const int s) const 
+  /// Return the number of SVs in a file
+
+  int fsample_svar_counts(const int f) const 
+  {
+    std::map<int,std::vector<int> >::const_iterator i = ftosv.find(f);
+    return  i == ftosv.end() ? 0 : i->second.size(); 
+  }
+  
+  /// Return the i'th SV from the f'th file
+  std::vector<SampleVariant *> fsample( const int file_id ) 
     {
-      std::map<int,std::vector<int> >::const_iterator i = ftosv.find(s);
-      return  i == ftosv.end() ? NULL : psample( i->second[0] );
+      std::map<int,std::vector<int> >::iterator i = ftosv.find( file_id );
+      std::vector<SampleVariant*> s;
+      if ( i == ftosv.end() ) return s;
+      std::vector<int>::iterator j = i->second.begin();
+      while ( j != i->second.end() )
+	{
+	  s.push_back( psample( *j ) );
+	  ++j;
+	}
+      return s;
+    }
+  
+  std::vector<const SampleVariant *> fsample( const int file_id ) const 
+    {
+      std::map<int,std::vector<int> >::const_iterator i = ftosv.find( file_id );
+      std::vector<const SampleVariant*> s;
+      if ( i == ftosv.end() ) return s;
+      std::vector<int>::const_iterator j = i->second.begin();
+      while ( j != i->second.end() )
+	{
+	  s.push_back( psample( *j ) );
+	  ++j;
+	}
+      return s;
     }
 
-  
-  /*!
-    Allele count for variant, as specified in ALT/REF
-    @return Number of unique alleles, including reference 
-  */
 
+
+  //
+  // Allele-level summaries/queries
+  //
+
+  /// The number of specified alleles, from the REF/ALT
   int n_alleles() const;
-  
-  std::map<std::string,int> allele_counts( const affType & aff = UNKNOWN_PHE ) const;
-  
+
+  /// Does allele-count equal 2?
   bool biallelic() const;
-  
+
+  /// Does allele-count equal 1?
   bool monomorphic() const;
-  
+
+  /// Is allele-count greater than 2?
   bool multiallelic() const;
 
-  /*!
-    Is this variant a simple SNP?
-    @return T if only two alleles observed and single base substitution
-  */
-
+  /// Is this a bi-allelic single-base substitution? (i.e. basic SNP)
   bool simple_snp() const;
-
+  
+  /// Is this a simple SNP and a transition (A/G or C/T SNPs)
   bool transition() const;
 
+  /// Is this a simple SNP and a transversion (not A/G or C/T SNPs)
   bool transversion() const;
 
-  // 
+  /// Is this a biallelic insertion (ALT length > REF )
   bool simple_ins() const;
 
+  /// A biallelic deletion? (ALT length < REF )
   bool simple_del() const;
-
-  /*! 
-    Queries about genotype data
-    @return Number of nonreference individuals 
-  */
   
+  /// Return the 'Allele' object for allele 'a'
+  const Allele & allele(const int a) const;
+
+  
+  //
+  // Genotype-level summaries
+  //
+  
+  
+  bool has_nonreference( const int fide_id ) const;
+
+  bool has_nonreference( const SampleVariant & svar ) const;
+
+  /// Return a map of 
+  std::map<std::string,int> allele_counts( const affType & aff = UNKNOWN_PHE ) const;
+  
+  /// Return the number of individuals with a non-reference (non-missing) genotype
   int n_nonreference() const;
+
+
+  std::map<std::string,int> genotype_counts( const SampleVariant & , const affType & aff , bool unphased = true ) const;
+
+  std::map<std::string,int> genotype_counts( const int si , const affType & aff , bool unphased = true ) const;
+
+  std::map<std::string,int> genotype_counts( const affType & aff , bool unphased = true ) const;
+
 
 
   /*!
@@ -870,13 +457,7 @@ class Variant {
     @return True if alternate allele is minor allele
   */
 
-  bool n_minor_allele( int & m , int & n , const affType & aff = UNKNOWN_PHE ) const;
-
-  bool n_minor_allele() const
-    {
-      int dummy1, dummy2;
-      return n_minor_allele(dummy1, dummy2);
-    } 
+  bool n_minor_allele( int * m = NULL , int * n = NULL , double * maf = NULL , const affType & aff = UNKNOWN_PHE ) const;
   
   /*! 
     Queries about genotype data
@@ -924,6 +505,10 @@ class Variant {
   
 
   std::string sample_label( const int, const std::string & delim = "," ) const;
+  std::string geno_label( const Genotype & ) const;
+  std::string geno_label( const int, const Genotype & ) const;
+  std::string phased_geno_label( const Genotype & ) const;
+  std::string phased_geno_label( const int, const Genotype & ) const;
   std::string label( const int, const std::string & delim = "," ) const;
   std::string gmeta_label( const int, const std::string & delim = "," ) const;
 
@@ -962,20 +547,6 @@ class Variant {
       return ss.str();
     }
 
-  
-  bool operator<( const Variant & rhs ) const
-  {
-    if ( chr == rhs.chr )
-      {
-	if ( bp == rhs.bp )
-	  {
-	    return bp2 < rhs.bp2;
-	  }
-	return bp < rhs.bp;
-      }
-    else
-      return chr < rhs.chr;
-  }
 
 
   friend std::ostream & operator<<( std::ostream & out, const Variant & v)
@@ -993,9 +564,7 @@ class Variant {
   
   int n_samples() const 
   {
-    // in single-file mode, the data is only put in the consensus, so not even a single
-    // svar -- hmm. should straighten this out.
-    return svar.size() == 0 ? 1 : svar.size();
+    return svar.size();
   }
   
   int n_uniq_samples() const 
@@ -1054,15 +623,95 @@ class Variant {
       return true;
     }
 
-  SampleVariant & sample(const int s)
-    {
-      return svar[ s ];
-    }
+
   
-  SampleVariant & first_sample()
-    {
-      return svar[0];
-    }
+  //
+  // Some secondary classes embedded here
+  //
+
+
+  
+  
+  /// Helper class for E-M estimate of allele frequency and posterior genotype probabilities
+  EM em;
+
+
+ private:
+
+  //
+  // Core, invariant information for a variant
+  //
+
+  /// Variant ID
+  std::string      vname;
+
+  /// Chromosome code: as integer, decoded by Helper::chrCode()
+  int              chr;
+  
+  /// Reference base-pair position (base-1)
+  int              bp;
+
+  /// Optional second position (also base-1); if 0, implies bp2 == bp
+  int              bp2;
+  
+  /// Is this a valid Variant (i.e. was it properly defined in the VCF)?
+  bool             is_valid;
+
+
+  /// list of sample variants that contain most of the data
+  std::vector<SampleVariant> svar;
+  
+
+  //
+  // Because we allow overlapping or repeated variants in the same file, 
+  // there is a one-to-many mapping of file to sample-variant. These two
+  // structures keep track of this for this Variant
+  //
+  
+  /// map SV-IDs (0..NS-1) to file-IDs (any 1+ int)
+  std::vector<int> svtof;
+  
+  /// file-ID --> list of SV-IDs (file-to-SampleVariant)
+  std::map<int,std::vector<int> > ftosv; 
+
+  /// Simple flag to indicate if the Sample Variants come from more than one File
+  /// QUESTION: should this be SV?
+  bool             is_multi_sample;
+
+  /// 'iterator' for looping over sample-variants
+  int si;
+
+  
+  /// Pointer to individual alignment class
+  IndividualMap * align;
+  
+
+  //
+  // Private member functions
+  //
+
+
+  /// New variants constructed as missing 
+  void init();
+  
+    
+ public:
+
+  bool operator<( const Variant & rhs ) const
+  {
+    if ( chr == rhs.chr )
+      {
+	if ( bp == rhs.bp )
+	  {
+	    return bp2 < rhs.bp2;
+	  }
+	return bp < rhs.bp;
+      }
+    else
+      return chr < rhs.chr;
+  }
+  
+
 
 };
 

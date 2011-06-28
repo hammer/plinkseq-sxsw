@@ -105,7 +105,7 @@ class Mask {
   int require_ref( std::string n );
   int exclude_ref( std::string n );
   
-  void individual_data(const bool b) { inddata = b; if (b) is_simple=false; }
+  void individual_data(const bool b) { inddata = b; }
   bool individual_data() const { return inddata; }
   
   bool loc_seg(const int i ) const 
@@ -212,10 +212,10 @@ class Mask {
   // User-defined regions
   //
 
-  void include_reg( const Region & r ) {  is_simple = false; in_regions.insert(r); }
+  void include_reg( const Region & r ) {  in_regions.insert(r); }
   void include_reg( const std::vector<std::string> & r );
-  void require_reg( const Region & r ) {  is_simple = false; req_regions.insert(r); }
-  void exclude_reg( const Region & r ) {  is_simple = false; ex_regions.insert(r); }
+  void require_reg( const Region & r ) {  req_regions.insert(r); }
+  void exclude_reg( const Region & r ) {  ex_regions.insert(r); }
 
   //
   // Variant/file masks (i.e. remove variant if not observed/alt-allele in files x,y,z etc
@@ -271,9 +271,9 @@ class Mask {
   // User-defined functions, applied after the variant is extracted
   //
 
-  void func( const mask_func_t f ) { is_simple = false; filterFunctions.insert(f); } 
-  void include_func( const mask_func_t f ) { is_simple = false; filterFunctions.insert(f); }
-  void require_func( const mask_func_t f ) { is_simple = false; req_filterFunctions.insert(f); } 
+  void func( const mask_func_t f ) { filterFunctions.insert(f); } 
+  void include_func( const mask_func_t f ) { filterFunctions.insert(f); }
+  void require_func( const mask_func_t f ) { req_filterFunctions.insert(f); } 
 
   bool eval(Variant & v, void * p = NULL);
   
@@ -281,7 +281,7 @@ class Mask {
   // Restriction of maximum number of variants that can be returned (safety-net for R)
   //
 
-  void limit(const int i) { is_simple = false; max_var_count = i; } 
+  void limit(const int i) { max_var_count = i; } 
   
   //
   // How to handle multiple sites per genomic position
@@ -292,6 +292,26 @@ class Mask {
   bool test_fail_on_sample_variant(int n , int m ) const ;
   
   void fail_on_sample_variant( int n , int m );
+
+  //
+  // Specify what meta-information and genotype/meta-genotype information to load
+  // (only load what is needed)
+  //
+  
+  bool load_genotype_data() const { return load_genotypes; } 
+  void load_genotype_data(const bool b) { load_genotypes = b; } 
+  
+  bool load_variant_meta() const { return load_vmeta; }
+  void load_variant_meta(const bool b) { load_vmeta = b; }
+
+  bool load_variant_meta( const std::string & m ) const;
+  void set_load_variant_meta( const std::string & m );
+  
+  bool load_genotype_meta() const { return load_gmeta; }
+  void load_genotype_meta(const bool b) { load_gmeta = b; }
+
+  bool load_genotype_meta( const std::string & m ) const;
+  void set_load_genotype_meta( const std::string & m );
 
 
   //
@@ -374,7 +394,7 @@ class Mask {
 
   void group_loc_set(const std::string & g, const std::string & h);    
 
-  void process_empty_groups(bool b) { is_simple = false; empty_groups = b; }
+  void process_empty_groups(bool b) { empty_groups = b; }
 
   bool process_empty_groups() const { return empty_groups; }
 
@@ -617,7 +637,7 @@ class Mask {
   //
 
   void assuming_null_is_reference( const bool b )
-  { is_simple = false; assume_missing_is_ref = b; } 
+  { assume_missing_is_ref = b; } 
   
   bool assuming_null_is_reference() const
   { return assume_missing_is_ref; } 
@@ -640,10 +660,7 @@ class Mask {
   //
   
   bool EM_caller() const { return use_em; }
-  void EM_caller( const bool b ) { is_simple = false; use_em = b; }
-  
-  bool EM_replace() const { return em_replace; }
-  void EM_replace( const bool b ) { em_replace = b; }
+  void EM_caller( const bool b ) { use_em = b; }
   
   double EM_threshold() const { return em_threshold; } 
   void EM_threshold( const double t ) { em_threshold = t; }
@@ -674,7 +691,6 @@ class Mask {
 
   void minor_allele_count(const int c, const int d ) 
   { 
-    is_simple = false; 
     mac_filter = true;
     mac_lower = c; 
     mac_upper = d;
@@ -682,7 +698,6 @@ class Mask {
   
   void minor_allele_frequency(const double c, const double d ) 
   { 
-    is_simple = false; 
     maf_filter = true;
     maf_lower = c; 
     maf_upper = d;
@@ -691,7 +706,6 @@ class Mask {
   
   void hwe( double l, double u )
   {
-    is_simple = false;
     use_hwe_filter = true;
     hwe_lower = l;
     hwe_upper = u;
@@ -758,7 +772,7 @@ class Mask {
   void exclude_annotation( const std::string & );
   void exclude_annotation( const std::vector<std::string> & );
   
-  void append_annotation() { is_simple = false; annot = true; }
+  void append_annotation() { annot = true; }
   
   //
   // Get a dump of all mask options
@@ -773,8 +787,6 @@ class Mask {
   void reset()
     {
       
-      is_simple = true;
-
       inddata = true;
 
       in_locset.clear();
@@ -897,7 +909,6 @@ class Mask {
       // EM caller
       
       use_em = false;
-      em_replace = false;
       em_threshold = 0;
 
       // Files
@@ -965,17 +976,6 @@ class Mask {
     }
   
 
-  bool simple( const int n_files = 2 ) const
-  {
-    if ( ! is_simple ) return false;
-
-    // is this next line needed now??
-    if ( n_files > 1 ) return false; 
-
-    return true;
-  }
-  
-  
   bool loc() const { return in_locset.size() > 0 ; }
   bool var() const { return in_varset.size() > 0 ; }
   bool reg() const { return in_regions.size() > 0 ; }
@@ -1295,12 +1295,10 @@ class Mask {
 	qual.set(".");
 	null_fltr.reset();
 	case_fltr.reset();
-	control_fltr.reset();
-	is_simple = true;
+	control_fltr.reset();	
 	fail_on_sample_variant_allow = -1; // allow inf.
 	fail_on_sample_variant_require = -1; // no req.
 	use_em = false;
-	em_replace = false;
 	em_threshold = 0;
 	will_attach_meta = false;
 	will_attach_all_meta = false;
@@ -1321,6 +1319,14 @@ class Mask {
 	alt_file_count = 0;
 	alt_file_max = 0;
 	alt_group_filter = false;
+
+	load_genotypes = true;
+	load_vmeta = true;
+	load_gmeta = true;
+	load_partial_vmeta = false;
+	load_partial_gmeta = false;
+	load_vmeta_list.clear();
+	load_gmeta_list.clear();
       } 
     
     void searchDB();
@@ -1457,8 +1463,6 @@ class Mask {
     
     bool invalid_mask;
     
-    bool is_simple;
-
     bool inddata;
 
     int fail_on_sample_variant_allow;
@@ -1498,6 +1502,7 @@ class Mask {
     bool will_attach_all_meta;
     std::set<std::string> meta_fields;
 
+
     //
     // Bialleic SNP status
     //
@@ -1506,6 +1511,7 @@ class Mask {
     bool exc_biallelic;
     bool req_monomorphic;
     bool exc_monomorphic;
+
 
     //
     // Meta masks
@@ -1570,6 +1576,7 @@ class Mask {
 
     bool geno_mask;
     
+
     //
     // VarDB functions
     //
@@ -1578,62 +1585,58 @@ class Mask {
     downcode_mode_t downcode_mode;
     bool assume_missing_is_ref;
 
+
     //
     // EM caller
     //
 
     bool use_em;
-    bool em_replace;
     double em_threshold;
     
-    //
+
     // Frequency filters
-    //
 
-    bool mac_filter;
-    int mac_lower;
-    int mac_upper;
+    bool         mac_filter;
+    int          mac_lower;
+    int          mac_upper;
 
-    bool maf_filter;
-    double maf_lower;    
-    double maf_upper;
+    bool         maf_filter;
+    double       maf_lower;    
+    double       maf_upper;
 
-    //
+
     // HWE filters
-    //
 
-    bool use_hwe_filter;
-    double hwe_lower;
-    double hwe_upper;
+    bool         use_hwe_filter;
+    double       hwe_lower;
+    double       hwe_upper;
 
-    //
+
     // QUAL filters
-    //
 
-    bool use_qual_filter;
-    dbl_range qual;
+    bool         use_qual_filter;
+    dbl_range    qual;
     
 
-    //
     // Null filters, case/control filrers
-    //
 
-    bool has_null_filter;
-    int_range null_fltr;
+    bool         has_null_filter;
+    int_range    null_fltr;
 
-    bool has_case_control_filter;
-    int_range case_fltr;
-    int_range control_fltr;
+    bool         has_case_control_filter;
+    int_range    case_fltr;
+    int_range    control_fltr;
 
-    //
+
     // Annotation filters and appends
-    //
 
-    bool annot;
-    bool annot_append;
-    std::vector<std::string> in_annotations;
-    std::vector<std::string> req_annotations;
-    std::vector<std::string> ex_annotations;
+    bool                       annot;
+    bool                       annot_append;
+
+    std::vector<std::string>   in_annotations;
+    std::vector<std::string>   req_annotations;
+    std::vector<std::string>   ex_annotations;
+ 
 
     bool f_include_annotation( const Variant & );
     bool f_require_annotation( const Variant & );
@@ -1653,6 +1656,20 @@ class Mask {
     bool var_eval_expr_set;
     void var_set_filter_expression(const std::string & );
     bool var_eval_filter_includes;
+    
+
+    //
+    // Load indicators (do we need to get from disk?)
+    //
+    
+    bool load_genotypes;
+    bool load_vmeta;
+    bool load_gmeta;
+    bool load_partial_vmeta;
+    bool load_partial_gmeta;
+    std::set<std::string> load_vmeta_list;
+    std::set<std::string> load_gmeta_list;
+
     
  public:
     bool filter_expression() const { return eval_expr_set; } 
@@ -1674,14 +1691,6 @@ class Mask {
 
     friend std::ostream & operator<<( std::ostream & out , const Mask & m )
       {
-	if ( m.simple() ) 
-	  {
-	    out << "simple mask";
-	    return out;
-	  }
-	
-	
-
 	
 	if ( m.inc_filter.size() > 0 ) out << "  w/ filter-includes\n";
 	if ( m.req_filter.size() > 0 ) out << "  w/ filter-requires\n";

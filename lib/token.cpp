@@ -237,6 +237,8 @@ Token Token::operator!=(const Token & rhs )
     if ( is_string() && rhs.is_string() ) return Token( sval != rhs.sval ); 
     if ( is_int() && rhs.is_bool() ) return Token( ival != rhs.bval );
     if ( is_bool() && rhs.is_int() ) return Token( bval != rhs.ival );
+    if ( is_float() && rhs.is_int() ) return Token( fval != rhs.ival );
+    if ( is_int() && rhs.is_float() ) return Token( ival != rhs.fval );
     return Token();
 }
 
@@ -248,6 +250,8 @@ Token Token::operator==(const Token & rhs)
   if ( is_string() && rhs.is_string() ) return Token( sval == rhs.sval ); 
   if ( is_int() && rhs.is_bool() ) return Token( ival == rhs.bval );
   if ( is_bool() && rhs.is_int() ) return Token( bval == rhs.ival );
+  if ( is_float() && rhs.is_int() ) return Token( fval == rhs.ival );
+  if ( is_int() && rhs.is_float() ) return Token( ival == rhs.fval );
   return Token();
 }
 
@@ -446,7 +450,7 @@ Token Token::operator&&(const Token & rhs)
       if ( rhs.is_bool() ) return Token( ival && rhs.bval );
       if ( rhs.is_int() ) return Token( ival && rhs.ival );
     }
-  
+
   return Token();
 }
 

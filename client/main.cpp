@@ -13,12 +13,54 @@
 #include "ibd.h"
 #include "ibs.h"
 
+void f_dummy( Variant & v0 , void * p )
+{
+  
+  std::cout << "\n\n-----------------------------------------------------\n"
+	    << v0 << "\n";
+  
+  Variant var = v0;
+  Variant v2;
+  v0 = v2;
+  
+  
+  const int n = var.size();
+  
+  std::cout << var.n_samples() << " is NS\n";
+
+  for (int s = 0; s < var.n_samples(); s++)
+    {	  
+      std::cout << " n = " << n << "\n";
+
+      for (int i = 0 ; i < n; i++ )
+	{
+	  
+	  plog << "Sample " << s << " individual " << i << "\n";
+	  
+	  Genotype * g = var.genotype( s , i );
+	  
+	  std::cout << " *\n";
+	  
+	  if ( g == NULL ) plog << "----------------------------------NULL\n";
+	  else
+	    {	      
+	      plog << *g << "\t"; 	      
+	      plog << var.geno_label( *g ) << "\t";
+	      plog << g->allele_count() << "\t";
+	      plog << g->meta << "\n";
+	    }
+	}
+    }
+}
+
+
+
 using namespace std;
 
 GStore g;
 Pseq::Util::Options options;
-std::string PSEQ_VERSION = "0.06";
-std::string PSEQ_DATE    = "4-Jun-2011";
+std::string PSEQ_VERSION = "0.07";
+std::string PSEQ_DATE    = "20-Jun-2011";
 
 int main(int argc, char ** argv)
 {
@@ -137,7 +179,7 @@ int main(int argc, char ** argv)
 	<< "load-seq|input,seqop|load FASTA into SEQDB|ARG:file" 
 	<< "load-weights|input,refop|load weight table|ARG:name,file" 
 	<< "score-weights|annot|score varints for weights|VCF|ARG:name"
-
+    
 	<< "tag-file|varop|add file-tags to VARDB|ARG:file,id" 
 	<< "delete-var|varop|remove file from VARDB|ARG:id" 
 	<< "vacuum|varop|clean-up unused disk-space in VARDB"     
@@ -145,11 +187,11 @@ int main(int argc, char ** argv)
 	<< "write-vardb|output,varop|write a new VARDB|ARG:new-vardb,new-project"
 	<< "write-vcf|output|write a new VCF file|VCF" 
 	<< "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name|OPT:family-id" 
-	<< "write-lik|output|write a BEALGE likelihood file|VCF" 
-	<< "v-matrix|output|write a matrix of allele counts|VCF" 
+	<< "write-lik|output|write a BEALGE likelihood file|VCF"
+	<< "v-matrix|output|write a matrix of allele counts|VCF"
 	<< "g-matrix|output|write a matix of gene-based allele counts|GRP"
-	<< "meta-matrix|output|write a matrix of variant meta-information|VCF" 
-	<< "v-meta-matrix|output|write a matrix of individual genotype meta-information|VCF|ARG:name"
+	<< "meta-matrix|output|write a matrix of variant meta-information|VCF|NOGENO"
+	<< "v-meta-matrix|output|write a matrix of individual genotype meta-information|VCF|ARG:name|NOGENO"
 	<< "annotate-loc|locop,annot|annotate loci|ARG:group"
 	<< "load-pheno|input,indop|load phenotypes into INDB|ARG:file"
 	<< "load-pedigree|input,indop|load pedigree information into INDDB|ARG:file"    
@@ -178,13 +220,14 @@ int main(int argc, char ** argv)
 	<< "v-dist|stats,association|comparison of rare-variant group distributions|VCF|OPT:whole-sample-counts"
 	<< "v-freq|stats,qc|variant frequency data|VCF|ARG:em"
 
-	<< "loc-view|views,locop|view loci in a LOCDB"
+	<< "loc-view|views,locop|view loci from a LOCDB group with 1 or more variants"
+	<< "loc-dump|views,locop|show all loci in a LOCDB group"
 	<< "loc-stats|views,locop|locus-based stats"
 	<< "loc-translate|locop|AA sequence of loci"
 	<< "seq-view|views|view regions of sequence from SEQDB"
 
 	<< "counts|views,association|summary/count statistics|VCF"
-	<< "gcounts|views,association|genotype summary/count statistics|VCF"
+	<< "g-counts|views,association|genotype summary/count statistics|VCF"
 	<< "assoc|association|gene-based association tests|GRP" 
 	<< "v-assoc|association|single-variant association|VCF" 
 	<< "glm|association|general linear models|VCF"
@@ -207,6 +250,8 @@ int main(int argc, char ** argv)
 	<< "intersect|locop|intersect locus groups"
 	<< "annotate|misc|annotate a list of positions with various fields"
     
+	<< "dummy|system|dummy command|VCF"
+
 	<< "simple-sim|misc|simple gene variant simulation|GRP";
     
   
@@ -220,7 +265,10 @@ int main(int argc, char ** argv)
 
   if ( args.has("ignore-warnings") )
     plog.show_warnings( false );
-  
+
+  if ( args.has("early-warnings") )
+    plog.early_warnings( true );
+
   if ( args.has("debug-file") )
     debug.logfile( args.as_string("debug-file") ); 
   
@@ -1414,7 +1462,8 @@ int main(int argc, char ** argv)
 	if ( args.has( "em" ) )
 	  {
 	    m.EM_caller( true );
-	    m.EM_threshold( 0.99 );
+	    double threshold = args.as_float( "em" );	    
+	    m.EM_threshold( threshold );
 	    x.em_stats = true; 
 	  }
 
@@ -1431,7 +1480,6 @@ int main(int argc, char ** argv)
 	plog.data_header( "FILTER" );
 	plog.data_header( "QUAL" );
 	plog.data_header( "TI" );  // flag to indicate Ti/Tv
-	plog.data_header( "TV" );  // flag to indicate Ti/Tv
 
 	plog.data_header( "GENO" );
 	plog.data_header( "MAF" );
@@ -1502,7 +1550,7 @@ int main(int argc, char ** argv)
     // Create a summary counts file
     //
 
-    if ( command == "counts" || command == "gcounts" )
+    if ( command == "counts" || command == "g-counts" )
       {
 	if ( options.key("vcf") )
 	  {
@@ -1511,7 +1559,7 @@ int main(int argc, char ** argv)
 	  }
 	else
 	  {	 	    
-	    bool genotypes = options.key("genotypes") || command == "gcounts" ;
+	    bool genotypes = options.key("genotypes") || command == "g-counts" ;
 	    Pseq::VarDB::simple_counts( m , genotypes );
 	  }
 	Pseq::finished();
@@ -1650,7 +1698,7 @@ int main(int argc, char ** argv)
     // Per-locus simple view, or sequence stats, e.g. GC percent 
     //
 
-    if ( command == "loc-view" )
+    if ( command == "loc-dump" )
       {
 	if ( ! ( g.locdb.attached() | g.segdb.attached() ) ) Helper::halt("no LOCDB or SEGDB attached");
 	if ( ! args.has( "group" ) ) 
@@ -1667,6 +1715,15 @@ int main(int argc, char ** argv)
 
 	Pseq::finished();
       }
+
+
+    if ( command == "loc-view" )
+      {
+	// assumes a mask will specifiy the 'loc.group'
+	g.vardb.iterate( g_loc_view , NULL , m );
+	Pseq::finished();
+      }
+
 
     if ( command == "loc-stats" )
       {	
@@ -1993,6 +2050,24 @@ int main(int argc, char ** argv)
 	Pseq::VarDB::write_gene_matrix(m,opt);
 	Pseq::finished();
       }
+
+    
+    
+    if ( command == "dummy" ) 
+      {
+	const int n = g.indmap.size();
+
+// 	for (int i=0; i<n; i++)
+// 	  std::cout << i << "\t" 
+// 		    << g.indmap.ind(i)->id() << "\t" 
+// 		    << g.indmap.sample_slot(i,1) << "\t" 
+// 		    << g.indmap.sample_slot(i,2) << "\n";
+
+	g.vardb.iterate( f_dummy , NULL , m );
+	Pseq::finished();
+      }
+    
+
 
     Pseq::finished();
     return 0;

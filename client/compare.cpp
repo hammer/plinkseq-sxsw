@@ -92,9 +92,7 @@ void f_group_comp( Variant & v , void * p)
   std::set<int> obs;
   
   const int n = v.size();
-  int m = 0; // minor allele
-  int c = 0; // total counts	  
-  bool altmin = v.n_minor_allele( m , c );
+  bool altmin = v.n_minor_allele( );
   
   for (int i = 0; i < n; i++)
     if ( v(i).minor_allele( altmin ) )

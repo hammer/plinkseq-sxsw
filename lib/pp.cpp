@@ -375,7 +375,7 @@ PPH2Set * PPH2DBase::lookup( const std::string & gene )
       
       PolyPhen2Buffer pb;
       
-      pb.ParseFromString( b.getString() );
+      pb.ParseFromString( b.get_string() );
       
       //plog << pb.DebugString() << "\n\n";
 

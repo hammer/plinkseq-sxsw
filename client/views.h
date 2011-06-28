@@ -23,6 +23,8 @@ void i_view( Individual & );
 
 // Specialist views
 
+void g_loc_view( VariantGroup & , void * p );
+
 void g_geneseq( VariantGroup & , void * p );
 
 void f_view_lik( Variant & , void * p );

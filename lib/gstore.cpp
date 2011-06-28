@@ -37,6 +37,9 @@ GStore::GStore(bool r)
   
   // this may get changed later, but assume we have a full project
   in_single_file_mode = false;
+
+  // by default, not in R mode
+  r_mode = false;
   
 }
 

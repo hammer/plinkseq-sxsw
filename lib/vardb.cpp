@@ -7,35 +7,37 @@
 #include "regions.h"
 #include "sqlz.h"
 
-
+extern GStore * GP;
 
 bool VarDBase::newDB( std::string n )
 {
   
   sql.open(n);
-
+  
   // register compression functions 
   
   sqlite3_create_function( sql.pointer(), "mycompress", 1, SQLITE_UTF8, 0, &compressFunc, 0, 0);
   sqlite3_create_function( sql.pointer(), "myuncompress", 1, SQLITE_UTF8, 0, &uncompressFunc, 0, 0);
-
+  
   sql.synchronous(false);
+
   sql.query("PRAGMA encoding='UTF-8'");
   
-  
-  // If desired to use compression, uncomment the line below
-  
-
   using_compression = true;
 
+  //
   // DB version, and a place for various other meta-information in future
+  //
   
   sql.query(" CREATE TABLE IF NOT EXISTS dbmeta("
 	    "   varname      VARCHAR(20) NOT NULL , "
 	    "   varvalue    VARCHAR(20) NOT NULL , "
 	    " CONSTRAINT uMeta UNIQUE (varname ) ); " );  
   
+
+  //
   // Headers 
+  //
   
   sql.query(" CREATE TABLE IF NOT EXISTS headers("
 	    "   header_id INTEGER PRIMARY KEY , "
@@ -43,9 +45,11 @@ bool VarDBase::newDB( std::string n )
 	    "   name     VARCHAR(20) , "
 	    "   value    VARCHAR(20) ) ; " );
   
-  
+
+  //
   // Meta-value type information
-  
+  //
+
   sql.query(" CREATE TABLE IF NOT EXISTS metatypes("
 	    "   file_id      INTEGER NOT NULL , "
 	    "   name         VARCHAR(20) , "
@@ -55,7 +59,10 @@ bool VarDBase::newDB( std::string n )
 	    "   description  VARCHAR(20) , "
 	    " CONSTRAINT mtCon UNIQUE (file_id,name,grp) ); " );
   
+
+  //
   // Files/summary
+  //
   
   sql.query(" CREATE TABLE IF NOT EXISTS files("
 	    "   file_id  INTEGER PRIMARY KEY , "
@@ -63,37 +70,63 @@ bool VarDBase::newDB( std::string n )
 	    "   tag      VARCHAR(20) , "
 	    "   ni       INTEGER , "
 	    "   nv       INTEGER ); " );
-  //	    " CONSTRAINT tagCon UNIQUE (tag) ); " );
+
   
-
+  //
   // Chromosome codes, and populate with basics
+  //
+  
   bool populate_chr_codes = ! sql.table_exists( "chrcodes" );
-
+  
   sql.query( " CREATE TABLE IF NOT EXISTS chrcodes("
              "   chr_id  INTEGER PRIMARY KEY , "
              "   name    VARCHAR(20) NOT NULL , "
+	     "   ploidy  INTEGER NOT NULL , "
              " CONSTRAINT cChr UNIQUE ( name ) ) ; " );
-
-  // we only want to do this once (otherwise write to db will cause lock)
+  
+  
+  //
+  // We only want to do this once (otherwise write to db will cause lock)
+  //
+  
   if ( populate_chr_codes ) 
     {
       
       stmt_insert_chr_code = 
-	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name ) values( :name ); " );      
+	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name , ploidy ) values( :name , :ploidy ); " );      
       stmt_fix_chr_code = 
-	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name ) values( :chr_id , :name ); " );      
+	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name , ploidy ) values( :chr_id , :name , :ploidy ); " );      
       stmt_fetch_chr_code = 
-	sql.prepare( " SELECT chr_id FROM chrcodes WHERE name == :name ; " );      
+	sql.prepare( " SELECT chr_id , ploidy FROM chrcodes WHERE name == :name ; " );      
       stmt_fetch_chr_name = 
-	sql.prepare( " SELECT name FROM chrcodes WHERE chr_id == :chr_id ; " );
-      
-      chr_code( 1, "chr1" );  chr_code( 2, "chr2" );  chr_code( 3, "chr3" );  chr_code( 4, "chr4" );
-      chr_code( 5, "chr5" );  chr_code( 6, "chr6" );  chr_code( 7, "chr7" );  chr_code( 8, "chr8" );
-      chr_code( 9, "chr9" );  chr_code(10, "chr10");  chr_code(11, "chr11");  chr_code(12, "chr12");
-      chr_code(13, "chr13");  chr_code(14, "chr14");  chr_code(15, "chr15");  chr_code(16, "chr16");
-      chr_code(17, "chr17");  chr_code(18, "chr18");  chr_code(19, "chr19");  chr_code(20, "chr20");
-      chr_code(21, "chr21");  chr_code(22, "chr22"); 
-      chr_code(23, "chrX");   chr_code(24, "chrY");  chr_code(25, "chrM");      
+	sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
+
+            
+      chr_code( 1, "chr1"  , PLOIDY_AUTOSOMAL );  
+      chr_code( 2, "chr2"  , PLOIDY_AUTOSOMAL );  
+      chr_code( 3, "chr3"  , PLOIDY_AUTOSOMAL );  
+      chr_code( 4, "chr4"  , PLOIDY_AUTOSOMAL );
+      chr_code( 5, "chr5"  , PLOIDY_AUTOSOMAL );  
+      chr_code( 6, "chr6"  , PLOIDY_AUTOSOMAL );  
+      chr_code( 7, "chr7"  , PLOIDY_AUTOSOMAL );  
+      chr_code( 8, "chr8"  , PLOIDY_AUTOSOMAL );
+      chr_code( 9, "chr9"  , PLOIDY_AUTOSOMAL );  
+      chr_code(10, "chr10" , PLOIDY_AUTOSOMAL );  
+      chr_code(11, "chr11" , PLOIDY_AUTOSOMAL );  
+      chr_code(12, "chr12" , PLOIDY_AUTOSOMAL );
+      chr_code(13, "chr13" , PLOIDY_AUTOSOMAL );  
+      chr_code(14, "chr14" , PLOIDY_AUTOSOMAL );  
+      chr_code(15, "chr15" , PLOIDY_AUTOSOMAL );  
+      chr_code(16, "chr16" , PLOIDY_AUTOSOMAL );
+      chr_code(17, "chr17" , PLOIDY_AUTOSOMAL );  
+      chr_code(18, "chr18" , PLOIDY_AUTOSOMAL );  
+      chr_code(19, "chr19" , PLOIDY_AUTOSOMAL );  
+      chr_code(20, "chr20" , PLOIDY_AUTOSOMAL );
+      chr_code(21, "chr21" , PLOIDY_AUTOSOMAL );  
+      chr_code(22, "chr22" , PLOIDY_AUTOSOMAL );       
+      chr_code(23, "chrX"  , PLOIDY_X ); 
+      chr_code(24, "chrY"  , PLOIDY_Y ); 
+      chr_code(25, "chrM"  , PLOIDY_HAPLOID );      
       
       sql.finalise( stmt_insert_chr_code );
       sql.finalise( stmt_fix_chr_code );
@@ -127,7 +160,10 @@ bool VarDBase::newDB( std::string n )
   sql.query(" CREATE TABLE IF NOT EXISTS vdat("
 	    "   meta_id INTEGER PRIMARY KEY , "
 	    "   var_id  INTEGER NOT NULL , "
-	    "   data    BLOB ); " );
+	    "   data    BLOB , "      // basic variant data (alleles, etc)
+	    "   vdata   BLOB , "      // variant meta-information
+	    "   gdata   BLOB , "      // genotype calls
+	    "   gmdata  BLOB ); " );  // genotype meta-information
 
   // file-id <--> BCF path table 
 
@@ -135,8 +171,7 @@ bool VarDBase::newDB( std::string n )
 	    "   file_id    INTEGER NOT NULL , "	    
 	    "   filepath   VARCHAR(20) NOT NULL , "
             "   nind       INTEGER  ) ; " );
-  
-  
+    
   // Independent meta-information (appended outside of main VCF)
   // Not automatically attached to the variant
   
@@ -294,16 +329,16 @@ bool VarDBase::init()
     // Chromosome codes
 
     stmt_insert_chr_code = 
-      sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name ) values( :name ); " );
+      sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name , ploidy ) values( :name , :ploidy ); " );
 
     stmt_fix_chr_code = 
-      sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name ) values( :chr_id , :name ); " );
-
+      sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name , ploidy ) values( :chr_id , :name , :ploidy ); " );
+    
     stmt_fetch_chr_code = 
-      sql.prepare( " SELECT chr_id FROM chrcodes WHERE name == :name ; " );
-
+      sql.prepare( " SELECT chr_id , ploidy FROM chrcodes WHERE name == :name ; " );
+    
     stmt_fetch_chr_name = 
-      sql.prepare( " SELECT name FROM chrcodes WHERE chr_id == :chr_id ; " );
+      sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
 
 
     // Meta-value type information
@@ -354,21 +389,24 @@ bool VarDBase::init()
 		    "          ( file_id, name, chr, bp1 , bp2 ) "
 		    "   values ( :file_id, :name, :chr, :bp1 , :bp2 ) ; " );
     
-    if ( using_compression )
+    if ( using_compression ) 
+      {
+
 	stmt_insert_variant_data = 
-	    sql.prepare(" INSERT OR IGNORE INTO vdat "
-			"          ( var_id, data ) "
-			"   values ( :var_id , mycompress( :data ) ) " );	    
+	  sql.prepare(" INSERT OR IGNORE INTO vdat "
+		      "          ( var_id, data , vdata , gdata , gmdata ) "
+		      "   values ( :var_id , :data , :vdata , mycompress( :gdata ) , mycompress( :gmdata ) ) ; " );	    
+      }
     else
-	stmt_insert_variant_data = 
-	    sql.prepare(" INSERT OR IGNORE INTO vdat "
-			"          ( var_id, data ) "
-			"   values ( :var_id, :data ) " );
+      stmt_insert_variant_data = 
+	sql.prepare(" INSERT OR IGNORE INTO vdat "
+		    "          ( var_id, data , vdata , gdata , gmdata ) "
+		    "   values ( :var_id, :data , :vdata , :gdata , :gmdata ) ; " );
     
     stmt_insert_individual = 
-	sql.prepare(" INSERT OR IGNORE INTO individuals "
-		    "          ( file_id, indiv_id, name ) "
-		    "   values ( :file_id, :indiv_id, :name ); " );
+      sql.prepare(" INSERT OR IGNORE INTO individuals "
+		  "          ( file_id, indiv_id, name ) "
+		  "   values ( :file_id, :indiv_id, :name ); " );
     
     
     //
@@ -421,13 +459,41 @@ bool VarDBase::init()
       sql.prepare(" SELECT * FROM variants WHERE chr == :chr AND bp1 >= :rstart AND bp1 <= :rend;" );
 
     if ( using_compression )
-	stmt_fetch_variant_data = 
-	    sql.prepare(" SELECT myuncompress(data) FROM vdat "
-			" WHERE var_id == :var_id ; " );
+      {
+	stmt_fetch_variant_data_all = 
+	  sql.prepare(" SELECT data , vdata , myuncompress(gdata) , myuncompress(gmdata) FROM vdat "
+		      " WHERE var_id == :var_id ; " );
+	
+	stmt_fetch_variant_data_vmeta_geno = 
+	  sql.prepare(" SELECT data , vdata , myuncompress(gdata) FROM vdat "
+		      " WHERE var_id == :var_id ; " );
+	
+	stmt_fetch_variant_data_vmeta = 
+	  sql.prepare(" SELECT data , vdata FROM vdat "
+		      " WHERE var_id == :var_id ; " );
+
+	stmt_fetch_variant_data_geno = 
+	  sql.prepare(" SELECT data , gdata FROM vdat "
+		      " WHERE var_id == :var_id ; " );
+
+      }
     else
-	stmt_fetch_variant_data = 
-	    sql.prepare(" SELECT data FROM vdat WHERE var_id == :var_id ; " );
-    
+      {
+	stmt_fetch_variant_data_all = 
+	  sql.prepare(" SELECT data , vdata , gdata , gmdata FROM vdat WHERE var_id == :var_id ; " );
+
+	stmt_fetch_variant_data_vmeta_geno = 
+	  sql.prepare(" SELECT data , vdata , gdata FROM vdat WHERE var_id == :var_id ; " );
+
+	stmt_fetch_variant_data_vmeta = 
+	  sql.prepare(" SELECT data , vdata FROM vdat WHERE var_id == :var_id ; " );
+
+	stmt_fetch_variant_data_geno = 
+	  sql.prepare(" SELECT data , gdata FROM vdat WHERE var_id == :var_id ; " );
+
+      }
+
+
     stmt_fetch_individual = 
 	sql.prepare(" SELECT * FROM individuals WHERE indiv_id == :indiv_id  ; " );
     
@@ -582,7 +648,12 @@ bool VarDBase::release()
   sql.finalise( stmt_fetch_variant_key ); 
   sql.finalise( stmt_fetch_variant_pos ); 
   sql.finalise( stmt_fetch_variant_range ); 
-  sql.finalise( stmt_fetch_variant_data ); 
+
+  sql.finalise( stmt_fetch_variant_data_all ); 
+  sql.finalise( stmt_fetch_variant_data_vmeta_geno ); 
+  sql.finalise( stmt_fetch_variant_data_vmeta ); 
+  sql.finalise( stmt_fetch_variant_data_geno ); 
+
   sql.finalise( stmt_fetch_files );
   sql.finalise( stmt_fetch_file_id );
   
@@ -826,6 +897,8 @@ uint64_t VarDBase::insert( uint64_t file_id , const Individual & person )
   return indiv_id ;
 }
 
+
+
 uint64_t VarDBase::insert_consensus( uint64_t file_id , const Variant & var )
 {
   
@@ -855,9 +928,18 @@ uint64_t VarDBase::insert_consensus( uint64_t file_id , const Variant & var )
   
   // Obtain binary representation of variant and insert
   
-  blob data = var.consensus.encode_BLOB();
+  blob data = var.consensus.encode_var_BLOB();
+  blob vdata = var.consensus.encode_vmeta_BLOB();
+  blob gdata = var.consensus.encode_geno_BLOB();
+  blob gmdata = var.consensus.encode_gmeta_BLOB();
+
   sql.bind_int64( stmt_insert_variant_data , ":var_id" , var_id );
+
   sql.bind_blob( stmt_insert_variant_data , ":data" , data );
+  sql.bind_blob( stmt_insert_variant_data , ":vdata" , vdata );
+  sql.bind_blob( stmt_insert_variant_data , ":gdata" , gdata );
+  sql.bind_blob( stmt_insert_variant_data , ":gmdata" , gmdata );
+
   sql.step( stmt_insert_variant_data );
   sql.reset( stmt_insert_variant_data );
   return var_id;
@@ -875,8 +957,7 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
   SampleVariant & sample = var.add( sql.get_int(  s , 1 ) );  
   
   // Sample attributes
-  
-  sample.index( sql.get_int64( s , 0 ) );
+  sample.index( sql.get_int64( s , 0 ) ) ; 
   
   // Core variant attributes
   
@@ -885,8 +966,8 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
   var.position( sql.get_int( s , 4 ) );
   var.stop( sql.get_int( s , 5 ) );
   
-  // Are data stored in VARDB, or do we want to look-up the variant from 
-  // a BCF? 
+  // Are data stored in VARDB? 
+  // Or look-up this variant from a BCF? 
   
   int64_t bcf_offset = sql.get_int64( s , 6 );
   
@@ -894,13 +975,14 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
     {
 
       int file_id = sql.get_int( s , 1 );
+
       BCF * bcf = bcfmap[ file_id ];
       
       if ( bcf ) 
 	{
 	  SampleVariant & target = ( ! align->multi_sample() ) ? var.consensus : sample ;      
 	  SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
-	  bcf->read_record( var , target , genotype_target, bcf_offset);	  	
+	  bcf->read_record( var , target , genotype_target, bcf_offset); 
 	}
       else
 	Helper::halt( "requested BCF not attached" );
@@ -908,15 +990,51 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
     }
   else
     {
+
       // Attach BLOB from VARDB, which will be later expanded (if needed)
-      sql.bind_int64( stmt_fetch_variant_data , ":var_id" , sample.index() );
-      sql.step( stmt_fetch_variant_data );
+      
+      sqlite3_stmt * s = stmt_fetch_variant_data_all;
+      if ( fetch_mode == NO_GMETA ) s = stmt_fetch_variant_data_vmeta_geno;
+      else if ( fetch_mode == ONLY_VMETA ) s = stmt_fetch_variant_data_vmeta;
+      else if ( fetch_mode == ONLY_GENO ) s = stmt_fetch_variant_data_geno;
+      
+      sql.bind_int64( s , ":var_id" , sample.index() );
+      sql.step( s );
       
       // Only store BLOB in raw form: do not parse until we 
       // know we are definitely interested in this variant      
-      blob b = sql.get_blob( stmt_fetch_variant_data , 0 );      
-      sample.store_BLOB( b );      
-      sql.reset( stmt_fetch_variant_data );
+      
+      blob var_blob = sql.get_blob( s , 0 );
+      
+      blob * vmeta_blob  = NULL;
+      blob * geno_blob   = NULL;
+      blob * gmeta_blob  = NULL;
+      
+
+      if ( fetch_mode == ALL || fetch_mode == NO_GMETA )
+	{	       
+	  vmeta_blob  = new blob( sql.get_blob( s , 1 ) );
+	  geno_blob   = new blob( sql.get_blob( s , 2 ) );
+	  if ( fetch_mode == ALL ) gmeta_blob  = new blob( sql.get_blob( s , 3 ) ); 
+	}
+      else if ( fetch_mode == ONLY_VMETA )
+	{
+	  vmeta_blob  = new blob( sql.get_blob( s , 1 ) );
+	}
+      else if ( fetch_mode == ONLY_GENO )
+	{
+	  geno_blob  = new blob( sql.get_blob( s , 1 ) );
+	}
+
+      // this extracts out a PB string, so we can remove BLOBs afterwards
+      
+      sample.store_BLOBs( &var_blob , vmeta_blob , geno_blob , gmeta_blob );      
+      
+      if ( vmeta_blob ) delete vmeta_blob;
+      if ( geno_blob ) delete geno_blob;
+      if ( gmeta_blob ) delete gmeta_blob;
+      
+      sql.reset( s );
     }
 
   return sample;
@@ -1446,38 +1564,55 @@ uint64_t VarDBase::file_tag( const std::string & filetag )
   return id;    
 }
 
-bool VarDBase::chr_code( const int c , const std::string & n )
+bool VarDBase::chr_code( const int c , const std::string & n , const ploidy_t ploidy )
 {
   sql.bind_text( stmt_fix_chr_code , ":name" , n );
   sql.bind_int( stmt_fix_chr_code , ":chr_id" , c );
+  sql.bind_int( stmt_fix_chr_code , ":ploidy" , ploidy );
   bool okay = sql.step( stmt_fix_chr_code );
   sql.reset( stmt_fix_chr_code );
   chr_name_map[c]=n;
   chr_code_map[n]=c;
+  chr_ploidy_map[c]=ploidy;
   return okay;  
 }
 
-int VarDBase::chr_code( const std::string & n ) 
+int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy ) 
 {
   std::map<std::string,int>::iterator i = chr_code_map.find(n);
-  if ( i != chr_code_map.end() ) return i->second;
+  if ( i != chr_code_map.end() ) 
+    {
+      if ( ploidy ) *ploidy = chr_ploidy_map[ i->second ];
+      return i->second;
+    }
 
   sql.bind_text( stmt_fetch_chr_code , ":name" , n );
   if ( sql.step( stmt_fetch_chr_code ) )
     {
       int c = sql.get_int( stmt_fetch_chr_code , 0 );
       chr_code_map[n]=c;
+      chr_ploidy_map[c] = (ploidy_t)sql.get_int( stmt_fetch_chr_code , 1 );
+      if ( ploidy ) *ploidy = chr_ploidy_map[c];
       sql.reset( stmt_fetch_chr_code );
       return c;
     }
 
   //otherwise, we need to insert
   sql.bind_text( stmt_insert_chr_code , ":name" , n );
+  if ( ploidy ) sql.bind_int( stmt_insert_chr_code , ":ploidy" , *ploidy );
+  else sql.bind_int( stmt_insert_chr_code , ":ploidy" , PLOIDY_UNKNOWN );
   sql.step( stmt_insert_chr_code );
   int c = sql.last_insert_rowid();
   sql.reset( stmt_insert_chr_code );
   return c;
 }
+
+ploidy_t VarDBase::ploidy( const int c )
+{
+  std::map<int,ploidy_t>::iterator i = chr_ploidy_map.find( c );
+  return i == chr_ploidy_map.end() ? PLOIDY_UNKNOWN : i->second;
+}
+
 
 std::string VarDBase::chr_name( const int c ) 
 {
@@ -1489,6 +1624,7 @@ std::string VarDBase::chr_name( const int c )
     {
       n = sql.get_text( stmt_fetch_chr_name , 0 );
       chr_name_map[c]=n;
+      chr_ploidy_map[c]= (ploidy_t)sql.get_int( stmt_fetch_chr_name , 1 );
     }
   sql.reset( stmt_fetch_chr_name );
   return n;  

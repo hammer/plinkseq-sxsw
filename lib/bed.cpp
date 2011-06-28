@@ -294,7 +294,7 @@ bool BEDReader::read_bed()
       // Get genotypes
       //
 
-      v.consensus.calls.size( ni );
+      v.size( ni );
       
       int indx = 0;
       
@@ -323,7 +323,7 @@ bool BEDReader::read_bed()
 	      
 	      // Missing code? 
 	      if ( g1 && !g2 ) 
-		v(indx).missing( true );
+		v(indx).null( true );
 	      else
 		{
 		  int c = ref1 ? (int)g1 + (int)g2 : 2 - (int)g1 - (int)g2 ;

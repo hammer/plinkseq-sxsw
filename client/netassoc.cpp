@@ -230,7 +230,7 @@ void g_net_assoc_collector( VariantGroup & vars , void * p )
   
   const std::string name = vars.name();
   
-  std::cout << "\n" << name << "\n";
+  plog << "\n" << name << "\n";
 
   (*aux)[ name ].nvar = vars.size();
   
@@ -241,13 +241,13 @@ void g_net_assoc_collector( VariantGroup & vars , void * p )
     {      
       int c     = 0; // minor allele
       int c_tot = 0; // total counts	  
-      bool altmin = vars(v).n_minor_allele( c , c_tot );      
+      bool altmin = vars(v).n_minor_allele( &c , &c_tot );      
       const int n = vars.n_individuals();
       for (int i = 0; i < n; i++)
 	{	  	  
-	  if ( vars.geno(v,i).notnull() )
+	  if ( ! vars.geno(v,i).null() )
 	    {
-	      if ( vars.geno(v,i).minor_allele_count( altmin ) )  { (*aux)[ name ].ind[i] = 1; std::cout << "."; } 
+	      if ( vars.geno(v,i).minor_allele_count( altmin ) )  { (*aux)[ name ].ind[i] = 1; plog << "."; } 
 	    }
 	}
     }

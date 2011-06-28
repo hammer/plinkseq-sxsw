@@ -12,17 +12,26 @@
 
 namespace {
 
-const ::google::protobuf::Descriptor* VarMetaBuffer_descriptor_ = NULL;
+const ::google::protobuf::Descriptor* VariantMetaUnit_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
-  VarMetaBuffer_reflection_ = NULL;
-const ::google::protobuf::EnumDescriptor* VarMetaBuffer_Type_descriptor_ = NULL;
-const ::google::protobuf::Descriptor* GenotypeMetaBuffer_descriptor_ = NULL;
+  VariantMetaUnit_reflection_ = NULL;
+const ::google::protobuf::EnumDescriptor* VariantMetaUnit_Type_descriptor_ = NULL;
+const ::google::protobuf::Descriptor* GenotypeMetaUnit_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
-  GenotypeMetaBuffer_reflection_ = NULL;
-const ::google::protobuf::EnumDescriptor* GenotypeMetaBuffer_Type_descriptor_ = NULL;
+  GenotypeMetaUnit_reflection_ = NULL;
+const ::google::protobuf::EnumDescriptor* GenotypeMetaUnit_Type_descriptor_ = NULL;
 const ::google::protobuf::Descriptor* VariantBuffer_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   VariantBuffer_reflection_ = NULL;
+const ::google::protobuf::Descriptor* VariantMetaBuffer_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  VariantMetaBuffer_reflection_ = NULL;
+const ::google::protobuf::Descriptor* GenotypeBuffer_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  GenotypeBuffer_reflection_ = NULL;
+const ::google::protobuf::Descriptor* GenotypeMetaBuffer_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  GenotypeMetaBuffer_reflection_ = NULL;
 
 }  // namespace
 
@@ -33,64 +42,60 @@ void protobuf_AssignDesc_variant_2eproto() {
     ::google::protobuf::DescriptorPool::generated_pool()->FindFileByName(
       "variant.proto");
   GOOGLE_CHECK(file != NULL);
-  VarMetaBuffer_descriptor_ = file->message_type(0);
-  static const int VarMetaBuffer_offsets_[6] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VarMetaBuffer, type_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VarMetaBuffer, name_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VarMetaBuffer, int_value_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VarMetaBuffer, double_value_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VarMetaBuffer, string_value_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VarMetaBuffer, bool_value_),
+  VariantMetaUnit_descriptor_ = file->message_type(0);
+  static const int VariantMetaUnit_offsets_[6] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaUnit, type_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaUnit, name_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaUnit, int_value_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaUnit, double_value_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaUnit, string_value_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaUnit, bool_value_),
   };
-  VarMetaBuffer_reflection_ =
+  VariantMetaUnit_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
-      VarMetaBuffer_descriptor_,
-      VarMetaBuffer::default_instance_,
-      VarMetaBuffer_offsets_,
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VarMetaBuffer, _has_bits_[0]),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VarMetaBuffer, _unknown_fields_),
+      VariantMetaUnit_descriptor_,
+      VariantMetaUnit::default_instance_,
+      VariantMetaUnit_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaUnit, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaUnit, _unknown_fields_),
       -1,
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
-      sizeof(VarMetaBuffer));
-  VarMetaBuffer_Type_descriptor_ = VarMetaBuffer_descriptor_->enum_type(0);
-  GenotypeMetaBuffer_descriptor_ = file->message_type(1);
-  static const int GenotypeMetaBuffer_offsets_[11] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, type_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, name_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, fixed_len_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, len_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, int_value_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, double_value_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, string_value_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, bool_value_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, fixed_indiv_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, indiv_index_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, missing_index_),
+      sizeof(VariantMetaUnit));
+  VariantMetaUnit_Type_descriptor_ = VariantMetaUnit_descriptor_->enum_type(0);
+  GenotypeMetaUnit_descriptor_ = file->message_type(1);
+  static const int GenotypeMetaUnit_offsets_[11] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, type_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, name_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, fixed_len_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, len_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, int_value_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, double_value_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, string_value_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, bool_value_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, fixed_indiv_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, indiv_index_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, missing_index_),
   };
-  GenotypeMetaBuffer_reflection_ =
+  GenotypeMetaUnit_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
-      GenotypeMetaBuffer_descriptor_,
-      GenotypeMetaBuffer::default_instance_,
-      GenotypeMetaBuffer_offsets_,
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, _has_bits_[0]),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, _unknown_fields_),
+      GenotypeMetaUnit_descriptor_,
+      GenotypeMetaUnit::default_instance_,
+      GenotypeMetaUnit_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaUnit, _unknown_fields_),
       -1,
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
-      sizeof(GenotypeMetaBuffer));
-  GenotypeMetaBuffer_Type_descriptor_ = GenotypeMetaBuffer_descriptor_->enum_type(0);
+      sizeof(GenotypeMetaUnit));
+  GenotypeMetaUnit_Type_descriptor_ = GenotypeMetaUnit_descriptor_->enum_type(0);
   VariantBuffer_descriptor_ = file->message_type(2);
-  static const int VariantBuffer_offsets_[9] = {
+  static const int VariantBuffer_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantBuffer, ref_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantBuffer, alt_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantBuffer, strand_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantBuffer, quality_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantBuffer, filter_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantBuffer, vmeta_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantBuffer, geno1_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantBuffer, geno2_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantBuffer, gmeta_),
   };
   VariantBuffer_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -103,6 +108,51 @@ void protobuf_AssignDesc_variant_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(VariantBuffer));
+  VariantMetaBuffer_descriptor_ = file->message_type(3);
+  static const int VariantMetaBuffer_offsets_[1] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaBuffer, vmeta_),
+  };
+  VariantMetaBuffer_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      VariantMetaBuffer_descriptor_,
+      VariantMetaBuffer::default_instance_,
+      VariantMetaBuffer_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaBuffer, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(VariantMetaBuffer, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(VariantMetaBuffer));
+  GenotypeBuffer_descriptor_ = file->message_type(4);
+  static const int GenotypeBuffer_offsets_[1] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeBuffer, geno_),
+  };
+  GenotypeBuffer_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      GenotypeBuffer_descriptor_,
+      GenotypeBuffer::default_instance_,
+      GenotypeBuffer_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeBuffer, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeBuffer, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(GenotypeBuffer));
+  GenotypeMetaBuffer_descriptor_ = file->message_type(5);
+  static const int GenotypeMetaBuffer_offsets_[1] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, gmeta_),
+  };
+  GenotypeMetaBuffer_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      GenotypeMetaBuffer_descriptor_,
+      GenotypeMetaBuffer::default_instance_,
+      GenotypeMetaBuffer_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GenotypeMetaBuffer, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(GenotypeMetaBuffer));
 }
 
 namespace {
@@ -116,22 +166,34 @@ inline void protobuf_AssignDescriptorsOnce() {
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-    VarMetaBuffer_descriptor_, &VarMetaBuffer::default_instance());
+    VariantMetaUnit_descriptor_, &VariantMetaUnit::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-    GenotypeMetaBuffer_descriptor_, &GenotypeMetaBuffer::default_instance());
+    GenotypeMetaUnit_descriptor_, &GenotypeMetaUnit::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     VariantBuffer_descriptor_, &VariantBuffer::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    VariantMetaBuffer_descriptor_, &VariantMetaBuffer::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    GenotypeBuffer_descriptor_, &GenotypeBuffer::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    GenotypeMetaBuffer_descriptor_, &GenotypeMetaBuffer::default_instance());
 }
 
 }  // namespace
 
 void protobuf_ShutdownFile_variant_2eproto() {
-  delete VarMetaBuffer::default_instance_;
-  delete VarMetaBuffer_reflection_;
-  delete GenotypeMetaBuffer::default_instance_;
-  delete GenotypeMetaBuffer_reflection_;
+  delete VariantMetaUnit::default_instance_;
+  delete VariantMetaUnit_reflection_;
+  delete GenotypeMetaUnit::default_instance_;
+  delete GenotypeMetaUnit_reflection_;
   delete VariantBuffer::default_instance_;
   delete VariantBuffer_reflection_;
+  delete VariantMetaBuffer::default_instance_;
+  delete VariantMetaBuffer_reflection_;
+  delete GenotypeBuffer::default_instance_;
+  delete GenotypeBuffer_reflection_;
+  delete GenotypeMetaBuffer::default_instance_;
+  delete GenotypeMetaBuffer_reflection_;
 }
 
 void protobuf_AddDesc_variant_2eproto() {
@@ -141,33 +203,40 @@ void protobuf_AddDesc_variant_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\rvariant.proto\"\317\001\n\rVarMetaBuffer\022!\n\004typ"
-    "e\030\001 \002(\0162\023.VarMetaBuffer.Type\022\014\n\004name\030\002 \002"
-    "(\t\022\025\n\tint_value\030\003 \003(\005B\002\020\001\022\030\n\014double_valu"
-    "e\030\004 \003(\001B\002\020\001\022\024\n\014string_value\030\005 \003(\t\022\026\n\nboo"
-    "l_value\030\006 \003(\010B\002\020\001\".\n\004Type\022\007\n\003INT\020\001\022\t\n\005FL"
-    "OAT\020\002\022\010\n\004TEXT\020\003\022\010\n\004BOOL\020\004\"\306\002\n\022GenotypeMe"
-    "taBuffer\022&\n\004type\030\001 \002(\0162\030.GenotypeMetaBuf"
-    "fer.Type\022\014\n\004name\030\002 \002(\t\022\021\n\tfixed_len\030\003 \001("
+    "\n\rvariant.proto\"\323\001\n\017VariantMetaUnit\022#\n\004t"
+    "ype\030\001 \002(\0162\025.VariantMetaUnit.Type\022\014\n\004name"
+    "\030\002 \002(\t\022\025\n\tint_value\030\003 \003(\005B\002\020\001\022\030\n\014double_"
+    "value\030\004 \003(\001B\002\020\001\022\024\n\014string_value\030\005 \003(\t\022\026\n"
+    "\nbool_value\030\006 \003(\010B\002\020\001\".\n\004Type\022\007\n\003INT\020\001\022\t"
+    "\n\005FLOAT\020\002\022\010\n\004TEXT\020\003\022\010\n\004BOOL\020\004\"\302\002\n\020Genoty"
+    "peMetaUnit\022$\n\004type\030\001 \002(\0162\026.GenotypeMetaU"
+    "nit.Type\022\014\n\004name\030\002 \002(\t\022\021\n\tfixed_len\030\003 \001("
     "\005\022\017\n\003len\030\004 \003(\005B\002\020\001\022\025\n\tint_value\030\005 \003(\005B\002\020"
     "\001\022\030\n\014double_value\030\006 \003(\001B\002\020\001\022\024\n\014string_va"
     "lue\030\007 \003(\t\022\026\n\nbool_value\030\010 \003(\010B\002\020\001\022\023\n\013fix"
     "ed_indiv\030\t \001(\005\022\027\n\013indiv_index\030\n \003(\005B\002\020\001\022"
     "\031\n\rmissing_index\030\013 \003(\005B\002\020\001\".\n\004Type\022\007\n\003IN"
-    "T\020\001\022\t\n\005FLOAT\020\002\022\010\n\004TEXT\020\003\022\010\n\004BOOL\020\004\"\303\001\n\rV"
-    "ariantBuffer\022\013\n\003ref\030\001 \001(\t\022\013\n\003alt\030\002 \001(\t\022\016"
-    "\n\006strand\030\003 \001(\t\022\017\n\007quality\030\004 \001(\001\022\016\n\006filte"
-    "r\030\005 \003(\t\022\035\n\005vmeta\030\006 \003(\0132\016.VarMetaBuffer\022\021"
-    "\n\005geno1\030\007 \003(\005B\002\020\001\022\021\n\005geno2\030\010 \003(\005B\002\020\001\022\"\n\005"
-    "gmeta\030\t \003(\0132\023.GenotypeMetaBuffer", 752);
+    "T\020\001\022\t\n\005FLOAT\020\002\022\010\n\004TEXT\020\003\022\010\n\004BOOL\020\004\"Z\n\rVa"
+    "riantBuffer\022\013\n\003ref\030\001 \001(\t\022\013\n\003alt\030\002 \001(\t\022\016\n"
+    "\006strand\030\003 \001(\t\022\017\n\007quality\030\004 \001(\001\022\016\n\006filter"
+    "\030\005 \003(\t\"4\n\021VariantMetaBuffer\022\037\n\005vmeta\030\001 \003"
+    "(\0132\020.VariantMetaUnit\"\"\n\016GenotypeBuffer\022\020"
+    "\n\004geno\030\001 \003(\rB\002\020\001\"6\n\022GenotypeMetaBuffer\022 "
+    "\n\005gmeta\030\001 \003(\0132\021.GenotypeMetaUnit", 792);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "variant.proto", &protobuf_RegisterTypes);
-  VarMetaBuffer::default_instance_ = new VarMetaBuffer();
-  GenotypeMetaBuffer::default_instance_ = new GenotypeMetaBuffer();
+  VariantMetaUnit::default_instance_ = new VariantMetaUnit();
+  GenotypeMetaUnit::default_instance_ = new GenotypeMetaUnit();
   VariantBuffer::default_instance_ = new VariantBuffer();
-  VarMetaBuffer::default_instance_->InitAsDefaultInstance();
-  GenotypeMetaBuffer::default_instance_->InitAsDefaultInstance();
+  VariantMetaBuffer::default_instance_ = new VariantMetaBuffer();
+  GenotypeBuffer::default_instance_ = new GenotypeBuffer();
+  GenotypeMetaBuffer::default_instance_ = new GenotypeMetaBuffer();
+  VariantMetaUnit::default_instance_->InitAsDefaultInstance();
+  GenotypeMetaUnit::default_instance_->InitAsDefaultInstance();
   VariantBuffer::default_instance_->InitAsDefaultInstance();
+  VariantMetaBuffer::default_instance_->InitAsDefaultInstance();
+  GenotypeBuffer::default_instance_->InitAsDefaultInstance();
+  GenotypeMetaBuffer::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_variant_2eproto);
 }
 
@@ -181,11 +250,11 @@ struct StaticDescriptorInitializer_variant_2eproto {
 
 // ===================================================================
 
-const ::google::protobuf::EnumDescriptor* VarMetaBuffer_Type_descriptor() {
+const ::google::protobuf::EnumDescriptor* VariantMetaUnit_Type_descriptor() {
   protobuf_AssignDescriptorsOnce();
-  return VarMetaBuffer_Type_descriptor_;
+  return VariantMetaUnit_Type_descriptor_;
 }
-bool VarMetaBuffer_Type_IsValid(int value) {
+bool VariantMetaUnit_Type_IsValid(int value) {
   switch(value) {
     case 1:
     case 2:
@@ -198,50 +267,50 @@ bool VarMetaBuffer_Type_IsValid(int value) {
 }
 
 #ifndef _MSC_VER
-const VarMetaBuffer_Type VarMetaBuffer::INT;
-const VarMetaBuffer_Type VarMetaBuffer::FLOAT;
-const VarMetaBuffer_Type VarMetaBuffer::TEXT;
-const VarMetaBuffer_Type VarMetaBuffer::BOOL;
-const VarMetaBuffer_Type VarMetaBuffer::Type_MIN;
-const VarMetaBuffer_Type VarMetaBuffer::Type_MAX;
-const int VarMetaBuffer::Type_ARRAYSIZE;
+const VariantMetaUnit_Type VariantMetaUnit::INT;
+const VariantMetaUnit_Type VariantMetaUnit::FLOAT;
+const VariantMetaUnit_Type VariantMetaUnit::TEXT;
+const VariantMetaUnit_Type VariantMetaUnit::BOOL;
+const VariantMetaUnit_Type VariantMetaUnit::Type_MIN;
+const VariantMetaUnit_Type VariantMetaUnit::Type_MAX;
+const int VariantMetaUnit::Type_ARRAYSIZE;
 #endif  // _MSC_VER
-const ::std::string VarMetaBuffer::_default_name_;
+const ::std::string VariantMetaUnit::_default_name_;
 #ifndef _MSC_VER
-const int VarMetaBuffer::kTypeFieldNumber;
-const int VarMetaBuffer::kNameFieldNumber;
-const int VarMetaBuffer::kIntValueFieldNumber;
-const int VarMetaBuffer::kDoubleValueFieldNumber;
-const int VarMetaBuffer::kStringValueFieldNumber;
-const int VarMetaBuffer::kBoolValueFieldNumber;
+const int VariantMetaUnit::kTypeFieldNumber;
+const int VariantMetaUnit::kNameFieldNumber;
+const int VariantMetaUnit::kIntValueFieldNumber;
+const int VariantMetaUnit::kDoubleValueFieldNumber;
+const int VariantMetaUnit::kStringValueFieldNumber;
+const int VariantMetaUnit::kBoolValueFieldNumber;
 #endif  // !_MSC_VER
 
-VarMetaBuffer::VarMetaBuffer()
+VariantMetaUnit::VariantMetaUnit()
   : ::google::protobuf::Message() {
   SharedCtor();
 }
 
-void VarMetaBuffer::InitAsDefaultInstance() {
+void VariantMetaUnit::InitAsDefaultInstance() {
 }
 
-VarMetaBuffer::VarMetaBuffer(const VarMetaBuffer& from)
+VariantMetaUnit::VariantMetaUnit(const VariantMetaUnit& from)
   : ::google::protobuf::Message() {
   SharedCtor();
   MergeFrom(from);
 }
 
-void VarMetaBuffer::SharedCtor() {
+void VariantMetaUnit::SharedCtor() {
   _cached_size_ = 0;
   type_ = 1;
   name_ = const_cast< ::std::string*>(&_default_name_);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
-VarMetaBuffer::~VarMetaBuffer() {
+VariantMetaUnit::~VariantMetaUnit() {
   SharedDtor();
 }
 
-void VarMetaBuffer::SharedDtor() {
+void VariantMetaUnit::SharedDtor() {
   if (name_ != &_default_name_) {
     delete name_;
   }
@@ -249,27 +318,27 @@ void VarMetaBuffer::SharedDtor() {
   }
 }
 
-void VarMetaBuffer::SetCachedSize(int size) const {
+void VariantMetaUnit::SetCachedSize(int size) const {
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
 }
-const ::google::protobuf::Descriptor* VarMetaBuffer::descriptor() {
+const ::google::protobuf::Descriptor* VariantMetaUnit::descriptor() {
   protobuf_AssignDescriptorsOnce();
-  return VarMetaBuffer_descriptor_;
+  return VariantMetaUnit_descriptor_;
 }
 
-const VarMetaBuffer& VarMetaBuffer::default_instance() {
+const VariantMetaUnit& VariantMetaUnit::default_instance() {
   if (default_instance_ == NULL) protobuf_AddDesc_variant_2eproto();  return *default_instance_;
 }
 
-VarMetaBuffer* VarMetaBuffer::default_instance_ = NULL;
+VariantMetaUnit* VariantMetaUnit::default_instance_ = NULL;
 
-VarMetaBuffer* VarMetaBuffer::New() const {
-  return new VarMetaBuffer;
+VariantMetaUnit* VariantMetaUnit::New() const {
+  return new VariantMetaUnit;
 }
 
-void VarMetaBuffer::Clear() {
+void VariantMetaUnit::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     type_ = 1;
     if (_has_bit(1)) {
@@ -286,13 +355,13 @@ void VarMetaBuffer::Clear() {
   mutable_unknown_fields()->Clear();
 }
 
-bool VarMetaBuffer::MergePartialFromCodedStream(
+bool VariantMetaUnit::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
 #define DO_(EXPRESSION) if (!(EXPRESSION)) return false
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .VarMetaBuffer.Type type = 1;
+      // required .VariantMetaUnit.Type type = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -300,8 +369,8 @@ bool VarMetaBuffer::MergePartialFromCodedStream(
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
                  input, &value)));
-          if (::VarMetaBuffer_Type_IsValid(value)) {
-            set_type(static_cast< ::VarMetaBuffer_Type >(value));
+          if (::VariantMetaUnit_Type_IsValid(value)) {
+            set_type(static_cast< ::VariantMetaUnit_Type >(value));
           } else {
             mutable_unknown_fields()->AddVarint(1, value);
           }
@@ -426,9 +495,9 @@ bool VarMetaBuffer::MergePartialFromCodedStream(
 #undef DO_
 }
 
-void VarMetaBuffer::SerializeWithCachedSizes(
+void VariantMetaUnit::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required .VarMetaBuffer.Type type = 1;
+  // required .VariantMetaUnit.Type type = 1;
   if (_has_bit(0)) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       1, this->type(), output);
@@ -488,9 +557,9 @@ void VarMetaBuffer::SerializeWithCachedSizes(
   }
 }
 
-::google::protobuf::uint8* VarMetaBuffer::SerializeWithCachedSizesToArray(
+::google::protobuf::uint8* VariantMetaUnit::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .VarMetaBuffer.Type type = 1;
+  // required .VariantMetaUnit.Type type = 1;
   if (_has_bit(0)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       1, this->type(), target);
@@ -564,11 +633,11 @@ void VarMetaBuffer::SerializeWithCachedSizes(
   return target;
 }
 
-int VarMetaBuffer::ByteSize() const {
+int VariantMetaUnit::ByteSize() const {
   int total_size = 0;
   
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .VarMetaBuffer.Type type = 1;
+    // required .VariantMetaUnit.Type type = 1;
     if (has_type()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->type());
@@ -639,10 +708,10 @@ int VarMetaBuffer::ByteSize() const {
   return total_size;
 }
 
-void VarMetaBuffer::MergeFrom(const ::google::protobuf::Message& from) {
+void VariantMetaUnit::MergeFrom(const ::google::protobuf::Message& from) {
   GOOGLE_CHECK_NE(&from, this);
-  const VarMetaBuffer* source =
-    ::google::protobuf::internal::dynamic_cast_if_available<const VarMetaBuffer*>(
+  const VariantMetaUnit* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const VariantMetaUnit*>(
       &from);
   if (source == NULL) {
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
@@ -651,7 +720,7 @@ void VarMetaBuffer::MergeFrom(const ::google::protobuf::Message& from) {
   }
 }
 
-void VarMetaBuffer::MergeFrom(const VarMetaBuffer& from) {
+void VariantMetaUnit::MergeFrom(const VariantMetaUnit& from) {
   GOOGLE_CHECK_NE(&from, this);
   int_value_.MergeFrom(from.int_value_);
   double_value_.MergeFrom(from.double_value_);
@@ -668,25 +737,25 @@ void VarMetaBuffer::MergeFrom(const VarMetaBuffer& from) {
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
 
-void VarMetaBuffer::CopyFrom(const ::google::protobuf::Message& from) {
+void VariantMetaUnit::CopyFrom(const ::google::protobuf::Message& from) {
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-void VarMetaBuffer::CopyFrom(const VarMetaBuffer& from) {
+void VariantMetaUnit::CopyFrom(const VariantMetaUnit& from) {
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool VarMetaBuffer::IsInitialized() const {
+bool VariantMetaUnit::IsInitialized() const {
   if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
   
   return true;
 }
 
-void VarMetaBuffer::Swap(VarMetaBuffer* other) {
+void VariantMetaUnit::Swap(VariantMetaUnit* other) {
   if (other != this) {
     std::swap(type_, other->type_);
     std::swap(name_, other->name_);
@@ -700,22 +769,22 @@ void VarMetaBuffer::Swap(VarMetaBuffer* other) {
   }
 }
 
-::google::protobuf::Metadata VarMetaBuffer::GetMetadata() const {
+::google::protobuf::Metadata VariantMetaUnit::GetMetadata() const {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::Metadata metadata;
-  metadata.descriptor = VarMetaBuffer_descriptor_;
-  metadata.reflection = VarMetaBuffer_reflection_;
+  metadata.descriptor = VariantMetaUnit_descriptor_;
+  metadata.reflection = VariantMetaUnit_reflection_;
   return metadata;
 }
 
 
 // ===================================================================
 
-const ::google::protobuf::EnumDescriptor* GenotypeMetaBuffer_Type_descriptor() {
+const ::google::protobuf::EnumDescriptor* GenotypeMetaUnit_Type_descriptor() {
   protobuf_AssignDescriptorsOnce();
-  return GenotypeMetaBuffer_Type_descriptor_;
+  return GenotypeMetaUnit_Type_descriptor_;
 }
-bool GenotypeMetaBuffer_Type_IsValid(int value) {
+bool GenotypeMetaUnit_Type_IsValid(int value) {
   switch(value) {
     case 1:
     case 2:
@@ -728,44 +797,44 @@ bool GenotypeMetaBuffer_Type_IsValid(int value) {
 }
 
 #ifndef _MSC_VER
-const GenotypeMetaBuffer_Type GenotypeMetaBuffer::INT;
-const GenotypeMetaBuffer_Type GenotypeMetaBuffer::FLOAT;
-const GenotypeMetaBuffer_Type GenotypeMetaBuffer::TEXT;
-const GenotypeMetaBuffer_Type GenotypeMetaBuffer::BOOL;
-const GenotypeMetaBuffer_Type GenotypeMetaBuffer::Type_MIN;
-const GenotypeMetaBuffer_Type GenotypeMetaBuffer::Type_MAX;
-const int GenotypeMetaBuffer::Type_ARRAYSIZE;
+const GenotypeMetaUnit_Type GenotypeMetaUnit::INT;
+const GenotypeMetaUnit_Type GenotypeMetaUnit::FLOAT;
+const GenotypeMetaUnit_Type GenotypeMetaUnit::TEXT;
+const GenotypeMetaUnit_Type GenotypeMetaUnit::BOOL;
+const GenotypeMetaUnit_Type GenotypeMetaUnit::Type_MIN;
+const GenotypeMetaUnit_Type GenotypeMetaUnit::Type_MAX;
+const int GenotypeMetaUnit::Type_ARRAYSIZE;
 #endif  // _MSC_VER
-const ::std::string GenotypeMetaBuffer::_default_name_;
+const ::std::string GenotypeMetaUnit::_default_name_;
 #ifndef _MSC_VER
-const int GenotypeMetaBuffer::kTypeFieldNumber;
-const int GenotypeMetaBuffer::kNameFieldNumber;
-const int GenotypeMetaBuffer::kFixedLenFieldNumber;
-const int GenotypeMetaBuffer::kLenFieldNumber;
-const int GenotypeMetaBuffer::kIntValueFieldNumber;
-const int GenotypeMetaBuffer::kDoubleValueFieldNumber;
-const int GenotypeMetaBuffer::kStringValueFieldNumber;
-const int GenotypeMetaBuffer::kBoolValueFieldNumber;
-const int GenotypeMetaBuffer::kFixedIndivFieldNumber;
-const int GenotypeMetaBuffer::kIndivIndexFieldNumber;
-const int GenotypeMetaBuffer::kMissingIndexFieldNumber;
+const int GenotypeMetaUnit::kTypeFieldNumber;
+const int GenotypeMetaUnit::kNameFieldNumber;
+const int GenotypeMetaUnit::kFixedLenFieldNumber;
+const int GenotypeMetaUnit::kLenFieldNumber;
+const int GenotypeMetaUnit::kIntValueFieldNumber;
+const int GenotypeMetaUnit::kDoubleValueFieldNumber;
+const int GenotypeMetaUnit::kStringValueFieldNumber;
+const int GenotypeMetaUnit::kBoolValueFieldNumber;
+const int GenotypeMetaUnit::kFixedIndivFieldNumber;
+const int GenotypeMetaUnit::kIndivIndexFieldNumber;
+const int GenotypeMetaUnit::kMissingIndexFieldNumber;
 #endif  // !_MSC_VER
 
-GenotypeMetaBuffer::GenotypeMetaBuffer()
+GenotypeMetaUnit::GenotypeMetaUnit()
   : ::google::protobuf::Message() {
   SharedCtor();
 }
 
-void GenotypeMetaBuffer::InitAsDefaultInstance() {
+void GenotypeMetaUnit::InitAsDefaultInstance() {
 }
 
-GenotypeMetaBuffer::GenotypeMetaBuffer(const GenotypeMetaBuffer& from)
+GenotypeMetaUnit::GenotypeMetaUnit(const GenotypeMetaUnit& from)
   : ::google::protobuf::Message() {
   SharedCtor();
   MergeFrom(from);
 }
 
-void GenotypeMetaBuffer::SharedCtor() {
+void GenotypeMetaUnit::SharedCtor() {
   _cached_size_ = 0;
   type_ = 1;
   name_ = const_cast< ::std::string*>(&_default_name_);
@@ -774,11 +843,11 @@ void GenotypeMetaBuffer::SharedCtor() {
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
-GenotypeMetaBuffer::~GenotypeMetaBuffer() {
+GenotypeMetaUnit::~GenotypeMetaUnit() {
   SharedDtor();
 }
 
-void GenotypeMetaBuffer::SharedDtor() {
+void GenotypeMetaUnit::SharedDtor() {
   if (name_ != &_default_name_) {
     delete name_;
   }
@@ -786,27 +855,27 @@ void GenotypeMetaBuffer::SharedDtor() {
   }
 }
 
-void GenotypeMetaBuffer::SetCachedSize(int size) const {
+void GenotypeMetaUnit::SetCachedSize(int size) const {
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
 }
-const ::google::protobuf::Descriptor* GenotypeMetaBuffer::descriptor() {
+const ::google::protobuf::Descriptor* GenotypeMetaUnit::descriptor() {
   protobuf_AssignDescriptorsOnce();
-  return GenotypeMetaBuffer_descriptor_;
+  return GenotypeMetaUnit_descriptor_;
 }
 
-const GenotypeMetaBuffer& GenotypeMetaBuffer::default_instance() {
+const GenotypeMetaUnit& GenotypeMetaUnit::default_instance() {
   if (default_instance_ == NULL) protobuf_AddDesc_variant_2eproto();  return *default_instance_;
 }
 
-GenotypeMetaBuffer* GenotypeMetaBuffer::default_instance_ = NULL;
+GenotypeMetaUnit* GenotypeMetaUnit::default_instance_ = NULL;
 
-GenotypeMetaBuffer* GenotypeMetaBuffer::New() const {
-  return new GenotypeMetaBuffer;
+GenotypeMetaUnit* GenotypeMetaUnit::New() const {
+  return new GenotypeMetaUnit;
 }
 
-void GenotypeMetaBuffer::Clear() {
+void GenotypeMetaUnit::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     type_ = 1;
     if (_has_bit(1)) {
@@ -830,13 +899,13 @@ void GenotypeMetaBuffer::Clear() {
   mutable_unknown_fields()->Clear();
 }
 
-bool GenotypeMetaBuffer::MergePartialFromCodedStream(
+bool GenotypeMetaUnit::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
 #define DO_(EXPRESSION) if (!(EXPRESSION)) return false
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .GenotypeMetaBuffer.Type type = 1;
+      // required .GenotypeMetaUnit.Type type = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -844,8 +913,8 @@ bool GenotypeMetaBuffer::MergePartialFromCodedStream(
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
                  input, &value)));
-          if (::GenotypeMetaBuffer_Type_IsValid(value)) {
-            set_type(static_cast< ::GenotypeMetaBuffer_Type >(value));
+          if (::GenotypeMetaUnit_Type_IsValid(value)) {
+            set_type(static_cast< ::GenotypeMetaUnit_Type >(value));
           } else {
             mutable_unknown_fields()->AddVarint(1, value);
           }
@@ -1065,9 +1134,9 @@ bool GenotypeMetaBuffer::MergePartialFromCodedStream(
 #undef DO_
 }
 
-void GenotypeMetaBuffer::SerializeWithCachedSizes(
+void GenotypeMetaUnit::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required .GenotypeMetaBuffer.Type type = 1;
+  // required .GenotypeMetaUnit.Type type = 1;
   if (_has_bit(0)) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       1, this->type(), output);
@@ -1167,9 +1236,9 @@ void GenotypeMetaBuffer::SerializeWithCachedSizes(
   }
 }
 
-::google::protobuf::uint8* GenotypeMetaBuffer::SerializeWithCachedSizesToArray(
+::google::protobuf::uint8* GenotypeMetaUnit::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .GenotypeMetaBuffer.Type type = 1;
+  // required .GenotypeMetaUnit.Type type = 1;
   if (_has_bit(0)) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       1, this->type(), target);
@@ -1295,11 +1364,11 @@ void GenotypeMetaBuffer::SerializeWithCachedSizes(
   return target;
 }
 
-int GenotypeMetaBuffer::ByteSize() const {
+int GenotypeMetaUnit::ByteSize() const {
   int total_size = 0;
   
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .GenotypeMetaBuffer.Type type = 1;
+    // required .GenotypeMetaUnit.Type type = 1;
     if (has_type()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->type());
@@ -1431,10 +1500,10 @@ int GenotypeMetaBuffer::ByteSize() const {
   return total_size;
 }
 
-void GenotypeMetaBuffer::MergeFrom(const ::google::protobuf::Message& from) {
+void GenotypeMetaUnit::MergeFrom(const ::google::protobuf::Message& from) {
   GOOGLE_CHECK_NE(&from, this);
-  const GenotypeMetaBuffer* source =
-    ::google::protobuf::internal::dynamic_cast_if_available<const GenotypeMetaBuffer*>(
+  const GenotypeMetaUnit* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const GenotypeMetaUnit*>(
       &from);
   if (source == NULL) {
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
@@ -1443,7 +1512,7 @@ void GenotypeMetaBuffer::MergeFrom(const ::google::protobuf::Message& from) {
   }
 }
 
-void GenotypeMetaBuffer::MergeFrom(const GenotypeMetaBuffer& from) {
+void GenotypeMetaUnit::MergeFrom(const GenotypeMetaUnit& from) {
   GOOGLE_CHECK_NE(&from, this);
   len_.MergeFrom(from.len_);
   int_value_.MergeFrom(from.int_value_);
@@ -1471,25 +1540,25 @@ void GenotypeMetaBuffer::MergeFrom(const GenotypeMetaBuffer& from) {
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
 
-void GenotypeMetaBuffer::CopyFrom(const ::google::protobuf::Message& from) {
+void GenotypeMetaUnit::CopyFrom(const ::google::protobuf::Message& from) {
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-void GenotypeMetaBuffer::CopyFrom(const GenotypeMetaBuffer& from) {
+void GenotypeMetaUnit::CopyFrom(const GenotypeMetaUnit& from) {
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool GenotypeMetaBuffer::IsInitialized() const {
+bool GenotypeMetaUnit::IsInitialized() const {
   if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
   
   return true;
 }
 
-void GenotypeMetaBuffer::Swap(GenotypeMetaBuffer* other) {
+void GenotypeMetaUnit::Swap(GenotypeMetaUnit* other) {
   if (other != this) {
     std::swap(type_, other->type_);
     std::swap(name_, other->name_);
@@ -1508,11 +1577,11 @@ void GenotypeMetaBuffer::Swap(GenotypeMetaBuffer* other) {
   }
 }
 
-::google::protobuf::Metadata GenotypeMetaBuffer::GetMetadata() const {
+::google::protobuf::Metadata GenotypeMetaUnit::GetMetadata() const {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::Metadata metadata;
-  metadata.descriptor = GenotypeMetaBuffer_descriptor_;
-  metadata.reflection = GenotypeMetaBuffer_reflection_;
+  metadata.descriptor = GenotypeMetaUnit_descriptor_;
+  metadata.reflection = GenotypeMetaUnit_reflection_;
   return metadata;
 }
 
@@ -1528,10 +1597,6 @@ const int VariantBuffer::kAltFieldNumber;
 const int VariantBuffer::kStrandFieldNumber;
 const int VariantBuffer::kQualityFieldNumber;
 const int VariantBuffer::kFilterFieldNumber;
-const int VariantBuffer::kVmetaFieldNumber;
-const int VariantBuffer::kGeno1FieldNumber;
-const int VariantBuffer::kGeno2FieldNumber;
-const int VariantBuffer::kGmetaFieldNumber;
 #endif  // !_MSC_VER
 
 VariantBuffer::VariantBuffer()
@@ -1615,10 +1680,6 @@ void VariantBuffer::Clear() {
     quality_ = 0;
   }
   filter_.Clear();
-  vmeta_.Clear();
-  geno1_.Clear();
-  geno2_.Clear();
-  gmeta_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -1709,78 +1770,6 @@ bool VariantBuffer::MergePartialFromCodedStream(
           goto handle_uninterpreted;
         }
         if (input->ExpectTag(42)) goto parse_filter;
-        if (input->ExpectTag(50)) goto parse_vmeta;
-        break;
-      }
-      
-      // repeated .VarMetaBuffer vmeta = 6;
-      case 6: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_vmeta:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-                input, add_vmeta()));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(50)) goto parse_vmeta;
-        if (input->ExpectTag(58)) goto parse_geno1;
-        break;
-      }
-      
-      // repeated int32 geno1 = 7 [packed = true];
-      case 7: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_geno1:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, this->mutable_geno1())));
-        } else if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag)
-                   == ::google::protobuf::internal::WireFormatLite::
-                      WIRETYPE_VARINT) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitiveNoInline<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 1, 58, input, this->mutable_geno1())));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(66)) goto parse_geno2;
-        break;
-      }
-      
-      // repeated int32 geno2 = 8 [packed = true];
-      case 8: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_geno2:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, this->mutable_geno2())));
-        } else if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag)
-                   == ::google::protobuf::internal::WireFormatLite::
-                      WIRETYPE_VARINT) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitiveNoInline<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 1, 66, input, this->mutable_geno2())));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(74)) goto parse_gmeta;
-        break;
-      }
-      
-      // repeated .GenotypeMetaBuffer gmeta = 9;
-      case 9: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_gmeta:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-                input, add_gmeta()));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(74)) goto parse_gmeta;
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -1844,38 +1833,6 @@ void VariantBuffer::SerializeWithCachedSizes(
       5, this->filter(i), output);
   }
   
-  // repeated .VarMetaBuffer vmeta = 6;
-  for (int i = 0; i < this->vmeta_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      6, this->vmeta(i), output);
-  }
-  
-  // repeated int32 geno1 = 7 [packed = true];
-  if (this->geno1_size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteTag(7, ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED, output);
-    output->WriteVarint32(_geno1_cached_byte_size_);
-  }
-  for (int i = 0; i < this->geno1_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32NoTag(
-      this->geno1(i), output);
-  }
-  
-  // repeated int32 geno2 = 8 [packed = true];
-  if (this->geno2_size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteTag(8, ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED, output);
-    output->WriteVarint32(_geno2_cached_byte_size_);
-  }
-  for (int i = 0; i < this->geno2_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32NoTag(
-      this->geno2(i), output);
-  }
-  
-  // repeated .GenotypeMetaBuffer gmeta = 9;
-  for (int i = 0; i < this->gmeta_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      9, this->gmeta(i), output);
-  }
-  
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -1928,48 +1885,6 @@ void VariantBuffer::SerializeWithCachedSizes(
       WriteStringToArray(5, this->filter(i), target);
   }
   
-  // repeated .VarMetaBuffer vmeta = 6;
-  for (int i = 0; i < this->vmeta_size(); i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        6, this->vmeta(i), target);
-  }
-  
-  // repeated int32 geno1 = 7 [packed = true];
-  if (this->geno1_size() > 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteTagToArray(
-      7,
-      ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED,
-      target);
-    target = ::google::protobuf::io::CodedOutputStream::WriteVarint32ToArray(
-      _geno1_cached_byte_size_, target);
-  }
-  for (int i = 0; i < this->geno1_size(); i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteInt32NoTagToArray(this->geno1(i), target);
-  }
-  
-  // repeated int32 geno2 = 8 [packed = true];
-  if (this->geno2_size() > 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteTagToArray(
-      8,
-      ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED,
-      target);
-    target = ::google::protobuf::io::CodedOutputStream::WriteVarint32ToArray(
-      _geno2_cached_byte_size_, target);
-  }
-  for (int i = 0; i < this->geno2_size(); i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteInt32NoTagToArray(this->geno2(i), target);
-  }
-  
-  // repeated .GenotypeMetaBuffer gmeta = 9;
-  for (int i = 0; i < this->gmeta_size(); i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        9, this->gmeta(i), target);
-  }
-  
   if (!unknown_fields().empty()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
@@ -2015,52 +1930,6 @@ int VariantBuffer::ByteSize() const {
       this->filter(i));
   }
   
-  // repeated .VarMetaBuffer vmeta = 6;
-  total_size += 1 * this->vmeta_size();
-  for (int i = 0; i < this->vmeta_size(); i++) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        this->vmeta(i));
-  }
-  
-  // repeated int32 geno1 = 7 [packed = true];
-  {
-    int data_size = 0;
-    for (int i = 0; i < this->geno1_size(); i++) {
-      data_size += ::google::protobuf::internal::WireFormatLite::
-        Int32Size(this->geno1(i));
-    }
-    if (data_size > 0) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(data_size);
-    }
-    _geno1_cached_byte_size_ = data_size;
-    total_size += data_size;
-  }
-  
-  // repeated int32 geno2 = 8 [packed = true];
-  {
-    int data_size = 0;
-    for (int i = 0; i < this->geno2_size(); i++) {
-      data_size += ::google::protobuf::internal::WireFormatLite::
-        Int32Size(this->geno2(i));
-    }
-    if (data_size > 0) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(data_size);
-    }
-    _geno2_cached_byte_size_ = data_size;
-    total_size += data_size;
-  }
-  
-  // repeated .GenotypeMetaBuffer gmeta = 9;
-  total_size += 1 * this->gmeta_size();
-  for (int i = 0; i < this->gmeta_size(); i++) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        this->gmeta(i));
-  }
-  
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -2087,10 +1956,6 @@ void VariantBuffer::MergeFrom(const ::google::protobuf::Message& from) {
 void VariantBuffer::MergeFrom(const VariantBuffer& from) {
   GOOGLE_CHECK_NE(&from, this);
   filter_.MergeFrom(from.filter_);
-  vmeta_.MergeFrom(from.vmeta_);
-  geno1_.MergeFrom(from.geno1_);
-  geno2_.MergeFrom(from.geno2_);
-  gmeta_.MergeFrom(from.gmeta_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from._has_bit(0)) {
       set_ref(from.ref());
@@ -2122,12 +1987,6 @@ void VariantBuffer::CopyFrom(const VariantBuffer& from) {
 
 bool VariantBuffer::IsInitialized() const {
   
-  for (int i = 0; i < vmeta_size(); i++) {
-    if (!this->vmeta(i).IsInitialized()) return false;
-  }
-  for (int i = 0; i < gmeta_size(); i++) {
-    if (!this->gmeta(i).IsInitialized()) return false;
-  }
   return true;
 }
 
@@ -2138,10 +1997,6 @@ void VariantBuffer::Swap(VariantBuffer* other) {
     std::swap(strand_, other->strand_);
     std::swap(quality_, other->quality_);
     filter_.Swap(&other->filter_);
-    vmeta_.Swap(&other->vmeta_);
-    geno1_.Swap(&other->geno1_);
-    geno2_.Swap(&other->geno2_);
-    gmeta_.Swap(&other->gmeta_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
@@ -2153,6 +2008,641 @@ void VariantBuffer::Swap(VariantBuffer* other) {
   ::google::protobuf::Metadata metadata;
   metadata.descriptor = VariantBuffer_descriptor_;
   metadata.reflection = VariantBuffer_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int VariantMetaBuffer::kVmetaFieldNumber;
+#endif  // !_MSC_VER
+
+VariantMetaBuffer::VariantMetaBuffer()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void VariantMetaBuffer::InitAsDefaultInstance() {
+}
+
+VariantMetaBuffer::VariantMetaBuffer(const VariantMetaBuffer& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void VariantMetaBuffer::SharedCtor() {
+  _cached_size_ = 0;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+VariantMetaBuffer::~VariantMetaBuffer() {
+  SharedDtor();
+}
+
+void VariantMetaBuffer::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void VariantMetaBuffer::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* VariantMetaBuffer::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return VariantMetaBuffer_descriptor_;
+}
+
+const VariantMetaBuffer& VariantMetaBuffer::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_variant_2eproto();  return *default_instance_;
+}
+
+VariantMetaBuffer* VariantMetaBuffer::default_instance_ = NULL;
+
+VariantMetaBuffer* VariantMetaBuffer::New() const {
+  return new VariantMetaBuffer;
+}
+
+void VariantMetaBuffer::Clear() {
+  vmeta_.Clear();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool VariantMetaBuffer::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // repeated .VariantMetaUnit vmeta = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_vmeta:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+                input, add_vmeta()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(10)) goto parse_vmeta;
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+      
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void VariantMetaBuffer::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // repeated .VariantMetaUnit vmeta = 1;
+  for (int i = 0; i < this->vmeta_size(); i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      1, this->vmeta(i), output);
+  }
+  
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* VariantMetaBuffer::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // repeated .VariantMetaUnit vmeta = 1;
+  for (int i = 0; i < this->vmeta_size(); i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteMessageNoVirtualToArray(
+        1, this->vmeta(i), target);
+  }
+  
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int VariantMetaBuffer::ByteSize() const {
+  int total_size = 0;
+  
+  // repeated .VariantMetaUnit vmeta = 1;
+  total_size += 1 * this->vmeta_size();
+  for (int i = 0; i < this->vmeta_size(); i++) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->vmeta(i));
+  }
+  
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void VariantMetaBuffer::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const VariantMetaBuffer* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const VariantMetaBuffer*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void VariantMetaBuffer::MergeFrom(const VariantMetaBuffer& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  vmeta_.MergeFrom(from.vmeta_);
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void VariantMetaBuffer::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void VariantMetaBuffer::CopyFrom(const VariantMetaBuffer& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool VariantMetaBuffer::IsInitialized() const {
+  
+  for (int i = 0; i < vmeta_size(); i++) {
+    if (!this->vmeta(i).IsInitialized()) return false;
+  }
+  return true;
+}
+
+void VariantMetaBuffer::Swap(VariantMetaBuffer* other) {
+  if (other != this) {
+    vmeta_.Swap(&other->vmeta_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata VariantMetaBuffer::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = VariantMetaBuffer_descriptor_;
+  metadata.reflection = VariantMetaBuffer_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int GenotypeBuffer::kGenoFieldNumber;
+#endif  // !_MSC_VER
+
+GenotypeBuffer::GenotypeBuffer()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void GenotypeBuffer::InitAsDefaultInstance() {
+}
+
+GenotypeBuffer::GenotypeBuffer(const GenotypeBuffer& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void GenotypeBuffer::SharedCtor() {
+  _cached_size_ = 0;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+GenotypeBuffer::~GenotypeBuffer() {
+  SharedDtor();
+}
+
+void GenotypeBuffer::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void GenotypeBuffer::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* GenotypeBuffer::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return GenotypeBuffer_descriptor_;
+}
+
+const GenotypeBuffer& GenotypeBuffer::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_variant_2eproto();  return *default_instance_;
+}
+
+GenotypeBuffer* GenotypeBuffer::default_instance_ = NULL;
+
+GenotypeBuffer* GenotypeBuffer::New() const {
+  return new GenotypeBuffer;
+}
+
+void GenotypeBuffer::Clear() {
+  geno_.Clear();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool GenotypeBuffer::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // repeated uint32 geno = 1 [packed = true];
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, this->mutable_geno())));
+        } else if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag)
+                   == ::google::protobuf::internal::WireFormatLite::
+                      WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitiveNoInline<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 1, 10, input, this->mutable_geno())));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+      
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void GenotypeBuffer::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // repeated uint32 geno = 1 [packed = true];
+  if (this->geno_size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteTag(1, ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED, output);
+    output->WriteVarint32(_geno_cached_byte_size_);
+  }
+  for (int i = 0; i < this->geno_size(); i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32NoTag(
+      this->geno(i), output);
+  }
+  
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* GenotypeBuffer::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // repeated uint32 geno = 1 [packed = true];
+  if (this->geno_size() > 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteTagToArray(
+      1,
+      ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED,
+      target);
+    target = ::google::protobuf::io::CodedOutputStream::WriteVarint32ToArray(
+      _geno_cached_byte_size_, target);
+  }
+  for (int i = 0; i < this->geno_size(); i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteUInt32NoTagToArray(this->geno(i), target);
+  }
+  
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int GenotypeBuffer::ByteSize() const {
+  int total_size = 0;
+  
+  // repeated uint32 geno = 1 [packed = true];
+  {
+    int data_size = 0;
+    for (int i = 0; i < this->geno_size(); i++) {
+      data_size += ::google::protobuf::internal::WireFormatLite::
+        UInt32Size(this->geno(i));
+    }
+    if (data_size > 0) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(data_size);
+    }
+    _geno_cached_byte_size_ = data_size;
+    total_size += data_size;
+  }
+  
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void GenotypeBuffer::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const GenotypeBuffer* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const GenotypeBuffer*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void GenotypeBuffer::MergeFrom(const GenotypeBuffer& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  geno_.MergeFrom(from.geno_);
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void GenotypeBuffer::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void GenotypeBuffer::CopyFrom(const GenotypeBuffer& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool GenotypeBuffer::IsInitialized() const {
+  
+  return true;
+}
+
+void GenotypeBuffer::Swap(GenotypeBuffer* other) {
+  if (other != this) {
+    geno_.Swap(&other->geno_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata GenotypeBuffer::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = GenotypeBuffer_descriptor_;
+  metadata.reflection = GenotypeBuffer_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int GenotypeMetaBuffer::kGmetaFieldNumber;
+#endif  // !_MSC_VER
+
+GenotypeMetaBuffer::GenotypeMetaBuffer()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void GenotypeMetaBuffer::InitAsDefaultInstance() {
+}
+
+GenotypeMetaBuffer::GenotypeMetaBuffer(const GenotypeMetaBuffer& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void GenotypeMetaBuffer::SharedCtor() {
+  _cached_size_ = 0;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+GenotypeMetaBuffer::~GenotypeMetaBuffer() {
+  SharedDtor();
+}
+
+void GenotypeMetaBuffer::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void GenotypeMetaBuffer::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* GenotypeMetaBuffer::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return GenotypeMetaBuffer_descriptor_;
+}
+
+const GenotypeMetaBuffer& GenotypeMetaBuffer::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_variant_2eproto();  return *default_instance_;
+}
+
+GenotypeMetaBuffer* GenotypeMetaBuffer::default_instance_ = NULL;
+
+GenotypeMetaBuffer* GenotypeMetaBuffer::New() const {
+  return new GenotypeMetaBuffer;
+}
+
+void GenotypeMetaBuffer::Clear() {
+  gmeta_.Clear();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool GenotypeMetaBuffer::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // repeated .GenotypeMetaUnit gmeta = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_gmeta:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+                input, add_gmeta()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(10)) goto parse_gmeta;
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+      
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void GenotypeMetaBuffer::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // repeated .GenotypeMetaUnit gmeta = 1;
+  for (int i = 0; i < this->gmeta_size(); i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      1, this->gmeta(i), output);
+  }
+  
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* GenotypeMetaBuffer::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // repeated .GenotypeMetaUnit gmeta = 1;
+  for (int i = 0; i < this->gmeta_size(); i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteMessageNoVirtualToArray(
+        1, this->gmeta(i), target);
+  }
+  
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int GenotypeMetaBuffer::ByteSize() const {
+  int total_size = 0;
+  
+  // repeated .GenotypeMetaUnit gmeta = 1;
+  total_size += 1 * this->gmeta_size();
+  for (int i = 0; i < this->gmeta_size(); i++) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->gmeta(i));
+  }
+  
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void GenotypeMetaBuffer::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const GenotypeMetaBuffer* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const GenotypeMetaBuffer*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void GenotypeMetaBuffer::MergeFrom(const GenotypeMetaBuffer& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  gmeta_.MergeFrom(from.gmeta_);
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void GenotypeMetaBuffer::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void GenotypeMetaBuffer::CopyFrom(const GenotypeMetaBuffer& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool GenotypeMetaBuffer::IsInitialized() const {
+  
+  for (int i = 0; i < gmeta_size(); i++) {
+    if (!this->gmeta(i).IsInitialized()) return false;
+  }
+  return true;
+}
+
+void GenotypeMetaBuffer::Swap(GenotypeMetaBuffer* other) {
+  if (other != this) {
+    gmeta_.Swap(&other->gmeta_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata GenotypeMetaBuffer::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = GenotypeMetaBuffer_descriptor_;
+  metadata.reflection = GenotypeMetaBuffer_reflection_;
   return metadata;
 }
 

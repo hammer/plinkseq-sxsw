@@ -112,9 +112,12 @@ void f_glm_association( Variant & v , void * p )
   
   for (int i=0; i<n; i++)
     {
-      if ( v(i).null() ) { --an; mask[i] = true; }
-      else if ( data->mask[i] ) { --an; mask[i] = true; }
+
+      if ( data->mask[i] ) { --an; mask[i] = true; }
       else if ( data->c.masked(i) ) { --an; mask[i] = true; }
+      else if ( data->use_dosage && ! v(i).meta.has_field( data->softtag ) ) { --an; mask[i] = true; }
+      else if ( data->use_postprobs && ( ( ! v(i).meta.has_field( data->softtag ) ) || v(i).meta.get_double( data->softtag ).size() != 3 ) ) { --an; mask[i] = true; }
+      else if ( v(i).null() ) { --an; mask[i] = true; }
     }
 
   Data::Vector<double> y( an );
@@ -132,8 +135,20 @@ void f_glm_association( Variant & v , void * p )
 	  // Intercept
 	  x(ni,0) = 1;
 	  
-	  // Hard-coding
-	  x(ni,1) = v(i).minor_allele_count( true );
+	  // Genotype
+	  if ( data->use_dosage ) // dosage of alt-allele(s)
+	    {
+	      x(ni,1) = v(i).meta.get1_double( data->softtag );
+	    }	  
+	  else if ( data->use_postprobs ) // post-probs (assume biallelic)
+	    {
+	      std::vector<double> pp = v(i).meta.get_double( data->softtag ); 
+	      x(ni,1) = pp[1] + 2 * pp[2]; 		
+	    }
+	  else // standard hard-call in VCF
+	    {
+	      x(ni,1) = v(i).minor_allele_count( true );
+	    }
 
 	  // Covariates
 	  int z = 1;

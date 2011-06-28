@@ -2,7 +2,6 @@
 #include "annot.h"
 #include <string>
 
-using namespace std;
 
 GStore * gp;
 extern GStore * GP;
@@ -15,10 +14,11 @@ std::string Rversion()
 }
 
 
-void R_init_pseqr(DllInfo *info)
+void R_init_Rplinkseq(DllInfo *info)
 {
   gp = new GStore;    
-  Rprintf("PLINK/Seq genetics library for R | v0.06-alpha | 7-Jun-2011\n");
+  gp->R_mode( true );
+  Rprintf("PLINK/Seq genetics library for R | v0.07-alpha | 24-Jun-2011\n");
 }
 
 
@@ -114,12 +114,12 @@ SEXP Rmeta( const MetaInformation<T> & m )
 	{
 	  int s = m.size( metaKeys[i] );
 	  PROTECT(vmval = allocVector( STRSXP , s ));		
-	  std::vector<string> d = m.get_string( metaKeys[i] );
+	  std::vector<std::string> d = m.get_string( metaKeys[i] );
 	  for (int j =0; j<s; j++)
 	    SET_STRING_ELT( vmval,j,mkChar( d[j].c_str() ) );
 	}
 	
-	}
+      }
       
       SET_VECTOR_ELT( vmlist, i, vmval ); 
       
@@ -213,145 +213,146 @@ SEXP Rvariant_group(VariantGroup & v, Rdisplay_options & opt)
 SEXP Rvariant(Variant & v , Rdisplay_options & opt )
 {
 
-    int sz = 6;
+  int sz = 6;
+  
+  // Main list names
 
-    // Main list names
-    SEXP list_names;
+  SEXP list_names;
+  
+  std::vector<std::string> names(6);
     
-    std::vector<std::string> names(6);
-    
-    names[0] = "CHR";
-    names[1] = "BP1"; 
-    names[2] = "BP2";
-    names[3] = "ID";
-    names[4] = "NS";
-    names[5] = "META";
-    
-    if ( opt.show_consensus ) 
-      {
-	names.push_back( "CON" );
-	++sz;
-      }
-    
-    if ( opt.show_multi_sample ) 
-      {
-	std::set<int> fset = v.unique_files();
-	std::set<int>::iterator i = fset.begin();
-	while ( i != fset.end() )
-	  {
-	    names.push_back( "S" + Helper::int2str( *i ) ); 
-	    ++sz;
-	    ++i; 
-	  }
-      }
-    
-    
-    // 
-    // Store variantgroup meta-information, and variant list in 
-    // a final list
-    //
-    
-
-    // Make primary list object
-    
-    SEXP vlist;
-    PROTECT(vlist = allocVector( VECSXP, sz ) );
-    
-    PROTECT(list_names = allocVector(STRSXP,sz));    
-    for(int i = 0; i < sz; i++)   
-      SET_STRING_ELT(list_names,i,mkChar(names[i].c_str())); 
-    
-
-    SEXP chr;
-    PROTECT(chr = allocVector(INTSXP, 1));
-    INTEGER(chr)[0] = v.chromosome();
-    
-    SEXP pos;
-    PROTECT(pos = allocVector(INTSXP, 1));
-    INTEGER(pos)[0] = v.position();
-    
-    SEXP stop;
-    PROTECT(stop = allocVector(INTSXP, 1));
-    INTEGER(stop)[0] = v.stop();
-    
-    SEXP vname;
-    PROTECT(vname = allocVector(STRSXP, 1));
-    SET_STRING_ELT(vname, 0, mkChar( v.name().c_str() ) ); 
-    
-    SEXP n_file;
-    PROTECT(n_file = allocVector(INTSXP, 1));
-    INTEGER(n_file)[0] = v.n_samples();
-    
-    SEXP metas;
-    PROTECT( metas = Rmeta( v.meta ) );
-
-    
-    //
-    // Attach values
-    //
-    
-    SET_VECTOR_ELT(vlist, 0, chr    );
-    SET_VECTOR_ELT(vlist, 1, pos    ); 
-    SET_VECTOR_ELT(vlist, 2, stop   ); 
-    SET_VECTOR_ELT(vlist, 3, vname  ); 
-    SET_VECTOR_ELT(vlist, 4, n_file ); 
-    SET_VECTOR_ELT(vlist, 5, metas  ); 
+  names[0] = "CHR";
+  names[1] = "BP1"; 
+  names[2] = "BP2";
+  names[3] = "ID";
+  names[4] = "NS";
+  names[5] = "META";
+  
+  if ( opt.show_consensus ) 
+    {
+      names.push_back( "CON" );
+      ++sz;
+    }
+  
+  
+  if ( opt.show_multi_sample ) 
+    {
+      std::set<int> fset = v.unique_files();
+      std::set<int>::iterator i = fset.begin();
+      while ( i != fset.end() )
+	{
+	  names.push_back( "S" + Helper::int2str( *i ) ); 
+	  ++sz;
+	  ++i; 
+	}
+    }
+  
+  
+  
+  // 
+  // Store variantgroup meta-information, and variant list in 
+  // a final list
+  //
   
 
-    //
-    // Attach SampleVariants
-    //
-    
-    int s = 6;
-    
-    // Consensus
-    if ( opt.show_consensus ) 
-      {
-	plog << "adding con...\n";
-	SET_VECTOR_ELT(vlist, s++, Rsample_variant( v.consensus , v, opt ) );
-	plog << "...DONE\n";
-      }
+  // Make primary list object
+  
+  SEXP vlist;
+  PROTECT(vlist = allocVector( VECSXP, sz ) );
+  
+  PROTECT(list_names = allocVector(STRSXP,sz));    
+  for(int i = 0; i < sz; i++)   
+    SET_STRING_ELT(list_names,i,mkChar(names[i].c_str())); 
+  
+  
+  SEXP chr;
+  PROTECT(chr = allocVector(INTSXP, 1));
+  INTEGER(chr)[0] = v.chromosome();
+  
+  SEXP pos;
+  PROTECT(pos = allocVector(INTSXP, 1));
+  INTEGER(pos)[0] = v.position();
+  
+  SEXP stop;
+  PROTECT(stop = allocVector(INTSXP, 1));
+  INTEGER(stop)[0] = v.stop();
+  
+  SEXP vname;
+  PROTECT(vname = allocVector(STRSXP, 1));
+  SET_STRING_ELT(vname, 0, mkChar( v.name().c_str() ) ); 
+  
+  SEXP n_file;
+  PROTECT(n_file = allocVector(INTSXP, 1));
+  INTEGER(n_file)[0] = v.n_samples();
+  
+  SEXP metas;
+  PROTECT( metas = Rmeta( v.meta ) );
+  
+  
+  //
+  // Attach values
+  //
+  
+  SET_VECTOR_ELT(vlist, 0, chr    );
+  SET_VECTOR_ELT(vlist, 1, pos    ); 
+  SET_VECTOR_ELT(vlist, 2, stop   ); 
+  SET_VECTOR_ELT(vlist, 3, vname  ); 
+  SET_VECTOR_ELT(vlist, 4, n_file ); 
+  SET_VECTOR_ELT(vlist, 5, metas  ); 
+  
+  
+  //
+  // Attach SampleVariants
+  //
+  
+  int s = 6;
+  
+  // Consensus
+  if ( opt.show_consensus ) 
+    {
+      SET_VECTOR_ELT(vlist, s++, Rsample_variant( -1 , v, opt ) );
+    }
+  
+  std::cout << "done con\n";
 
+  // Individual sample variants
+  
+  if ( opt.show_multi_sample )
+    {
+      // creating a problem?
 
-    // Individual sample variants
-    
-    if ( opt.show_multi_sample )
-      {
-	// creating a problem?
-	v.set_first_sample();
-	for (int i=0; i<v.n_samples(); i++)
-	  {
+      const int ns = v.n_samples();
 
-	    plog << "now adding Sample\n";
-	    
-	    SET_VECTOR_ELT( vlist, 
-			    s++, 
-			    Rsample_variant( v.sample() , v , opt ) );	    
+      for (int sample = 0; sample < ns ; sample ++ )
+	{	  
+	  
+	  SET_VECTOR_ELT( vlist, 
+			  s++, 
+			  Rsample_variant( sample , v , opt ) );
+	  
+	}
 
-	    plog << "...&Done\n";
-
-	    v.next_sample();
-	  }
-      }
-    
-    setAttrib( vlist, R_NamesSymbol, list_names ); 
-
-    UNPROTECT(8);
-
-    return vlist; 
-    
+    }
+  
+  setAttrib( vlist, R_NamesSymbol, list_names ); 
+  
+  UNPROTECT(8);
+  
+  return vlist; 
+  
 }
   
 
 
-SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & opt )
+SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 {
   
-  plog << " parent found " << parent.coordinate() << "\n";
   
-  // Construct an R list object to represent this 
-  // variant, it's meta-information; its genotypes
-  // and their meta-information
+  SampleVariant & v = parent.sample( si );
+  
+
+  // Construct an R list object to represent this variant, it's
+  // meta-information; its genotypes and their meta-information
   
 
   // Fileset ID
@@ -448,7 +449,7 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
 	{
 	  int s = v.meta.size( metaKeys[i] );
 	  PROTECT(vmval = allocVector( STRSXP , s ));		
-	  std::vector<string> d = v.meta.get_string( metaKeys[i] );
+	  std::vector<std::string> d = v.meta.get_string( metaKeys[i] );
 	  for (int j =0; j<s; j++)
 	    SET_STRING_ELT( vmval,j,mkChar( d[j].c_str() ) );
 	}
@@ -464,8 +465,8 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
   // Attach the vector of names
   
   setAttrib(vmlist, R_NamesSymbol, vmlist_names); 
-  
-  plog << "GENO\n";
+
+
   
   //
   // Genotypes, and genotype meta-information
@@ -475,35 +476,34 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
   
   if ( opt.show_genotypes )
     {
-      
+
       // Note -- we first have to tally up all the meta-fields for this 
       //         variant -- this is v. inefficient, but do for now
       
       // Number of individuals
       
-      int n = v.calls.size();
+      int n = parent.size();
       
-      std::cout << "n = " << n << "\n";
-
       // Number of genotype meta-fields (if showing any)
       
       std::set<std::string> mk;
       
       if ( opt.show_genotype_metainformation )
 	{
+	  
 	  for (int i = 0 ; i < n; i++)
-	    {	
-	      plog << "ii= " << i << " " << v.calls.size() << "\n";
-
-	      std::vector<std::string> keys = v.calls.genotype(i).meta.keys();
-	      std::cout << "m\n";
-
-	      for (int k=0; k<keys.size(); k++) 
-		mk.insert(keys[k]);
+	    {
+	      Genotype * g = parent.genotype( si , i );
+	      if ( g ) 
+		{
+		  std::vector<std::string> keys = g->meta.keys();
+		  for (int k=0; k<keys.size(); k++) mk.insert( keys[k] );
+		}
 	    }
+	  
 	}
-      
-      
+
+            
       // Geno :  ind1 ind2 ... indN
       // M1   :  ind1 ind2 ... indN
       // M2   :  ind1 ind2 ... indN
@@ -520,7 +520,6 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
       PROTECT(glist_names = allocVector( STRSXP, 1 + mk.size() ));    
       SET_STRING_ELT( glist_names , 0 , mkChar("GT" ) ) ;
       
-      plog << "S0\n";
 
       //
       // Actual genotype calls
@@ -531,22 +530,31 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
       
       for (int i = 0 ; i < n; i++)
 	{
-	  plog << "i = " << i << "\n";
+	  
+	  Genotype * g = parent.genotype( si , i );
 
-	  // For now, just add allele-count code	
-	  if (  v.calls.genotype(i).more() || v.calls.genotype(i).null() )
+	  if ( ! g ) 
 	    {
 	      INTEGER(g_calls)[i] = NA_INTEGER;
 	    }
 	  else
 	    {
-	      plog << "about to all\n";
-	      INTEGER(g_calls)[i] = v.calls.genotype(i).allele_count( &parent );
-	      plog << "not done\n";
+	      
+	      // For now, just add allele-count code	
+	      if ( g->more() || g->null() )
+		{
+		  INTEGER(g_calls)[i] = NA_INTEGER;
+		}
+	      else
+		{
+		  INTEGER(g_calls)[i] = g->allele_count( );
+		}
 	    }
 	}
       
+      
       SET_VECTOR_ELT( geno, 0, g_calls  ); 
+
       UNPROTECT(1); // g_calls
       
 
@@ -554,7 +562,7 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
       // Genotype meta-information
       //
       
-      if ( opt.show_genotype_metainformation )
+      if ( false && opt.show_genotype_metainformation )
 	{
 	  
 	  std::set<std::string>::iterator k = mk.begin();
@@ -588,8 +596,9 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
 		      PROTECT(g_meta = allocVector( INTSXP, n ));
 		      for (int j=0; j<n; j++) 
 			{
-			  if ( v.calls.genotype(j).meta.hasField( *k ) )
-			    INTEGER(g_meta)[j] = v.calls.genotype(j).meta.get1_int( *k ) ;
+			  Genotype * g = parent.genotype( si , j );
+			  if ( g && g->meta.hasField( *k ) )
+			    INTEGER(g_meta)[j] = g->meta.get1_int( *k ) ;
 			  else
 			    INTEGER(g_meta)[j] = NA_INTEGER;
 			}
@@ -601,9 +610,10 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
 		      PROTECT(g_meta = allocMatrix( INTSXP, n , len ));
 		      for (int j=0; j<n; j++) 
 			{
-			  if ( v.calls.genotype(j).meta.hasField( *k ) )
+			  Genotype * g = parent.genotype( si , j );
+			  if ( g && g->meta.hasField( *k ) )
 			    {
-			      std::vector<int> vec = v.calls.genotype(j).meta.get_int( *k ) ;
+			      std::vector<int> vec = g->meta.get_int( *k ) ;
 			      for (int z=0; z<len; z++)
 				INTEGER(g_meta)[j + n * z] = vec[z];			      
 			    }
@@ -621,9 +631,10 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
 		      PROTECT(g_meta = allocVector( VECSXP, n ));
 		      for (int j=0; j<n; j++) 
 			{
-			  if ( v.calls.genotype(j).meta.hasField( *k ) )
+			  Genotype * g = parent.genotype( si , j );
+			  if ( g && g->meta.hasField( *k ) )
 			    {
-			      std::vector<int> vec = v.calls.genotype(j).meta.get_int( *k ) ;
+			      std::vector<int> vec = g->meta.get_int( *k ) ;
 			      SEXP list1;
 			      PROTECT( list1 = allocVector( INTSXP , vec.size() ) );
 			      for (int z=0; z<vec.size(); z++)
@@ -645,8 +656,9 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
 		      PROTECT(g_meta = allocVector( REALSXP, n ));
 		      for (int j=0; j<n; j++) 
 			{
-			  if ( v.calls.genotype(j).meta.hasField( *k ) )
-			    REAL(g_meta)[j] = v.calls.genotype(j).meta.get1_double( *k ) ;
+			  Genotype * g = parent.genotype( si , j );
+			  if ( g && g->meta.hasField( *k ) )
+			    REAL(g_meta)[j] = g->meta.get1_double( *k ) ;
 			  else
 			    REAL(g_meta)[j] = NA_REAL;
 			}
@@ -658,9 +670,10 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
 		      PROTECT(g_meta = allocMatrix( REALSXP, n , len ));
 		      for (int j=0; j<n; j++) 
 			{
-			  if ( v.calls.genotype(j).meta.hasField( *k ) )
+			  Genotype * g = parent.genotype( si , j );
+			  if ( g && g->meta.hasField( *k ) )
 			    {
-			      std::vector<double> vec = v.calls.genotype(j).meta.get_double( *k ) ;
+			      std::vector<double> vec = g->meta.get_double( *k ) ;
 			      for (int z=0; z<len; z++)
 				REAL(g_meta)[j + n * z] = vec[z];			      
 			    }
@@ -678,9 +691,10 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
 		      PROTECT(g_meta = allocVector( VECSXP, n ));
 		      for (int j=0; j<n; j++) 
 			{
-			  if ( v.calls.genotype(j).meta.hasField( *k ) )
+			  Genotype * g = parent.genotype( si , j );
+			  if ( g && g->meta.hasField( *k ) )
 			    {
-			      std::vector<double> vec = v.calls.genotype(j).meta.get_double( *k ) ;
+			      std::vector<double> vec = g->meta.get_double( *k ) ;
 			      SEXP list1;
 			      PROTECT( list1 = allocVector( REALSXP , vec.size() ) );
 			      for (int z=0; z<vec.size(); z++)
@@ -703,8 +717,9 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
 		      PROTECT(g_meta = allocVector( STRSXP, n ));
 		      for (int j=0; j<n; j++) 
 			{
-			  if ( v.calls.genotype(j).meta.hasField( *k ) )
-			    SET_STRING_ELT( g_meta, j , mkChar( v.calls.genotype(j).meta.get1_string( *k ).c_str() ) );
+			  Genotype * g = parent.genotype( si , j );
+			  if ( g && g->meta.hasField( *k ) )
+			    SET_STRING_ELT( g_meta, j , mkChar( g->meta.get1_string( *k ).c_str() ) );
 			  else
 			    SET_STRING_ELT( g_meta, j , NA_STRING );			  
 			}
@@ -716,9 +731,10 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
 		      PROTECT(g_meta = allocMatrix( STRSXP, n , len ));
 		      for (int j=0; j<n; j++) 
 			{
-			  if ( v.calls.genotype(j).meta.hasField( *k ) )
+			  Genotype * g = parent.genotype( si , j );
+			  if ( g && g->meta.hasField( *k ) )
 			    {
-			      std::vector<std::string> vec = v.calls.genotype(j).meta.get_string( *k ) ;
+			      std::vector<std::string> vec = g->meta.get_string( *k ) ;
 			      for (int z=0; z<len; z++)
 				SET_STRING_ELT( g_meta, j+n*z , mkChar( vec[z].c_str() ) );			      
 			    }
@@ -736,9 +752,10 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
 		      PROTECT(g_meta = allocVector( VECSXP, n ));
 		      for (int j=0; j<n; j++) 
 			{
-			  if ( v.calls.genotype(j).meta.hasField( *k ) )
+			  Genotype * g = parent.genotype( si , j );
+			  if ( g && g->meta.hasField( *k ) )
 			    {
-			      std::vector<std::string> vec = v.calls.genotype(j).meta.get_string( *k ) ;
+			      std::vector<std::string> vec = g->meta.get_string( *k ) ;
 			      SEXP list1;
 			      PROTECT( list1 = allocVector( STRSXP , vec.size() ) );
 			      for (int z=0; z<vec.size(); z++)
@@ -770,9 +787,6 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
     }
   
 
-
-  plog << "FINAL\n";
-       
     //
     // Make final variant list:
     //
@@ -820,8 +834,6 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
     setAttrib(list, R_NamesSymbol, list_names); 
     
 
-    plog << "DONE1\n";
-
     //
     // Free up protected resources
     //
@@ -829,10 +841,8 @@ SEXP Rsample_variant(SampleVariant & v , Variant & parent , Rdisplay_options & o
     UNPROTECT(9);
 
     if ( opt.show_genotypes ) 
-      UNPROTECT(2); // geno, glist_names
+      UNPROTECT(2); // geno, glist_names    
     
-    plog << "DONEDONE\n";
-
     return list;
     
 }
@@ -850,14 +860,22 @@ bool R_filter_func( SEXP fn )
   Helper::halt("Not implemented R filter functions yet");
 }
 
+
+//
+// R iterate functions()
+//
+
+
 void R_accumulate_func( Variant & v , void * p )
 {      
+  R_CheckUserInterrupt();
   std::vector<Variant> * d = (std::vector<Variant>*)p;
   d->push_back(v);
 }
 
 void R_group_accumulate_func( VariantGroup & v , void * p )
 {
+  R_CheckUserInterrupt();
   std::vector<VariantGroup> * d = (std::vector<VariantGroup>*)p;
   d->push_back(v);
   VariantGroup vcopy = v;
@@ -865,7 +883,9 @@ void R_group_accumulate_func( VariantGroup & v , void * p )
 
 void R_iterate_func( Variant & v , void * p )
 {
-  
+
+  std::cout << " in it func\n";
+
   Rdata * d = (Rdata*)p;
   
   // Call R function, with variant and with result object
@@ -878,9 +898,13 @@ void R_iterate_func( Variant & v , void * p )
   
   SETCADR( d->fncall, var );
   
+  std::cout << " DONE 0\n";
+
   // Evalute function
-  
+
   eval(d->fncall, d->rho);
+
+  std::cout << " DONE 1\n";  
   
   UNPROTECT(1);    
   
@@ -890,6 +914,8 @@ void R_iterate_func( Variant & v , void * p )
 void R_group_iterate_func( VariantGroup & v , void * p )
 {
   
+  R_CheckUserInterrupt();
+
   Rdata * d = (Rdata*)p;
   
   // Call R function, with variant and with result object
@@ -956,7 +982,7 @@ Mask R_make_mask(SEXP r)
   //
   
   if ( length(r) < 1 ) return Mask("");    
-  string s = CHAR(STRING_ELT(r, 0));  	
+  std::string s = CHAR(STRING_ELT(r, 0));  	
   Mask m(s);
   gp->register_mask( m );
   return m;
@@ -973,7 +999,7 @@ struct R_aux_getmeta
 
   std::vector<std::vector<int> > * dmeta_int;
   std::vector<std::vector<double> > * dmeta_float;
-  std::vector<std::vector<string> > * dmeta_string;
+  std::vector<std::vector<std::string> > * dmeta_string;
   std::vector<std::vector<bool> > * dmeta_filter;
 
   std::vector<std::vector<bool> > * mmeta_int;
@@ -1335,6 +1361,9 @@ SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
   // to the R function and an R object that can 
   // collect any results
 
+
+  std::cout << "made mask (0) \n";
+
   Rdisplay_options opt;
   
   Rdata * d = new Rdata;
@@ -1357,6 +1386,8 @@ SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
   if ( length(ret) > 0 && INTEGER(ret)[0] != 0 ) 
     mask.limit( INTEGER(ret)[0]);
   
+  
+  std::cout << "made mask \n";
 
   //
   // Set up individual-map
@@ -1371,23 +1402,25 @@ SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
   //
   
   if ( return_vars ) 
-  {
-    if ( mask.any_grouping() )	  
-      gp->vardb.iterate( R_group_accumulate_func , &varGroups , mask );
-    else
-      gp->vardb.iterate( R_accumulate_func , &vars , mask );
-    
-  }
+    {
+      if ( mask.any_grouping() )	  
+	gp->vardb.iterate( R_group_accumulate_func , &varGroups , mask );
+      else
+	gp->vardb.iterate( R_accumulate_func , &vars , mask );
+      
+    }
   else if ( mask.any_grouping() )
     {
       gp->vardb.iterate( R_group_iterate_func , d , mask );
     }
   else
     {
+      std::cout << "about to it\n";
       gp->vardb.iterate( R_iterate_func , d , mask );
     }    
   
-  
+
+  std::cout << "done iterate\n";
   //
   // Clean up...
   //
@@ -1419,7 +1452,6 @@ SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
 	}
       else // return list of single variants
 	{
-	  plog << "about to ret. list\n";
 	  SEXP rvars;
 	  PROTECT( rvars = allocVector( VECSXP, vars.size() ));
 	  for (int j=0; j<vars.size(); j++)
@@ -1669,70 +1701,70 @@ SEXP Rind_list(SEXP rmask, SEXP phe)
 SEXP Rfile_list()
 {
     
-    // Files contain
-    //  1) Index ID
-    //  2) Name
-    //  3) Headers
-    //  4) Meta-types
-
-    map<int,string> files = gp->vardb.fetch_files();
-
-    SEXP rfiles;
-    PROTECT( rfiles = allocVector( VECSXP, files.size() ));
-    
-    int j = 0;
-    map<int,string>::iterator i = files.begin();
-
-    while ( i != files.end() ) 
+  // Files contain
+  //  1) Index ID
+  //  2) Name
+  //  3) Headers
+  //  4) Meta-types
+  
+  std::map<int,std::string> files = gp->vardb.fetch_files();
+  
+  SEXP rfiles;
+  PROTECT( rfiles = allocVector( VECSXP, files.size() ));
+  
+  int j = 0;
+  std::map<int,std::string>::iterator i = files.begin();
+  
+  while ( i != files.end() ) 
     {
-	SEXP rfile;
+      SEXP rfile;
+      
+      PROTECT( rfile = allocVector( VECSXP, 4) );
+      
+      // ID
+      SEXP tmp = allocVector(INTSXP, 1);
+      INTEGER(tmp)[0] = i->first;
+      SET_VECTOR_ELT( rfile, 0 , tmp );
+      
+      // Name	
+      SEXP fname;
+      PROTECT(fname = allocVector(STRSXP, 1));
+      SET_STRING_ELT(fname, 0, mkChar( i->second.c_str() ) ); 
+      SET_VECTOR_ELT( rfile , 1 , fname );
+      UNPROTECT(1);
+      
+      // Headers
+      SET_VECTOR_ELT( rfile , 2 , Rhdr_list_int( i->first ) );
+      
+      // Meta-information
+      SET_VECTOR_ELT( rfile , 3 , Rmeta_list_int( i->first ) );
 
-	PROTECT( rfile = allocVector( VECSXP, 4) );
-
-	// ID
-	SEXP tmp = allocVector(INTSXP, 1);
-	INTEGER(tmp)[0] = i->first;
-	SET_VECTOR_ELT( rfile, 0 , tmp );
-
-	// Name	
-	SEXP fname;
-	PROTECT(fname = allocVector(STRSXP, 1));
-	SET_STRING_ELT(fname, 0, mkChar( i->second.c_str() ) ); 
-	SET_VECTOR_ELT( rfile , 1 , fname );
-	UNPROTECT(1);
-	
-	// Headers
-	SET_VECTOR_ELT( rfile , 2 , Rhdr_list_int( i->first ) );
-
-	// Meta-information
-	SET_VECTOR_ELT( rfile , 3 , Rmeta_list_int( i->first ) );
-
-	//
-	// Set list names
-	//
-	
-	SEXP list_names;
-	PROTECT(list_names = allocVector( STRSXP, 4 ));    
-	SET_STRING_ELT(list_names, 0 , mkChar( "IDX" ) );
-	SET_STRING_ELT(list_names, 1 , mkChar( "FNAME" ) );
-	SET_STRING_ELT(list_names, 2 , mkChar( "HDR" ) );
-	SET_STRING_ELT(list_names, 3 , mkChar( "META" ) );
-	setAttrib(rfile, R_NamesSymbol, list_names );	
-	
-        // Pull altogether in a list
-	SET_VECTOR_ELT( rfiles , j , rfile );
-
-	// Clear list and names
-	UNPROTECT(2);	
-	
-	++j;
-	++i;
+      //
+      // Set list names
+      //
+      
+      SEXP list_names;
+      PROTECT(list_names = allocVector( STRSXP, 4 ));    
+      SET_STRING_ELT(list_names, 0 , mkChar( "IDX" ) );
+      SET_STRING_ELT(list_names, 1 , mkChar( "FNAME" ) );
+      SET_STRING_ELT(list_names, 2 , mkChar( "HDR" ) );
+      SET_STRING_ELT(list_names, 3 , mkChar( "META" ) );
+      setAttrib(rfile, R_NamesSymbol, list_names );	
+      
+      // Pull altogether in a list
+      SET_VECTOR_ELT( rfiles , j , rfile );
+      
+      // Clear list and names
+      UNPROTECT(2);	
+      
+      ++j;
+      ++i;
     }
-
-    
-    UNPROTECT(1);
-
-    return(rfiles);
+  
+  
+  UNPROTECT(1);
+  
+  return(rfiles);
 }
 
 
@@ -1982,9 +2014,9 @@ SEXP Rmake_string_vector( std::vector<std::string> & r )
 
 SEXP Rfetch_set_members( SEXP x, SEXP y, SEXP z)
 {
-  string loc_group = CHAR(STRING_ELT(x, 0));
-  string set_group = CHAR(STRING_ELT(y, 0));
-  string set_name = CHAR(STRING_ELT(z, 0));
+  std::string loc_group = CHAR(STRING_ELT(x, 0));
+  std::string set_group = CHAR(STRING_ELT(y, 0));
+  std::string set_name = CHAR(STRING_ELT(z, 0));
   std::vector<std::string> r = gp->locdb.fetch_set_members( loc_group, set_group , set_name );
   return Rmake_string_vector( r );
 }
@@ -1995,7 +2027,7 @@ SEXP Rfetch_regions(SEXP g)
 
   std::string grp = CHAR(STRING_ELT(g, 0));
   uint64_t grp_id = gp->locdb.lookup_group_id( grp );    
-  set<Region> reg = gp->locdb.get_regions( grp_id );
+  std::set<Region> reg = gp->locdb.get_regions( grp_id );
 
   // Construct similar R objects
   
@@ -2167,7 +2199,7 @@ SEXP Rlocdb_summary()
 SEXP Rseqdb_loadFASTA( SEXP filename )
 {
   if ( length(filename) != 1 ) return(R_NilValue);    
-  string s = CHAR(STRING_ELT(filename, 0));  
+  std::string s = CHAR(STRING_ELT(filename, 0));  
   std::map<std::string,std::string> m;
   gp->seqdb.loadFASTA( s , m );   
   return(R_NilValue); 
@@ -2175,92 +2207,91 @@ SEXP Rseqdb_loadFASTA( SEXP filename )
 
 SEXP Rseqdb_attach( SEXP filename )
 {
-    if ( length(filename) != 1 ) return(R_NilValue);    
-    string s = CHAR(STRING_ELT(filename, 0));  
-    gp->seqdb.attach( s );   
-    Annotate::init();
-    return(R_NilValue); 
+  if ( length(filename) != 1 ) return(R_NilValue);    
+  std::string s = CHAR(STRING_ELT(filename, 0));  
+  gp->seqdb.attach( s );   
+  Annotate::init();
+  return(R_NilValue); 
 }
 
 SEXP Rseqdb_lookup( SEXP pos )
 {
-    if ( ! isVector( pos ) ) return(R_NilValue);
-    if ( length( pos ) != 3 ) return(R_NilValue);
- 
-    int chr = INTEGER(pos)[0];
-    int bp1 = INTEGER(pos)[1];
-    int bp2 = INTEGER(pos)[2];
-    
-    SEXP seq;
-    PROTECT( seq = allocVector( STRSXP, 1 ));    
-    SET_STRING_ELT(seq, 0 , mkChar( gp->seqdb.lookup(chr,bp1,bp2).c_str() ) );
-    UNPROTECT(1);
-    
-    return seq;
+  if ( ! isVector( pos ) ) return(R_NilValue);
+  if ( length( pos ) != 3 ) return(R_NilValue);
+  
+  int chr = INTEGER(pos)[0];
+  int bp1 = INTEGER(pos)[1];
+  int bp2 = INTEGER(pos)[2];
+  
+  SEXP seq;
+  PROTECT( seq = allocVector( STRSXP, 1 ));    
+  SET_STRING_ELT(seq, 0 , mkChar( gp->seqdb.lookup(chr,bp1,bp2).c_str() ) );
+  UNPROTECT(1);
+  
+  return seq;
 }
 
 SEXP Rseqdb_annotate_load( SEXP loc_id )
 {
-    if ( length( loc_id ) != 1 ) return(R_NilValue);
-    string trans_id = CHAR(STRING_ELT(loc_id, 0));  
-    Annotate::load_transcripts( LOCDB, trans_id );
-    return(R_NilValue);
+  if ( length( loc_id ) != 1 ) return(R_NilValue);
+  std::string trans_id = CHAR(STRING_ELT(loc_id, 0));  
+  Annotate::load_transcripts( LOCDB, trans_id );
+  return(R_NilValue);
 }
 
 SEXP Rseqdb_annotate( SEXP pos , SEXP alleles )
 {
+  
+  if ( length( pos ) != 2 ) return(R_NilValue);
+  if ( length( alleles ) != 2 ) return(R_NilValue);
+  
+  int chr = INTEGER(pos)[0];
+  int bp = INTEGER(pos)[1];
+  
+  std::string ref = CHAR(STRING_ELT(alleles, 0));  
+  std::string alt = CHAR(STRING_ELT(alleles, 1));  
+    
+  Variant v( "Var" , chr, bp );
 
-    if ( length( pos ) != 2 ) return(R_NilValue);
-    if ( length( alleles ) != 2 ) return(R_NilValue);
+  v.consensus.reference( ref );
+  v.consensus.alternate( alt );
+  
+  Annotate::annotate( v );
     
-    int chr = INTEGER(pos)[0];
-    int bp = INTEGER(pos)[1];
-    
-    string ref = CHAR(STRING_ELT(alleles, 0));  
-    string alt = CHAR(STRING_ELT(alleles, 1));  
-    
-    Variant v( "Var" , chr, bp );
-
-    v.consensus.reference( ref );
-    v.consensus.alternate( alt );
-    
-    Annotate::annotate( v );
-    
-    return(R_NilValue);
-
+  return(R_NilValue);
+  
 }
 
 SEXP Rrefdb_load(SEXP x)
 {
-//      string s = CHAR(STRING_ELT(d, 0));  
-//      gp->refdb_new(s);   
-     return(R_NilValue); 
+  return(R_NilValue); 
 }
+
 
 SEXP Rrefdb_attach(SEXP x)
 {
-    string s = CHAR(STRING_ELT(x, 0));  
-    gp->refdb_attach(s);
-    return(R_NilValue); 
+  std::string s = CHAR(STRING_ELT(x, 0));  
+  gp->refdb_attach(s);
+  return(R_NilValue); 
 }
 
 SEXP Rrefdb_summary()
 {
-    plog << gp->refdb.summary();
-    return(R_NilValue); 
+  plog << gp->refdb.summary();
+  return(R_NilValue); 
 }
 
 SEXP Rrefdb_lookup(SEXP pos, SEXP y)
 {    
   if ( length( pos ) != 2 ) return(R_NilValue);
   if ( length( y ) != 1 ) return(R_NilValue);
-
+  
   int chr = INTEGER(pos)[0];
   int bp = INTEGER(pos)[1];
   
   Variant v( "Var" , chr, bp );
 
-  string g = CHAR(STRING_ELT(y, 0));
+  std::string g = CHAR(STRING_ELT(y, 0));
   int gid = gp->refdb.lookup_group_id( g );
   if ( gid == 0 ) return(R_NilValue);
 
@@ -2272,13 +2303,12 @@ SEXP Rrefdb_lookup(SEXP pos, SEXP y)
     plog << "NA\n";
 
   return(R_NilValue); 
-
+  
 }
 
 
 SEXP Rrefdb_index_lookup(SEXP x)
-{
-    
-    return(R_NilValue); 
+{    
+  return(R_NilValue); 
 }
 

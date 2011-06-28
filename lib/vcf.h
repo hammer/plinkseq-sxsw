@@ -104,9 +104,16 @@ class VCFReader {
  std::map<std::string,std::string> last_meta();
 
  std::vector<std::string>          last_header();
- 
- private:
+
+
+ // public, so that SampleVariant can see these
+
+  std::vector<meta_index_t*> formats;
+  int gt_field;
+
   
+ private:
+
   uint64_t file_id;
 
   bool return_var;
@@ -131,8 +138,8 @@ class VCFReader {
 
   bool set_format( const std::string & );
   std::string current_format;
-  std::vector<meta_index_t*> formats;
 
+  
   // Meta-fields to ignore/read
 
   std::set<std::string> meta_want;

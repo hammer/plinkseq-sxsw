@@ -88,7 +88,7 @@ struct AuxConcordanceCheck
 		// both genotypes observed?
 		// this should handle multi-allelic markers? (check)
 
-		if ( g1->notnull() && g2->notnull() )
+		if ( ! ( g1->null() || g2->null() ) )
 		  record( v.ind(i)->id() , 
 			  j1->first , j2->first, 
 			  g1, g2, 
@@ -112,16 +112,17 @@ struct AuxConcordanceCheck
 	while ( j1 != gm.end() )
 	  {
 
-	    if ( j1->second->notnull() ) 
+	    if ( ! j1->second->null() ) 
 	      {
 		record( v.ind(i)->id() , j1->first );
 		++nobs;
 		
-		// plog << v.ind(i)->id() << "\t" 
-		// << j1->first << "\t" 
-		// << v.psample( j1->first )->label( *(j1->second) , true )  << "\n";
+		//		uniq_obs.insert( v.psample( j1->first )->label( *(j1->second) , true ) );
 		
-		uniq_obs.insert( v.psample( j1->first )->label( *(j1->second) , true ) );
+		
+		// Insert unphased genotype label here
+		uniq_obs.insert( v.geno_label( j1->first , *(j1->second) ) );
+
 	      }
 
 	    ++j1;
@@ -309,15 +310,15 @@ struct AuxConcordanceCheck
 
     if ( ! conc )
       plog << "_GENO" << "\t"
-		<< id << "\t"
-		<< f1 << "\t"
-		<< f2 << "\t"
-		<< v << "\t"
-		<< v.psample(f1)->label( *g1 ) << "\t"
-		<< v.psample(f2)->label( *g2 ) << "\t"
-                << g1->nonreference() << "\t"
-		<< g2->nonreference() << "\n";
-
+	   << id << "\t"
+	   << f1 << "\t"
+	   << f2 << "\t"
+	   << v << "\t"
+	   << v.geno_label( f1 , *g1 ) << "\t"
+	   << v.geno_label( f2 , *g2 ) << "\t"
+	   << g1->nonreference() << "\t"
+	   << g2->nonreference() << "\n";
+    
   }
 
   //
@@ -917,7 +918,7 @@ bool Pseq::VarDB::simple_sim()
 		  var.chromosome(1);
 		  var.position( ++totv );
 		  var.attach( &g.indmap );
-		  var.consensus.calls.size( ncase + ncontrol );
+		  var.size( ncase + ncontrol );
 		  int cnt = 0;
 		  for ( int i=0; i < ncase; i++ )
 		    {
@@ -1004,8 +1005,8 @@ void f_proxscan( Variant & var , void * p )
 	  // Counts
 
 	  int n1, m1, n2, m2;
-	  bool altmin1 = var.n_minor_allele( n1, m1 );
-	  bool altmin2 = aux->lastvar.n_minor_allele( n2, m2 );
+	  bool altmin1 = var.n_minor_allele( &n1, &m1 );
+	  bool altmin2 = aux->lastvar.n_minor_allele( &n2, &m2 );
 	  
 	  // DIST
 	  plog.data( var.position() - aux->lastvar.stop() );

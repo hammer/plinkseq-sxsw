@@ -36,6 +36,7 @@ struct PLINKSeq {
   static std::string & META_GENO_LIK();
   static std::string & META_GENO_PHRED();
   static std::string & META_GENO_POSTPROB();
+  static std::string & META_GENO_ALT_DOSAGE();
 
   static std::string & SEQDB_GENOME_BUILD_KEY();
   static std::string & SEQDB_REPEAT_MODE_KEY();
@@ -86,6 +87,14 @@ typedef  uint64_t         ID_t;
 enum sType { MALE , 
 	     FEMALE , 
 	     UNKNOWN_SEX }; 
+
+enum ploidy_t { PLOIDY_UNKNOWN = 0 , 
+		PLOIDY_HAPLOID = 1 , 
+		PLOIDY_AUTOSOMAL = 2 , 
+		PLOIDY_X = 3 , 
+		PLOIDY_Y = 4 , 
+		PLOIDY_OTHER = 5 };
+
 
 enum mType { META_FLAG      = 0 ,   //  <none> 
 	     META_UNDEFINED = 1 ,   //  string

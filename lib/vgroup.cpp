@@ -125,8 +125,7 @@ string VariantGroup::dump( bool vmeta ,
 	{
 
 	  // Get the minor allele
-	  int c = 0 , n = 0;
-	  bool altmin = var(i).n_minor_allele( c , n );
+	  bool altmin = var(i).n_minor_allele( );
 	  
 	  for (int j=0; j < n_individuals(); j++ )
 	    {	      
@@ -136,10 +135,10 @@ string VariantGroup::dump( bool vmeta ,
 		{
 		  
 		  if ( istr[j] != "" ) istr[j] += ",";
-		  istr[j] += var(i).coordinate() + ";" + var(i).consensus.label( (*this)(i,j) );
+		  istr[j] += var(i).coordinate() + ";" + var(i).geno_label( (*this)(i,j) );
 		  
 		  if ( vstr[i] != "" ) vstr[i] += ",";
-		  vstr[i] += ind(j)->id() + ";" + var(i).consensus.label( (*this)(i,j) );
+		  vstr[i] += ind(j)->id() + ";" + var(i).geno_label( (*this)(i,j) );
 		  
 		  ++icnt[j];
 		  ++vcnt[i];
@@ -259,7 +258,7 @@ string VariantGroup::dump( bool vmeta ,
 
 	  for (int j=0; j < n_individuals(); j++ )
 	    {
-	      ss << "\t" << var(i).consensus.label( (*this)(i,j) ) ;
+	      ss << "\t" << var(i).geno_label( (*this)(i,j) ) ;
 	      if ( gmeta ) 
 		ss << " " << (*this)(i,j).meta;
 	    }
@@ -283,9 +282,8 @@ string VariantGroup::dump( bool vmeta ,
       std::vector<bool> altmin( size() );
       if ( only_minor )
 	{
-	  int c, c_tot;
 	  for (int i=0; i<size(); i++)
-	    altmin[i] = var(i).n_minor_allele( c , c_tot );
+	    altmin[i] = var(i).n_minor_allele( );
 	}
 
       // Indiv rows
@@ -318,7 +316,7 @@ string VariantGroup::dump( bool vmeta ,
 
 	  for (int i=0; i< size(); i++)
 	    {	    
-	      ss << "\t" << var(i).consensus.label( (*this)(i,j) ) ;
+	      ss << "\t" << var(i).geno_label( (*this)(i,j) ) ;
 	      if ( gmeta ) 
 		ss << " " << (*this)(i,j).meta;
 	    }

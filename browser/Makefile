@@ -8,9 +8,6 @@ LFLAGS += -Wl,-rpath=/psych/genetics/pseq/share/lib64/R/lib
 
 OUTPUT = pbrowse.cgi
 
-LIBDIR = ../lib
-LIB = ${LIBDIR}/libpseq.so
-
 SRC = psb.cpp 
 HDR = cgi.h psb.h
 OBJ = $(SRC:.cpp=.o)
@@ -20,7 +17,7 @@ INC += -I../share/include/
 INC += -I../share/lib64/R/include/ 
 
 LIBDIR = -L../share/lib -L../lib
-LIB  = -lpseq 
+LIB  = -lplinkseq 
 LIB += -lsqlite3
 LIB += -lprotobuf
 LIB += -lRmath

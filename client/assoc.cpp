@@ -237,7 +237,7 @@ void f_variant_association( Variant & v , void * p )
 	      else
 		{
 		  
-		  const int ac = v(i).allele_count( &v );	      
+		  const int ac = v(i).allele_count( );	      
 		  
 		  if ( aff == CASE ) 
 		    {

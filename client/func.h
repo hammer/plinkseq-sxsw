@@ -397,10 +397,11 @@ namespace Pseq
 	Commands & operator<<( const std::string & s )
 	  {
 
-	    // command|group|description|GRP|VCF
+	    // command|group|description|GRP|VCF|NOGENO
 	    // aleays 3 |-delimited fields
 	    // optionally, GRP meaning group-iteration
 	    //             VCF meaning applicable to individual VCFs
+	    //             NOGENO means that, by default, we do not need to look at genotype data
 	    //             ARG:arg1,arg2
 	    //             OPT:opt1=str-list,opt2=str   (we need format for opt)
 
@@ -427,6 +428,7 @@ namespace Pseq
 	      {
 		if ( d[i] == "GRP" ) comm_group_iteration.insert( d[0] );
 		if ( d[i] == "VCF" ) comm_single_vcf.insert( d[0] );
+		if ( d[i] == "NOGENO" ) comm_no_genotypes.insert( d[0] );
 		if ( d[i].substr(0,4) == "ARG:" ) pargs->attach( d[0] , d[i].substr(4) );
 		if ( d[i].substr(0,4) == "OPT:" ) popt->attach( d[0] , d[i].substr(4) );
 	      }
@@ -491,6 +493,11 @@ namespace Pseq
 	  return comm_single_vcf.find(c) != comm_single_vcf.end();
 	}
 	
+	bool need_genotypes( const std::string & c ) const 
+	{
+	  return comm_no_genotypes.find(c) == comm_no_genotypes.end();
+	}
+
 	std::set<std::string> command_belongs_to() const
 	  {
 	    std::set<std::string> s;
@@ -542,7 +549,8 @@ namespace Pseq
 	std::map<std::string, std::string> comm_desc;
 	std::set<std::string> comm_group_iteration;
 	std::set<std::string> comm_single_vcf;
-	
+	std::set<std::string> comm_no_genotypes;
+
 	std::map<std::string,std::vector<std::string> > comm_group;
 	std::map<std::string,std::set<std::string> > comm_group_rmap;
 	std::map<std::string,std::string> group_desc;

@@ -30,62 +30,65 @@ void  protobuf_AddDesc_variant_2eproto();
 void protobuf_AssignDesc_variant_2eproto();
 void protobuf_ShutdownFile_variant_2eproto();
 
-class VarMetaBuffer;
-class GenotypeMetaBuffer;
+class VariantMetaUnit;
+class GenotypeMetaUnit;
 class VariantBuffer;
+class VariantMetaBuffer;
+class GenotypeBuffer;
+class GenotypeMetaBuffer;
 
-enum VarMetaBuffer_Type {
-  VarMetaBuffer_Type_INT = 1,
-  VarMetaBuffer_Type_FLOAT = 2,
-  VarMetaBuffer_Type_TEXT = 3,
-  VarMetaBuffer_Type_BOOL = 4
+enum VariantMetaUnit_Type {
+  VariantMetaUnit_Type_INT = 1,
+  VariantMetaUnit_Type_FLOAT = 2,
+  VariantMetaUnit_Type_TEXT = 3,
+  VariantMetaUnit_Type_BOOL = 4
 };
-bool VarMetaBuffer_Type_IsValid(int value);
-const VarMetaBuffer_Type VarMetaBuffer_Type_Type_MIN = VarMetaBuffer_Type_INT;
-const VarMetaBuffer_Type VarMetaBuffer_Type_Type_MAX = VarMetaBuffer_Type_BOOL;
-const int VarMetaBuffer_Type_Type_ARRAYSIZE = VarMetaBuffer_Type_Type_MAX + 1;
+bool VariantMetaUnit_Type_IsValid(int value);
+const VariantMetaUnit_Type VariantMetaUnit_Type_Type_MIN = VariantMetaUnit_Type_INT;
+const VariantMetaUnit_Type VariantMetaUnit_Type_Type_MAX = VariantMetaUnit_Type_BOOL;
+const int VariantMetaUnit_Type_Type_ARRAYSIZE = VariantMetaUnit_Type_Type_MAX + 1;
 
-const ::google::protobuf::EnumDescriptor* VarMetaBuffer_Type_descriptor();
-inline const ::std::string& VarMetaBuffer_Type_Name(VarMetaBuffer_Type value) {
+const ::google::protobuf::EnumDescriptor* VariantMetaUnit_Type_descriptor();
+inline const ::std::string& VariantMetaUnit_Type_Name(VariantMetaUnit_Type value) {
   return ::google::protobuf::internal::NameOfEnum(
-    VarMetaBuffer_Type_descriptor(), value);
+    VariantMetaUnit_Type_descriptor(), value);
 }
-inline bool VarMetaBuffer_Type_Parse(
-    const ::std::string& name, VarMetaBuffer_Type* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<VarMetaBuffer_Type>(
-    VarMetaBuffer_Type_descriptor(), name, value);
+inline bool VariantMetaUnit_Type_Parse(
+    const ::std::string& name, VariantMetaUnit_Type* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<VariantMetaUnit_Type>(
+    VariantMetaUnit_Type_descriptor(), name, value);
 }
-enum GenotypeMetaBuffer_Type {
-  GenotypeMetaBuffer_Type_INT = 1,
-  GenotypeMetaBuffer_Type_FLOAT = 2,
-  GenotypeMetaBuffer_Type_TEXT = 3,
-  GenotypeMetaBuffer_Type_BOOL = 4
+enum GenotypeMetaUnit_Type {
+  GenotypeMetaUnit_Type_INT = 1,
+  GenotypeMetaUnit_Type_FLOAT = 2,
+  GenotypeMetaUnit_Type_TEXT = 3,
+  GenotypeMetaUnit_Type_BOOL = 4
 };
-bool GenotypeMetaBuffer_Type_IsValid(int value);
-const GenotypeMetaBuffer_Type GenotypeMetaBuffer_Type_Type_MIN = GenotypeMetaBuffer_Type_INT;
-const GenotypeMetaBuffer_Type GenotypeMetaBuffer_Type_Type_MAX = GenotypeMetaBuffer_Type_BOOL;
-const int GenotypeMetaBuffer_Type_Type_ARRAYSIZE = GenotypeMetaBuffer_Type_Type_MAX + 1;
+bool GenotypeMetaUnit_Type_IsValid(int value);
+const GenotypeMetaUnit_Type GenotypeMetaUnit_Type_Type_MIN = GenotypeMetaUnit_Type_INT;
+const GenotypeMetaUnit_Type GenotypeMetaUnit_Type_Type_MAX = GenotypeMetaUnit_Type_BOOL;
+const int GenotypeMetaUnit_Type_Type_ARRAYSIZE = GenotypeMetaUnit_Type_Type_MAX + 1;
 
-const ::google::protobuf::EnumDescriptor* GenotypeMetaBuffer_Type_descriptor();
-inline const ::std::string& GenotypeMetaBuffer_Type_Name(GenotypeMetaBuffer_Type value) {
+const ::google::protobuf::EnumDescriptor* GenotypeMetaUnit_Type_descriptor();
+inline const ::std::string& GenotypeMetaUnit_Type_Name(GenotypeMetaUnit_Type value) {
   return ::google::protobuf::internal::NameOfEnum(
-    GenotypeMetaBuffer_Type_descriptor(), value);
+    GenotypeMetaUnit_Type_descriptor(), value);
 }
-inline bool GenotypeMetaBuffer_Type_Parse(
-    const ::std::string& name, GenotypeMetaBuffer_Type* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<GenotypeMetaBuffer_Type>(
-    GenotypeMetaBuffer_Type_descriptor(), name, value);
+inline bool GenotypeMetaUnit_Type_Parse(
+    const ::std::string& name, GenotypeMetaUnit_Type* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<GenotypeMetaUnit_Type>(
+    GenotypeMetaUnit_Type_descriptor(), name, value);
 }
 // ===================================================================
 
-class VarMetaBuffer : public ::google::protobuf::Message {
+class VariantMetaUnit : public ::google::protobuf::Message {
  public:
-  VarMetaBuffer();
-  virtual ~VarMetaBuffer();
+  VariantMetaUnit();
+  virtual ~VariantMetaUnit();
   
-  VarMetaBuffer(const VarMetaBuffer& from);
+  VariantMetaUnit(const VariantMetaUnit& from);
   
-  inline VarMetaBuffer& operator=(const VarMetaBuffer& from) {
+  inline VariantMetaUnit& operator=(const VariantMetaUnit& from) {
     CopyFrom(from);
     return *this;
   }
@@ -99,17 +102,17 @@ class VarMetaBuffer : public ::google::protobuf::Message {
   }
   
   static const ::google::protobuf::Descriptor* descriptor();
-  static const VarMetaBuffer& default_instance();
+  static const VariantMetaUnit& default_instance();
   
-  void Swap(VarMetaBuffer* other);
+  void Swap(VariantMetaUnit* other);
   
   // implements Message ----------------------------------------------
   
-  VarMetaBuffer* New() const;
+  VariantMetaUnit* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const VarMetaBuffer& from);
-  void MergeFrom(const VarMetaBuffer& from);
+  void CopyFrom(const VariantMetaUnit& from);
+  void MergeFrom(const VariantMetaUnit& from);
   void Clear();
   bool IsInitialized() const;
   
@@ -130,40 +133,40 @@ class VarMetaBuffer : public ::google::protobuf::Message {
   
   // nested types ----------------------------------------------------
   
-  typedef VarMetaBuffer_Type Type;
-  static const Type INT = VarMetaBuffer_Type_INT;
-  static const Type FLOAT = VarMetaBuffer_Type_FLOAT;
-  static const Type TEXT = VarMetaBuffer_Type_TEXT;
-  static const Type BOOL = VarMetaBuffer_Type_BOOL;
+  typedef VariantMetaUnit_Type Type;
+  static const Type INT = VariantMetaUnit_Type_INT;
+  static const Type FLOAT = VariantMetaUnit_Type_FLOAT;
+  static const Type TEXT = VariantMetaUnit_Type_TEXT;
+  static const Type BOOL = VariantMetaUnit_Type_BOOL;
   static inline bool Type_IsValid(int value) {
-    return VarMetaBuffer_Type_IsValid(value);
+    return VariantMetaUnit_Type_IsValid(value);
   }
   static const Type Type_MIN =
-    VarMetaBuffer_Type_Type_MIN;
+    VariantMetaUnit_Type_Type_MIN;
   static const Type Type_MAX =
-    VarMetaBuffer_Type_Type_MAX;
+    VariantMetaUnit_Type_Type_MAX;
   static const int Type_ARRAYSIZE =
-    VarMetaBuffer_Type_Type_ARRAYSIZE;
+    VariantMetaUnit_Type_Type_ARRAYSIZE;
   static inline const ::google::protobuf::EnumDescriptor*
   Type_descriptor() {
-    return VarMetaBuffer_Type_descriptor();
+    return VariantMetaUnit_Type_descriptor();
   }
   static inline const ::std::string& Type_Name(Type value) {
-    return VarMetaBuffer_Type_Name(value);
+    return VariantMetaUnit_Type_Name(value);
   }
   static inline bool Type_Parse(const ::std::string& name,
       Type* value) {
-    return VarMetaBuffer_Type_Parse(name, value);
+    return VariantMetaUnit_Type_Parse(name, value);
   }
   
   // accessors -------------------------------------------------------
   
-  // required .VarMetaBuffer.Type type = 1;
+  // required .VariantMetaUnit.Type type = 1;
   inline bool has_type() const;
   inline void clear_type();
   static const int kTypeFieldNumber = 1;
-  inline ::VarMetaBuffer_Type type() const;
-  inline void set_type(::VarMetaBuffer_Type value);
+  inline ::VariantMetaUnit_Type type() const;
+  inline void set_type(::VariantMetaUnit_Type value);
   
   // required string name = 2;
   inline bool has_name() const;
@@ -227,7 +230,7 @@ class VarMetaBuffer : public ::google::protobuf::Message {
   inline ::google::protobuf::RepeatedField< bool >*
       mutable_bool_value();
   
-  // @@protoc_insertion_point(class_scope:VarMetaBuffer)
+  // @@protoc_insertion_point(class_scope:VariantMetaUnit)
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
@@ -260,18 +263,18 @@ class VarMetaBuffer : public ::google::protobuf::Message {
   }
   
   void InitAsDefaultInstance();
-  static VarMetaBuffer* default_instance_;
+  static VariantMetaUnit* default_instance_;
 };
 // -------------------------------------------------------------------
 
-class GenotypeMetaBuffer : public ::google::protobuf::Message {
+class GenotypeMetaUnit : public ::google::protobuf::Message {
  public:
-  GenotypeMetaBuffer();
-  virtual ~GenotypeMetaBuffer();
+  GenotypeMetaUnit();
+  virtual ~GenotypeMetaUnit();
   
-  GenotypeMetaBuffer(const GenotypeMetaBuffer& from);
+  GenotypeMetaUnit(const GenotypeMetaUnit& from);
   
-  inline GenotypeMetaBuffer& operator=(const GenotypeMetaBuffer& from) {
+  inline GenotypeMetaUnit& operator=(const GenotypeMetaUnit& from) {
     CopyFrom(from);
     return *this;
   }
@@ -285,17 +288,17 @@ class GenotypeMetaBuffer : public ::google::protobuf::Message {
   }
   
   static const ::google::protobuf::Descriptor* descriptor();
-  static const GenotypeMetaBuffer& default_instance();
+  static const GenotypeMetaUnit& default_instance();
   
-  void Swap(GenotypeMetaBuffer* other);
+  void Swap(GenotypeMetaUnit* other);
   
   // implements Message ----------------------------------------------
   
-  GenotypeMetaBuffer* New() const;
+  GenotypeMetaUnit* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const GenotypeMetaBuffer& from);
-  void MergeFrom(const GenotypeMetaBuffer& from);
+  void CopyFrom(const GenotypeMetaUnit& from);
+  void MergeFrom(const GenotypeMetaUnit& from);
   void Clear();
   bool IsInitialized() const;
   
@@ -316,40 +319,40 @@ class GenotypeMetaBuffer : public ::google::protobuf::Message {
   
   // nested types ----------------------------------------------------
   
-  typedef GenotypeMetaBuffer_Type Type;
-  static const Type INT = GenotypeMetaBuffer_Type_INT;
-  static const Type FLOAT = GenotypeMetaBuffer_Type_FLOAT;
-  static const Type TEXT = GenotypeMetaBuffer_Type_TEXT;
-  static const Type BOOL = GenotypeMetaBuffer_Type_BOOL;
+  typedef GenotypeMetaUnit_Type Type;
+  static const Type INT = GenotypeMetaUnit_Type_INT;
+  static const Type FLOAT = GenotypeMetaUnit_Type_FLOAT;
+  static const Type TEXT = GenotypeMetaUnit_Type_TEXT;
+  static const Type BOOL = GenotypeMetaUnit_Type_BOOL;
   static inline bool Type_IsValid(int value) {
-    return GenotypeMetaBuffer_Type_IsValid(value);
+    return GenotypeMetaUnit_Type_IsValid(value);
   }
   static const Type Type_MIN =
-    GenotypeMetaBuffer_Type_Type_MIN;
+    GenotypeMetaUnit_Type_Type_MIN;
   static const Type Type_MAX =
-    GenotypeMetaBuffer_Type_Type_MAX;
+    GenotypeMetaUnit_Type_Type_MAX;
   static const int Type_ARRAYSIZE =
-    GenotypeMetaBuffer_Type_Type_ARRAYSIZE;
+    GenotypeMetaUnit_Type_Type_ARRAYSIZE;
   static inline const ::google::protobuf::EnumDescriptor*
   Type_descriptor() {
-    return GenotypeMetaBuffer_Type_descriptor();
+    return GenotypeMetaUnit_Type_descriptor();
   }
   static inline const ::std::string& Type_Name(Type value) {
-    return GenotypeMetaBuffer_Type_Name(value);
+    return GenotypeMetaUnit_Type_Name(value);
   }
   static inline bool Type_Parse(const ::std::string& name,
       Type* value) {
-    return GenotypeMetaBuffer_Type_Parse(name, value);
+    return GenotypeMetaUnit_Type_Parse(name, value);
   }
   
   // accessors -------------------------------------------------------
   
-  // required .GenotypeMetaBuffer.Type type = 1;
+  // required .GenotypeMetaUnit.Type type = 1;
   inline bool has_type() const;
   inline void clear_type();
   static const int kTypeFieldNumber = 1;
-  inline ::GenotypeMetaBuffer_Type type() const;
-  inline void set_type(::GenotypeMetaBuffer_Type value);
+  inline ::GenotypeMetaUnit_Type type() const;
+  inline void set_type(::GenotypeMetaUnit_Type value);
   
   // required string name = 2;
   inline bool has_name() const;
@@ -463,7 +466,7 @@ class GenotypeMetaBuffer : public ::google::protobuf::Message {
   inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
       mutable_missing_index();
   
-  // @@protoc_insertion_point(class_scope:GenotypeMetaBuffer)
+  // @@protoc_insertion_point(class_scope:GenotypeMetaUnit)
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
   mutable int _cached_size_;
@@ -504,7 +507,7 @@ class GenotypeMetaBuffer : public ::google::protobuf::Message {
   }
   
   void InitAsDefaultInstance();
-  static GenotypeMetaBuffer* default_instance_;
+  static GenotypeMetaUnit* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -615,54 +618,6 @@ class VariantBuffer : public ::google::protobuf::Message {
   inline const ::google::protobuf::RepeatedPtrField< ::std::string>& filter() const;
   inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_filter();
   
-  // repeated .VarMetaBuffer vmeta = 6;
-  inline int vmeta_size() const;
-  inline void clear_vmeta();
-  static const int kVmetaFieldNumber = 6;
-  inline const ::VarMetaBuffer& vmeta(int index) const;
-  inline ::VarMetaBuffer* mutable_vmeta(int index);
-  inline ::VarMetaBuffer* add_vmeta();
-  inline const ::google::protobuf::RepeatedPtrField< ::VarMetaBuffer >&
-      vmeta() const;
-  inline ::google::protobuf::RepeatedPtrField< ::VarMetaBuffer >*
-      mutable_vmeta();
-  
-  // repeated int32 geno1 = 7 [packed = true];
-  inline int geno1_size() const;
-  inline void clear_geno1();
-  static const int kGeno1FieldNumber = 7;
-  inline ::google::protobuf::int32 geno1(int index) const;
-  inline void set_geno1(int index, ::google::protobuf::int32 value);
-  inline void add_geno1(::google::protobuf::int32 value);
-  inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-      geno1() const;
-  inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-      mutable_geno1();
-  
-  // repeated int32 geno2 = 8 [packed = true];
-  inline int geno2_size() const;
-  inline void clear_geno2();
-  static const int kGeno2FieldNumber = 8;
-  inline ::google::protobuf::int32 geno2(int index) const;
-  inline void set_geno2(int index, ::google::protobuf::int32 value);
-  inline void add_geno2(::google::protobuf::int32 value);
-  inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-      geno2() const;
-  inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-      mutable_geno2();
-  
-  // repeated .GenotypeMetaBuffer gmeta = 9;
-  inline int gmeta_size() const;
-  inline void clear_gmeta();
-  static const int kGmetaFieldNumber = 9;
-  inline const ::GenotypeMetaBuffer& gmeta(int index) const;
-  inline ::GenotypeMetaBuffer* mutable_gmeta(int index);
-  inline ::GenotypeMetaBuffer* add_gmeta();
-  inline const ::google::protobuf::RepeatedPtrField< ::GenotypeMetaBuffer >&
-      gmeta() const;
-  inline ::google::protobuf::RepeatedPtrField< ::GenotypeMetaBuffer >*
-      mutable_gmeta();
-  
   // @@protoc_insertion_point(class_scope:VariantBuffer)
  private:
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -676,17 +631,11 @@ class VariantBuffer : public ::google::protobuf::Message {
   static const ::std::string _default_strand_;
   double quality_;
   ::google::protobuf::RepeatedPtrField< ::std::string> filter_;
-  ::google::protobuf::RepeatedPtrField< ::VarMetaBuffer > vmeta_;
-  ::google::protobuf::RepeatedField< ::google::protobuf::int32 > geno1_;
-  mutable int _geno1_cached_byte_size_;
-  ::google::protobuf::RepeatedField< ::google::protobuf::int32 > geno2_;
-  mutable int _geno2_cached_byte_size_;
-  ::google::protobuf::RepeatedPtrField< ::GenotypeMetaBuffer > gmeta_;
   friend void  protobuf_AddDesc_variant_2eproto();
   friend void protobuf_AssignDesc_variant_2eproto();
   friend void protobuf_ShutdownFile_variant_2eproto();
   
-  ::google::protobuf::uint32 _has_bits_[(9 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
   
   // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
   inline bool _has_bit(int index) const {
@@ -702,65 +651,348 @@ class VariantBuffer : public ::google::protobuf::Message {
   void InitAsDefaultInstance();
   static VariantBuffer* default_instance_;
 };
+// -------------------------------------------------------------------
+
+class VariantMetaBuffer : public ::google::protobuf::Message {
+ public:
+  VariantMetaBuffer();
+  virtual ~VariantMetaBuffer();
+  
+  VariantMetaBuffer(const VariantMetaBuffer& from);
+  
+  inline VariantMetaBuffer& operator=(const VariantMetaBuffer& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+  
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+  
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const VariantMetaBuffer& default_instance();
+  
+  void Swap(VariantMetaBuffer* other);
+  
+  // implements Message ----------------------------------------------
+  
+  VariantMetaBuffer* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const VariantMetaBuffer& from);
+  void MergeFrom(const VariantMetaBuffer& from);
+  void Clear();
+  bool IsInitialized() const;
+  
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+  
+  ::google::protobuf::Metadata GetMetadata() const;
+  
+  // nested types ----------------------------------------------------
+  
+  // accessors -------------------------------------------------------
+  
+  // repeated .VariantMetaUnit vmeta = 1;
+  inline int vmeta_size() const;
+  inline void clear_vmeta();
+  static const int kVmetaFieldNumber = 1;
+  inline const ::VariantMetaUnit& vmeta(int index) const;
+  inline ::VariantMetaUnit* mutable_vmeta(int index);
+  inline ::VariantMetaUnit* add_vmeta();
+  inline const ::google::protobuf::RepeatedPtrField< ::VariantMetaUnit >&
+      vmeta() const;
+  inline ::google::protobuf::RepeatedPtrField< ::VariantMetaUnit >*
+      mutable_vmeta();
+  
+  // @@protoc_insertion_point(class_scope:VariantMetaBuffer)
+ private:
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+  mutable int _cached_size_;
+  
+  ::google::protobuf::RepeatedPtrField< ::VariantMetaUnit > vmeta_;
+  friend void  protobuf_AddDesc_variant_2eproto();
+  friend void protobuf_AssignDesc_variant_2eproto();
+  friend void protobuf_ShutdownFile_variant_2eproto();
+  
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+  
+  // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
+  inline bool _has_bit(int index) const {
+    return (_has_bits_[index / 32] & (1u << (index % 32))) != 0;
+  }
+  inline void _set_bit(int index) {
+    _has_bits_[index / 32] |= (1u << (index % 32));
+  }
+  inline void _clear_bit(int index) {
+    _has_bits_[index / 32] &= ~(1u << (index % 32));
+  }
+  
+  void InitAsDefaultInstance();
+  static VariantMetaBuffer* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class GenotypeBuffer : public ::google::protobuf::Message {
+ public:
+  GenotypeBuffer();
+  virtual ~GenotypeBuffer();
+  
+  GenotypeBuffer(const GenotypeBuffer& from);
+  
+  inline GenotypeBuffer& operator=(const GenotypeBuffer& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+  
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+  
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const GenotypeBuffer& default_instance();
+  
+  void Swap(GenotypeBuffer* other);
+  
+  // implements Message ----------------------------------------------
+  
+  GenotypeBuffer* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const GenotypeBuffer& from);
+  void MergeFrom(const GenotypeBuffer& from);
+  void Clear();
+  bool IsInitialized() const;
+  
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+  
+  ::google::protobuf::Metadata GetMetadata() const;
+  
+  // nested types ----------------------------------------------------
+  
+  // accessors -------------------------------------------------------
+  
+  // repeated uint32 geno = 1 [packed = true];
+  inline int geno_size() const;
+  inline void clear_geno();
+  static const int kGenoFieldNumber = 1;
+  inline ::google::protobuf::uint32 geno(int index) const;
+  inline void set_geno(int index, ::google::protobuf::uint32 value);
+  inline void add_geno(::google::protobuf::uint32 value);
+  inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+      geno() const;
+  inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+      mutable_geno();
+  
+  // @@protoc_insertion_point(class_scope:GenotypeBuffer)
+ private:
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+  mutable int _cached_size_;
+  
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 > geno_;
+  mutable int _geno_cached_byte_size_;
+  friend void  protobuf_AddDesc_variant_2eproto();
+  friend void protobuf_AssignDesc_variant_2eproto();
+  friend void protobuf_ShutdownFile_variant_2eproto();
+  
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+  
+  // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
+  inline bool _has_bit(int index) const {
+    return (_has_bits_[index / 32] & (1u << (index % 32))) != 0;
+  }
+  inline void _set_bit(int index) {
+    _has_bits_[index / 32] |= (1u << (index % 32));
+  }
+  inline void _clear_bit(int index) {
+    _has_bits_[index / 32] &= ~(1u << (index % 32));
+  }
+  
+  void InitAsDefaultInstance();
+  static GenotypeBuffer* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class GenotypeMetaBuffer : public ::google::protobuf::Message {
+ public:
+  GenotypeMetaBuffer();
+  virtual ~GenotypeMetaBuffer();
+  
+  GenotypeMetaBuffer(const GenotypeMetaBuffer& from);
+  
+  inline GenotypeMetaBuffer& operator=(const GenotypeMetaBuffer& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+  
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+  
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const GenotypeMetaBuffer& default_instance();
+  
+  void Swap(GenotypeMetaBuffer* other);
+  
+  // implements Message ----------------------------------------------
+  
+  GenotypeMetaBuffer* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const GenotypeMetaBuffer& from);
+  void MergeFrom(const GenotypeMetaBuffer& from);
+  void Clear();
+  bool IsInitialized() const;
+  
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+  
+  ::google::protobuf::Metadata GetMetadata() const;
+  
+  // nested types ----------------------------------------------------
+  
+  // accessors -------------------------------------------------------
+  
+  // repeated .GenotypeMetaUnit gmeta = 1;
+  inline int gmeta_size() const;
+  inline void clear_gmeta();
+  static const int kGmetaFieldNumber = 1;
+  inline const ::GenotypeMetaUnit& gmeta(int index) const;
+  inline ::GenotypeMetaUnit* mutable_gmeta(int index);
+  inline ::GenotypeMetaUnit* add_gmeta();
+  inline const ::google::protobuf::RepeatedPtrField< ::GenotypeMetaUnit >&
+      gmeta() const;
+  inline ::google::protobuf::RepeatedPtrField< ::GenotypeMetaUnit >*
+      mutable_gmeta();
+  
+  // @@protoc_insertion_point(class_scope:GenotypeMetaBuffer)
+ private:
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+  mutable int _cached_size_;
+  
+  ::google::protobuf::RepeatedPtrField< ::GenotypeMetaUnit > gmeta_;
+  friend void  protobuf_AddDesc_variant_2eproto();
+  friend void protobuf_AssignDesc_variant_2eproto();
+  friend void protobuf_ShutdownFile_variant_2eproto();
+  
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+  
+  // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
+  inline bool _has_bit(int index) const {
+    return (_has_bits_[index / 32] & (1u << (index % 32))) != 0;
+  }
+  inline void _set_bit(int index) {
+    _has_bits_[index / 32] |= (1u << (index % 32));
+  }
+  inline void _clear_bit(int index) {
+    _has_bits_[index / 32] &= ~(1u << (index % 32));
+  }
+  
+  void InitAsDefaultInstance();
+  static GenotypeMetaBuffer* default_instance_;
+};
 // ===================================================================
 
 
 // ===================================================================
 
-// VarMetaBuffer
+// VariantMetaUnit
 
-// required .VarMetaBuffer.Type type = 1;
-inline bool VarMetaBuffer::has_type() const {
+// required .VariantMetaUnit.Type type = 1;
+inline bool VariantMetaUnit::has_type() const {
   return _has_bit(0);
 }
-inline void VarMetaBuffer::clear_type() {
+inline void VariantMetaUnit::clear_type() {
   type_ = 1;
   _clear_bit(0);
 }
-inline ::VarMetaBuffer_Type VarMetaBuffer::type() const {
-  return static_cast< ::VarMetaBuffer_Type >(type_);
+inline ::VariantMetaUnit_Type VariantMetaUnit::type() const {
+  return static_cast< ::VariantMetaUnit_Type >(type_);
 }
-inline void VarMetaBuffer::set_type(::VarMetaBuffer_Type value) {
-  GOOGLE_DCHECK(::VarMetaBuffer_Type_IsValid(value));
+inline void VariantMetaUnit::set_type(::VariantMetaUnit_Type value) {
+  GOOGLE_DCHECK(::VariantMetaUnit_Type_IsValid(value));
   _set_bit(0);
   type_ = value;
 }
 
 // required string name = 2;
-inline bool VarMetaBuffer::has_name() const {
+inline bool VariantMetaUnit::has_name() const {
   return _has_bit(1);
 }
-inline void VarMetaBuffer::clear_name() {
+inline void VariantMetaUnit::clear_name() {
   if (name_ != &_default_name_) {
     name_->clear();
   }
   _clear_bit(1);
 }
-inline const ::std::string& VarMetaBuffer::name() const {
+inline const ::std::string& VariantMetaUnit::name() const {
   return *name_;
 }
-inline void VarMetaBuffer::set_name(const ::std::string& value) {
+inline void VariantMetaUnit::set_name(const ::std::string& value) {
   _set_bit(1);
   if (name_ == &_default_name_) {
     name_ = new ::std::string;
   }
   name_->assign(value);
 }
-inline void VarMetaBuffer::set_name(const char* value) {
+inline void VariantMetaUnit::set_name(const char* value) {
   _set_bit(1);
   if (name_ == &_default_name_) {
     name_ = new ::std::string;
   }
   name_->assign(value);
 }
-inline void VarMetaBuffer::set_name(const char* value, size_t size) {
+inline void VariantMetaUnit::set_name(const char* value, size_t size) {
   _set_bit(1);
   if (name_ == &_default_name_) {
     name_ = new ::std::string;
   }
   name_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* VarMetaBuffer::mutable_name() {
+inline ::std::string* VariantMetaUnit::mutable_name() {
   _set_bit(1);
   if (name_ == &_default_name_) {
     name_ = new ::std::string;
@@ -769,180 +1001,180 @@ inline ::std::string* VarMetaBuffer::mutable_name() {
 }
 
 // repeated int32 int_value = 3 [packed = true];
-inline int VarMetaBuffer::int_value_size() const {
+inline int VariantMetaUnit::int_value_size() const {
   return int_value_.size();
 }
-inline void VarMetaBuffer::clear_int_value() {
+inline void VariantMetaUnit::clear_int_value() {
   int_value_.Clear();
 }
-inline ::google::protobuf::int32 VarMetaBuffer::int_value(int index) const {
+inline ::google::protobuf::int32 VariantMetaUnit::int_value(int index) const {
   return int_value_.Get(index);
 }
-inline void VarMetaBuffer::set_int_value(int index, ::google::protobuf::int32 value) {
+inline void VariantMetaUnit::set_int_value(int index, ::google::protobuf::int32 value) {
   int_value_.Set(index, value);
 }
-inline void VarMetaBuffer::add_int_value(::google::protobuf::int32 value) {
+inline void VariantMetaUnit::add_int_value(::google::protobuf::int32 value) {
   int_value_.Add(value);
 }
 inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-VarMetaBuffer::int_value() const {
+VariantMetaUnit::int_value() const {
   return int_value_;
 }
 inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-VarMetaBuffer::mutable_int_value() {
+VariantMetaUnit::mutable_int_value() {
   return &int_value_;
 }
 
 // repeated double double_value = 4 [packed = true];
-inline int VarMetaBuffer::double_value_size() const {
+inline int VariantMetaUnit::double_value_size() const {
   return double_value_.size();
 }
-inline void VarMetaBuffer::clear_double_value() {
+inline void VariantMetaUnit::clear_double_value() {
   double_value_.Clear();
 }
-inline double VarMetaBuffer::double_value(int index) const {
+inline double VariantMetaUnit::double_value(int index) const {
   return double_value_.Get(index);
 }
-inline void VarMetaBuffer::set_double_value(int index, double value) {
+inline void VariantMetaUnit::set_double_value(int index, double value) {
   double_value_.Set(index, value);
 }
-inline void VarMetaBuffer::add_double_value(double value) {
+inline void VariantMetaUnit::add_double_value(double value) {
   double_value_.Add(value);
 }
 inline const ::google::protobuf::RepeatedField< double >&
-VarMetaBuffer::double_value() const {
+VariantMetaUnit::double_value() const {
   return double_value_;
 }
 inline ::google::protobuf::RepeatedField< double >*
-VarMetaBuffer::mutable_double_value() {
+VariantMetaUnit::mutable_double_value() {
   return &double_value_;
 }
 
 // repeated string string_value = 5;
-inline int VarMetaBuffer::string_value_size() const {
+inline int VariantMetaUnit::string_value_size() const {
   return string_value_.size();
 }
-inline void VarMetaBuffer::clear_string_value() {
+inline void VariantMetaUnit::clear_string_value() {
   string_value_.Clear();
 }
-inline const ::std::string& VarMetaBuffer::string_value(int index) const {
+inline const ::std::string& VariantMetaUnit::string_value(int index) const {
   return string_value_.Get(index);
 }
-inline ::std::string* VarMetaBuffer::mutable_string_value(int index) {
+inline ::std::string* VariantMetaUnit::mutable_string_value(int index) {
   return string_value_.Mutable(index);
 }
-inline void VarMetaBuffer::set_string_value(int index, const ::std::string& value) {
+inline void VariantMetaUnit::set_string_value(int index, const ::std::string& value) {
   string_value_.Mutable(index)->assign(value);
 }
-inline void VarMetaBuffer::set_string_value(int index, const char* value) {
+inline void VariantMetaUnit::set_string_value(int index, const char* value) {
   string_value_.Mutable(index)->assign(value);
 }
-inline void VarMetaBuffer::set_string_value(int index, const char* value, size_t size) {
+inline void VariantMetaUnit::set_string_value(int index, const char* value, size_t size) {
   string_value_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* VarMetaBuffer::add_string_value() {
+inline ::std::string* VariantMetaUnit::add_string_value() {
   return string_value_.Add();
 }
-inline void VarMetaBuffer::add_string_value(const ::std::string& value) {
+inline void VariantMetaUnit::add_string_value(const ::std::string& value) {
   string_value_.Add()->assign(value);
 }
-inline void VarMetaBuffer::add_string_value(const char* value) {
+inline void VariantMetaUnit::add_string_value(const char* value) {
   string_value_.Add()->assign(value);
 }
-inline void VarMetaBuffer::add_string_value(const char* value, size_t size) {
+inline void VariantMetaUnit::add_string_value(const char* value, size_t size) {
   string_value_.Add()->assign(reinterpret_cast<const char*>(value), size);
 }
 inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
-VarMetaBuffer::string_value() const {
+VariantMetaUnit::string_value() const {
   return string_value_;
 }
 inline ::google::protobuf::RepeatedPtrField< ::std::string>*
-VarMetaBuffer::mutable_string_value() {
+VariantMetaUnit::mutable_string_value() {
   return &string_value_;
 }
 
 // repeated bool bool_value = 6 [packed = true];
-inline int VarMetaBuffer::bool_value_size() const {
+inline int VariantMetaUnit::bool_value_size() const {
   return bool_value_.size();
 }
-inline void VarMetaBuffer::clear_bool_value() {
+inline void VariantMetaUnit::clear_bool_value() {
   bool_value_.Clear();
 }
-inline bool VarMetaBuffer::bool_value(int index) const {
+inline bool VariantMetaUnit::bool_value(int index) const {
   return bool_value_.Get(index);
 }
-inline void VarMetaBuffer::set_bool_value(int index, bool value) {
+inline void VariantMetaUnit::set_bool_value(int index, bool value) {
   bool_value_.Set(index, value);
 }
-inline void VarMetaBuffer::add_bool_value(bool value) {
+inline void VariantMetaUnit::add_bool_value(bool value) {
   bool_value_.Add(value);
 }
 inline const ::google::protobuf::RepeatedField< bool >&
-VarMetaBuffer::bool_value() const {
+VariantMetaUnit::bool_value() const {
   return bool_value_;
 }
 inline ::google::protobuf::RepeatedField< bool >*
-VarMetaBuffer::mutable_bool_value() {
+VariantMetaUnit::mutable_bool_value() {
   return &bool_value_;
 }
 
 // -------------------------------------------------------------------
 
-// GenotypeMetaBuffer
+// GenotypeMetaUnit
 
-// required .GenotypeMetaBuffer.Type type = 1;
-inline bool GenotypeMetaBuffer::has_type() const {
+// required .GenotypeMetaUnit.Type type = 1;
+inline bool GenotypeMetaUnit::has_type() const {
   return _has_bit(0);
 }
-inline void GenotypeMetaBuffer::clear_type() {
+inline void GenotypeMetaUnit::clear_type() {
   type_ = 1;
   _clear_bit(0);
 }
-inline ::GenotypeMetaBuffer_Type GenotypeMetaBuffer::type() const {
-  return static_cast< ::GenotypeMetaBuffer_Type >(type_);
+inline ::GenotypeMetaUnit_Type GenotypeMetaUnit::type() const {
+  return static_cast< ::GenotypeMetaUnit_Type >(type_);
 }
-inline void GenotypeMetaBuffer::set_type(::GenotypeMetaBuffer_Type value) {
-  GOOGLE_DCHECK(::GenotypeMetaBuffer_Type_IsValid(value));
+inline void GenotypeMetaUnit::set_type(::GenotypeMetaUnit_Type value) {
+  GOOGLE_DCHECK(::GenotypeMetaUnit_Type_IsValid(value));
   _set_bit(0);
   type_ = value;
 }
 
 // required string name = 2;
-inline bool GenotypeMetaBuffer::has_name() const {
+inline bool GenotypeMetaUnit::has_name() const {
   return _has_bit(1);
 }
-inline void GenotypeMetaBuffer::clear_name() {
+inline void GenotypeMetaUnit::clear_name() {
   if (name_ != &_default_name_) {
     name_->clear();
   }
   _clear_bit(1);
 }
-inline const ::std::string& GenotypeMetaBuffer::name() const {
+inline const ::std::string& GenotypeMetaUnit::name() const {
   return *name_;
 }
-inline void GenotypeMetaBuffer::set_name(const ::std::string& value) {
+inline void GenotypeMetaUnit::set_name(const ::std::string& value) {
   _set_bit(1);
   if (name_ == &_default_name_) {
     name_ = new ::std::string;
   }
   name_->assign(value);
 }
-inline void GenotypeMetaBuffer::set_name(const char* value) {
+inline void GenotypeMetaUnit::set_name(const char* value) {
   _set_bit(1);
   if (name_ == &_default_name_) {
     name_ = new ::std::string;
   }
   name_->assign(value);
 }
-inline void GenotypeMetaBuffer::set_name(const char* value, size_t size) {
+inline void GenotypeMetaUnit::set_name(const char* value, size_t size) {
   _set_bit(1);
   if (name_ == &_default_name_) {
     name_ = new ::std::string;
   }
   name_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* GenotypeMetaBuffer::mutable_name() {
+inline ::std::string* GenotypeMetaUnit::mutable_name() {
   _set_bit(1);
   if (name_ == &_default_name_) {
     name_ = new ::std::string;
@@ -951,228 +1183,228 @@ inline ::std::string* GenotypeMetaBuffer::mutable_name() {
 }
 
 // optional int32 fixed_len = 3;
-inline bool GenotypeMetaBuffer::has_fixed_len() const {
+inline bool GenotypeMetaUnit::has_fixed_len() const {
   return _has_bit(2);
 }
-inline void GenotypeMetaBuffer::clear_fixed_len() {
+inline void GenotypeMetaUnit::clear_fixed_len() {
   fixed_len_ = 0;
   _clear_bit(2);
 }
-inline ::google::protobuf::int32 GenotypeMetaBuffer::fixed_len() const {
+inline ::google::protobuf::int32 GenotypeMetaUnit::fixed_len() const {
   return fixed_len_;
 }
-inline void GenotypeMetaBuffer::set_fixed_len(::google::protobuf::int32 value) {
+inline void GenotypeMetaUnit::set_fixed_len(::google::protobuf::int32 value) {
   _set_bit(2);
   fixed_len_ = value;
 }
 
 // repeated int32 len = 4 [packed = true];
-inline int GenotypeMetaBuffer::len_size() const {
+inline int GenotypeMetaUnit::len_size() const {
   return len_.size();
 }
-inline void GenotypeMetaBuffer::clear_len() {
+inline void GenotypeMetaUnit::clear_len() {
   len_.Clear();
 }
-inline ::google::protobuf::int32 GenotypeMetaBuffer::len(int index) const {
+inline ::google::protobuf::int32 GenotypeMetaUnit::len(int index) const {
   return len_.Get(index);
 }
-inline void GenotypeMetaBuffer::set_len(int index, ::google::protobuf::int32 value) {
+inline void GenotypeMetaUnit::set_len(int index, ::google::protobuf::int32 value) {
   len_.Set(index, value);
 }
-inline void GenotypeMetaBuffer::add_len(::google::protobuf::int32 value) {
+inline void GenotypeMetaUnit::add_len(::google::protobuf::int32 value) {
   len_.Add(value);
 }
 inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-GenotypeMetaBuffer::len() const {
+GenotypeMetaUnit::len() const {
   return len_;
 }
 inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-GenotypeMetaBuffer::mutable_len() {
+GenotypeMetaUnit::mutable_len() {
   return &len_;
 }
 
 // repeated int32 int_value = 5 [packed = true];
-inline int GenotypeMetaBuffer::int_value_size() const {
+inline int GenotypeMetaUnit::int_value_size() const {
   return int_value_.size();
 }
-inline void GenotypeMetaBuffer::clear_int_value() {
+inline void GenotypeMetaUnit::clear_int_value() {
   int_value_.Clear();
 }
-inline ::google::protobuf::int32 GenotypeMetaBuffer::int_value(int index) const {
+inline ::google::protobuf::int32 GenotypeMetaUnit::int_value(int index) const {
   return int_value_.Get(index);
 }
-inline void GenotypeMetaBuffer::set_int_value(int index, ::google::protobuf::int32 value) {
+inline void GenotypeMetaUnit::set_int_value(int index, ::google::protobuf::int32 value) {
   int_value_.Set(index, value);
 }
-inline void GenotypeMetaBuffer::add_int_value(::google::protobuf::int32 value) {
+inline void GenotypeMetaUnit::add_int_value(::google::protobuf::int32 value) {
   int_value_.Add(value);
 }
 inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-GenotypeMetaBuffer::int_value() const {
+GenotypeMetaUnit::int_value() const {
   return int_value_;
 }
 inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-GenotypeMetaBuffer::mutable_int_value() {
+GenotypeMetaUnit::mutable_int_value() {
   return &int_value_;
 }
 
 // repeated double double_value = 6 [packed = true];
-inline int GenotypeMetaBuffer::double_value_size() const {
+inline int GenotypeMetaUnit::double_value_size() const {
   return double_value_.size();
 }
-inline void GenotypeMetaBuffer::clear_double_value() {
+inline void GenotypeMetaUnit::clear_double_value() {
   double_value_.Clear();
 }
-inline double GenotypeMetaBuffer::double_value(int index) const {
+inline double GenotypeMetaUnit::double_value(int index) const {
   return double_value_.Get(index);
 }
-inline void GenotypeMetaBuffer::set_double_value(int index, double value) {
+inline void GenotypeMetaUnit::set_double_value(int index, double value) {
   double_value_.Set(index, value);
 }
-inline void GenotypeMetaBuffer::add_double_value(double value) {
+inline void GenotypeMetaUnit::add_double_value(double value) {
   double_value_.Add(value);
 }
 inline const ::google::protobuf::RepeatedField< double >&
-GenotypeMetaBuffer::double_value() const {
+GenotypeMetaUnit::double_value() const {
   return double_value_;
 }
 inline ::google::protobuf::RepeatedField< double >*
-GenotypeMetaBuffer::mutable_double_value() {
+GenotypeMetaUnit::mutable_double_value() {
   return &double_value_;
 }
 
 // repeated string string_value = 7;
-inline int GenotypeMetaBuffer::string_value_size() const {
+inline int GenotypeMetaUnit::string_value_size() const {
   return string_value_.size();
 }
-inline void GenotypeMetaBuffer::clear_string_value() {
+inline void GenotypeMetaUnit::clear_string_value() {
   string_value_.Clear();
 }
-inline const ::std::string& GenotypeMetaBuffer::string_value(int index) const {
+inline const ::std::string& GenotypeMetaUnit::string_value(int index) const {
   return string_value_.Get(index);
 }
-inline ::std::string* GenotypeMetaBuffer::mutable_string_value(int index) {
+inline ::std::string* GenotypeMetaUnit::mutable_string_value(int index) {
   return string_value_.Mutable(index);
 }
-inline void GenotypeMetaBuffer::set_string_value(int index, const ::std::string& value) {
+inline void GenotypeMetaUnit::set_string_value(int index, const ::std::string& value) {
   string_value_.Mutable(index)->assign(value);
 }
-inline void GenotypeMetaBuffer::set_string_value(int index, const char* value) {
+inline void GenotypeMetaUnit::set_string_value(int index, const char* value) {
   string_value_.Mutable(index)->assign(value);
 }
-inline void GenotypeMetaBuffer::set_string_value(int index, const char* value, size_t size) {
+inline void GenotypeMetaUnit::set_string_value(int index, const char* value, size_t size) {
   string_value_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* GenotypeMetaBuffer::add_string_value() {
+inline ::std::string* GenotypeMetaUnit::add_string_value() {
   return string_value_.Add();
 }
-inline void GenotypeMetaBuffer::add_string_value(const ::std::string& value) {
+inline void GenotypeMetaUnit::add_string_value(const ::std::string& value) {
   string_value_.Add()->assign(value);
 }
-inline void GenotypeMetaBuffer::add_string_value(const char* value) {
+inline void GenotypeMetaUnit::add_string_value(const char* value) {
   string_value_.Add()->assign(value);
 }
-inline void GenotypeMetaBuffer::add_string_value(const char* value, size_t size) {
+inline void GenotypeMetaUnit::add_string_value(const char* value, size_t size) {
   string_value_.Add()->assign(reinterpret_cast<const char*>(value), size);
 }
 inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
-GenotypeMetaBuffer::string_value() const {
+GenotypeMetaUnit::string_value() const {
   return string_value_;
 }
 inline ::google::protobuf::RepeatedPtrField< ::std::string>*
-GenotypeMetaBuffer::mutable_string_value() {
+GenotypeMetaUnit::mutable_string_value() {
   return &string_value_;
 }
 
 // repeated bool bool_value = 8 [packed = true];
-inline int GenotypeMetaBuffer::bool_value_size() const {
+inline int GenotypeMetaUnit::bool_value_size() const {
   return bool_value_.size();
 }
-inline void GenotypeMetaBuffer::clear_bool_value() {
+inline void GenotypeMetaUnit::clear_bool_value() {
   bool_value_.Clear();
 }
-inline bool GenotypeMetaBuffer::bool_value(int index) const {
+inline bool GenotypeMetaUnit::bool_value(int index) const {
   return bool_value_.Get(index);
 }
-inline void GenotypeMetaBuffer::set_bool_value(int index, bool value) {
+inline void GenotypeMetaUnit::set_bool_value(int index, bool value) {
   bool_value_.Set(index, value);
 }
-inline void GenotypeMetaBuffer::add_bool_value(bool value) {
+inline void GenotypeMetaUnit::add_bool_value(bool value) {
   bool_value_.Add(value);
 }
 inline const ::google::protobuf::RepeatedField< bool >&
-GenotypeMetaBuffer::bool_value() const {
+GenotypeMetaUnit::bool_value() const {
   return bool_value_;
 }
 inline ::google::protobuf::RepeatedField< bool >*
-GenotypeMetaBuffer::mutable_bool_value() {
+GenotypeMetaUnit::mutable_bool_value() {
   return &bool_value_;
 }
 
 // optional int32 fixed_indiv = 9;
-inline bool GenotypeMetaBuffer::has_fixed_indiv() const {
+inline bool GenotypeMetaUnit::has_fixed_indiv() const {
   return _has_bit(8);
 }
-inline void GenotypeMetaBuffer::clear_fixed_indiv() {
+inline void GenotypeMetaUnit::clear_fixed_indiv() {
   fixed_indiv_ = 0;
   _clear_bit(8);
 }
-inline ::google::protobuf::int32 GenotypeMetaBuffer::fixed_indiv() const {
+inline ::google::protobuf::int32 GenotypeMetaUnit::fixed_indiv() const {
   return fixed_indiv_;
 }
-inline void GenotypeMetaBuffer::set_fixed_indiv(::google::protobuf::int32 value) {
+inline void GenotypeMetaUnit::set_fixed_indiv(::google::protobuf::int32 value) {
   _set_bit(8);
   fixed_indiv_ = value;
 }
 
 // repeated int32 indiv_index = 10 [packed = true];
-inline int GenotypeMetaBuffer::indiv_index_size() const {
+inline int GenotypeMetaUnit::indiv_index_size() const {
   return indiv_index_.size();
 }
-inline void GenotypeMetaBuffer::clear_indiv_index() {
+inline void GenotypeMetaUnit::clear_indiv_index() {
   indiv_index_.Clear();
 }
-inline ::google::protobuf::int32 GenotypeMetaBuffer::indiv_index(int index) const {
+inline ::google::protobuf::int32 GenotypeMetaUnit::indiv_index(int index) const {
   return indiv_index_.Get(index);
 }
-inline void GenotypeMetaBuffer::set_indiv_index(int index, ::google::protobuf::int32 value) {
+inline void GenotypeMetaUnit::set_indiv_index(int index, ::google::protobuf::int32 value) {
   indiv_index_.Set(index, value);
 }
-inline void GenotypeMetaBuffer::add_indiv_index(::google::protobuf::int32 value) {
+inline void GenotypeMetaUnit::add_indiv_index(::google::protobuf::int32 value) {
   indiv_index_.Add(value);
 }
 inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-GenotypeMetaBuffer::indiv_index() const {
+GenotypeMetaUnit::indiv_index() const {
   return indiv_index_;
 }
 inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-GenotypeMetaBuffer::mutable_indiv_index() {
+GenotypeMetaUnit::mutable_indiv_index() {
   return &indiv_index_;
 }
 
 // repeated int32 missing_index = 11 [packed = true];
-inline int GenotypeMetaBuffer::missing_index_size() const {
+inline int GenotypeMetaUnit::missing_index_size() const {
   return missing_index_.size();
 }
-inline void GenotypeMetaBuffer::clear_missing_index() {
+inline void GenotypeMetaUnit::clear_missing_index() {
   missing_index_.Clear();
 }
-inline ::google::protobuf::int32 GenotypeMetaBuffer::missing_index(int index) const {
+inline ::google::protobuf::int32 GenotypeMetaUnit::missing_index(int index) const {
   return missing_index_.Get(index);
 }
-inline void GenotypeMetaBuffer::set_missing_index(int index, ::google::protobuf::int32 value) {
+inline void GenotypeMetaUnit::set_missing_index(int index, ::google::protobuf::int32 value) {
   missing_index_.Set(index, value);
 }
-inline void GenotypeMetaBuffer::add_missing_index(::google::protobuf::int32 value) {
+inline void GenotypeMetaUnit::add_missing_index(::google::protobuf::int32 value) {
   missing_index_.Add(value);
 }
 inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-GenotypeMetaBuffer::missing_index() const {
+GenotypeMetaUnit::missing_index() const {
   return missing_index_;
 }
 inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-GenotypeMetaBuffer::mutable_missing_index() {
+GenotypeMetaUnit::mutable_missing_index() {
   return &missing_index_;
 }
 
@@ -1366,103 +1598,90 @@ VariantBuffer::mutable_filter() {
   return &filter_;
 }
 
-// repeated .VarMetaBuffer vmeta = 6;
-inline int VariantBuffer::vmeta_size() const {
+// -------------------------------------------------------------------
+
+// VariantMetaBuffer
+
+// repeated .VariantMetaUnit vmeta = 1;
+inline int VariantMetaBuffer::vmeta_size() const {
   return vmeta_.size();
 }
-inline void VariantBuffer::clear_vmeta() {
+inline void VariantMetaBuffer::clear_vmeta() {
   vmeta_.Clear();
 }
-inline const ::VarMetaBuffer& VariantBuffer::vmeta(int index) const {
+inline const ::VariantMetaUnit& VariantMetaBuffer::vmeta(int index) const {
   return vmeta_.Get(index);
 }
-inline ::VarMetaBuffer* VariantBuffer::mutable_vmeta(int index) {
+inline ::VariantMetaUnit* VariantMetaBuffer::mutable_vmeta(int index) {
   return vmeta_.Mutable(index);
 }
-inline ::VarMetaBuffer* VariantBuffer::add_vmeta() {
+inline ::VariantMetaUnit* VariantMetaBuffer::add_vmeta() {
   return vmeta_.Add();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::VarMetaBuffer >&
-VariantBuffer::vmeta() const {
+inline const ::google::protobuf::RepeatedPtrField< ::VariantMetaUnit >&
+VariantMetaBuffer::vmeta() const {
   return vmeta_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::VarMetaBuffer >*
-VariantBuffer::mutable_vmeta() {
+inline ::google::protobuf::RepeatedPtrField< ::VariantMetaUnit >*
+VariantMetaBuffer::mutable_vmeta() {
   return &vmeta_;
 }
 
-// repeated int32 geno1 = 7 [packed = true];
-inline int VariantBuffer::geno1_size() const {
-  return geno1_.size();
+// -------------------------------------------------------------------
+
+// GenotypeBuffer
+
+// repeated uint32 geno = 1 [packed = true];
+inline int GenotypeBuffer::geno_size() const {
+  return geno_.size();
 }
-inline void VariantBuffer::clear_geno1() {
-  geno1_.Clear();
+inline void GenotypeBuffer::clear_geno() {
+  geno_.Clear();
 }
-inline ::google::protobuf::int32 VariantBuffer::geno1(int index) const {
-  return geno1_.Get(index);
+inline ::google::protobuf::uint32 GenotypeBuffer::geno(int index) const {
+  return geno_.Get(index);
 }
-inline void VariantBuffer::set_geno1(int index, ::google::protobuf::int32 value) {
-  geno1_.Set(index, value);
+inline void GenotypeBuffer::set_geno(int index, ::google::protobuf::uint32 value) {
+  geno_.Set(index, value);
 }
-inline void VariantBuffer::add_geno1(::google::protobuf::int32 value) {
-  geno1_.Add(value);
+inline void GenotypeBuffer::add_geno(::google::protobuf::uint32 value) {
+  geno_.Add(value);
 }
-inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-VariantBuffer::geno1() const {
-  return geno1_;
+inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+GenotypeBuffer::geno() const {
+  return geno_;
 }
-inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-VariantBuffer::mutable_geno1() {
-  return &geno1_;
+inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+GenotypeBuffer::mutable_geno() {
+  return &geno_;
 }
 
-// repeated int32 geno2 = 8 [packed = true];
-inline int VariantBuffer::geno2_size() const {
-  return geno2_.size();
-}
-inline void VariantBuffer::clear_geno2() {
-  geno2_.Clear();
-}
-inline ::google::protobuf::int32 VariantBuffer::geno2(int index) const {
-  return geno2_.Get(index);
-}
-inline void VariantBuffer::set_geno2(int index, ::google::protobuf::int32 value) {
-  geno2_.Set(index, value);
-}
-inline void VariantBuffer::add_geno2(::google::protobuf::int32 value) {
-  geno2_.Add(value);
-}
-inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-VariantBuffer::geno2() const {
-  return geno2_;
-}
-inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-VariantBuffer::mutable_geno2() {
-  return &geno2_;
-}
+// -------------------------------------------------------------------
 
-// repeated .GenotypeMetaBuffer gmeta = 9;
-inline int VariantBuffer::gmeta_size() const {
+// GenotypeMetaBuffer
+
+// repeated .GenotypeMetaUnit gmeta = 1;
+inline int GenotypeMetaBuffer::gmeta_size() const {
   return gmeta_.size();
 }
-inline void VariantBuffer::clear_gmeta() {
+inline void GenotypeMetaBuffer::clear_gmeta() {
   gmeta_.Clear();
 }
-inline const ::GenotypeMetaBuffer& VariantBuffer::gmeta(int index) const {
+inline const ::GenotypeMetaUnit& GenotypeMetaBuffer::gmeta(int index) const {
   return gmeta_.Get(index);
 }
-inline ::GenotypeMetaBuffer* VariantBuffer::mutable_gmeta(int index) {
+inline ::GenotypeMetaUnit* GenotypeMetaBuffer::mutable_gmeta(int index) {
   return gmeta_.Mutable(index);
 }
-inline ::GenotypeMetaBuffer* VariantBuffer::add_gmeta() {
+inline ::GenotypeMetaUnit* GenotypeMetaBuffer::add_gmeta() {
   return gmeta_.Add();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::GenotypeMetaBuffer >&
-VariantBuffer::gmeta() const {
+inline const ::google::protobuf::RepeatedPtrField< ::GenotypeMetaUnit >&
+GenotypeMetaBuffer::gmeta() const {
   return gmeta_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::GenotypeMetaBuffer >*
-VariantBuffer::mutable_gmeta() {
+inline ::google::protobuf::RepeatedPtrField< ::GenotypeMetaUnit >*
+GenotypeMetaBuffer::mutable_gmeta() {
   return &gmeta_;
 }
 
@@ -1474,12 +1693,12 @@ namespace google {
 namespace protobuf {
 
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::VarMetaBuffer_Type>() {
-  return ::VarMetaBuffer_Type_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::VariantMetaUnit_Type>() {
+  return ::VariantMetaUnit_Type_descriptor();
 }
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::GenotypeMetaBuffer_Type>() {
-  return ::GenotypeMetaBuffer_Type_descriptor();
+inline const EnumDescriptor* GetEnumDescriptor< ::GenotypeMetaUnit_Type>() {
+  return ::GenotypeMetaUnit_Type_descriptor();
 }
 
 }  // namespace google
