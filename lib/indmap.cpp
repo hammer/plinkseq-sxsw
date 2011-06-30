@@ -47,11 +47,11 @@ int IndividualMap::sample_slot( const int i , const int file_id ) const
   return ii == con2svar.end() ? -1 : ii->second;
 }
 
-std::vector<int> * IndividualMap::svar2consensus( int f )
+const std::vector<int> * IndividualMap::file2consensus( const int file_id )
 {
-  if ( wsint.find(f) == wsint.end() ) 
+  if ( wsint.find( file_id ) == wsint.end() ) 
     Helper::halt("internal error: trying to reference non-existent svar, svar2consensus()");
-  return &wsint[f];
+  return &wsint[ file_id ];
 }
 
 

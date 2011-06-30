@@ -250,6 +250,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   : vardb(NULL) , locdb(NULL) , refdb(NULL) , group_mode( group_mode ) 
 {
   
+
  
   //
   // Swap in any file-lists with @includes
@@ -263,7 +264,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   //
   
   construct();
-
+  
 
   //
   // Is any expression set? (for SampleVariants)
@@ -289,6 +290,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 	  true,   // automatically add meta-flags 
 	  false ) ; // do not return empty fields
   
+
 
   std::vector<std::string> keys = m.keys();
   for( int i=0; i<keys.size(); i++)
@@ -431,6 +433,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     {
       external_vcf_iteration( m.get1_string( "ex-vcf" ) );
     }
+
 
   if ( m.has_field( "file" ) ) 
     {
@@ -3269,7 +3272,8 @@ void Mask::include_var_alt_file( const std::vector<std::string> & f )
   for (int i=0;i<f.size(); i++)
     {
       int id = vardb->file_tag( f[i] );
-      if ( id != 0 ) inc_alt_file.insert(id);      
+      if ( id != 0 ) 
+	inc_alt_file.insert(id); 
     }  
 }
 
@@ -3382,6 +3386,7 @@ bool Mask::eval_obs_file_filter( const Variant & v ) const
 
 bool Mask::eval_alt_file_filter( Variant & v ) const      
 {
+
   // do we see at least one alternate-allele in present files
   // i.e. post-filtering;  doesn't assume that a variant/file is 
   // present only if at least one non-ref
@@ -3392,12 +3397,13 @@ bool Mask::eval_alt_file_filter( Variant & v ) const
   // Needs all required filters, if 1+ requires
   // Needs to not have any excludes
   
+
   // Excludes
 
   std::set<int>::iterator i = exc_alt_file.begin();
   while ( i != exc_alt_file.end() )
     {      
-      if ( v.has_nonreference( *i ) ) return false;
+      if ( v.has_nonreference_by_file( *i ) ) { std::cout << "ex on " << *i << "\n"; return false; } 
       ++i;
     }
   
@@ -3406,15 +3412,16 @@ bool Mask::eval_alt_file_filter( Variant & v ) const
   i = req_alt_file.begin();
   while ( i != req_alt_file.end() )
     {
+      
       // sample must be present, implicitly
       if ( ! v.fsample_svar_counts( *i ) ) return false;
-      if ( ! v.has_nonreference( *i ) ) return false;
+      if ( ! v.has_nonreference_by_file( *i ) ) return false;
       ++i;
     }
   
   if ( req_alt_file.size() > 0 ) return true;
   
-  
+
   // Includes 
   
   if ( inc_alt_file.size() == 0 ) return true;
@@ -3422,7 +3429,9 @@ bool Mask::eval_alt_file_filter( Variant & v ) const
   i = inc_alt_file.begin();
   while ( i != inc_alt_file.end() )
     {
-      if ( v.has_nonreference( *i ) ) return true;
+      std::cout << "inc " << *i << "\n";
+      if ( v.has_nonreference_by_file( *i ) ) return true;
+      std::cout << "inc\n";
       ++i;
     } 
   
@@ -3453,11 +3462,11 @@ bool Mask::eval_file_count( Variant & v ) const
   if ( alt_file_count || alt_file_max ) 
     {
       
-      const int n = v.n_samples();
+      const int n = v.n_uniq_samples();
       int c=0;
       for (int s = 0 ; s < n ; s++ )
 	{	  	  
-	  if ( v.has_nonreference( s ) ) ++c;
+	  if ( v.has_nonreference_by_file( s ) ) ++c;
 	  if ( c == alt_file_count ) return true;
 	  if ( alt_file_max && c >  alt_file_max   ) return false;	  
 	}

@@ -294,7 +294,7 @@ bool BEDReader::read_bed()
       // Get genotypes
       //
 
-      v.size( ni );
+      v.resize( ni );
       
       int indx = 0;
       

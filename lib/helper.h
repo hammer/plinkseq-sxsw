@@ -355,6 +355,8 @@ class Log {
   //
 
   void warn(const std::string & msg, const std::string & spec = "" );
+
+  void warn(const std::string & msg, const std::vector<std::string> & spec );
   
   void show_warnings(const bool b ) { ignore_warnings = !b; } 
 
@@ -486,6 +488,7 @@ namespace Helper
   std::map<std::string,std::string> quoted_comma_keypair_split( const std::string & item );
   std::string stringizeKeyPairList( const std::map<std::string,std::string> & , bool show_keys = true );
   std::string stringize( const std::set<std::string> & , const std::string & delim = "," );
+  std::string stringize( const std::vector<std::string> & , const std::string & delim = "," );
 
   std::vector<std::string> char_split( const std::string & , const char , bool empty = true );
   std::vector<std::string> char_split( const std::string & , const char , const char , bool empty = true );

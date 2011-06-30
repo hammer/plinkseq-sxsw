@@ -12,6 +12,7 @@
 #include "compare.h"
 #include "ibd.h"
 #include "ibs.h"
+#include "extra.h"
 
 void f_dummy( Variant & v0 , void * p )
 {
@@ -64,6 +65,9 @@ std::string PSEQ_DATE    = "20-Jun-2011";
 
 int main(int argc, char ** argv)
 {
+
+//   extra_code();
+//   exit(0);
 
   //
   // Get command-line options into a sensible form
@@ -1571,8 +1575,16 @@ int main(int argc, char ** argv)
 
     if ( command == "annotate" )
       {
-	std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
-	Pseq::VarDB::lookup_list( filename , m );
+	if ( args.has( "file" ) )
+	  {
+	    std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
+	    Pseq::VarDB::lookup_list( filename , m );
+	  }
+	else // directly annotate variants in VARDB
+	  {
+	    Pseq::VarDB::lookup_list( "." , m );
+	  }
+	
 	Pseq::finished();
       }
     

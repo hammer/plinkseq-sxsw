@@ -94,13 +94,14 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 
   // Respect 'reg' and 'loc' from command line.
   // But not loc.subset; loc.req, loc.ex, etc
-  
+
+
   std::set<Region> filter;
   std::string locinc = mask.loc_include_string();
   if ( locinc != "" ) 
     filter = GP->locdb.get_regions( locinc );
-
-
+  
+  
   std::set<Region> reginc = mask.included_reg();
   std::set<Region>::iterator ii = reginc.begin();
   while ( ii != reginc.end() ) 
@@ -114,8 +115,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
   if ( filter.size() > 0 ) 
     v.set_region_mask( &filter );  
   
-
-
+  
   // Misc. settings.
   
   downcode_mode = mask.downcode();
@@ -152,11 +152,23 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
       if ( l == VCFReader::VCF_VARIANT && pv )
 	{
 	  
+	  // bad line, or failed a loc mask filter
+
+	  if ( ! pv->valid() ) 
+	    {
+	      irep.rejected_variant();
+	      delete pv;
+	      continue;
+	    }
+
+
 	  // So that the Variant functions know not to look for data
 	  // in a BLOB; also, they they know how to parse it downstream
 	  
 	  pv->set_vcf_buffer( v.gt_field , &v.formats );
 	  
+
+
 	  // 	  pv->consensus.vcf_direct = true;
 	  // 	  pv->consensus.gt_field = v.gt_field;
 	  // 	  pv->consensus.formats = &v.formats;
@@ -167,7 +179,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 	    {
 	      if ( ! irep.accepted_variant() ) break;
 	    }
-	  else
+	  else 
 	    {
 	      irep.rejected_variant();
 	    }

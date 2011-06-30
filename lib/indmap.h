@@ -71,7 +71,7 @@ class IndividualMap {
   {
     return wsample.size();
   }
-
+  
   std::set<int> samples() const 
   {
     std::set<int> w;
@@ -207,7 +207,7 @@ class IndividualMap {
   }
 
   void construct_wsint_vector();
-  std::vector<int> * svar2consensus(const int f);
+  const std::vector<int> * file2consensus(const int file_id);
 
 
  private:

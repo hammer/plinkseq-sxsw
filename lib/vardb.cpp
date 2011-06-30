@@ -1353,7 +1353,7 @@ std::set<Variant> VarDBase::fetch( const Region & region )
   sql.bind_int( stmt_fetch_variant_range , ":rend" , region.stop.position() );
     
   std::map<int,Variant> vmap;
-  
+
   while ( sql.step( stmt_fetch_variant_range ) )
     {
       // extract BP position on this chromosome
@@ -1362,7 +1362,7 @@ std::set<Variant> VarDBase::fetch( const Region & region )
       sample.decode_BLOB( &vmap[pos] , &indmap , NULL );
     } 
   sql.reset( stmt_fetch_variant_range ) ;  
-  
+
   std::map<int,Variant>::iterator i = vmap.begin();
   while ( i != vmap.end() )
     {
@@ -1370,6 +1370,7 @@ std::set<Variant> VarDBase::fetch( const Region & region )
       s.insert(i->second);
       ++i;
     }
+
   return s;
 }
 

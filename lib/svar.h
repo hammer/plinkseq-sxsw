@@ -167,30 +167,17 @@ class SampleVariant {
 
   void store_BLOBs( blob * , blob * , blob * , blob * );
   
-  enum diversion_t { NONE = 0 , 
-		     GENO = 1 , 
-		     GENO_AND_VMETA = 2 };
-  
  private:
-
 
   /// Unique index from VARDB, used in construction
   uint64_t              vindex;
 
   
-  /// Are genotypes actually stored in the consensus?
-  diversion_t           diversion;
-  
-
   // Allelic REF/ALT encoding
   
   std::string           ref;
   
   std::string           alt;
-
-  // Flag to indicate this SV is a biallelic variant
-
-  bool                  simple;
   
     
   
@@ -217,9 +204,7 @@ class SampleVariant {
   
   void              set_allelic_encoding();
  
-  void              set_diversion( diversion_t d ) { diversion = d; }
-
-
+  
   /// REF base-offset: i.e. REF starts 'offset' bp after the Variant BP1
   int               offset;
 
@@ -286,16 +271,14 @@ class SampleVariant {
   /// Overload () to access genotype calls for individual i
   
   Genotype & operator()(const int i) { return calls.genotype(i); }
-  
+
   const Genotype & operator()(const int i) const { return calls.genotype(i); }
-  
      
   /// Initialise a SV as null
 
   void init()
   {
     vindex = 0 ;
-    diversion = NONE;
     fset = 0;
     alt = ref = ".";
     filter_info = ".";
@@ -319,9 +302,9 @@ class SampleVariant {
   
   
   /// Has at least one non-reference call
-  bool has_nonreference( const bool also_poly = false ) const;
+  bool has_nonreference( const bool also_poly = false , const std::vector<int> * remap = NULL ) const;
   
-  
+
   //
   // Input/output and recoding of genotypes
   //

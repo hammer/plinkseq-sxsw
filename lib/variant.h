@@ -1,4 +1,5 @@
 
+
 #ifndef __VARIANT_H__
 #define __VARIANT_H__
 
@@ -142,7 +143,7 @@ class Variant {
 
       // 1) Under simple scenarios, we can work directly from the consensus
       
-      if (  flat() &&  ! infile_overlap()  )
+      if (  svar_id == -1 ||  ( flat()  && ! infile_overlap() )  )
 	{
 	  return & consensus.calls.genotype( i );
 	}
@@ -238,8 +239,11 @@ class Variant {
   /// Number of individuals with data for this variant  
   int size() const;
   
+  /// Numner of individuals in svar 'si'
+  int size(const int si) const;
+
   /// Set number of individuals with data for this variant  
-  void size(const int n);
+  void resize(const int n);
 
   /// Pointer to an individual (0..N-1) in the consensus/indmap, given N
   Individual * ind(const int) const;
@@ -330,14 +334,18 @@ class Variant {
   /// Point to svar that holds genotypes 
   SampleVariant & sample_genotypes( const int s ) const
     {
-      return flat() ? (SampleVariant&)svar[si] : (SampleVariant&)consensus;
+      return flat() ? (SampleVariant&)consensus : (SampleVariant&)svar[si] ; 
     }
   
   SampleVariant & sample_genotypes( const SampleVariant & sv ) const
     {
-      return flat() ? (SampleVariant&)sv : (SampleVariant&)consensus;
+      return flat() ? (SampleVariant&)consensus : (SampleVariant&)sv ; 
     }
 
+  SampleVariant * sample_genotypes( const SampleVariant * sv ) const
+    {
+      return flat() ?  (SampleVariant*)&consensus : (SampleVariant*)sv ;
+    }
 
   SampleVariant & sample_metainformation( const int s ) const
     {
@@ -349,6 +357,10 @@ class Variant {
       return multi_sample() ? (SampleVariant&)sv : (SampleVariant&)consensus;
     }
 
+  SampleVariant * sample_metainformation( const SampleVariant * sv ) const
+    {
+      return multi_sample() ? (SampleVariant*)sv : (SampleVariant*)&consensus;
+    }
 
 
   /// As above, but via external file codes
@@ -431,7 +443,9 @@ class Variant {
   //
   
   
-  bool has_nonreference( const int fide_id ) const;
+  std::vector<int> indiv_mask( const int file_id ) const;
+
+  bool has_nonreference_by_file( const int fide_id ) const;
 
   bool has_nonreference( const SampleVariant & svar ) const;
 

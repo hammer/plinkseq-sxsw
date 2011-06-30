@@ -1,5 +1,4 @@
 #include "psb.h"
-
 #include "cgi.h"
 
 #include <iostream>
@@ -7,7 +6,6 @@
 using namespace std;
 using namespace Helper;
 using namespace ExomeBrowser;
-
 
 int main()
 {
@@ -28,17 +26,17 @@ int main()
   // Define values
   //
   
-  string project_path = "";
-  string loc_set = "refseq";
-  string genename = "";
+  std::string project_path = "";
+  std::string loc_set = "refseq";
+  std::string genename = "";
   QType q = Q_ERROR;
-  string var_value = "";
-  string ind_value = "";
-  string chr_code = "";
+  std::string var_value = "";
+  std::string ind_value = "";
+  std::string chr_code = "";
   int chr = 0, bp1 = 0, bp2 = 0;
-  string pheno = "";
+  std::string pheno = "";
   bool from_top = false;
-  string reg_list = "";
+  std::string reg_list = "";
 
 
   // Auxilliary information to send to variant printing functions
@@ -50,20 +48,20 @@ int main()
   // Start HTML form and any output
   //
 
-  cout << "Content-type: text/html\n\n"
-       << "<html><head><title>PLINK/SEQ Browser</title>"
-       << "</head><body>";
+  std::cout << "Content-type: text/html\n\n"
+	    << "<html><head><title>PLINK/SEQ Browser</title>"
+	    << "</head><body>";
   
   if ( cgi ) 
     {
       for (i=0; cgivars[i]; i+= 2)
 	{
 	  
-	  string str = cgivars[i];
+	  std::string str = cgivars[i];
 	  
 	  if ( str == "q" )
 	    {
-	      string s = cgivars[i+1];
+	      std::string s = cgivars[i+1];
 	      
 	      if ( s == "v" ) q = Q_VARIANT;
 	      else if ( s == "g" ) q = Q_GENE;
@@ -169,10 +167,10 @@ int main()
       
       if ( ! fileExists( project_path ) )
 	{
-	  cout << "File [ " 
-	       << project_path 
-	       << " ] could not be found "
-	       << "</BODY></HTML>";
+	  std::cout << "File [ " 
+		    << project_path 
+		    << " ] could not be found "
+		    << "</BODY></HTML>";
 	  exit(0);
 	}
 
@@ -201,19 +199,19 @@ int main()
   // Draw main query box, with saved defaults
   //
   
-  cout << "<form name=\"myform\" action=\"pbrowse.cgi\" method=\"GET\"> ";
+  std::cout << "<form name=\"myform\" action=\"pbrowse.cgi\" method=\"GET\"> ";
   
-  cout << "<input type=\"hidden\" NAME=\"proj\" "
-       << " value=\"" << project_path << "\"> ";
+  std::cout << "<input type=\"hidden\" NAME=\"proj\" "
+	    << " value=\"" << project_path << "\"> ";
   
-  cout << "<table width=100%><tr>";
-
+  std::cout << "<table width=100%><tr>";
+  
   // Hidden value to indicate query type (needed?)
 
-  cout << "<input type=\"hidden\" name=\"q\" value=\"";
-  if ( q == Q_GENE || q == Q_ERROR ) cout << "g\">";
-  else if ( q == Q_VARIANT ) cout << "v\">";
-  else if ( q == Q_INDIV ) cout << "i\">";
+  std::cout << "<input type=\"hidden\" name=\"q\" value=\"";
+  if ( q == Q_GENE || q == Q_ERROR ) std::cout << "g\">";
+  else if ( q == Q_VARIANT ) std::cout << "v\">";
+  else if ( q == Q_INDIV ) std::cout << "i\">";
   
   
   //
@@ -221,97 +219,97 @@ int main()
   //
 
 
-  cout << "<td width=20% valign=top>";
+  std::cout << "<td width=20% valign=top>";
 
 
   //
   // Query 
   //
 
-  cout << "<p><b>Gene ID</b> (symbol or NM_012345) ";
-  cout << "(<a href=\"pbrowse.cgi?q=glist&" << a.print_form_value("proj")
-       << "&meta=" << a.mf_print()
-       << "&masks=" << a.msk_print() 
-       << "&pheno=" << pheno
-       << "\">list</a>)";			  
+  std::cout << "<p><b>Gene ID</b> (symbol or NM_012345) ";
+  std::cout << "(<a href=\"pbrowse.cgi?q=glist&" << a.print_form_value("proj")
+	    << "&meta=" << a.mf_print()
+	    << "&masks=" << a.msk_print() 
+	    << "&pheno=" << pheno
+	    << "\">list</a>)";			  
   
-  cout << "<br><input type=\"text\" size=\"15\" name=\"gene\"";
+  std::cout << "<br><input type=\"text\" size=\"15\" name=\"gene\"";
   if ( genename != "" )
-    cout << " value=\"" << genename << "\"";
-  cout << ">";
-  cout << "</p> ";
+    std::cout << " value=\"" << genename << "\"";
+  std::cout << ">";
+  std::cout << "</p> ";
   
   // Gene-set
-  cout << "<p>Gene set ";
-  cout << "(<a href=\"pbrowse.cgi?q=lslist&" << a.print_form_value("proj")
+  std::cout << "<p>Gene set ";
+  std::cout << "(<a href=\"pbrowse.cgi?q=lslist&" << a.print_form_value("proj")
        << "\">list</a>)";			  
 
-  cout << "<br><input type=\"text\" size=\"15\" ";  
+  std::cout << "<br><input type=\"text\" size=\"15\" ";  
   if ( loc_set != "" ) 
-    cout << " value=\"" << loc_set << "\"";
-  cout << " name=\"loc\"></p>";
+    std::cout << " value=\"" << loc_set << "\"";
+  std::cout << " name=\"loc\"></p>";
     
 
   //
   // Submit buttons
   //
   
-  cout << " <br> <input type=\"submit\" name=\"getgene\" value=\"Fetch\"> "
+  std::cout << " <br> <input type=\"submit\" name=\"getgene\" value=\"Fetch\"> "
        << " <input type=\"reset\" value=\"Reset\"> ";
 
 
-  cout << "</td><td width=5% valign=top> &nbsp ";
-  cout << "</td><td width=30% valign=top>";
+  std::cout << "</td><td width=5% valign=top> &nbsp ";
+  std::cout << "</td><td width=30% valign=top>";
 
 
   //
   // Optional meta-fields
   //
   
-  cout << "<p>Optional variant meta-fields ";
-  cout << " (<a href=\"pbrowse.cgi?q=mflist&" << a.print_form_value("proj")
+  std::cout << "<p>Optional variant meta-fields ";
+  std::cout << " (<a href=\"pbrowse.cgi?q=mflist&" << a.print_form_value("proj")
        << "&meta=" << a.mf_print()
        << "&masks=" << a.msk_print()
        << "&pheno=" << pheno
        << "\">list</a>) ";			  
 
-  cout << "<br><input type=\"text\" size=\"30\" name=\"meta\"";
+  std::cout << "<br><input type=\"text\" size=\"30\" name=\"meta\"";
   
   if ( a.mf.size() != 0 ) 
     {
-      cout << " value=\"";
+      std::cout << " value=\"";
       for (int m=0; m< a.mf.size(); m++) 
 	{
-	  if ( m>0 ) cout << " ";
-	  cout << a.mf[m];
+	  if ( m>0 ) std::cout << " ";
+	  std::cout << a.mf[m];
 	}
-      cout << "\"";
+      std::cout << "\"";
     }
-  cout << ">";
-  cout << "</p>";
+  std::cout << ">";
+  std::cout << "</p>";
 
 
   //
   // Phenotype
   //
 
-  cout << "<p>Optional case/control phenotype";
+  std::cout << "<p>Optional case/control phenotype";
 
-  cout << " (<a href=\"pbrowse.cgi?q=plist&" << a.print_form_value("proj")
+  std::cout << " (<a href=\"pbrowse.cgi?q=plist&" << a.print_form_value("proj")
        << "&meta=" << a.mf_print()
        << "&masks=" << a.msk_print() 
        << "&pheno=" << pheno
        << "\">list</a>) ";			  
 
-  cout << "<br><input type=\"text\" size=\"30\" name=\"pheno\"";
+  std::cout << "<br><input type=\"text\" size=\"30\" name=\"pheno\"";
   
   if ( pheno != "" ) 
     {
-      cout << " value=\"";
-      cout << pheno << "\"";
+      std::cout << " value=\"";
+      std::cout << pheno << "\"";
     }
   
-  cout << "</p>";
+  std::cout << "</p>";
 
 
   //
@@ -326,7 +324,7 @@ int main()
       std::cout << " value=\"";
       for (int m=0; m< a.msk.size(); m++) 
 	{
-	  if ( m>0 ) cout << " ";
+	  if ( m>0 ) std::cout << " ";
 	  std::cout << a.msk[m];
 	}
       std::cout << "\"";
@@ -339,25 +337,25 @@ int main()
   // Third column
   //
 
-  cout << "</td><td width=5% valign=top> &nbsp ";
-  cout << "</td><td width=30% valign=top>";
+  std::cout << "</td><td width=5% valign=top> &nbsp ";
+  std::cout << "</td><td width=30% valign=top>";
   
 
   //
   // Region list
   // 
 
-  cout << "<p>Additional regions and genes<br>";
-  cout << "<textarea ";
-  cout << "name=\"regs\" rows=\"6\" cols=\"30\">"
+  std::cout << "<p>Additional regions and genes<br>";
+  std::cout << "<textarea ";
+  std::cout << "name=\"regs\" rows=\"6\" cols=\"30\">"
        << "</textarea></p>";
 
 
-  cout << "</td></tr></table>";
+  std::cout << "</td></tr></table>";
 
 
-  cout << " </form> ";
-  cout << "<hr> ";
+  std::cout << " </form> ";
+  std::cout << "<hr> ";
 
 
   //
@@ -366,15 +364,15 @@ int main()
 
   if ( q == Q_ERROR )
     {
-      cout << "Problem processing input...";
-      cout << "</body></html>";
+      std::cout << "Problem processing input...";
+      std::cout << "</body></html>";
       exit(0);
     }
  
   
   if ( ! fileExists( project_path ) )
     {
-      cout << "File [ " << project_path << " ] could not be found "
+      std::cout << "File [ " << project_path << " ] could not be found "
            << "</BODY></HTML>";
       exit(0);
     }
@@ -382,7 +380,7 @@ int main()
   
   if ( q == Q_GENE && genename == "" && reg_list == "" )
     {
-      cout << "No gene specified...</BODY></HTML>";
+      std::cout << "No gene specified...</BODY></HTML>";
       exit(0);
     }
 
@@ -539,7 +537,7 @@ int main()
   if ( reg_list != "" )
     {
 
-      vector<string> tok = whitespace( reg_list );
+      std::vector<std::string> tok = whitespace( reg_list );
       
       for (int i=0; i<tok.size(); i++)
 	{
@@ -584,17 +582,17 @@ int main()
     {
 
       if ( a.multi_transcripts )
-	cout << "Found " << trans.size() 
+	std::cout << "Found " << trans.size() 
 	     << " transcript(s) matching gene name <b>" 
 	     << main_gene << "</b></p>";
       
-      cout << "<pre><font size=-1>";
+      std::cout << "<pre><font size=-1>";
       
       for (int r=0; r<trans.size(); r++)
 	{
 	  
-	  cout << trans[r].altname << "   " ;
-	  cout << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
+	  std::cout << trans[r].altname << "   " ;
+	  std::cout << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
 	       << "&gene="<< trans[r].name	       
 	       << "&meta=" << a.mf_print()
 	       << "&masks=" << a.msk_print() 
@@ -603,11 +601,11 @@ int main()
 	       << chrCode(trans[r].start.chromosome()) << ":" 
 	       << trans[r].start.position() << ".."
 	       << trans[r].stop.position() ;
-	  cout <<"<br>";
-	  if ( !cgi ) cout << "\n";
+	  std::cout <<"<br>";
+	  if ( !cgi ) std::cout << "\n";
 	}
       
-      cout << "</font></pre>";
+      std::cout << "</font></pre>";
             
 
       //
@@ -621,7 +619,7 @@ int main()
 	  
 	  if ( reg.start.chromosome() == 0 && ! a.extended_search )
 	    {
-	      cout << "Could not find gene <b> " << genename << "</b> in <b>" << loc_set << "</b> list "
+	      std::cout << "Could not find gene <b> " << genename << "</b> in <b>" << loc_set << "</b> list "
 		   << "</BODY></HTML>";
 	      exit(0);      
 	    }
@@ -638,7 +636,7 @@ int main()
 	  set<Region> others = g.locdb.get_regions( g.locdb.lookup_group_id( loc_set ) , 
 						    g_chr , g_bp1 , g_bp2 );
 	  
-	  cout << "<b>" << genename << "</b> location : " 
+	  std::cout << "<b>" << genename << "</b> location : " 
 	       << g_chr_code << ":" << g_bp1 << ".." << g_bp2 
 	       << "  (view in the "
 	       << "<a href=\"http://genome.ucsc.edu/cgi-bin/hgTracks?org=Human&db=hg18&position=" 
@@ -646,7 +644,7 @@ int main()
 	       << "\" target=\"_blank\">UCSC genome browser</a>)</p>";
 	  
 	  
-	  cout << "<pre><font size=-1>";
+	  std::cout << "<pre><font size=-1>";
 	  
 	  double genomic_kb = (g_bp2 - g_bp1 + 1 ) / 1000.0;
 	  double coding_kb = 0;
@@ -654,7 +652,7 @@ int main()
 	    coding_kb += ( reg.subregion[s].stop.position() - reg.subregion[s].start.position() + 1 );
 	  coding_kb /= 1000.0;
 	  
-	  cout << "   Genomic kb = " << genomic_kb 
+	  std::cout << "   Genomic kb = " << genomic_kb 
 	       << "; coding kb = " << coding_kb 
 	       << " in " << n_exons << " exons</p>";
 	  
@@ -663,13 +661,13 @@ int main()
 	  for (int s=0; s<reg.subregion.size(); s++)
 	    {
 	      
-	      cout << "   Exon" << sw(s+1,3) ;
-	      cout << sw( int2str(reg.subregion[s].start.position()) 
+	      std::cout << "   Exon" << sw(s+1,3) ;
+	      std::cout << sw( int2str(reg.subregion[s].start.position()) 
 			  + " .. " + int2str(reg.subregion[s].stop.position()) , 16 );
-	      cout << " | " ;
-	      cout << sw( ( reg.subregion[s].stop.position() 
+	      std::cout << " | " ;
+	      std::cout << sw( ( reg.subregion[s].stop.position() 
 			    - reg.subregion[s].start.position() + 1 )  , 5 );
-	      cout << "bp | ";
+	      std::cout << "bp | ";
 	      
 	      // other exons this exon overlaps with? 
 	      set<Region>::iterator t = others.begin();
@@ -681,7 +679,7 @@ int main()
 		      {
 			if ( reg.subregion[s].overlaps( t->subregion[u] ) )
 			  {
-			    cout << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
+			    std::cout << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
 				 << "&gene="<< t->name
 				 << "&meta=" << a.mf_print()
 				 << "&masks=" << a.msk_print() 			
@@ -691,40 +689,40 @@ int main()
 		      }
 		  ++t;
 		}
-	      cout << "<br>";
+	      std::cout << "<br>";
 	    }
 	  
-	  cout << "</font></pre>";
+	  std::cout << "</font></pre>";
       
 	}
 
-      cout << "<hr>";      
+      std::cout << "<hr>";      
     }
 
 
   if ( a.extended_search ) 
     {
-      cout << "<p>Additionally ";
-      if ( genename != "" ) cout << "requiring ";
-      else cout << "including ";
-      cout << "the following regions, and including the following genes</p>";
+      std::cout << "<p>Additionally ";
+      if ( genename != "" ) std::cout << "requiring ";
+      else std::cout << "including ";
+      std::cout << "the following regions, and including the following genes</p>";
       
       if ( a.regions.size() > 0 ) 
 	{
-	  cout << "<pre><b>Regions:</b><br>";
+	  std::cout << "<pre><b>Regions:</b><br>";
 	  for (int i=0; i<a.regions.size(); i++)
-	    cout << "   " << chrCode( a.regions[i].chromosome()) << ":"
+	    std::cout << "   " << chrCode( a.regions[i].chromosome()) << ":"
 		 << a.regions[i].start.position() << ".."
 		 << a.regions[i].stop.position() << "<br>";
-	  cout << "</pre>";
+	  std::cout << "</pre>";
 	}
       
       if ( a.other_genes.size() > 0 ) 
 	{
-	  vector<string> cc = a.other_genes;
+	  std::vector<std::string> cc = a.other_genes;
 	  a.other_genes.clear();
 	  
-	  cout << "<pre><b>Additional genes:</b><br>";
+	  std::cout << "<pre><b>Additional genes:</b><br>";
 	  for (int i=0; i< cc.size(); i++)
 	    {
 	      
@@ -735,26 +733,26 @@ int main()
 	      if ( trans.size() == 0 ) 
 		{
 		  a.other_genes.push_back( cc[i] );
-		  cout << "   " << sw( cc[i] , 10 ) << "<br>";
+		  std::cout << "   " << sw( cc[i] , 10 ) << "<br>";
 		}
 	      else // add all matching aliases
 		{
-		  cout << "   " << sw( cc[i] , 10 ) << " : ";
+		  std::cout << "   " << sw( cc[i] , 10 ) << " : ";
 		  
 		  std::set<std::string>::iterator ii = trans.begin();
 		  while ( ii != trans.end() ) 
 		    {
 		      a.other_genes.push_back( *ii );
-		      cout << *ii << " ";
+		      std::cout << *ii << " ";
 		      ++ii;
 		    }		 
-		  cout << "<br>";
+		  std::cout << "<br>";
 		}
 	    }
-	  cout << "</pre>";
+	  std::cout << "</pre>";
 	}
 
-      cout << "<hr>";
+      std::cout << "<hr>";
     }
 
 
@@ -828,18 +826,18 @@ int main()
       // Now table should be sorted in order, with duplicates removed, in aux structure;
 
       // string headers;
-      // map<int,string> table_row;
+      // map<int,std::string> table_row;
       
-      cout << a.headers << "</p>";
+      std::cout << a.headers << "</p>";
       // LINKS CHR POS NAME ALT/REF FileID QUAL INFO(filter) SAMPLE_CNT VMETA(compressed)
       
-      cout << "<table border=1>"
+      std::cout << "<table border=1>"
 	   << "<tr><th>#</th><th>Indiv</th><th>Chr</th><th>Pos</th>";
       
       if (  ! ( a.extended_search || a.multi_transcripts ) )
-	cout << "<th>Exon</th>";
+	std::cout << "<th>Exon</th>";
       
-      cout << "<th>ID</th><th>Ref/Alt</th>"
+      std::cout << "<th>ID</th><th>Ref/Alt</th>"
 	   << "<th># samples</th>"      
 	   << "<th>Filter</th>";      
       
@@ -847,31 +845,31 @@ int main()
       // Optional case/control counts?
       
       if ( a.show_phenotype )
-	cout << "<th>C/C count</th>";
+	std::cout << "<th>C/C count</th>";
       
   
       // Optional meta-fields?
       
       for (int m=0; m< a.mf.size(); m++)
-	cout << "<th>" << a.mf[m] << "</th>";
+	std::cout << "<th>" << a.mf[m] << "</th>";
 
       if ( a.extended_search ) 
-	cout << "<th>Locus</th>";
+	std::cout << "<th>Locus</th>";
       
      
       // End of header row
       
-      cout << "</tr>";
+      std::cout << "</tr>";
       
       // Rows
 
-      map<int,string>::iterator k= a.table_row.begin();
+      std::map<int,std::string>::iterator k= a.table_row.begin();
       while ( k != a.table_row.end() )
 	{
-	  cout << k->second;
+	  std::cout << k->second;
 	  ++k;
 	}
-      cout << "</table>";
+      std::cout << "</table>";
 
     }  
 
@@ -883,7 +881,7 @@ int main()
   if ( q == Q_VARIANT )
     {
       
-      cout << "Back to "
+      std::cout << "Back to "
 	   << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
 	   << "&gene="<< genename  
 	   << "&meta=" << a.mf_print()
@@ -892,7 +890,7 @@ int main()
 	   << "\">gene report</a>"
 	   << " for <b>" << genename << "</b>";
  
-       cout << "<hr>";
+       std::cout << "<hr>";
       
 
 
@@ -904,8 +902,8 @@ int main()
        Region r( var_value , okay  );
        if ( ! okay ) 
 	 {
-	   cout << "Problem processing region code [ " << var_value << " ]</p>";
-	   cout << "</body></html>";
+	   std::cout << "Problem processing region code [ " << var_value << " ]</p>";
+	   std::cout << "</body></html>";
 	   exit(0);
 	 }
 
@@ -923,81 +921,80 @@ int main()
        //
 
 
-       cout << "<table width=90%><tr><td width=40% valign=top>";
+       std::cout << "<table width=90%><tr><td width=40% valign=top>";
 
-       cout << "<h3><font color=\"blue\">Variant information</font></h3>";
+       std::cout << "<h3><font color=\"blue\">Variant information</font></h3>";
          
-       cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";
-       cout << "<tr><td>Name</td><td>" << rs_link( var.name() ) << "</td></tr>";
-       cout << "<tr><td>Chromosome</td><td>" << var.chromosome() << "</td></tr>";
-       cout << "<tr><td>Position</td><td>" << var.position() << "</td></tr>";
-       cout << "<tr><td>Reference allele</td><td>" << var.reference() << "</td></tr>";
-       cout << "<tr><td>Alternate allele(s)</td><td>" << var.alternate() << "</td></tr>";
-       cout << "<tr><td>Samples</td><td>" << var.n_samples() << "</td></tr>";
+       std::cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";
+       std::cout << "<tr><td>Name</td><td>" << rs_link( var.name() ) << "</td></tr>";
+       std::cout << "<tr><td>Chromosome</td><td>" << var.chromosome() << "</td></tr>";
+       std::cout << "<tr><td>Position</td><td>" << var.position() << "</td></tr>";
+       std::cout << "<tr><td>Reference allele</td><td>" << var.reference() << "</td></tr>";
+       std::cout << "<tr><td>Alternate allele(s)</td><td>" << var.alternate() << "</td></tr>";
+       std::cout << "<tr><td>Samples</td><td>" << var.n_samples() << "</td></tr>";
 
-       vector<string> keys = var.meta.keys();
+       std::vector<std::string> keys = var.meta.keys();
        for (int m=0; m<keys.size(); m++)
-	 cout << "<tr><td>" << keys[m] << "</td><td>" << var.meta.print( keys[m] ) << "</td></tr>";	  
-       cout << "</table>";
+	 std::cout << "<tr><td>" << keys[m] << "</td><td>" << var.meta.print( keys[m] ) << "</td></tr>";	  
+       std::cout << "</table>";
 
-       cout << "</p>";
+       std::cout << "</p>";
        
        // Consensus meta-information
        
        SampleVariant & sample = var.consensus;
        
-       cout << "<p>Consensus</p>";	   
-       cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";	   
-       cout << "<tr><td>Reference allele</td><td>" << sample.reference() << "</td></tr>";
-       cout << "<tr><td>Alternate allele(s)</td><td>" << sample.alternate() << "</td></tr>";
+       std::cout << "<p>Consensus</p>";	   
+       std::cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";	   
+       std::cout << "<tr><td>Reference allele</td><td>" << sample.reference() << "</td></tr>";
+       std::cout << "<tr><td>Alternate allele(s)</td><td>" << sample.alternate() << "</td></tr>";
 
        if ( sample.quality() < 0 ) 
-	 cout << "<tr><td>Quality</td><td>" << "NA" << "</td></tr>";
+	 std::cout << "<tr><td>Quality</td><td>" << "NA" << "</td></tr>";
        else
-	 cout << "<tr><td>Quality</td><td>" << sample.quality() << "</td></tr>";
+	 std::cout << "<tr><td>Quality</td><td>" << sample.quality() << "</td></tr>";
 
-       cout << "<tr><td>Filter</td><td>" << sample.filter() << "</td></tr>";
-//     cout << "<tr><td>Information</td><td>" << sample.info() << "</td></tr>";       
-       vector<string> keys1 = sample.meta.keys();
+       std::cout << "<tr><td>Filter</td><td>" << sample.filter() << "</td></tr>";
+//     std::cout << "<tr><td>Information</td><td>" << sample.info() << "</td></tr>";       
+       std::vector<std::string> keys1 = sample.meta.keys();
        for (int m=0; m< keys1.size(); m++)
-	 cout << "<tr><td>" << keys1[m] 
+	 std::cout << "<tr><td>" << keys1[m] 
 	      << "</td><td>" 
 	      << sample.meta.print( keys1[m] ) 
 	      << "</td></tr>";
        
-	   cout << "</table>";
-
+       std::cout << "</table>";
+       
        // SampleVariant Tables
        
-       var.set_first_sample();
+       const int ns = var.n_samples();
        
-       while ( 1 ) 
+       for (int s = 0 ; s < ns ; s++ )
 	 {
 
-	   SampleVariant & sample = var.sample();
-
-	   cout << "<p>Sample " << g.vardb.file_tag( sample.fileset() ) << "</p>";
+	   SampleVariant & sample = var.sample( s );
 	   
-	   cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";
+	   std::cout << "<p>Sample " << g.vardb.file_tag( sample.fileset() ) << "</p>";
 	   
-	   cout << "<tr><td>Reference allele</td><td>" << sample.reference() << "</td></tr>";
-	   cout << "<tr><td>Alternate allele(s)</td><td>" << sample.alternate() << "</td></tr>";
+	   std::cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";
+	   
+	   std::cout << "<tr><td>Reference allele</td><td>" << sample.reference() << "</td></tr>";
+	   std::cout << "<tr><td>Alternate allele(s)</td><td>" << sample.alternate() << "</td></tr>";
 
 	   if ( sample.quality() < 0 ) 
-	     cout << "<tr><td>Quality</td><td>" << "NA" << "</td></tr>";
+	     std::cout << "<tr><td>Quality</td><td>" << "NA" << "</td></tr>";
 	   else
-	     cout << "<tr><td>Quality</td><td>" << sample.quality() << "</td></tr>";
+	     std::cout << "<tr><td>Quality</td><td>" << sample.quality() << "</td></tr>";
 	   
-	   cout << "<tr><td>Filter</td><td>" << sample.filter() << "</td></tr>";
-//	   cout << "<tr><td>Information</td><td>" << sample.info() << "</td></tr>";
+	   std::cout << "<tr><td>Filter</td><td>" << sample.filter() << "</td></tr>";
+//	   std::cout << "<tr><td>Information</td><td>" << sample.info() << "</td></tr>";
 	   
-	   vector<string> keys = sample.meta.keys();
+	   std::vector<std::string> keys = sample.meta.keys();
 	   for (int m=0; m< keys.size(); m++)
-	     cout << "<tr><td>" << keys[m] << "</td><td>" << sample.meta.print( keys[m] ) << "</td></tr>";	  
+	     std::cout << "<tr><td>" << keys[m] << "</td><td>" << sample.meta.print( keys[m] ) << "</td></tr>";	  
 	   
-	   cout << "</table>";
-		   
-	   if ( ! var.next_sample() ) break;
+	   std::cout << "</table>";
+	   
 	 }
        
 
@@ -1005,47 +1002,46 @@ int main()
        // Genotype information
        //
        
-       cout << "</td><td valign=top>";
+       std::cout << "</td><td valign=top>";
        
-       cout << "<h3><font color=\"blue\">Individual genotypes</font></h3>";
+       std::cout << "<h3><font color=\"blue\">Individual genotypes</font></h3>";
        
        
        // Get list of IDs for consensus set
-       vector<string> id_list = var.ind_id();
+       std::vector<std::string> id_list = var.ind_id();
        
-       set<string> gmeta;
-       set<string> gRef;
-       set<string> gHet;
-       set<string> gHom;
-       set<string> gMis;
+       std::set<std::string> gmeta;
+       std::set<std::string> gRef;
+       std::set<std::string> gHet;
+       std::set<std::string> gHom;
+       std::set<std::string> gMis;
 
        SampleVariant & con = var.consensus;
        
-       
-       if ( id_list.size() != con.calls.size() ) 
+       if ( id_list.size() != var.size() ) 
 	 Helper::halt("internal problem in indmap/var-con sizes");
        
        for (int i=0; i < id_list.size(); i++)
 	 {
-	   std::vector<std::string> k = con.calls.genotype(i).meta.keys();
+	   std::vector<std::string> k = var(i).meta.keys();
 	   for (int j=0; j<k.size(); j++) gmeta.insert(k[j]);
-	   Genotype & g = con.calls.genotype(i);
+	   Genotype & g = var(i);
 	   if ( g.null() ) gMis.insert( id_list[i] ) ;
 	   else 
 	     {
-	       int ac = g.allele_count( &var );
+	       int ac = g.allele_count( );
 	       if ( ac == 0 ) gRef.insert( id_list[i] );
 	       else if ( ac == 1 ) gHet.insert( id_list[i] );
 	       else if ( ac == 2 ) gHom.insert( id_list[i] );
 	     }	  
 	 }
        
-       cout << "<table border=1><tr><th>Individual ID</th>";
-      
-       cout << "<th nowrap>Sample #</th>";
+       std::cout << "<table border=1><tr><th>Individual ID</th>";
+       
+       std::cout << "<th nowrap>Sample #</th>";
        
       if ( a.show_phenotype ) 
-	cout << "<th>Phenotype</th>";
+	std::cout << "<th>Phenotype</th>";
             
       std::cout << "<th>Genotype</th>";
       
@@ -1054,14 +1050,14 @@ int main()
 	  std::set<std::string>::iterator i = gmeta.begin();
 	  while ( i != gmeta.end() )
 	    {
-	      cout << "<th>" << *i << "</th>";
+	      std::cout << "<th>" << *i << "</th>";
 	      ++i;
 	    }
 	}
       else
-	cout << "<th>Sample/genotype meta-information</th>";
+	std::cout << "<th>Sample/genotype meta-information</th>";
       
-      cout << "</tr>";
+      std::cout << "</tr>";
 
 
       // Done header, now list individuals, in genotypic order
@@ -1071,13 +1067,13 @@ int main()
 	  for (int i=0; i<id_list.size(); i++)
 	    {
 	      
-	      if ( gt == 3 && ! con.calls.genotype(i).null() ) continue;
-	      else if ( con.calls.genotype(i).allele_count( &var ) != 2-gt ) continue;
+	      if ( gt == 3 && ! var(i).null() ) continue;
+	      else if ( var(i).allele_count( ) != 2-gt ) continue;
 	      
 	
 	      // Include link to individual-report
 
-	      cout << "<tr><td>" 
+	      std::cout << "<tr><td>" 
 		   << "<a href=\"pbrowse.cgi?q=i&" << a.print_form_value("proj")
 		   << "&gene="<< genename  
 		   << "&meta=" << a.mf_print()
@@ -1104,27 +1100,27 @@ int main()
 		  if ( person ) 
 		    {
 		      if ( person->affected() == CASE )
-			cout << "<td>CASE</td>";
+			std::cout << "<td>CASE</td>";
 		      else if ( person->affected() == CONTROL )
-			cout << "<td>CONTROL</td>";
+			std::cout << "<td>CONTROL</td>";
 		      else
-			cout << "<td>MISSING</td>";
+			std::cout << "<td>MISSING</td>";
 		    }
 		  else
-		    cout << "<td>n/a</td>";
+		    std::cout << "<td>n/a</td>";
 		}
 
 	      if ( gt == 0 ) 
-		cout << "<td bgcolor=\"red\">";
+		std::cout << "<td bgcolor=\"red\">";
 	      else if ( gt == 1 ) 
-		cout << "<td bgcolor=\"yellow\">";
+		std::cout << "<td bgcolor=\"yellow\">";
 	      else if ( gt == 2 )
-		cout << "<td bgcolor=\"lightgreen\">";
+		std::cout << "<td bgcolor=\"lightgreen\">";
 	      else 
-		cout << "<td bgcolor=\"gray\">";
+		std::cout << "<td bgcolor=\"gray\">";
 	      
 	      if ( var.flat() )
-		cout << var.consensus.label( con.calls.genotype(i) ) ;
+		std::cout << var.geno_label( var(i) ) ;
 	      else
 		std::cout << var.label(i) ;
 	      
@@ -1132,13 +1128,13 @@ int main()
 	      
 	      if ( var.flat() )
 		{
-		  set<string>::iterator k = gmeta.begin();
+		  std::set<std::string>::iterator k = gmeta.begin();
 		  while ( k != gmeta.end() )
 		    {
-		      if ( con.calls.genotype(i).meta.has_field( *k ) )
+		      if ( var(i).meta.has_field( *k ) )
 			{
 			  meta_name_t t = *k;
-			  cout << "<td>" << con.calls.genotype(i).meta.print( t ) << "</td>";
+			  std::cout << "<td>" << var(i).meta.print( t ) << "</td>";
 			}
 		      ++k;
 		    }
@@ -1146,11 +1142,11 @@ int main()
 	      else
 		std::cout << "<td>" << var.gmeta_label(i) << "</td>";
 	      
-	      cout << "</tr>";	  
+	      std::cout << "</tr>";	  
 	    }
 	}
       
-      cout << "</table>";
+      std::cout << "</table>";
              
 
       //
@@ -1158,7 +1154,7 @@ int main()
       //
       
 
-      cout << "</td></tr></table>";
+      std::cout << "</td></tr></table>";
       
     }
 
@@ -1172,7 +1168,7 @@ int main()
 
       a.genename = genename;
 
-      cout << "Back to "
+      std::cout << "Back to "
 	   << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
 	   << "&gene="<< genename  
 	   << "&meta=" << a.mf_print()
@@ -1181,7 +1177,7 @@ int main()
 	   << "\">gene report</a>"
 	   << " for <b>" << genename << "</b>";
       
-      cout << "<hr>";
+      std::cout << "<hr>";
       
 
       // 1) Report all phenotypic information for this individual
@@ -1195,19 +1191,19 @@ int main()
 	  
 	  if ( ! person ) 
 	    {
-	      cout << "Individual [ " << ind_value << " ] not found...</p>";
-	      cout << "</BODY></HTML>";
+	      std::cout << "Individual [ " << ind_value << " ] not found...</p>";
+	      std::cout << "</BODY></HTML>";
 	      exit(0);	  
 	    }
 	  
-	  cout << "Phenotype for variable <em>" << pheno << "</em> is [ " ;
+	  std::cout << "Phenotype for variable <em>" << pheno << "</em> is [ " ;
 	  if ( person->affected() == CASE )
-	    cout << "CASE";
+	    std::cout << "CASE";
 	  else if ( person->affected() == CONTROL )
-	    cout << "CONTROL";
+	    std::cout << "CONTROL";
 	  else
-	    cout << "MISSING";
-	  cout << " ]</p>";
+	    std::cout << "MISSING";
+	  std::cout << " ]</p>";
 	}
 
       
@@ -1266,7 +1262,7 @@ int main()
   // All done
   //
 
-  cout << "</body></html>";
+  std::cout << "</body></html>";
   
 
   exit(0);
@@ -1335,10 +1331,10 @@ void ExomeBrowser::f_display(Variant & var, void *p)
   if ( a->show_phenotype )
     {
       int case_n = 0 , control_n = 0;
-      for (int j=0; j<con.calls.size(); j++)
+      for (int j=0; j< var.size(); j++)
 	{
 	  affType aff = var.ind( j )->affected();
-	  if ( con(j).nonreference() )
+	  if ( var(j).nonreference() )
 	    {
 	      if ( aff == CASE ) ++case_n;
 	      else if ( aff == CONTROL ) ++control_n;
@@ -1403,9 +1399,9 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
   
   // Overall group details
   
-  cout << "Individual report for individual <b>" << a->indiv_id << "</b> for gene " << vars.name() << "</b></p>";
+  std::cout << "Individual report for individual <b>" << a->indiv_id << "</b> for gene " << vars.name() << "</b></p>";
   
-  cout << vars.size() << " variants in total<br>";
+  std::cout << vars.size() << " variants in total<br>";
   
   if ( vars.size() == 0 ) return;
   
@@ -1413,26 +1409,26 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
 
   // LINKS CHR POS NAME ALT/REF  GENO  GENE_META...
   
-  cout << "<table border=1>"
+  std::cout << "<table border=1>"
        << "<tr><th>#</th><th>Indiv</th><th>Chr</th><th>Pos</th><th>ID</th><th>Ref/Alt</th>";
 
   // Optional meta-fields?
   
   for (int m=0; m< a->mf.size(); m++)
-    cout << "<th>" << a->mf[m] << "</th>";
+    std::cout << "<th>" << a->mf[m] << "</th>";
   
-  cout << "<th>Genotype</th>";
+  std::cout << "<th>Genotype</th>";
   
   //
   // Get genotype meta-fields
   //
 
-  set<string> gmeta;
+  std::set<std::string> gmeta;
   
   for (int i=0; i < vars.size(); i++)
     {            
-      SampleVariant & con = vars(i).consensus;            
-      vector<string> k = con.calls.genotype( ni ).meta.keys();
+      Variant & var = vars(i);
+      std::vector<std::string> k = var( ni ).meta.keys();
       for (int z=0; z<k.size(); z++) 
 	gmeta.insert(k[z]);      
     }
@@ -1441,16 +1437,16 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
   // We now have a list of all relevant genotypic meta fields, and we
   // know which position in each file this individual is sitting in
   
-  set<string>::iterator i = gmeta.begin();
+  std::set<std::string>::iterator i = gmeta.begin();
   while ( i != gmeta.end() )
     {
-      cout << "<th>" << *i << "</th>";
+      std::cout << "<th>" << *i << "</th>";
       ++i;
     }
   
   // End of header row
   
-  cout << "</tr>";
+  std::cout << "</tr>";
   
 
 
@@ -1461,19 +1457,19 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
   for (int i=0; i<vars.size(); i++)
     {
       
-      SampleVariant & con = vars(i).consensus;
+      Variant & var = vars(i);
 
-      cout << "<tr>";
+      std::cout << "<tr>";
 
       // counter
-      cout << "<td>" << i+1 << "</td>";
+      std::cout << "<td>" << i+1 << "</td>";
 
       // Links per variant
-      cout << "<td>";
+      std::cout << "<td>";
 
       // call pbrowse.cgi, but with all arguments explicitly formed.      
 
-      cout << "<a href=\"pbrowse.cgi?q=v&" << a->print_form_value("proj")
+      std::cout << "<a href=\"pbrowse.cgi?q=v&" << a->print_form_value("proj")
 	   << "&gene=" << a->genename
 	   << "&meta=" << a->mf_print()
 	   << "&masks=" << a->msk_print() 
@@ -1481,55 +1477,55 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
        	   << "&val=" << vars.var(i).coordinate()	
 	   << "\">view</a>";
 
-      cout << "</td>";
+      std::cout << "</td>";
 
-      cout << "<td>" << vars.var(i).chromosome() << "</td>" 
+      std::cout << "<td>" << vars.var(i).chromosome() << "</td>" 
 	   << "<td>" << vars.var(i).position() << "</td>";
 
       // Print name, with link to dbSNP if appropriate
-      cout << "<td>" << rs_link( vars.var(i).name() ) << "</td>";
+      std::cout << "<td>" << rs_link( vars.var(i).name() ) << "</td>";
            
-      cout << "<td>" << vars.var(i).reference() << "/" << vars.var(i).alternate() << "</td>" ;
+      std::cout << "<td>" << vars.var(i).reference() << "/" << vars.var(i).alternate() << "</td>" ;
 
 
       // Optional meta-information?
       
       for (int m=0; m< a->mf.size(); m++)
-	cout << "<td>" << vars.var(i).print_meta( a->mf[m] , "<br>" ) << "</td>";
+	std::cout << "<td>" << vars.var(i).print_meta( a->mf[m] , "<br>" ) << "</td>";
       
 
       // Genotype; genotype meta-fields;
 
-      int gt = con(ni).null() ? 3 : 
-	2 - con(ni).allele_count( &vars.var(i) );
+      int gt = var(ni).null() ? 3 : 
+	2 - var(ni).allele_count( );
       
       if ( gt == 0 ) 
-	cout << "<td bgcolor=\"red\">";
+	std::cout << "<td bgcolor=\"red\">";
       else if ( gt == 1 ) 
-	cout << "<td bgcolor=\"yellow\">";
+	std::cout << "<td bgcolor=\"yellow\">";
       else if ( gt == 2 )
-	cout << "<td bgcolor=\"lightgreen\">";
+	std::cout << "<td bgcolor=\"lightgreen\">";
       else 
-	cout << "<td bgcolor=\"gray\">";
-            
-      cout << vars.var(i).consensus.label( con( ni ) )
-	   << "</td>";
+	std::cout << "<td bgcolor=\"gray\">";
       
-      set<string>::iterator k = gmeta.begin();
+      std::cout << var.geno_label( var( ni ) )
+		<< "</td>";
+      
+      std::set<std::string>::iterator k = gmeta.begin();
       while ( k != gmeta.end() )
 	{
-	  if ( vars.var(i).consensus.calls.genotype(ni).meta.hasField( *k ) )
+	  if ( (vars.var(i))(ni).meta.hasField( *k ) )
 	    {
 	      meta_name_t t = *k;
-	      cout << "<td>" << vars.var(i).consensus.calls.genotype(ni).meta.print( t ) << "</td>";
+	      std::cout << "<td>" << (vars.var(i))(ni).meta.print( t ) << "</td>";
 	    }
 	  ++k;
 	}
-      cout << "</tr>";	  
+      std::cout << "</tr>";	  
 
     }
   
-  cout << "</table>";
+  std::cout << "</table>";
 
 } 
 
@@ -1566,7 +1562,7 @@ void ExomeBrowser::make_gene_list(Aux * a)
 {
 
   // true param indicates to fetch alternate names
-  vector<string> genes = a->g->locdb.fetch_names( a->loc_set , true );
+  std::vector<std::string> genes = a->g->locdb.fetch_names( a->loc_set , true );
   
   // these are sorted, so only display unique ones
   string lastgene = "";
@@ -1574,7 +1570,7 @@ void ExomeBrowser::make_gene_list(Aux * a)
     {      
       if ( genes[g] != lastgene )
 	{
-	  cout << "<a href=\"pbrowse.cgi?q=g&" << a->print_form_value("proj")
+	  std::cout << "<a href=\"pbrowse.cgi?q=g&" << a->print_form_value("proj")
 	       << "&gene="<< genes[g]
 	       << "&meta=" << a->mf_print()
 	       << "&masks=" << a->msk_print() 
@@ -1583,30 +1579,30 @@ void ExomeBrowser::make_gene_list(Aux * a)
 	  lastgene = genes[g];
 	}
     }
-  cout << "</body></html>";
+  std::cout << "</body></html>";
   exit(0);
 }
 
 
 void ExomeBrowser::make_phe_list(Aux * a)
 {
-  map<string,vector<string> > m = a->g->inddb.fetch_phenotype_info();
-  map<string,vector<string> >::iterator i = m.begin();
-  cout << "<h3>Available phenotypes</h3>";
-  cout << "<table border=1><tr>"
+  std::map<std::string,std::vector<std::string> > m = a->g->inddb.fetch_phenotype_info();
+  std::map<std::string,std::vector<std::string> >::iterator i = m.begin();
+  std::cout << "<h3>Available phenotypes</h3>";
+  std::cout << "<table border=1><tr>"
        << "<th align=left>Phenotype</th>"
        << "<th align=left>Type</th>"
        << "<th align=left>Description</th></tr>";
   while ( i != m.end() )
     {
-      cout << "<tr>"
+      std::cout << "<tr>"
 	   << "<td>" << i->first << "</td>"
 	   << "<td>" << i->second[0] << "</td>"
 	   << "<td>" << i->second[1] << "</td>"
 	   << "</tr>";
       ++i; 
     }
-  cout << "</table></body></html>";
+  std::cout << "</table></body></html>";
   exit(0);
 }
 
@@ -1615,59 +1611,59 @@ void ExomeBrowser::make_phe_list(Aux * a)
 void ExomeBrowser::make_mf_list(Aux * a)
 {
   
-  map<int,string> f = a->g->vardb.fetch_files();
-  map<int,string>::iterator i = f.begin();
+  std::map<int,std::string> f = a->g->vardb.fetch_files();
+  std::map<int,std::string>::iterator i = f.begin();
   while ( i != f.end() )
     {
-      cout << "<h3><font color=blue>" << i->second << "(" << i->first << ")</font></h3>";
+      std::cout << "<h3><font color=blue>" << i->second << "(" << i->first << ")</font></h3>";
       // Meta-types
-      cout << "<h4>Variant meta-information fields</h4>";
-      cout << "<table border=1><th align=left>Meta-field</th>"
+      std::cout << "<h4>Variant meta-information fields</h4>";
+      std::cout << "<table border=1><th align=left>Meta-field</th>"
  	   << "<th align=left>Type</th>"
  	   << "<th align=left>Length</th>"
  	   << "<th align=left>Group</th>"
  	   << "<th align=left>Description</th>"
  	   << "</tr>";
       
-      vector<map<string,string> > m = a->g->vardb.fetch_metatypes( i->first );
+      std::vector<std::map<std::string,std::string> > m = a->g->vardb.fetch_metatypes( i->first );
       for (int j=0; j<m.size(); j++)
 	{
-	  cout << "<tr><td>";
+	  std::cout << "<tr><td>";
 	  
 	  if ( MetaMeta::static_variant( m[j]["NAME"] ) )
-	    cout << "<font color=\"green\"> " << m[j]["NAME"] << "</font></td><td>";
+	    std::cout << "<font color=\"green\"> " << m[j]["NAME"] << "</font></td><td>";
 	  else
-	    cout << m[j]["NAME"] << "</td><td>";
+	    std::cout << m[j]["NAME"] << "</td><td>";
 	  
-	  cout << m[j]["TYPE"] << "</td><td>"
+	  std::cout << m[j]["TYPE"] << "</td><td>"
 	       << m[j]["NUM"] << "</td><td>"
 	       << m[j]["GRP"] << "</td><td>"
 	       << m[j]["DESC"] << "</td></tr>";
 	}
-      cout << "</table>";
+      std::cout << "</table>";
 
       // headers
-      cout << "<h4>Header rows in VCF</h4>";
-      cout << "<table border=1>"
+      std::cout << "<h4>Header rows in VCF</h4>";
+      std::cout << "<table border=1>"
  	   << "<th align=left>Key</th>"
  	   << "<th align=left>Value</th></tr>";
       
-     vector<map<string,string> > h = a->g->vardb.fetch_headers( i->first );
+     std::vector<std::map<std::string,std::string> > h = a->g->vardb.fetch_headers( i->first );
       for (int j=0; j<h.size(); j++)
 	{
 	  // do not print out first line of VCF #CHROM...
 	  string ky =  h[j]["KEY"];
 	  if ( ky.size() > 4 && ky.substr(0,4) == "#CHR" )
 	    continue;
-	  cout << "<tr><td>" 
+	  std::cout << "<tr><td>" 
 	       << ky << "</td><td>"
 	       << h[j]["VALUE"] << "</td></tr>";
 	}
-      cout << "</table>";      
-      cout <<"<hr>";
+      std::cout << "</table>";      
+      std::cout <<"<hr>";
       ++i;
     }
-  cout << "</table></body></html>";
+  std::cout << "</table></body></html>";
   exit(0);
 }
 
@@ -1675,11 +1671,11 @@ void ExomeBrowser::make_mf_list(Aux * a)
 void ExomeBrowser::make_locset_list(Aux * a)
 {
   
-  set<GroupInfo> g = a->g->locdb.group_information();
-  set<GroupInfo>::iterator i = g.begin();
+  std::set<GroupInfo> g = a->g->locdb.group_information();
+  std::set<GroupInfo>::iterator i = g.begin();
 
-  cout << "<h3>Available locus sets</h3>";
-  cout << "<table border=1><tr>"
+  std::cout << "<h3>Available locus sets</h3>";
+  std::cout << "<table border=1><tr>"
        << "<th align=left>Name</th>"
        << "<th align=left>Number of entries</th>"
        << "<th align=left>Decscription</th>"
@@ -1687,14 +1683,14 @@ void ExomeBrowser::make_locset_list(Aux * a)
   
   while ( i != g.end() )
     {
-      cout <<"<tr>"
+      std::cout <<"<tr>"
 	   << "<td>" << i->name << "</td>"
 	   << "<td>" << a->g->locdb.count( i->idx )<< "</td>"
 	   << "<td>" << i->description << "</td>"
 	   << "</tr>";
       ++i; 
     }
-  cout << "</table></body></html>";
+  std::cout << "</table></body></html>";
   exit(0);
 }
 
@@ -1704,6 +1700,6 @@ void ExomeBrowser::make_proj_summary(Aux * a)
 	    << "<p><pre>"
 	    << a->g->summary() 
 	    << "</pre></p>";
-  cout << "</table></body></html>";
+  std::cout << "</table></body></html>";
   exit(0);
 }

@@ -5,7 +5,7 @@
 #                                                 #
 ###################################################
 
-dyn.load(paste("/psych/genetics/shaun/pseq/R/Rplinkseq", .Platform$dynlib.ext, sep = ""))
+#dyn.load(paste("/psych/genetics/shaun/pseq/R/Rplinkseq", .Platform$dynlib.ext, sep = ""))
 
 .First.lib <- function(libname, pkgname) {
 

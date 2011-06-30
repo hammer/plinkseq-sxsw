@@ -10,6 +10,21 @@
 
 extern Log plog;
 
+
+#ifndef M_2PI
+#define M_2PI 6.283185307179586476925286766559/* 2*pi */
+#endif
+
+#ifndef M_LN_SQRT_2PI
+#define M_LN_SQRT_2PI 0.918938533204672741780329736406/* log(sqrt(2*pi)) */
+#endif
+
+#ifndef M_LN_SQRT_PId2
+#define M_LN_SQRT_PId2 0.225791352644727432363097614947/* log(sqrt(pi/2)) */
+#endif
+
+
+
 Data::Vector<double> Statistics::mean( const Data::Matrix<double> & d )
 {
   Data::Vector<double> m( d.dim2() );
@@ -1285,4 +1300,20 @@ long unsigned int Statistics::combin(int n, int k)
   for (int i = 0 ; i <= r-1 ; i++)
     z *= (long double)(n-i) / (long double)(r-i);
   return (long unsigned int)z;
+}
+
+long double factorial(int x) {
+  int i;
+  long double result = 1;
+  for (i = 2; i <= x; i++)
+    result *= i;
+  return result;
+}
+
+
+
+
+double Statistics::dbinom( int s , int n , double p )
+{
+  return 0;
 }

@@ -361,26 +361,279 @@ bool Pseq::VarDB::check_concordance( Mask & m )
 
 
 
+
+struct AuxLookup 
+{ 
+  bool append_phe;
+  bool append_loc;
+  bool append_ref;
+  bool append_seq;
+  bool vardb;
+  bool append_annot;    
+  std::set<std::string> locs;
+  std::set<std::string> refs;
+};
+
+
+void f_lookup_annotator( Variant & var , void * p )
+{
+  
+  AuxLookup * aux = (AuxLookup*)p;
+
+  Region region( var );
+  
+  if ( aux->append_annot ) 
+    {
+
+      bool exonic = Annotate::annotate( var );
+  
+      std::string annot = var.meta.get1_string( PLINKSeq::ANNOT() );
+	  
+      // detailed annotation vector, primary annotation
+  
+      plog << var.coordinate() << "\t"
+	   << "func" << "\t"
+	   << var.meta.as_string( PLINKSeq::ANNOT_TYPE() , "," ) << "\n";
+      
+      plog << var.coordinate() << "\t"
+	   << "transcript" << "\t"
+	   << var.meta.as_string( PLINKSeq::ANNOT_GENE() , "," ) << "\n";
+      
+      plog << var.coordinate() << "\t"
+	   << "genomic" << "\t"
+	   << var.meta.as_string( PLINKSeq::ANNOT_CHANGE() , "," ) << "\n";
+      
+      plog << var.coordinate() << "\t"
+	   << "codon" << "\t"
+	   << var.meta.as_string( PLINKSeq::ANNOT_CODON() , "," ) << "\n";
+      
+      plog << var.coordinate() << "\t"
+	   << "protein" << "\t"
+	   << var.meta.as_string( PLINKSeq::ANNOT_PROTEIN() , "," ) << "\n";
+      
+      // worst-case consensus annotation
+      
+      plog << var.coordinate() << "\t"
+	   << "worst" << "\t"
+	   << annot << "\n";
+      
+      // summary annotation
+      
+      plog << var.coordinate() << "\t"
+	   << "class" << "\t"
+	   << var.meta.get1_string( PLINKSeq::ANNOT_SUMMARY()) << "\n";
+      
+    }
+  
+
+  std::string s = var.coordinate();
+  
+  // Fetch from SEQDB
+  
+  if ( aux->append_seq ) 
+    {
+      if ( region.length() <= 10 )
+	plog << s << "\t" 
+	     << "seqdb_ref" << "\t"
+	     << g.seqdb.lookup( region ) << "\n";	        
+      else
+	plog << s << "\t" 
+	     << "seqdb_ref" << "\t"
+	     << "." << "\n";	        
+
+    }
+  
+  
+  // Fetch from VARDB 
+
+  std::set<Variant> vars = g.vardb.fetch( region );
+  
+  if ( vars.size() == 0  )
+    {
+      if ( aux->vardb ) 
+	{
+	  
+	  plog << s << "\t"
+	       << "var" << "\t"
+	       << "NA" << "\n";
+	  
+	  if ( aux->append_phe ) 
+	    plog << s << "\t"
+		 << "case" << "\t"
+		 << "NA" << "\n"
+		 << s << "\t"
+		 << "con" << "\t"
+		 << "NA" << "\n";
+	}
+    }
+
+  plog << s << "\t"
+       << "nvar" << "\t"
+       << vars.size() << "\n";		    
+
+  int cnt = 0;
+  std::set<Variant>::iterator v = vars.begin();
+
+  while ( v != vars.end() )
+    {
+      
+      ++cnt;
+      
+      
+      if ( vars.size() > 1 ) 
+	plog << s << "\t"
+	     << "var_" << cnt << "\t"
+	     << *v << "\n";		    
+      else
+	plog << s << "\t"
+	     << "var" << "\t"
+	     << *v << "\n";		    	
+      
+      // 
+      // Either allele counts; or stratify by case/control
+      //
+      
+      int case_n = 0 , control_n = 0;
+      
+      for (int j=0; j < v->size() ; j++)
+	{
+	  
+	  if ( (*v)(j).nonreference() )
+	    {
+	      if ( aux->append_phe ) 
+		{
+		  if ( v->ind(j)->affected() == CASE )
+		    ++case_n;
+		  else
+		    ++control_n;
+		}
+	      else
+		++control_n;
+	    }
+	}
+      
+      
+      if ( aux->append_phe )
+	{
+	  if ( vars.size() > 1 ) 
+	    plog << s << "\t"
+		 << "case_" << cnt << "\t" 
+		 << case_n << "\n" 
+		 << s << "\t"
+		 << "con_" << cnt << "\t" 
+		 << control_n << "\n";
+	  else
+	    plog << s << "\t"
+		 << "case" << "\t" 
+		 << case_n << "\n" 
+		 << s << "\t"
+		 << "con" << "\t" 
+		 << control_n << "\n";
+	}
+      else
+	{
+	  if ( vars.size() > 1 )
+	    plog << s << "\t"
+		 << "cnt_" << cnt << "\t" 
+		 << control_n << "\n";
+	  else
+	    plog << s << "\t"
+		 << "cnt" << "\t" 
+		 << control_n << "\n";
+	}
+
+      ++v;
+      
+    }
+  
+  
+  //
+  // Locus DB ? 
+  //
+  
+  if ( aux->append_loc ) 
+    {
+      std::set<std::string>::iterator i = aux->locs.begin();
+      while ( i != aux->locs.end() )
+	{
+	  std::set<Region> rregs = g.locdb.get_regions( *i , region );
+	  if ( rregs.size() == 0 ) 
+	    {
+	      plog << s << "\t"
+		   << "loc_" << *i << "\t"
+		   << "." << "\n";
+	    }
+	  
+	  std::set<Region>::iterator j = rregs.begin();
+	  while ( j != rregs.end() )
+	    {
+	      plog << s << "\t"
+		   << "loc_" << *i << "\t"
+		   << j->coordinate() << ":"
+		   << j->name << "\n";
+	      ++j;
+	    }
+	  ++i;
+	}
+    }
+  
+      
+  //
+  // Reference variants? 
+  //
+  
+  if ( aux->append_ref ) 
+    {
+      std::set<std::string>::iterator i = aux->refs.begin();
+      while ( i != aux->refs.end() )
+	{
+	  
+	  std::set<RefVariant> rvars = g.refdb.lookup( region , *i );
+	  
+	  if ( rvars.size() == 0 ) 
+	    {
+	      plog << s << "\t"
+		   << "ref_" << *i << "\t"
+		   << "." << "\n";
+	    }
+	  
+	  std::set<RefVariant>::iterator j = rvars.begin();
+	  while ( j != rvars.end() )
+	    {
+	      plog << s << "\t"
+		   << "ref_" << *i << "\t"
+		   << *j << "\n";
+	      ++j;
+	    }
+	  ++i;
+	}
+    }
+  
+}
+
+
 bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
 {
-
-  Helper::checkFileExists( filename );
+ 
+  AuxLookup aux;
 
   // From LOCDB, take set of gene-groups
   // From REFDB, take set of ref-variants
-  
-  std::set<std::string> locs = options.get_set( "loc" );
-  std::set<std::string> refs = options.get_set( "ref" );
-  
-  bool append_phe = g.vardb.attached() && g.inddb.attached() && g.phmap.type() == PHE_DICHOT;    
-  bool append_loc = g.locdb.attached() && locs.size() > 0;
-  bool append_ref = g.refdb.attached() && refs.size() > 0;
-  bool append_seq = g.seqdb.attached();
 
-  bool vardb = g.vardb.attached();
-  bool append_annot = g.seqdb.attached() && ( options.key("annot") || options.key( "annotate" ) );
+  aux.locs = options.get_set( "loc" );
+  aux.refs = options.get_set( "ref" );
+  
+  aux.append_phe = g.vardb.attached() && g.inddb.attached() && g.phmap.type() == PHE_DICHOT;    
+  aux.append_loc = g.locdb.attached() && aux.locs.size() > 0;
+  aux.append_ref = g.refdb.attached() && aux.refs.size() > 0;
+  aux.append_seq = g.seqdb.attached();
+  aux.vardb = g.vardb.attached();
+  aux.append_annot = g.seqdb.attached() && ( options.key("annot") || options.key( "annotate" ) );
 
-  if ( append_annot ) 
+  if ( ! ( aux.vardb || aux.append_loc || aux.append_ref || aux.append_seq || aux.append_annot ) ) 
+    Helper::halt("no information to append");
+  
+  if ( aux.append_annot ) 
     {
       std::string annot_transcripts = PLINKSeq::DEFAULT_LOC_GROUP() ;
       if ( options.key( "annot" ) ) annot_transcripts = options.as<std::string>( "annot" );
@@ -388,35 +641,41 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
       Annotate::load_transcripts( LOCDB, annot_transcripts );
     }
   
-  InFile F1( filename );
-  
-  if ( vardb )
+
+  // Headers
+
+  if ( aux.vardb )
     {
-      if ( append_phe ) plog << "##casecon,1,String,\"Case/control minor allele counts\"\n";
-      else plog << "##count,1,String,\"Minor allele counts\"\n";
+      plog << "##nvar,1,Integer,\"Number of overlapping variants\"\n";
+      plog << "##var,1,String,\"Variant ID\"\n";
+      if ( aux.append_phe ) {
+	plog << "##case,1,Integer,\"Case minor allele counts\"\n";
+	plog << "##con,1,Integer,\"Control minor allele counts\"\n";
+      }
+      else plog << "##cnt,1,Integer,\"Minor allele counts\"\n";
     }
   
-  if ( append_loc )
+  if ( aux.append_loc )
     {
-      std::set<std::string>::iterator i = locs.begin();
-      while ( i != locs.end() )
+      std::set<std::string>::iterator i = aux.locs.begin();
+      while ( i != aux.locs.end() )
 	{
-	  plog << "##" << *i << ",String,\"LOCDB group\"\n";
+	  plog << "##" << "loc_" << *i << ",.,String,\"LOCDB group\"\n";
 	  ++i;
 	}
     }
   
-  if ( append_ref ) 
+  if ( aux.append_ref ) 
     {
-      std::set<std::string>::iterator i = refs.begin();
-      while ( i != refs.end() )
+      std::set<std::string>::iterator i = aux.refs.begin();
+      while ( i != aux.refs.end() )
 	{
-	  plog << "##" << *i << ",String,\"REFDB group\"\n";
+	  plog << "##" << "ref_" << *i << ",.,String,\"REFDB group\"\n";
 	  ++i;
 	}
     }
   
-  if ( append_annot )
+  if ( aux.append_annot )
     {
       plog << "##func,1,String,\"Genomic annotation\"\n";
       plog << "##transcript,1,String,\"Transcript ID\"\n";
@@ -426,236 +685,73 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
       plog << "##worst,1,String,\"Worst annotation\"\n";
       plog << "##class,1,String,\"Summary of all annotations\"\n";
     }
-
-  if ( append_seq )
+  
+  if ( aux.append_seq )
     {
       plog << "##seqdb_ref,1,String,\"SEQDB reference sequence\"\n";
     }
 
-  if ( append_ref ) 
+    
+  //
+  // Annotate variants internally
+  //
+  
+  if ( filename == "." ) 
     {
-
-      std::set<std::string>::iterator i = refs.begin();
-      while ( i != refs.end() )
-	{
-	  plog << "##ref_" << *i << ",.,String,\"REFDB annotation for group " << *i << "\"\n";
-	  ++i;
-	}
+      g.vardb.iterate( f_lookup_annotator , &aux , mask );
+      return true;
     }
 
-  if ( ! ( vardb || append_loc || append_ref || append_seq || append_annot ) ) 
-    Helper::halt("no information to append");
-  
+
+  //
+  // Else, annotate variant list from file
+  //
+
+  Helper::checkFileExists( filename );
+
+  InFile F1( filename );
+
   // Assume format is either a) a single site (1 col) OR b) single, REF and ALT (3 col)
+
   while ( !F1.eof() )
     {
       
       bool okay = true;
-      
       std::vector<std::string> line = F1.tokenizeLine( " \t" );
-      
-      if ( ! ( line.size() == 1 || line.size() == 3 ) ) continue;
-      
-      const std::string s = line[0];
 
-      Region region( s , okay);
+      if ( line.size() == 0 ) continue;
+
+      if ( ! ( line.size() == 1 || line.size() == 3 ) ) 
+	{
+	  plog.warn( "not a valid line of input" , line );
+	  continue;
+	}
+	      
+
+      // Region REF ALT
       
+      Region region( line[0] , okay );     
       std::string ref_allele = line.size() == 3 ? line[1] : ".";
       std::string alt_allele = line.size() == 3 ? line[2] : ".";
       
-      if ( append_annot && okay ) 
-	{
-	  
+      if ( okay ) 
+	{	  
 	  Variant var;
 	  var.chromosome( region.start.chromosome() );
 	  var.position( region.start.position() );
-	  var.stop( var.position() + ref_allele.size() - 1 );
+	  
+	  if ( ref_allele == "." )
+	    var.stop( region.stop.position() ); 
+	  else
+	    var.stop( var.position() + ref_allele.size() - 1 );
+
 	  var.consensus.reference( ref_allele );
-	  var.consensus.alternate( alt_allele );
-	  
-	  bool exonic = Annotate::annotate( var );
-	  
-	  std::string annot = var.meta.get1_string( PLINKSeq::ANNOT() );
-	  
-	  // detailed annotation vector, primary annotation
-	  
-	  plog << var.coordinate() << "\t"
-	       << "func" << "\t"
-	       << var.meta.as_string( PLINKSeq::ANNOT_TYPE() , "," ) << "\n";
-	  
-	  plog << var.coordinate() << "\t"
-	       << "transcript" << "\t"
-	       << var.meta.as_string( PLINKSeq::ANNOT_GENE() , "," ) << "\n";
-
-	  plog << var.coordinate() << "\t"
-	       << "genomic" << "\t"
-	       << var.meta.as_string( PLINKSeq::ANNOT_CHANGE() , "," ) << "\n";
-
-	  plog << var.coordinate() << "\t"
-	       << "codon" << "\t"
-	       << var.meta.as_string( PLINKSeq::ANNOT_CODON() , "," ) << "\n";
-				      
-	  plog << var.coordinate() << "\t"
-	       << "protein" << "\t"
-	       << var.meta.as_string( PLINKSeq::ANNOT_PROTEIN() , "," ) << "\n";
-
-	  // worst-case consensus annotation
-	  
-	  plog << var.coordinate() << "\t"
-	       << "worst" << "\t"
-	       << annot << "\n";
-          
-	  // summary annotation
-	  
-	  plog << var.coordinate() << "\t"
-	       << "class" << "\t"
-	       << var.meta.get1_string( PLINKSeq::ANNOT_SUMMARY()) << "\n";
-	  
+	  var.consensus.alternate( alt_allele );	  
+	  f_lookup_annotator( var , &aux );
 	}
+      else
+	plog.warn( "not a valid region" , line[0] );
       
-
-      if ( ! okay ) 
-	{
-	  plog.warn( "not a valid region" , s );
-	  continue;
-	}
-      
-
-      // Fetch from SEQDB
-
-      if ( append_seq ) 
-	{
-	  plog << s << "\t" 
-	       << "seqdb_ref" << "\t"
-	       << g.seqdb.lookup( region ) << "\n";	  
-	}
-
-      
-      // Fetch from VARDB 
-      
-      std::set<Variant> vars = g.vardb.fetch( region );
-      
-      if ( vars.size() == 0  )
-	{
-	  if ( vardb ) 
-	    plog << "_VAR" << "\t"
-		 << s << "\t"
-		 << 0 << "\t"
-		 << "_NO_VARIANTS" << "\t"
-		 << ( append_phe ? "NA\tNA\t" : "NA\t" )
-		 << "\n";
-	}
-      
-      int cnt = 0;
-      std::set<Variant>::iterator v = vars.begin();
-      while ( v != vars.end() )
-	{
-	  
-	  plog << "_VAR" << "\t"
-	       << s << "\t"
-	       << ++cnt << "\t"
-	       << *v << "\t";		    
-
-
-	  // 
-	  // Either allele counts; or stratify by case/control
-	  //
-
-	  int case_n = 0 , control_n = 0;
-	  
-	  for (int j=0; j < v->size() ; j++)
-	    {
-	      
-	      if ( (*v)(j).nonreference() )
-		{
-		  if ( append_phe ) 
-		    {
-		      if ( v->ind(j)->affected() == CASE )
-			++case_n;
-		      else
-			++control_n;
-		    }
-		  else
-		    ++control_n;
-		}
-	    }
-	   
-   
-	  if ( append_phe )
-	    plog << case_n << "\t" ;
-	  plog << control_n << "\t";
-	  
-	  ++v;
-	  
-	  plog << "\n";
-	}
-
-      	  
-      //
-      // Locus DB ? 
-      //
-      
-      if ( append_loc ) 
-	{
-	  std::set<std::string>::iterator i = locs.begin();
-	  while ( i != locs.end() )
-	    {
-	      std::set<Region> rregs = g.locdb.get_regions( *i , region );
-	      if ( rregs.size() == 0 ) 
-		{
-		  plog << "_REFLOC" << "\t"
-		       << s << "\t"
-		       << *i << "\t"
-		       << "_NO_LOCI" << "\n";
-		}
-	      
-	      std::set<Region>::iterator j = rregs.begin();
-	      while ( j != rregs.end() )
-		{
-		  plog << "_REFLOC" << "\t"
-		       << s << "\t"
-		       << *i << "\t"
-		       << j->coordinate() << ":"
-		       << j->name << "\n";
-		  ++j;
-		}
-	      ++i;
-	    }
-	}
-      
-      
-      //
-      // Reference variants? 
-      //
-      
-      if ( append_ref ) 
-	{
-	  std::set<std::string>::iterator i = refs.begin();
-	  while ( i != refs.end() )
-	    {
-
-	      std::set<RefVariant> rvars = g.refdb.lookup( region , *i );
-	      
-	      if ( rvars.size() == 0 ) 
-		{
-		  plog << s << "\t"
-		       << "ref_" << *i << "\t"
-		       << "." << "\n";
-		}
-	      
-	      std::set<RefVariant>::iterator j = rvars.begin();
-	      while ( j != rvars.end() )
-		{
-		  plog << s << "\t"
-		       << "ref_" << *i << "\t"
-		       << *j << "\n";
-		  ++j;
-		}
-	      ++i;
-	    }
-	}
-
-
     } // next input region
   
   F1.close();
@@ -918,7 +1014,7 @@ bool Pseq::VarDB::simple_sim()
 		  var.chromosome(1);
 		  var.position( ++totv );
 		  var.attach( &g.indmap );
-		  var.size( ncase + ncontrol );
+		  var.resize( ncase + ncontrol );
 		  int cnt = 0;
 		  for ( int i=0; i < ncase; i++ )
 		    {

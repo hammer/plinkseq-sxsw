@@ -460,15 +460,18 @@ bool SampleVariant::decode_BLOB( Variant * parent ,
 
   decode_BLOB_basic( target );
 
+
   // Extract variant meta-information, either to consensus or self,
   // optionally copying to Variant population-level static meta-fields
 
   if ( ! decode_BLOB_vmeta( mask , parent , target ) ) return false;
 
+
   // Extract genotypes, either into consensus or self
   // this also returns a variant-level bool, if a include expression w/ a gfunc is in the mask
 
   if ( ! decode_BLOB_genotype( align , mask , parent , this , target , genotype_target ) ) return false;
+
 
   return true;
 }
@@ -539,9 +542,9 @@ bool SampleVariant::decode_BLOB_vmeta( Mask * mask, Variant * parent , SampleVar
   // Possible that we do not need to look at any variant
   // meta-information, in which case, simply return now
 
-  if ( ! mask->load_variant_meta() ) return true;
-
-
+  if ( mask && ! mask->load_variant_meta() ) return true;
+  
+  
   // For BCF-derived SVs, or those read direct from a VCF,skip the first step
   // i.e. genotypes already extracted
   
@@ -671,15 +674,14 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 
   // Possible that we do not require any individual/genotypic level
   // information at all, in which case, return now.
-  
-  
-  if ( ! mask->load_genotype_data() ) 
+    
+  if ( mask && ! mask->load_genotype_data() ) 
     {
       target->calls.size( align ? align->size() : 0 );
       return true;
     }
 
-    
+  
   // Sample A : 1 2 3
   // Sample B : 4 5 6
   // Sample C : 3 4 
@@ -695,11 +697,10 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   // alignment is specified, use that to only extract that subset
   //
   
-  
   if ( ! ( target->bcf || vcf_direct ) ) 
     {
-
-      if ( mask && mask->load_genotype_data() ) 
+      
+      if ( mask == NULL || ( mask && mask->load_genotype_data() ) ) 
 	{
 	  
 	  // Number of individuals in PBuffer
@@ -708,7 +709,6 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	  // Number of individuals we actually want
 	  unsigned int n_variant = align ? align->size() : n_buffer ;
 	  
-      
 	  //
 	  // Allocate space as needed
 	  //
@@ -1482,23 +1482,34 @@ void SampleVariant::collapse_alternates( const Variant * parent , int altcode )
 }
 
 
-bool SampleVariant::has_nonreference( const bool also_poly ) const
+bool SampleVariant::has_nonreference( const bool also_poly , const std::vector<int> * imask ) const
 {
+  
+  // If remap is NON-NULL, this means we only want to look at these IDs 
+  // i.e. if this is consensus in a flat alignment, but we want a file-specific summary
+  
   bool nonref = false;
-
+  
   std::set<int> npoly;
 
-  for (int i=0; i<calls.size(); i++)
+  const int n = imask ? imask->size() : calls.size();
+
+  for ( int i = 0; i < n; i++)
     {      
-      if ( calls.genotype(i).nonreference() ) 
+
+      const int idx = imask ? (*imask)[i] : i ;
+      
+      if ( calls.genotype( idx ).nonreference() ) 
 	{	  
+	  
 	  // leave when hit first non-reference call
-	  if ( ! also_poly ) return true;
+	  if ( ! also_poly ) 
+	    return true;
 	  else 
 	    {
-	      std::vector<int> ac = calls.genotype(i).allele_list( alleles.size() );
-	      for (int i=0; i<ac.size(); i++) npoly.insert( ac[i] );
-	      if ( npoly.size() > 1 ) return true;
+	      std::vector<int> ac = calls.genotype( idx ).allele_list( alleles.size() );
+	      for (int a=0; a<ac.size(); a++) npoly.insert( ac[a] );
+	      if ( npoly.size() > 1 ) return true; 
 	    }
 	}
     }

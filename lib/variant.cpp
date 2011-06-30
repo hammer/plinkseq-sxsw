@@ -116,6 +116,7 @@ bool Variant::make_consensus( IndividualMap * a )
     svar[i].parse_alleles();
 
 
+
   //
   // Align basic allelic informaiton
   //
@@ -793,16 +794,18 @@ std::string Variant::VCF()
   std::ostringstream s;
   
   // VCF is tab-delimited 
-
+  
   s << Helper::chrCode( chr ) << "\t"
     << bp << "\t"
     << vname << "\t"
     << consensus.ref << "\t"
     << consensus.alt << "\t";
+
   if ( consensus.qual < 0 )
     s << "." << "\t";
   else
     s << consensus.qual << "\t";
+
 
   s << consensus.filter_info << "\t"
     << consensus.meta << "\t";
@@ -818,6 +821,7 @@ std::string Variant::VCF()
   
   s << "GT";
   
+
   std::set<std::string> allkeys;
   for (int i = 0 ; i < size(); i++)
     {
@@ -923,7 +927,12 @@ int Variant::size() const
   return align ?  align->size() : 0 ;
 }
 
-void Variant::size(const int n ) 
+int Variant::size( const int svar_id ) const
+{
+  return svar_id == -1 ? size() : ( align ? align->size( svar[svar_id].fset ) : 0 ) ;
+}
+
+void Variant::resize(const int n ) 
 {
   consensus.calls.size(n);
 }
@@ -951,9 +960,6 @@ const Genotype * Variant::genotype( const SampleVariant * svar , const int j) co
   // Under a flat alignment, no data would have been 
   // stored in the sample-variants 
   // otherwise, get from original slot
-
-//   std::cout << "looking for person = " << j << "\n";
-//   std::cout << " align = " << align->get_slot( svar->fileset() , j ) << "\n";
 
   if ( align->flat() ) return genotype( align->get_slot( svar->fileset() , j ) ); 
   else return &(svar->calls.genotype(j));            
@@ -1298,15 +1304,39 @@ bool SampleVariant::align_reference_alleles( SampleVariant & s1 ,
 
 bool Variant::has_nonreference( const SampleVariant & svar ) const
 {
-  return svar.has_nonreference();
+
+  // Is this is consensus, just return
+  if ( svar.fset == 0 ) return svar.has_nonreference( false );
+
+  // If this is a specific sample variant, we might need to extract the subset of individuals
+  // from the consensus.
+
+  // 1) Where are genotypes stored for this sample? 
+  
+  SampleVariant & sv_geno = sample_genotypes( svar );
+  
+  // If in the SV itself (a non-flat alignment)  
+  if ( sv_geno.fset ) 
+    return sv_geno.has_nonreference( false );
+  else // otherwise, if looking in the consensus, need a i-mask
+    return sv_geno.has_nonreference( false , align->file2consensus( svar.fset ) );
+}
+
+std::vector<int> Variant::indiv_mask( const int file_id ) const
+{
+  const std::vector<int> * i = align->file2consensus( file_id );
+  if ( i ) return *i;
+  std::vector<int> j;
+  return j;
 }
 
 
-bool Variant::has_nonreference( const int file_id ) const
+
+bool Variant::has_nonreference_by_file( const int file_id ) const
 {
-  std::vector<const SampleVariant *> svar = fsample( file_id );
-  for ( int s = 0 ; s < svar.size() ; s++ )
-    if ( svar[s]->has_nonreference() ) return true;    
+  std::vector<const SampleVariant *> sv = fsample( file_id );
+  for ( int s = 0 ; s < sv.size() ; s++ )
+    if ( has_nonreference( *sv[s] ) ) return true;    
   return false;
 }
 

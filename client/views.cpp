@@ -777,7 +777,9 @@ void f_simple_counts( Variant & var , void * p )
   OptSimpleCounts * data = (OptSimpleCounts*)p;
   
   std::string gene = ".";
-  std::string annot = ".";
+  std::vector<std::string> genevec;
+  std::string annot1 = ".";
+  std::string annotfull = ".";
   std::string protein = ".";
   
   //
@@ -798,16 +800,18 @@ void f_simple_counts( Variant & var , void * p )
       
       if ( ! var.meta.has_field( PLINKSeq::META_ANNOT() ) )
 	{
-	  bool exonic = Annotate::annotate( var );
-	  annot = var.meta.get1_string( PLINKSeq::ANNOT_TYPE() );
-	  if ( exonic ) 
-	    {	  
-	      gene = var.meta.get1_string( PLINKSeq::ANNOT_GENE() );
-	      protein = var.meta.get1_string( PLINKSeq::ANNOT_PROTEIN() );
-	    }
+	  
+	  Annotate::annotate( var );
+
+	  annot1 = var.meta.get1_string( PLINKSeq::ANNOT() );	  
+	  annotfull = var.meta.as_string( PLINKSeq::ANNOT_TYPE() , "," );
+	  gene = var.meta.as_string( PLINKSeq::ANNOT_GENE() , "," );
+	  genevec = var.meta.get_string( PLINKSeq::ANNOT_GENE() );
+	  protein = var.meta.as_string( PLINKSeq::ANNOT_PROTEIN() , "," );
+	  
 	}
       else
-	annot = var.meta.get1_string( PLINKSeq::META_ANNOT() );
+	annot1 = var.meta.as_string( PLINKSeq::META_ANNOT() , "," );
     }
 
   
@@ -897,10 +901,27 @@ void f_simple_counts( Variant & var , void * p )
 
 
   if ( data->apply_annot ) 
-    plog << "\t" << annot
-	 << "\t" << ( gene == "" ? "." : gene ) 
-	 << "\t" << protein 
-	 << "\t" << g.locdb.alias( gene ) ;
+    {
+      plog << "\t" << annot1
+	   << "\t" << ( gene == "" ? "." : gene ) ;
+
+      if ( data->apply_full_annot )
+	{
+	  plog << "\t" << annotfull	       
+	       << "\t" << protein;
+	  std::set<std::string> aliases;
+	  for (int s=0;s<genevec.size();s++) aliases.insert( g.locdb.alias( genevec[s] ) );
+	  
+	  std::set<std::string>::iterator i = aliases.begin();
+	  while ( i != aliases.end() )
+	    {
+	      if ( i != aliases.begin() ) plog << ","; else plog << "\t";
+	      plog << *i ;
+	      ++i;
+	    }
+	}
+    }
+  
   
   if ( data->meta.size() )
     {

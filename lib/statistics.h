@@ -61,6 +61,13 @@ namespace Statistics {
   double t_prob( double x, double df );
   double ltqnorm( double p );
 
+
+  // distribution functions
+
+  double erf(double);
+  double dbinom_normal(int x , int n , double p );
+  double dbinom( int x , int n , double p );
+
   struct Eigen
   {
     Eigen(const int n) : d(n), z(n,n) { }     

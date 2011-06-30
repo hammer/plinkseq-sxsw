@@ -1597,10 +1597,12 @@ bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
   
   OptSimpleCounts opt;
   opt.apply_annot = options.key( "annotate" );
+  opt.apply_full_annot = options.key( "full-annotate" );
+  if ( opt.apply_full_annot ) opt.apply_annot = true;
   opt.dichot_pheno = g.phmap.type() == PHE_DICHOT;
   opt.show_filter = options.key( "filters" );
   opt.genotypes = genotypes;
-
+  
   plog << "VAR";
   plog << "\tREF/ALT";
   
@@ -1623,8 +1625,11 @@ bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
 
   if ( opt.apply_annot )
     plog << "\tFUNC"
-	 << "\tGENE"
-	 << "\tPROTEIN"
+	 << "\tGENE";
+  
+  if ( opt.apply_full_annot )
+    plog << "\tFULL"
+	 << "\tPROTEIN"	 
 	 << "\tALIAS";
   
   

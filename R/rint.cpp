@@ -313,11 +313,10 @@ SEXP Rvariant(Variant & v , Rdisplay_options & opt )
       SET_VECTOR_ELT(vlist, s++, Rsample_variant( -1 , v, opt ) );
     }
   
-  std::cout << "done con\n";
-
+  
   // Individual sample variants
   
-  if ( opt.show_multi_sample )
+  if ( opt.show_multi_sample && v.multi_sample() )
     {
       // creating a problem?
 
@@ -325,11 +324,11 @@ SEXP Rvariant(Variant & v , Rdisplay_options & opt )
 
       for (int sample = 0; sample < ns ; sample ++ )
 	{	  
-	  
+
 	  SET_VECTOR_ELT( vlist, 
-			  s++, 
-			  Rsample_variant( sample , v , opt ) );
-	  
+ 			  s++, 
+ 			  Rsample_variant( sample , v , opt ) );
+	  	  
 	}
 
     }
@@ -337,7 +336,7 @@ SEXP Rvariant(Variant & v , Rdisplay_options & opt )
   setAttrib( vlist, R_NamesSymbol, list_names ); 
   
   UNPROTECT(8);
-  
+
   return vlist; 
   
 }
@@ -347,10 +346,18 @@ SEXP Rvariant(Variant & v , Rdisplay_options & opt )
 SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 {
   
-  
   SampleVariant & v = parent.sample( si );
   
-
+  bool is_consensus = v.fileset() == 0 ; 
+  
+  const int nind = parent.size( si );
+  
+  // indicates we will need to cherry pick a sample from the consensus.
+  const bool subset = parent.flat() && ! is_consensus;
+  std::vector<int> imask;  
+  if ( subset ) imask = parent.indiv_mask( v.fileset() );
+  
+  
   // Construct an R list object to represent this variant, it's
   // meta-information; its genotypes and their meta-information
   
@@ -377,8 +384,10 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
     
   SEXP quality;
   PROTECT(quality = allocVector(REALSXP, 1));
-  REAL(quality)[0] = v.quality();
-
+  if ( v.quality() < 0 ) 
+    REAL(quality)[0] = NA_REAL;
+  else
+    REAL(quality)[0] = v.quality();
 
   // Filter-strings 
   
@@ -480,9 +489,6 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
       // Note -- we first have to tally up all the meta-fields for this 
       //         variant -- this is v. inefficient, but do for now
       
-      // Number of individuals
-      
-      int n = parent.size();
       
       // Number of genotype meta-fields (if showing any)
       
@@ -491,13 +497,17 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
       if ( opt.show_genotype_metainformation )
 	{
 	  
-	  for (int i = 0 ; i < n; i++)
+	  for (int i = 0 ; i < nind ; i++)
 	    {
-	      Genotype * g = parent.genotype( si , i );
+	      
+	      const int idx = subset ? imask[i] : i ;
+	      
+	      Genotype * g = parent.genotype( si , idx );
+	      
 	      if ( g ) 
 		{
 		  std::vector<std::string> keys = g->meta.keys();
-		  for (int k=0; k<keys.size(); k++) mk.insert( keys[k] );
+		  for (int k=0; k<keys.size(); k++) mk.insert( keys[k] ); 
 		}
 	    }
 	  
@@ -526,13 +536,15 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
       //
 	
       SEXP g_calls;
-      PROTECT(g_calls = allocVector( INTSXP, n ));
+      PROTECT(g_calls = allocVector( INTSXP, nind ));
       
-      for (int i = 0 ; i < n; i++)
+      for (int i = 0 ; i < nind ; i++)
 	{
 	  
-	  Genotype * g = parent.genotype( si , i );
-
+	  const int idx = subset ? imask[i] : i ;	 
+	  
+	  Genotype * g = parent.genotype( si , idx );
+	  
 	  if ( ! g ) 
 	    {
 	      INTEGER(g_calls)[i] = NA_INTEGER;
@@ -562,7 +574,7 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
       // Genotype meta-information
       //
       
-      if ( false && opt.show_genotype_metainformation )
+      if ( opt.show_genotype_metainformation )
 	{
 	  
 	  std::set<std::string>::iterator k = mk.begin();
@@ -593,10 +605,11 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 		  
 		  if ( len == 1 ) // vector
 		    {
-		      PROTECT(g_meta = allocVector( INTSXP, n ));
-		      for (int j=0; j<n; j++) 
+		      PROTECT(g_meta = allocVector( INTSXP, nind ));
+		      for (int j=0; j<nind; j++) 
 			{
-			  Genotype * g = parent.genotype( si , j );
+			  const int idx = subset ? imask[j] : j ;
+			  Genotype * g = parent.genotype( si , idx );
 			  if ( g && g->meta.hasField( *k ) )
 			    INTEGER(g_meta)[j] = g->meta.get1_int( *k ) ;
 			  else
@@ -607,20 +620,21 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 		    }
 		  else if ( len > 1 ) // matrix
 		    {
-		      PROTECT(g_meta = allocMatrix( INTSXP, n , len ));
-		      for (int j=0; j<n; j++) 
+		      PROTECT(g_meta = allocMatrix( INTSXP, nind , len ));
+		      for (int j=0; j<nind; j++) 
 			{
-			  Genotype * g = parent.genotype( si , j );
+			  const int idx = subset ? imask[j] : j ;
+			  Genotype * g = parent.genotype( si , idx );
 			  if ( g && g->meta.hasField( *k ) )
 			    {
 			      std::vector<int> vec = g->meta.get_int( *k ) ;
 			      for (int z=0; z<len; z++)
-				INTEGER(g_meta)[j + n * z] = vec[z];			      
+				INTEGER(g_meta)[j + nind * z] = vec[z];			      
 			    }
 			  else
 			    {
 			      for (int z=0; z<len; z++)
-				INTEGER(g_meta)[j + n * z] = NA_INTEGER;
+				INTEGER(g_meta)[j + nind * z] = NA_INTEGER;
 			    }
 			}		      
 		      SET_VECTOR_ELT(geno, x , g_meta  ); 
@@ -628,10 +642,11 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 		    }
 		  else  // list (variable-numbered arrays)
 		    {
-		      PROTECT(g_meta = allocVector( VECSXP, n ));
-		      for (int j=0; j<n; j++) 
+		      PROTECT(g_meta = allocVector( VECSXP, nind ));
+		      for (int j=0; j<nind; j++) 
 			{
-			  Genotype * g = parent.genotype( si , j );
+			  const int idx = subset ? imask[j] : j ;
+			  Genotype * g = parent.genotype( si , idx );
 			  if ( g && g->meta.hasField( *k ) )
 			    {
 			      std::vector<int> vec = g->meta.get_int( *k ) ;
@@ -653,10 +668,11 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 
 		  if ( len == 1 ) // vector
 		    {
-		      PROTECT(g_meta = allocVector( REALSXP, n ));
-		      for (int j=0; j<n; j++) 
+		      PROTECT(g_meta = allocVector( REALSXP, nind ));
+		      for (int j=0; j<nind; j++) 
 			{
-			  Genotype * g = parent.genotype( si , j );
+			  const int idx = subset ? imask[j] : j ;
+			  Genotype * g = parent.genotype( si , idx );
 			  if ( g && g->meta.hasField( *k ) )
 			    REAL(g_meta)[j] = g->meta.get1_double( *k ) ;
 			  else
@@ -667,20 +683,21 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 		    }
 		  else if ( len > 1 ) // matrix  
 		    {
-		      PROTECT(g_meta = allocMatrix( REALSXP, n , len ));
-		      for (int j=0; j<n; j++) 
+		      PROTECT(g_meta = allocMatrix( REALSXP, nind , len ));
+		      for (int j=0; j<nind; j++) 
 			{
-			  Genotype * g = parent.genotype( si , j );
+			  const int idx = subset ? imask[j] : j ;
+			  Genotype * g = parent.genotype( si , idx );
 			  if ( g && g->meta.hasField( *k ) )
 			    {
 			      std::vector<double> vec = g->meta.get_double( *k ) ;
 			      for (int z=0; z<len; z++)
-				REAL(g_meta)[j + n * z] = vec[z];			      
+				REAL(g_meta)[j + nind * z] = vec[z];			      
 			    }
 			  else
 			    {
 			      for (int z=0; z<len; z++)
-				REAL(g_meta)[j + n * z] = NA_REAL;
+				REAL(g_meta)[j + nind * z] = NA_REAL;
 			    }
 			}		      
 		      SET_VECTOR_ELT(geno, x , g_meta  ); 
@@ -688,10 +705,11 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 		    }
 		  else  // list
 		    {
-		      PROTECT(g_meta = allocVector( VECSXP, n ));
-		      for (int j=0; j<n; j++) 
+		      PROTECT(g_meta = allocVector( VECSXP, nind ));
+		      for (int j=0; j<nind; j++) 
 			{
-			  Genotype * g = parent.genotype( si , j );
+			  const int idx = subset ? imask[j] : j ;
+			  Genotype * g = parent.genotype( si , idx );
 			  if ( g && g->meta.hasField( *k ) )
 			    {
 			      std::vector<double> vec = g->meta.get_double( *k ) ;
@@ -714,10 +732,11 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 		  
 		  if ( len == 1 ) // vector
 		    {
-		      PROTECT(g_meta = allocVector( STRSXP, n ));
-		      for (int j=0; j<n; j++) 
+		      PROTECT(g_meta = allocVector( STRSXP, nind ));
+		      for (int j=0; j<nind; j++) 
 			{
-			  Genotype * g = parent.genotype( si , j );
+			  const int idx = subset ? imask[j] : j ;
+			  Genotype * g = parent.genotype( si , idx );
 			  if ( g && g->meta.hasField( *k ) )
 			    SET_STRING_ELT( g_meta, j , mkChar( g->meta.get1_string( *k ).c_str() ) );
 			  else
@@ -728,20 +747,21 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 		    }
 		  else if ( len > 1 ) // matrix
 		    {
-		      PROTECT(g_meta = allocMatrix( STRSXP, n , len ));
-		      for (int j=0; j<n; j++) 
+		      PROTECT(g_meta = allocMatrix( STRSXP, nind , len ));
+		      for (int j=0; j<nind; j++) 
 			{
-			  Genotype * g = parent.genotype( si , j );
+			  const int idx = subset ? imask[j] : j ;
+			  Genotype * g = parent.genotype( si , idx );
 			  if ( g && g->meta.hasField( *k ) )
 			    {
 			      std::vector<std::string> vec = g->meta.get_string( *k ) ;
 			      for (int z=0; z<len; z++)
-				SET_STRING_ELT( g_meta, j+n*z , mkChar( vec[z].c_str() ) );			      
+				SET_STRING_ELT( g_meta, j+nind*z , mkChar( vec[z].c_str() ) );			      
 			    }
 			  else
 			    {
 			      for (int z=0; z<len; z++)
-				SET_STRING_ELT( g_meta, j+n*z , NA_STRING );			      			      
+				SET_STRING_ELT( g_meta, j+nind*z , NA_STRING );			      			      
 			    }
 			}		      
 		      SET_VECTOR_ELT(geno, x , g_meta  ); 
@@ -749,10 +769,11 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 		    }
 		  else  // list
 		    {
-		      PROTECT(g_meta = allocVector( VECSXP, n ));
-		      for (int j=0; j<n; j++) 
+		      PROTECT(g_meta = allocVector( VECSXP, nind ));
+		      for (int j=0; j<nind; j++) 
 			{
-			  Genotype * g = parent.genotype( si , j );
+			  const int idx = subset ? imask[j] : j ;
+			  Genotype * g = parent.genotype( si , idx );
 			  if ( g && g->meta.hasField( *k ) )
 			    {
 			      std::vector<std::string> vec = g->meta.get_string( *k ) ;
@@ -883,8 +904,7 @@ void R_group_accumulate_func( VariantGroup & v , void * p )
 
 void R_iterate_func( Variant & v , void * p )
 {
-
-  std::cout << " in it func\n";
+  R_CheckUserInterrupt();
 
   Rdata * d = (Rdata*)p;
   
@@ -898,13 +918,11 @@ void R_iterate_func( Variant & v , void * p )
   
   SETCADR( d->fncall, var );
   
-  std::cout << " DONE 0\n";
 
   // Evalute function
 
   eval(d->fncall, d->rho);
 
-  std::cout << " DONE 1\n";  
   
   UNPROTECT(1);    
   
@@ -983,7 +1001,9 @@ Mask R_make_mask(SEXP r)
   
   if ( length(r) < 1 ) return Mask("");    
   std::string s = CHAR(STRING_ELT(r, 0));  	
+
   Mask m(s);
+
   gp->register_mask( m );
   return m;
 }
@@ -1362,15 +1382,13 @@ SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
   // collect any results
 
 
-  std::cout << "made mask (0) \n";
-
   Rdisplay_options opt;
   
   Rdata * d = new Rdata;
   d->opt = &opt;
   d->fncall = R_fcall;
   d->rho    = rho;
-  
+
   std::vector<Variant> vars;
   std::vector<VariantGroup> varGroups;
   
@@ -1383,11 +1401,11 @@ SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
   if ( length(rmask) > 0 ) 
     mask = R_make_mask(rmask);
   
+
   if ( length(ret) > 0 && INTEGER(ret)[0] != 0 ) 
     mask.limit( INTEGER(ret)[0]);
   
   
-  std::cout << "made mask \n";
 
   //
   // Set up individual-map
@@ -1415,12 +1433,11 @@ SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
     }
   else
     {
-      std::cout << "about to it\n";
       gp->vardb.iterate( R_iterate_func , d , mask );
     }    
   
 
-  std::cout << "done iterate\n";
+
   //
   // Clean up...
   //
