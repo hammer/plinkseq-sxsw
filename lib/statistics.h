@@ -23,8 +23,22 @@ namespace Statistics {
 
   long unsigned int factorial(int n);
   long unsigned int combin(int n, int k);
-
+  
+  double dbinom( const int k , const int n , double p );
+  double chi2_prob( double x, double df );
+  double t_prob( double x, double df );
+  double ltqnorm( double p );
+  
+  // mainly helper functions for the above
+  double factln(int);
+  double factrl(int);
+  double gammln(double);
+  double factln(int n);
+  double bico(int n, int k);
+  
   double pythag( const double , const double );
+
+  // matrix operations
 
   Data::Matrix<double> matrix_sqrt( const Data::Matrix<double> & );
   Data::Matrix<double> transpose( const Data::Matrix<double> & );
@@ -57,16 +71,6 @@ namespace Statistics {
 		  const int q, 
 		  const std::vector<double> & eigen );
   
-  double chi2_prob( double x, double df );
-  double t_prob( double x, double df );
-  double ltqnorm( double p );
-
-
-  // distribution functions
-
-  double erf(double);
-  double dbinom_normal(int x , int n , double p );
-  double dbinom( int x , int n , double p );
 
   struct Eigen
   {

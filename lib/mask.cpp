@@ -178,7 +178,7 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "geno.req" , "str-list" , "retain genotypes passing all meta-field criteria" ); 
   mask_add( s , g , c++ , gl , "null" , "int-range" , "include variants with number of null genotypes in [n-m]" ); 
   mask_add( s , g , c++ , gl , "assume-ref" , "flag" , "assume null/missing genotypes are reference" );
-  
+  mask_add( s , g , c++ , gl , "x-mode" , "str" , "set X-chromosome mode" );
   
   // Phenotype
   ++g; c = 0 ; gl="phenotype";

@@ -56,7 +56,18 @@ class LocDBase {
   bool  contains( const std::string & grp , const int chr , const int bp1 , const int bp2 );
   bool  contains( const int grp , const int chr , const int bp1 , const int bp2 );
   
+  
+  //
+  // Special functions, PAR 
+  //
 
+  void insert_special( const std::string & key , 
+		       const std::vector<std::string> & values );
+  
+  std::vector<std::string> fetch_special( const std::string & key );
+  
+  void clear_special();
+  
   //
   // Group level function
   //
@@ -319,6 +330,12 @@ class LocDBase {
   sqlite3_stmt * stmt_loc_altname_list;
   sqlite3_stmt * stmt_loc_lookup_real_name;
   sqlite3_stmt * stmt_loc_lookup_real_name_only;
+
+  // Special regions/variables
+
+  sqlite3_stmt * stmt_insert_special;
+  sqlite3_stmt * stmt_fetch_special;
+  
   
   // Individuals/segments
 

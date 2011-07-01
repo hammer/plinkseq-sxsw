@@ -104,6 +104,16 @@ bool LocDBase::attach( const std::string & n )
 
 
   //
+  // Special region table, e.g. X chromosome
+  //
+
+  sql.query( "CREATE TABLE IF NOT EXISTS special("
+	     "  loc_id   INTEGER PRIMARY KEY , "
+	     "  name     VARCHAR(20) , "
+	     "  value    VARCHAR(20) ); ");
+
+
+  //
   // Region-set information
   //
 
@@ -241,7 +251,13 @@ bool LocDBase::init()
 {
 
     populate_meta_field_map();
+
+    stmt_insert_special = 
+      sql.prepare(" INSERT INTO special ( name , value ) values( :name , :value ) ; ");
     
+    stmt_fetch_special = 
+      sql.prepare(" SELECT key , value FROM special WHERE name == :name ; ");
+
     stmt_loc_insert_group_name = 
 	sql.prepare("INSERT OR REPLACE INTO groups ( name, temp, description ) "
 		" values( :name, :temp, :description ) ; ");
@@ -2632,4 +2648,35 @@ std::vector<std::string> LocDBase::fetch_name_given_altname( const std::string &
     s.push_back( sql.get_text( stmt_loc_lookup_real_name_only , 0 ) );
   sql.reset( stmt_loc_lookup_real_name_only );
   return s;
+}
+
+
+void LocDBase::insert_special( const std::string & key , 
+			       const std::vector<std::string> & values )
+{
+  for ( int i=0; i<values.size(); i++)
+    {
+      sql.bind_text( stmt_insert_special , ":name" , key );
+      sql.bind_text( stmt_insert_special , ":value" , values[i] );
+      sql.step( stmt_insert_special );
+      sql.reset( stmt_insert_special );
+    }
+}
+ 
+
+std::vector<std::string> LocDBase::fetch_special( const std::string & key ) 
+{
+  std::vector<std::string> r;
+  sql.bind_text( stmt_fetch_special , ":name" , key );
+  while ( sql.step( stmt_fetch_special ) )
+    {
+      std::string s = sql.get_text( stmt_fetch_special , 0 );
+      r.push_back(s);
+    }
+  return r;
+}
+
+void LocDBase::clear_special()
+{
+  sql.query("DELETE * FROM special;"); 
 }

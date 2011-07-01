@@ -1,8 +1,5 @@
 #include "genic.h"
 
-#define MATHLIB_STANDALONE
-#include "Rmath.h"
-
 extern GStore g;
 
 void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )  
@@ -135,7 +132,7 @@ double Pseq::Assoc::stat_calpha( const VariantGroup & vars ,
 	      s *= s;
 	      s -= m * aux->p_ap_u;
 	      s *= s; 	      
-	      s *= dbinom( u , m , aux->p_a , false );
+	      s *= Statistics::dbinom( u , m , aux->p_a );
 	      t += s;
 	    }	      
 	  aux->variance += pre->mc[m] * t;

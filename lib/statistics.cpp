@@ -1311,9 +1311,57 @@ long double factorial(int x) {
 }
 
 
-
-
-double Statistics::dbinom( int s , int n , double p )
+double Statistics::dbinom( int k , int n , double p )
 {
-  return 0;
+  return bico( n , k ) * pow( p , k ) * pow( 1 - p , n - k ) ;
+}
+
+
+double Statistics::gammln(double xx)
+{
+  
+  //  Returns the value ln[Γ(xx)] for xx > 0. 
+  
+  // Internal arithmetic will be done in double precision, a nicety
+  // that you can omit if five-figure accuracy is good enough.
+  
+  static double cof[6]={76.18009172947146,-86.50532032941677,
+			24.01409824083091,-1.231739572450155,
+			0.1208650973866179e-2,-0.5395239384953e-5}; 
+  
+  int j;
+  double y=xx, x=xx; 
+  double tmp=x+5.5; 
+  tmp -= (x+0.5)*log(tmp); 
+  double ser=1.000000000190015; 
+  for (j=0;j<=5;j++) ser += cof[j]/++y; 
+  return -tmp+log(2.5066282746310005*ser/x);
+}
+
+double Statistics::factrl(int n)
+{  
+  static int ntop=4;
+  static double a[33]={1.0,1.0,2.0,6.0,24.0}; // Fill in table only as required.
+  int j;
+  if (n < 0) { std::cerr << "exit1\n"; }
+  if (n > 32 ) return exp(gammln(n+1));
+  while (ntop<n) { 
+    j=ntop++;
+    a[ntop]=a[j]*ntop;
+  }
+  return a[n];
+}
+
+double Statistics::bico(int n, int k)
+{  
+  // binomial coeff
+  return floor( 0.5 + exp( factln(n) -factln(k) -factln(n-k) ) );
+}
+
+double Statistics::factln(int n)
+{
+  static double a[101];
+  if (n <= 1) return 0.0;
+  if (n <= 100) return a[n] ? a[n] : (a[n]=gammln(n+1.0));
+  else return gammln(n+1.0);
 }

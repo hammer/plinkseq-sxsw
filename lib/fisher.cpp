@@ -82,7 +82,7 @@ static void f10act(int *nrow, int *irow, int *ncol, int *icol,
 		     double *val, int *xmin, double *fact, int *nd,
 		     int *ne, int *m);
 static void f11act(int *irow, int *i1, int *i2, int *knew);
-static void prterr(int icode, char *mes);
+static void prterr(int icode, const std::string & mes);
 static int iwork(int iwkmax, int *iwkpt, int number, int itype);
 
 #ifdef USING_R
@@ -1939,7 +1939,7 @@ f11act(int *irow, int *i1, int *i2, int *knew)
     return;
 }
 
-void prterr(int icode, char *mes)
+void prterr(int icode, const std::string & mes)
 { Helper::halt("error in Fisher's exact: error code "+Helper::int2str(icode)); }
 
 /*

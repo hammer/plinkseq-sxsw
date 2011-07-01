@@ -642,6 +642,15 @@ class Mask {
   bool assuming_null_is_reference() const
   { return assume_missing_is_ref; } 
   
+  
+  //
+  // X chromosome encoding
+  //
+
+  void set_X_mode( const std::string & );
+  bool X_mode();
+  bool X_mode( const std::string & );
+  
 
   //
   // Variant merging and allele-downcoding
@@ -1279,6 +1288,7 @@ class Mask {
 	meta_mask = false;
 	geno_mask = false;
 	assume_missing_is_ref = false;
+	x_mode = 0;
 	mac_filter = false;
 	maf_filter = false;
 	has_null_filter = false;
@@ -1584,7 +1594,7 @@ class Mask {
     bool exact_vmerge;
     downcode_mode_t downcode_mode;
     bool assume_missing_is_ref;
-
+    int x_mode;
 
     //
     // EM caller
