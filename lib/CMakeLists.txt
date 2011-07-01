@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 
 include_directories(${PLINKSEQ_SOURCE_DIR}/dependencies/include)
 link_directories(${PLINKSEQ_SOURCE_DIR}/dependencies/lib)
@@ -15,7 +15,6 @@ helper.h
 zfstream.h 
 vcf.h 
 bcf.h 
-spec.h 
 sqlwrap.h	
 locdb.h 
 vardb.h 
@@ -62,7 +61,6 @@ regions.cpp
 filemap.cpp 
 vcf.cpp 
 bcf.cpp 
-spec.cpp 
 zfstream.cpp	
 sqlwrap.cpp 
 helper.cpp 
@@ -104,6 +102,7 @@ matrix.cpp
 iterate.cpp 
 vcfiterate.cpp 
 netdb.cpp 
+svar.cpp
 )
 
 target_link_libraries (plinkseq protobuf)
