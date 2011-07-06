@@ -4,6 +4,7 @@ include_directories(${PLINKSEQ_SOURCE_DIR}/dependencies/include)
 link_directories(${PLINKSEQ_SOURCE_DIR}/dependencies/lib)
 
 add_library (plinkseq SHARED 
+sqlite3.h
 gstore.h 
 variant.h 
 genotype.h 
@@ -52,6 +53,7 @@ bgzf.h
 fisher.h 
 glm.h 
 netdb.h
+sqlite3.c
 gstore.cpp 
 globals.cpp 
 variant.cpp 
@@ -105,6 +107,5 @@ netdb.cpp
 svar.cpp
 )
 
-target_link_libraries (plinkseq protobuf)
-target_link_libraries (plinkseq z)
-target_link_libraries (plinkseq sqlite3)
+#target_link_libraries (plinkseq protobuf)
+#target_link_libraries (plinkseq z)

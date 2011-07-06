@@ -6,9 +6,9 @@ include(ExternalProject)
 ExternalProject_Add(
         EP_zlib
         URL http://zlib.net/zlib-1.2.5.tar.gz
-        CONFIGURE_COMMAND <SOURCE_DIR>/configure
-        --prefix=<INSTALL_DIR>
+        CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR>
         BUILD_IN_SOURCE 1
+	PREFIX ${DEPENDENCIES_SOURCE_DIR}
 )
 
 ExternalProject_Add(

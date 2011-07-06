@@ -40,6 +40,6 @@ gseq.cpp
 
 target_link_libraries (pseq plinkseq) 
 target_link_libraries (pseq protobuf)
-target_link_libraries (pseq sqlite3)
 target_link_libraries (pseq z)
 target_link_libraries (pseq pthread)
+target_link_libraries (pseq dl)
