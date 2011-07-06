@@ -1392,13 +1392,13 @@ void SampleVariant::set_allelic_encoding()
 std::string SampleVariant::label( const Genotype & g , bool phased ) const
 {
 
-//   std::cout << "f = " << fset << "\n";
-//   std::cout << "phased = " << phased << "\n";
-//   std::cout << "calls size = " << calls.size() << "\n";
-//   std::cout << "codes = " << g.acode1() << " " << g.acode2() << "\n";
-//   std::cout << "a size = " << alleles.size() << "\n";
-//   std::cout << "ref = " << alleles[0].name() << "\n";
-//   std::cout << "null = " << g.null() << "\n";
+//    std::cout << "f = " << fset << "\n";
+//    std::cout << "phased = " << phased << "\n";
+//    std::cout << "calls size = " << calls.size() << "\n";
+//    std::cout << "codes = " << g.acode1() << " " << g.acode2() << "\n";
+//    std::cout << "a size = " << alleles.size() << "\n";
+//    std::cout << "ref = " << alleles[0].name() << "\n";
+//    std::cout << "null = " << g.null() << "\n";
 
   std::stringstream s; 
   

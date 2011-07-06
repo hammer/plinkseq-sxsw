@@ -5,7 +5,7 @@
 bool NetDBase::attach( const std::string & name )
 {
   
-  if ( name == "-" ) { dettach(); return false; } 
+  if ( name == "-" || name == "." ) { dettach(); return false; } 
   
   //if ( Helper::fileExists( name ) ) { sql.open( name ); return true; }
   

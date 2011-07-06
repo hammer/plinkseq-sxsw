@@ -138,6 +138,8 @@ enum fType { INVALID,
 	     SEGDB , 
 	     INDDB ,
 	     VARDB , 
+	     NETDB , 
+	     WGTDB ,
 	     LOG ,     // Output log file
 	     FIDX ,    // Main file index (input)
 	     SEQDB,    // Human genome reference database

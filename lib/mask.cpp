@@ -3403,7 +3403,7 @@ bool Mask::eval_alt_file_filter( Variant & v ) const
   std::set<int>::iterator i = exc_alt_file.begin();
   while ( i != exc_alt_file.end() )
     {      
-      if ( v.has_nonreference_by_file( *i ) ) { std::cout << "ex on " << *i << "\n"; return false; } 
+      if ( v.has_nonreference_by_file( *i ) ) { return false; } 
       ++i;
     }
   
@@ -3428,10 +3428,8 @@ bool Mask::eval_alt_file_filter( Variant & v ) const
   
   i = inc_alt_file.begin();
   while ( i != inc_alt_file.end() )
-    {
-      std::cout << "inc " << *i << "\n";
-      if ( v.has_nonreference_by_file( *i ) ) return true;
-      std::cout << "inc\n";
+    {      
+      if ( v.has_nonreference_by_file( *i ) ) return true;      
       ++i;
     } 
   

@@ -140,9 +140,6 @@ bool PPH2DBase::attach( const std::string & name )
 
   sql.open(name);
 
-//   sqlite3_create_function( sql.pointer(), "mycompress", 1, SQLITE_UTF8, 0, &compressFunc, 0, 0);
-//   sqlite3_create_function( sql.pointer(), "myuncompress", 1, SQLITE_UTF8, 0, &uncompressFunc, 0, 0);
-  
   sql.synchronous(false);
   
   sql.query(" CREATE TABLE IF NOT EXISTS main("

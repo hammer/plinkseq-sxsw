@@ -62,20 +62,19 @@ bool GStore::set_project( const std::string & filename, bool verbose)
   if ( ! fileExists( filename ) ) return false;
   
   // Read in core files and folder locations
-    
+
   fIndex.setCoreFiles( filename );  
-  
+
   // Ensure that a RESOURCES/ folder has been specified
 
   // Read in all other files specified at this point
   
   fIndex.readFileIndex( filename );  
-  
-  // Set up databases
+
+  // Set up core databases
 
   vardb.attach( fIndex.file( VARDB )->name() );
-  inddb.attach( fIndex.file( INDDB )->name() );
-  segdb.attach( fIndex.file( SEGDB )->name() );
+  inddb.attach( fIndex.file( INDDB )->name() );  
   locdb.attach( fIndex.file( LOCDB )->name() );
   refdb.attach( fIndex.file( REFDB )->name() );
   seqdb.attach( fIndex.file( SEQDB )->name() );

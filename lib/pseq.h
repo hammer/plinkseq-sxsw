@@ -5,6 +5,7 @@
 #include "filemap.h"
 #include "genotype.h"
 #include "gstore.h"
+#include "sqlite3.h"
 #include "helper.h"
 #include "individual.h"
 #include "inddb.h"

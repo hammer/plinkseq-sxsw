@@ -31,7 +31,7 @@ void FileMap::setTypes()
   fTypeMap["LOG"] = LOG;
   fTypeMap["TEMP"] = TEMP;
   fTypeMap["METAMETA"] = METAMETA;
-
+  
   // Core databases
   fTypeMap["INDDB"] = INDDB;
   fTypeMap["VARDB"] = VARDB;
@@ -39,6 +39,8 @@ void FileMap::setTypes()
   fTypeMap["LOCDB"] = LOCDB;
   fTypeMap["REFDB"] = REFDB;
   fTypeMap["SEQDB"] = SEQDB;
+  fTypeMap["NETDB"] = NETDB;
+  fTypeMap["WGTDB"] = WGTDB;
 
   // main input files
   fTypeMap["VCF"] = VCF;
@@ -164,6 +166,8 @@ void FileMap::setCoreFiles( const std::string & f )
       else if ( ft == INDDB ) addSpecial( INDDB , names[0] );
       else if ( ft == SEGDB ) addSpecial( SEGDB , names[0] );
       else if ( ft == LOCDB ) addSpecial( LOCDB , names[0] );
+      else if ( ft == NETDB ) addSpecial( NETDB , names[0] );
+      else if ( ft == WGTDB ) addSpecial( WGTDB , names[0] );
       else if ( ft == REFDB ) addSpecial( REFDB , names[0] );
       else if ( ft == SEQDB ) addSpecial( SEQDB , names[0] );
       else if ( ft == BCF_FILE )   add_BCF( names[0] );
@@ -193,9 +197,6 @@ void FileMap::setCoreFiles( const std::string & f )
   
   if ( ! file( INDDB ) )
     addSpecial( INDDB , file( OUTPUT )->name() + "inddb" );
-  
-  if ( ! file( SEGDB ) )
-    addSpecial( SEGDB , file( OUTPUT )->name() + "segdb" );
   
   
   //
@@ -265,25 +266,22 @@ bool FileMap::readFileIndex( const std::string & f )
       //
       // Replace variables
       //
-      
-//      std::map<std::string,std::string> 
 
       // 0          1       2      3,4,...
       // file-name  TYPE    TAG    COMMENT... 
-
+      
       std::string file_tag;
-
+      
       if ( names.size() > 2 ) 
 	file_tag = names[2];
 
-      //
       // Compile any comment
-      //
       
       std::string comment = "";
       
-      for (unsigned int i=3; i<names.size(); i++) comment += " " + names[i]; 
-
+      for (unsigned int i=3; i<names.size(); i++) 
+	comment += " " + names[i]; 
+      
       // Only insert non-core file
       
       if ( special_files.find( ft ) == special_files.end() )
@@ -426,43 +424,45 @@ std::set<File*> FileMap::get( const fType t ) const
   return s;  
 }
 
+
 File * FileMap::file( const std::string & t ) const
 {
   std::map<std::string,File*>::const_iterator i = fmap.find(t);
   return i != fmap.end() ? i->second : NULL ;
 }
 
+
 bool FileMap::parse_for_variable( const std::string & t )
 {
-    if ( t.substr(0,1) == "#" ) 
+  if ( t.substr(0,1) == "#" ) 
     {
-	std::string s = t.substr(1) ;
-	// in format  #var=val
-	
-	if ( s.find("=") != std::string::npos ) 
+      std::string s = t.substr(1) ;
+      // in format  #var=val
+      
+      if ( s.find("=") != std::string::npos ) 
 	{
-	    vmap[ "${" + s.substr( 0 , s.find("=") ) + "}" ] 
-		= s.substr( s.find("=") + 1 );
+	  vmap[ "${" + s.substr( 0 , s.find("=") ) + "}" ] 
+	    = s.substr( s.find("=") + 1 );
 	}
-	return true;
+      return true;
     }
-    return false;
+  return false;
 }
 
 
 std::string FileMap::replace_variable( std::string & s )
 {
-    std::map<std::string,std::string>::iterator i = vmap.begin();
-    while ( i != vmap.end() )
+  std::map<std::string,std::string>::iterator i = vmap.begin();
+  while ( i != vmap.end() )
     {
-	if ( s.find( i->first ) != std::string::npos )
+      if ( s.find( i->first ) != std::string::npos )
 	{
-	    size_t sz = s.find( i->first );	    
-	    s.replace( sz , sz + (i->first).size() , i->second );	    
+	  size_t sz = s.find( i->first );	    
+	  s.replace( sz , sz + (i->first).size() , i->second );	    
 	}
-	++i;
+      ++i;
     }
-    return s;
+  return s;
 }
 
 
@@ -470,6 +470,7 @@ BCF * FileMap::bcf( const std::string & filename )
 {
   return bcf_map[ filename ]; // NULL if not in map
 }
+
 
 BCF * FileMap::add_BCF( const std::string & f )
 {
@@ -486,15 +487,19 @@ BCF * FileMap::add_BCF( const std::string & f )
 
 bool FileMap::append_to_projectfile( const std::string & s , const std::string & t )
 {
+  
   if ( exists( s ) ) return false; // already present, nothing to do
+  
   std::string projectfile = special_files.find( FIDX )->second->name();
+  
   if ( projectfile == "." ) return false;
+  
   if ( ! Helper::fileExists( projectfile ) )
     {
       plog.warn("could not find projectfile",projectfile);
       return false;
     }
-
+  
   // open in append-to-end mode
   std::ofstream O1( projectfile.c_str() , std::ios::out | std::ios::app );
   O1 << s << "\t" << t << "\n";
@@ -503,6 +508,7 @@ bool FileMap::append_to_projectfile( const std::string & s , const std::string &
   // add to internal map
   add( s , type(t) , "" , "" );
 }
+
 
 bool FileMap::remove_from_projectfile( const std::string & s )
 {

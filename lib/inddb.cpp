@@ -69,7 +69,7 @@ bool IndDBase::new_db( const std::string & n )
 bool IndDBase::attach( const std::string & n )
 {
 
-  if ( n == "-" ) { dettach(); return false; } 
+  if ( n == "-" || n == "." ) { dettach(); return false; } 
 
   if ( ! Helper::fileExists(n) )
     {

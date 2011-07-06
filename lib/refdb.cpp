@@ -15,7 +15,7 @@ using namespace std;
 bool RefDBase::attach(std::string name)
 {
 
-  if ( name == "-" ) { dettach(); return false; } 
+  if ( name == "-" || name == "." ) { dettach(); return false; } 
   
   // If this file does not exist, create it, otherwise attach
   

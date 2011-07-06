@@ -4,7 +4,6 @@ CXXFLAGS = -O2
 
 LFLAGS += -Wl,-rpath=/psych/genetics/shaun/pseq/lib 
 LFLAGS += -Wl,-rpath=/psych/genetics/pseq/share/lib
-LFLAGS += -Wl,-rpath=/psych/genetics/pseq/share/lib64/R/lib
 
 OUTPUT = pbrowse.cgi
 
@@ -14,13 +13,10 @@ OBJ = $(SRC:.cpp=.o)
 
 INC = -I../lib/
 INC += -I../share/include/ 
-INC += -I../share/lib64/R/include/ 
 
 LIBDIR = -L../share/lib -L../lib
 LIB  = -lplinkseq 
-LIB += -lsqlite3
 LIB += -lprotobuf
-LIB += -lRmath
 LIB += -lz
 LIB += -lpthread
 

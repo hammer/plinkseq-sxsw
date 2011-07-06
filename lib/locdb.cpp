@@ -21,31 +21,32 @@ bool LocDBase::wipe( const std::string & n )
 bool LocDBase::attach( const std::string & n )
 {
   
-  if ( n == "-" ) { dettach(); return false; } 
+  if ( n == "-" || n == "." ) { dettach(); return false; } 
 
   if ( attached() ) dettach();
   
   // 
   // If the database already exists, just open it
   //
+
+  // For now, run through stuff below, to add in new tables, (special table)
+  // we can add this back in once all LOCDB are stable
   
-  if ( Helper::fileExists(n) )
-    {
-      sql.open(n);
-      fname = n;
-      init();
-      set_metatypes();
-      read_alias_groups();
-      return true;
-    }
+//   if ( Helper::fileExists(n) )
+//     {
+//       sql.open(n);
+//       fname = n;
+//       init();
+//       set_metatypes();
+//       read_alias_groups();
+//       return true;
+//     }
   
   
   //
   // Otherwise, create it
   //
-  
-  bool status = true;
-  
+    
   sql.open(n); 
   
   sql.synchronous(false);
@@ -183,11 +184,9 @@ bool LocDBase::attach( const std::string & n )
   set_metatypes();
 
   read_alias_groups();
-  
-  if ( ! status ) 
-    plog.warn( "Problem attaching LOCDB " + n );
 
-  return status;
+  
+  return true;
 
 }
 
@@ -256,7 +255,7 @@ bool LocDBase::init()
       sql.prepare(" INSERT INTO special ( name , value ) values( :name , :value ) ; ");
     
     stmt_fetch_special = 
-      sql.prepare(" SELECT key , value FROM special WHERE name == :name ; ");
+      sql.prepare(" SELECT value FROM special WHERE name == :name ; ");
 
     stmt_loc_insert_group_name = 
 	sql.prepare("INSERT OR REPLACE INTO groups ( name, temp, description ) "

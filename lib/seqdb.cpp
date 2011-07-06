@@ -59,7 +59,7 @@ bool SeqDBase::create( const std::string & name )
 bool SeqDBase::attach( const std::string & name )
 {
   
-  if ( name == "-" ) { dettach(); return false; } 
+  if ( name == "-" || name == "." ) { dettach(); return false; } 
 
   // Only open existing databases  
   if ( ! Helper::fileExists( name ) ) { dettach(); return false; } 
