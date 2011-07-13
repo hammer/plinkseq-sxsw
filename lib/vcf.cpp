@@ -2,6 +2,7 @@
 #include "vcf.h"
 #include "gstore.h"
 #include "genotype.h"
+#include "defs.h"
 
 #include <set>
 #include <string>
@@ -11,10 +12,12 @@ using namespace Helper;
 
 extern GStore * GP;
 
+
 void VCFReader::set_seqdb( SeqDBase * s )
 {
   seqdb = GP->seqdb.attached() ? s : NULL;
 }
+
 
 void VCFReader::get_meta( const std::set< std::string> & s )
 {
@@ -26,6 +29,7 @@ void VCFReader::get_meta( const std::set< std::string> & s )
       ++i;
     }
 }
+
 
 void VCFReader::ignore_meta( const std::set< std::string> & s )
 {
@@ -41,34 +45,6 @@ void VCFReader::ignore_meta( const std::set< std::string> & s )
 //////////////////////////////////////////////////////////////////////
 //  VCF definitions
 
-//
-// VCFv3.3
-//
-
-// Keywords
-//   INFO
-//   FILTER
-//   FORMAT
-
-// Example:
-//  ##fileformat=VCFv3.3
-//  ##fileDate=20090805
-//  ##source=myImputationProgramV3.1
-//  ##reference=1000GenomesPilot-NCBI36
-//  ##phasing=partial
-//  ##INFO=NS,1,Integer,"Number of Samples With Data"
-//  ##INFO=DP,1,Integer,"Total Depth"
-//  ##INFO=AF,-1,Float,"Allele Frequency"
-//  ##INFO=AA,1,String,"Ancestral Allele"
-//  ##INFO=DB,0,Flag,"dbSNP membership, build 129"
-//  ##INFO=H2,0,Flag,"HapMap2 membership"
-//  ##FILTER=q10,"Quality below 10"
-//  ##FILTER=s50,"Less than 50% of samples have data"
-//  ##FORMAT=GT,1,String,"Genotype"
-//  ##FORMAT=GQ,1,Integer,"Genotype Quality"
-//  ##FORMAT=DP,1,Integer,"Read Depth"
-//  ##FORMAT=HQ,2,Integer,"Haplotype Quality"
-
 // Only first 8 fields fixed
 
 // #CHROM
@@ -83,122 +59,6 @@ void VCFReader::ignore_meta( const std::set< std::string> & s )
 // If genotype data, then also:
 // FORMAT
 // GENOTYPES...
-
-   
-// CHROM  1..22, X, Y, etc
-
-// POS base-1 position 
-
-// ID  rsID, or '.' if none (unlisted)
-
-// REF   Reference base: A,C,G,T,N
-
-// ALT: a comma separated list of alternate non-reference alleles
-// called on at least one of the samples. Options are A,C,G,T,Dn
-// (for delete n bases starting with the base at POS), I<seq> where
-// <seq> is a list of ACGT bases to be inserted just after the base
-// at POS, '.' (period character) if there are no alternate alleles.
-
-// QUAL: a phred-scaled quality score for the assertion made in
-// ALT. i.e. give -10log_10 prob(call in ALT is wrong). If ALT is
-// '.' (no variant) then this is -10log_10 p(variant), and if ALT is
-// not '.' this is -10log_10 p(no variant). High QUAL scores
-// indicate high confidence calls. Although traditionally people use
-// integer phred scores, we agreed to permit floating point scores
-// to enable higher resolution for low confidence calls if desired.
-
-// FILTER filter: 0 if this position is not filtered, i.e. a call is
-// made at this position. Otherwise a semicolon-separated list of
-// codes for filters that fail. e.g. q10;s50 might indicate that
-// at this site the quality is below 10 and the number of samples
-// with data is below 50% of the total number of samples
-
-// INFO: additional information, encoded as a comma-separated series
-// of 2-character keys with optional values in the format:
-// <key>=<data>[,data]*. Fields could be e.g.:
-
-// AA ancestral allele, encoded as REF and ALT
-// AC allele count in genotypes, for each ALT allele, in the same order as listed
-// AN total number of alleles in called genotypes
-// AF allele frequency for each ALT allele in the same order as
-//   listed: use this when estimated from primary data, not called
-//   genotypes    
-// DP depth, e.g. D=154    
-// MQ RMS mapping quality, e.g. MQ=52
-// BQ RMS base quality at this position
-// SB strand bias at this position
-// DB dbSNP membership  
-// H2 membership in hapmap2
-
-// FORMAT: If genotype information is present, then the same types
-// of data must be present for all samples. First a FORMAT field is
-// given specifying the data types and order. This is followed by
-// one field per sample, with the colon-separated data in this field
-// corresponding to the types specified in the format. The first
-// subfield must always be the genotype.
-
-// GT genotype: 0/0, 0|1, etc  For haploid calls 0.  Missing = .
-
-// GQ genotype quality, encoded as a phred quality
-// -10log_10p(genotype call is wrong), max quality 99
-
-// DP read depth at this position for this sample
-// HQ haplotype qualities, two phred qualities comma separated
-
-// FT sample genotype filter indicating if this genotype was 
-// called (similar in concept to the FILTER record for the
-// entire CHROM/POS). Again, use 0 for unfiltered, or a semi-colon
-// separated list of codes for filters that fail.
-
-// Additional types could encode probabilities for each genotype
-// etc.  If any of the fields is missing, it is replaced by an empty
-// string. For example if the format is GT:GQ:DP:HQ then
-// A|A::23:23,34 indicates that GQ is missing. Trailing fields can
-// be dropped, e.g. A/A:34:23 if HQ is missing.
-
-
-//---------------------------------------------------------------------------------------------//
-
-
-// VCF 4.0  (VCF_4_0)
-
-//  1. The REF column can be a String (list of bases).
-
-// 2. The ALT column no longer allows for I/D codes, but does permit angle-bracketed IDs.
-
-// 3. InDels must include the base before the event (and this must
-// be reflected by the value in the POS field).
-
-// 4. There is a standard missing "." used.
-
-// In FILTER, "PASS" means is used to signify that a record passes filters instead .
-//   --- in 3.4, this was "0", but got automatically changed to "PASS" internally
-
-// 6. The meta information fields in the header use key/value pairs.
-
-//  ##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of Samples With Data">
-//  ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
-//  ##INFO=<ID=AF,Number=-1,Type=Float,Description="Allele Frequency">
-//  ##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">
-//  ##INFO=<ID=DB,Number=0,Type=Flag,Description="dbSNP membership, build 129">
-//  ##INFO=<ID=H2,Number=0,Type=Flag,Description="HapMap2 membership">
-//  ##FILTER=<ID=q10,Description="Quality below 10">
-//  ##FILTER=<ID=s50,Description="Less than 50% of samples have data">
-//  ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-//  ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
-//  ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth">
-//  ##FORMAT=<ID=HQ,Number=2,Type=Integer,Description="Haplotype Quality">
-
-// 7. END and CIGAR have been included in the list of reserved key names for the INFO field. 
-//     --- okay, no parsing changes needed
-
-// 8.GL is reserved as a genotype field tag to represent genotype likelihoods. 
-//      How to represent this information for multi-allelic sites is still under discussion.
-//    --- okay, no parsing changes needed
-
-
-//---------------------------------------------------------------------------------------------//
-
 
 
 VCFReader::line_t VCFReader::parseLine( Variant ** pvar )
@@ -544,7 +404,9 @@ void VCFReader::getMetaInformation(const std::string & s)
 	   while ( i != l.end() )
 	     {
 	       if ( i->first == "ID" || i->first == "id" ) name = i->second;
-	       else if ( i->first == "Description" || i->first == "description" || i->first == "desc" ) desc = i->second;
+	       else if ( i->first == "Description" 
+			 || i->first == "description" 
+			 || i->first == "desc" ) desc = i->second;
 	       ++i;
 	     }
 	 }
@@ -664,6 +526,7 @@ bool VCFReader::getHeader( const std::string & s_ )
   //
 
   icnt = 0;
+  sex.clear();
 
   while ( tok_iter != tok.end() )
     {
@@ -673,11 +536,22 @@ bool VCFReader::getHeader( const std::string & s_ )
       // Add to the genotype-database
       
       vardb->insert( file_id , i );
-      
-      // Keep track of how many individuals to expect per line
-      
-      ++icnt;
 
+      // Working in fix X/Y mode?       
+
+      if ( fixxy_mode )
+	{
+	  sType s = inddb->sex( *tok_iter ) ;
+	  if ( s == UNKNOWN_SEX ) plog.warn("unknown sex for sample", *tok_iter );
+	  sex.push_back( inddb->sex( *tok_iter ) );	  
+	  
+	}  
+
+
+      // Keep track of how many individuals to expect per line      
+
+      ++icnt;
+      
       ++tok_iter;
     }
   
@@ -692,114 +566,15 @@ Variant VCFReader::getVariant(const std::string & s)
     Helper::halt("missing header in VCF? error at line:\n" + s );
 
  
-  // 1..22, X, Y, etc
-  
-  std::string chr;  
-  
-
-  // base-1 position 
-
-  int pos;     
-
-  
-  // rsID, or '.' if none (unlisted)
-
-  std::string id;   
-
-
-  // Reference base: A,C,G,T,N
-  
-  std::string ref;  
-
-
-  // ALT: a comma separated list of alternate non-reference alleles
-  // called on at least one of the samples. Options are A,C,G,T,Dn
-  // (for delete n bases starting with the base at POS), I<seq> where
-  // <seq> is a list of ACGT bases to be inserted just after the base
-  // at POS, '.' (period character) if there are no alternate alleles.
-
-  std::string alt;  
-
-
-  // QUAL: a phred-scaled quality score for the assertion made in
-  // ALT. i.e. give -10log_10 prob(call in ALT is wrong). If ALT is
-  // '.' (no variant) then this is -10log_10 p(variant), and if ALT is
-  // not '.' this is -10log_10 p(no variant). High QUAL scores
-  // indicate high confidence calls. Although traditionally people use
-  // integer phred scores, we agreed to permit floating point scores
-  // to enable higher resolution for low confidence calls if desired.
-
-  double qual;
-
-
-  // FILTER filter: 0 if this position is not filtered, i.e. a call is
-  // made at this position. Otherwise a semicolon-separated list of
-  // codes for filters that fail. e.g. ¡Èq10;s50¡É might indicate that
-  // at this site the quality is below 10 and the number of samples
-  // with data is below 50% of the total number of samples
-
-  std::string filter;
-
-  
-  // INFO: additional information, encoded as a comma-separated series
-  // of 2-character keys with optional values in the format:
-  // <key>=<data>[,data]*. Fields could be e.g.:
-
-  // AA ancestral allele, encoded as REF and ALT
-  // AC allele count in genotypes, for each ALT allele, in the same order as listed
-  // AN total number of alleles in called genotypes
-  // AF allele frequency for each ALT allele in the same order as
-  //   listed: use this when estimated from primary data, not called
-  //   genotypes    
-  // DP depth, e.g. D=154    
-  // MQ RMS mapping quality, e.g. MQ=52
-  // BQ RMS base quality at this position
-  // SB strand bias at this position
-  // DB dbSNP membership  
-  // H2 membership in hapmap2
-  
-  std::string info;
-
-  
-  // FORMAT: If genotype information is present, then the same types
-  // of data must be present for all samples. First a FORMAT field is
-  // given specifying the data types and order. This is followed by
-  // one field per sample, with the colon-separated data in this field
-  // corresponding to the types specified in the format. The first
-  // subfield must always be the genotype.
-
-
-  // GT genotype, encoded as alleles separated by one of /, | and \
-  // g. The allele values are 0 for the reference allele (what is in
-  // the reference sequence), 1 for the first allele listed in ALT, 2
-  // for the second allele list in ALT etc. For haploid calls, e.g. on
-  // Y, male X, mitochondrion give only one allele value e.g. 0, for
-  // diploid calls examples could be 0/1 or 1|0 etc. The meanings of
-  // the separators are:
-
-  //        / : genotype unphased
-  //        | : genotype phased
-  //        \ : genotype phased but switch probability is high 
-
-  // GQ genotype quality, encoded as a phred quality
-  // -10log_10p(genotype call is wrong), max quality 99
-
-  // DP read depth at this position for this sample
-  // HQ haplotype qualities, two phred qualities comma separated
-  
-  // FT sample genotype filter indicating if this genotype was 
-  // ¡Ècalled¡É (similar in concept to the FILTER record for the
-  // entire CHROM/POS). Again, use 0 for unfiltered, or a semi-colon
-  // separated list of codes for filters that fail.
-
-  // Additional types could encode probabilities for each genotype
-  // etc.  If any of the fields is missing, it is replaced by an empty
-  // string. For example if the format is GT:GQ:DP:HQ then
-  // A|A::23:23,34 indicates that GQ is missing. Trailing fields can
-  // be dropped, e.g. A/A:34:23 if HQ is missing.
-  
-  std::string          format;
-  
+  std::string  chr;  
+  int          pos;     
+  std::string  id;   
+  std::string  ref;  
+  std::string  alt;  
+  double       qual;
+  std::string  filter;
+  std::string  info;
+  std::string  format;
 
   // Tab-delimited (white-space) ; but do not send trailing \n 
     
@@ -809,11 +584,11 @@ Variant VCFReader::getVariant(const std::string & s)
   
    
   // When reading in from a VCF file, it will, by definition, only
-  // correspond to a single sample; therefore, we want to load 
-  // up into, and write from, the consensus SampleVariant here
-
+  // correspond to a single sample; therefore, we want to load up
+  // into, and write from, the consensus SampleVariant here
+  
   Variant var( false );
- 
+  
   if ( tok.size() < 8 ) return var;
 
  
@@ -831,6 +606,7 @@ Variant VCFReader::getVariant(const std::string & s)
   if ( ! processVCF( ++tok_iter , filter ) ) return var; 
   if ( ! processVCF( ++tok_iter , info ) ) return var; 
  
+
   //
   // If applying a mask, do we want to keep this variant?
   //
@@ -845,13 +621,17 @@ Variant VCFReader::getVariant(const std::string & s)
 	}
     }
 
+
   // Key variant fields
+
   var.name( id );
   var.chromosome( Helper::chrCode(chr) );
   var.position( pos );
   var.stop( pos + ref.size() - 1 );
+
   
   // SampleVariant (consensus) fields
+
   var.consensus.reference(ref);   
   var.consensus.alternate(alt); 
   var.consensus.quality(qual); 
@@ -871,7 +651,9 @@ Variant VCFReader::getVariant(const std::string & s)
 
   if ( seqdb ) 
     {
+
       std::string sref = seqdb->lookup( chrCode( chr ) , pos , pos + ref.size() - 1 );
+
       if ( sref != "" )
 	{
 	  Helper::str2upper( sref );
@@ -888,7 +670,7 @@ Variant VCFReader::getVariant(const std::string & s)
 	}
     }
   var.valid(true);
-
+  
 
   //
   // In VCF -> REFDB mode, we only care about the variant (not genotype) information
@@ -909,8 +691,6 @@ Variant VCFReader::getVariant(const std::string & s)
   
 
 
-
-
   //
   // Set genotype format 
   //
@@ -918,7 +698,7 @@ Variant VCFReader::getVariant(const std::string & s)
   set_format( format );
 
  
-  // If we are to add genotypes, we need to have some individuals 
+  // If we are to add genotypes, we need to have some individuals
   // specified
   
   if ( file_id < 0 ) 
@@ -935,8 +715,14 @@ Variant VCFReader::getVariant(const std::string & s)
       plog.warn( "incorrect number of genotypes: " 
 		 + Helper::int2str( tok.size()-9 ) + " observed, " 
 		 + Helper::int2str( icnt ) + " expected" ) ;
-      var.valid( false );
-      return var ;
+      
+      // if less than we expect/need, do not read line at all
+      if ( tok.size() - 9 < icnt )
+	{
+	  var.valid( false );
+	  return var ;
+	}
+      // otherwise, okay to read up to end point and ignore rest
     }
 
 
@@ -946,7 +732,6 @@ Variant VCFReader::getVariant(const std::string & s)
   // VCF line to that. If needed, it will later be expanded into the consensus.
   //
   
-
   if ( return_var ) 
     {
       // Add a sibdummy, single SampleVariant, just to keep everything happy downstream      
@@ -961,11 +746,51 @@ Variant VCFReader::getVariant(const std::string & s)
   // Call genotypes, add to variant 
   //
   
+  // # of alleles for the svar
+  const int na = alt == "." ? 1 : 1 + Helper::char_split( alt , ',' ).size();
+  
   int gcnt = 0;
-  while ( ++tok_iter != tok.end() ) 
+  
+  while ( gcnt != icnt )
     {
-      Genotype g( *tok_iter , gt_field , formats );
+      
+      // get next genotype token
+      ++tok_iter;
+      
+      Genotype g( *tok_iter , gt_field , formats , na );
+      
+      
+      // Manually alter genotype to meet X/Y specification?
+      
+      if ( fixxy_mode ) 
+	{
+	  
+	  // Is this a flagged chromomse?
+	  ploidy_t p = mask->ploidy( chr );
+	  
+	  // AA --> A  | AB --> B  | ./. --> .
+	      
+	  if ( p == PLOIDY_HAPLOID )
+	    {
+	      g.make_haploid();
+	    }
+	  else if (  p == PLOIDY_X 
+		     && sex[gcnt] != FEMALE 		     
+		     && ! mask->pseudo_autosomal( (const Variant&)var ) )
+	    {
+	      g.make_haploid();
+	    }
+	  else if ( p == PLOIDY_Y )
+	    {
+	      if ( sex[gcnt] != MALE ) 
+		g.null( true );
+	      else if ( ! mask->pseudo_autosomal( (const Variant&)var ) )
+		g.make_haploid();
+	    }	  
+	}
+
       var.add( g );
+
       ++gcnt;
     }
   
@@ -1107,3 +932,14 @@ bool VCFReader::set_format( const std::string & f )
 
   return true; // indicates a change was made
 }
+
+
+
+void VCFReader::set_fixxy( Mask * m , LocDBase * p , IndDBase * pi )
+{
+  mask = m;
+  locdb = p;
+  inddb = pi;
+  fixxy_mode = true;
+}
+

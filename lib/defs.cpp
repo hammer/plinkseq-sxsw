@@ -35,7 +35,7 @@ std::string & PLINKSeq::META_ANNOT_FLAG() { static std::string s = "Nonsense,Mis
 std::string & PLINKSeq::META_GENO_LIK() { static std::string s = "GL"; return s; }
 std::string & PLINKSeq::META_GENO_PHRED() { static std::string s = "PL"; return s; }
 std::string & PLINKSeq::META_GENO_POSTPROB() { static std::string s = "PP"; return s; }
-std::string & PLINKSeq::META_GENO_ALT_DOSAGE() { static std::string s = "ED"; return s; }
+std::string & PLINKSeq::META_GENO_ALT_DOSAGE() { static std::string s = "EC"; return s; }
 
 std::string & PLINKSeq::META_GENO_DP() { static std::string s = "DP"; return s; }
 std::string & PLINKSeq::META_GENO_GQ() { static std::string s = "GQ"; return s; }

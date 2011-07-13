@@ -248,8 +248,8 @@ class Region {
 
   bool contains(const Variant & v) const
     {
-      // Just use single point for ow (bp1)
-      return overlaps( Region( v.chromosome(), v.position(), v.position() ) ); 
+      // Just use single point for now (bp1)
+      return overlaps( Region( v.chromosome(), v.position(), v.stop() == 0 ? v.position() : v.stop() ) ); 
     }
 
   bool overlaps(const Region& b) const

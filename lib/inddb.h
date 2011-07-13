@@ -69,6 +69,9 @@ class IndDBase {
   // based on ID)
   bool fetch( Individual * person );
 
+  // get sex of a particular individual
+  sType sex( const std::string & id );
+
   // create a new person
   Individual fetch( uint64_t ind_id );
   
@@ -110,6 +113,7 @@ class IndDBase {
 
   sqlite3_stmt * stmt_insert_metatype;
   sqlite3_stmt * stmt_fetch_metatypes;
+  sqlite3_stmt * stmt_fetch_sex;
   sqlite3_stmt * stmt_fetch_phenotype_list;
   sqlite3_stmt * stmt_fetch_phenotype_values;
   

@@ -128,6 +128,7 @@ void f_view( Variant & v , void * p )
 
 	  if ( opt->gmeta )
 	    plog << "\t[" << v.gmeta_label(i) << "]";
+
 	  
 	  plog << "\n";
 	}
@@ -329,7 +330,7 @@ void f_view_matrix( Variant & v , void * p )
       if ( v(i).null() ) 
 	plog << "\tNA";
       else
-	plog << "\t" << v(i).allele_count( );
+	plog << "\t" << v(i).score();
     }
   plog << "\n";
   

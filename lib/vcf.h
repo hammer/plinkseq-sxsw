@@ -5,6 +5,8 @@
 
 class RefDBase;
 class SeqDBase;
+class LocDBase;
+class IndDBase;
 
 // Supported versions = 3.3, 4.0
 
@@ -41,6 +43,9 @@ class VCFReader {
      refdb = NULL;
      vcnt = 0;
      icnt = 0;
+     fixxy_mode = false;
+     locdb = NULL;
+     inddb = NULL;
      obs_header = false;
      set_seqdb(s);
      return_var = false;
@@ -61,6 +66,9 @@ class VCFReader {
       vardb = NULL;
       vcnt = 0;
       icnt = 0;
+      fixxy_mode = false;
+      locdb = NULL;
+      inddb = NULL;
       obs_header = false;
       set_seqdb(s);
       return_var = false;
@@ -86,6 +94,9 @@ class VCFReader {
    }
 	       
  void set_region_mask( const std::set<Region> * );
+
+ void set_fixxy( Mask * mask , LocDBase * p , IndDBase * pi );
+ 
  
  line_t parseLine( Variant ** pvar = NULL );
  
@@ -129,6 +140,14 @@ class VCFReader {
   // if loading only site-data into a REFDB instead of VARDB
 
   RefDBase * refdb;
+
+  // if applying an X/Y mask/recoding
+  
+  bool       fixxy_mode;
+  Mask     * mask;
+  LocDBase * locdb;
+  IndDBase * inddb;
+  std::vector<sType> sex;
 
   // if set, then use SEQDB to check REF alleles
   

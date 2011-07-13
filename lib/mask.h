@@ -647,10 +647,13 @@ class Mask {
   // X chromosome encoding
   //
 
-  void set_X_mode( const std::string & );
-  bool X_mode();
-  bool X_mode( const std::string & );
+  void ploidy( const std::string & chr , ploidy_t t );
+  ploidy_t ploidy( const std::string & chr ) const;
+
+  void set_pseudo_autosomal( const Region & region );
+  bool pseudo_autosomal( const Variant & var ) const;
   
+  void set_genotype_scoring_model( const std::string & );
 
   //
   // Variant merging and allele-downcoding
@@ -1288,8 +1291,9 @@ class Mask {
 	meta_mask = false;
 	geno_mask = false;
 	assume_missing_is_ref = false;
-	x_mode = 0;
-	mac_filter = false;
+	genotype_model = GENOTYPE_MODEL_ALLELIC;
+	fixxy_mode = false;
+	mac_filter = false;	
 	maf_filter = false;
 	has_null_filter = false;
 	has_case_control_filter = false;
@@ -1591,11 +1595,21 @@ class Mask {
     // VarDB functions
     //
 
-    bool exact_vmerge;
-    downcode_mode_t downcode_mode;
-    bool assume_missing_is_ref;
-    int x_mode;
+    bool              exact_vmerge;
+    downcode_mode_t   downcode_mode;
+    bool              assume_missing_is_ref;
 
+    genotype_model_t                 genotype_model;
+    bool                             fixxy_mode;
+    std::map<std::string,ploidy_t>   fixxy_map_chr;
+    std::vector<Region>              fixxy_map_par;
+    
+ public:
+
+    void fixxy( const bool b ) { fixxy_mode = b; }
+    bool fixxy() const { return fixxy_mode; }
+
+ private:
     //
     // EM caller
     //

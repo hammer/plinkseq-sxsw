@@ -6,15 +6,15 @@ extern GStore g;
 extern Pseq::Util::Options options;
 extern Log plog;
 
-bool Pseq::VarDB::load_VCF()
+bool Pseq::VarDB::load_VCF( Mask & mask )
 {
   // are any optinal locus groups specified (this will act as a mask, such that
   // we only read in variants that fall in this region
   
   bool region_mask = options.key("filter");
   
-  std::string mask;
-  if ( region_mask ) mask = options.as<std::string>("filter");
+  std::string rmask;
+  if ( region_mask ) rmask = options.as<std::string>("filter");
 
   // filters on meta-fields?
   std::set<std::string> includes, excludes;
@@ -25,7 +25,7 @@ bool Pseq::VarDB::load_VCF()
 
   if ( ! options.key("check-reference") ) g.seqdb.dettach();
        
-  return g.vardb_load_vcf( includes , excludes , region_mask ? & mask : NULL );
+  return g.vardb_load_vcf( mask , includes , excludes , region_mask ? & rmask : NULL );
 }
 
 bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & grp ) 

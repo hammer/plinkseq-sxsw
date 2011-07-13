@@ -159,6 +159,9 @@ class GStore {
   bool single_file_mode() const { return in_single_file_mode; }
   void single_file_mode( const bool b ) { in_single_file_mode = b; }
 
+  bool has_project_file() const { return has_projfile; }
+  void has_project_file( const bool b ) { has_projfile = b; }
+
   
   //
   // Some helper functions (of SEGDB, LOCDB or neither)
@@ -176,11 +179,14 @@ class GStore {
   void vardb_new(std::string filename) { vardb.newDB(filename); }
   void vardb_attach(std::string filename) { vardb.attach(filename); }
   void vardb_dettach() { vardb.dettach(); }
-  bool vardb_load_vcf( const std::set<std::string> & , 
+  bool vardb_load_vcf( Mask & mask , 
+		       const std::set<std::string> & , 
 		       const std::set<std::string> & , 
 		       const std::string * region_mask = NULL );
   bool vardb_load_vcf( const std::string & , const std::string & , const std::string & , 
-		       const std::set<std::string> & , const std::set<std::string> & , 
+		       Mask & mask , 
+		       const std::set<std::string> & , 
+		       const std::set<std::string> & , 
 		       const std::set<Region> * = NULL );
   void vardb_write_vcf(std::string filename);
   void vardb_load_plink(std::string filename);
@@ -279,6 +285,9 @@ class GStore {
   std::string gjobn;
 
   bool in_single_file_mode;
+
+  bool has_projfile;
+
 
 };
 

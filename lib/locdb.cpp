@@ -2653,6 +2653,7 @@ std::vector<std::string> LocDBase::fetch_name_given_altname( const std::string &
 void LocDBase::insert_special( const std::string & key , 
 			       const std::vector<std::string> & values )
 {
+  if ( ! attached() ) return;
   for ( int i=0; i<values.size(); i++)
     {
       sql.bind_text( stmt_insert_special , ":name" , key );
@@ -2666,6 +2667,7 @@ void LocDBase::insert_special( const std::string & key ,
 std::vector<std::string> LocDBase::fetch_special( const std::string & key ) 
 {
   std::vector<std::string> r;
+  if ( ! attached() ) return r;
   sql.bind_text( stmt_fetch_special , ":name" , key );
   while ( sql.step( stmt_fetch_special ) )
     {
@@ -2677,5 +2679,6 @@ std::vector<std::string> LocDBase::fetch_special( const std::string & key )
 
 void LocDBase::clear_special()
 {
-  sql.query("DELETE * FROM special;"); 
+  if ( ! attached() ) return;
+  sql.query(" DELETE FROM special; "); 
 }

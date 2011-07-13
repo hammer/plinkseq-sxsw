@@ -84,9 +84,10 @@ typedef  std::vector<std::string>  strList;
 
 typedef  uint64_t         ID_t;
 
-enum sType { MALE , 
-	     FEMALE , 
-	     UNKNOWN_SEX }; 
+enum sType { UNKNOWN_SEX , 
+	     MALE , 
+	     FEMALE };
+	     
 
 enum ploidy_t { PLOIDY_UNKNOWN = 0 , 
 		PLOIDY_HAPLOID = 1 , 
@@ -95,6 +96,19 @@ enum ploidy_t { PLOIDY_UNKNOWN = 0 ,
 		PLOIDY_Y = 4 , 
 		PLOIDY_OTHER = 5 };
 
+enum genotype_model_t { GENOTYPE_MODEL_ALLELIC = 0 , 
+			GENOTYPE_MODEL_ALLELIC2 ,
+			GENOTYPE_MODEL_ALLELIC3 ,
+			GENOTYPE_MODEL_DOM ,
+			GENOTYPE_MODEL_REC ,
+			GENOTYPE_MODEL_REC2 , 
+			GENOTYPE_MODEL_CN , 
+			GENOTYPE_MODEL_NULL ,
+			GENOTYPE_MODEL_DOSAGE , 
+			GENOTYPE_MODEL_PROB_REF , 
+			GENOTYPE_MODEL_PROB_HET , 
+			GENOTYPE_MODEL_PROB_HOM ,
+			GENOTYPE_MODEL_UNSPEC };
 
 enum mType { META_FLAG      = 0 ,   //  <none> 
 	     META_UNDEFINED = 1 ,   //  string

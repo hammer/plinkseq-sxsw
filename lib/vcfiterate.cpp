@@ -17,18 +17,14 @@ bool VarDBase::vcf_iterate_read_header( Mask & mask )
   // Use VCFReader, into a temporary :memory: database
   //
 
-//   IndividualMap imap;
-//   VarDBase tmpdb( imap );
-//   tmpdb.attach( ":memory:" );
-
   // Load, parse VCF file; store variant and genotype information, and
   // meta-information, in vardb
-
+  
   File vcffile( filename , VCF );
-
+  
   VCFReader v( &vcffile , "" , &(GP->vardb) ,  NULL );
-
-
+  
+    
   // 
   // Work through VCF
   //
@@ -56,7 +52,17 @@ bool VarDBase::vcf_iterate_read_header( Mask & mask )
 
   // Wrap up  
   GP->vardb.commit();
+  
+  //
+  // In FIX/XY mode when in single-VCF mode, we need to populate the Sex codes in the indmap
+  //
 
+  for (int i = 0; i< GP->indmap.size() ; i++)
+    {
+      sType s = GP->inddb.sex( GP->indmap.ind(i)->id() );
+      GP->indmap.ind(i)->sex( s );
+    }
+  
   
 }
 
@@ -84,6 +90,11 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
   File vcffile( filename , VCF );
 
   VCFReader v( &vcffile , "" , &(GP->vardb) ,  NULL );
+
+  if ( mask.fixxy() )
+    {
+      v.set_fixxy( &mask , &(GP->locdb), &(GP->inddb) );
+    }
 
 
   // Selectively filter in/out meta-information?

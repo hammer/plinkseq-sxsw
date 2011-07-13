@@ -32,7 +32,7 @@ namespace Pseq
 
       bool attach( std::string db );
 
-      bool load_VCF();
+      bool load_VCF( Mask & );
       
       bool header_VCF( const bool meta , const bool header , Mask & );
       

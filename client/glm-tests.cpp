@@ -145,9 +145,10 @@ void f_glm_association( Variant & v , void * p )
 	      std::vector<double> pp = v(i).meta.get_double( data->softtag ); 
 	      x(ni,1) = pp[1] + 2 * pp[2]; 		
 	    }
-	  else // standard hard-call in VCF
+	  else // use Genotype::genotype_model to score()
 	    {
-	      x(ni,1) = v(i).minor_allele_count( true );
+	      //x(ni,1) = v(i).minor_allele_count( true );
+	      x(ni,1) = v(i).score();
 	    }
 
 	  // Covariates

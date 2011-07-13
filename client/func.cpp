@@ -322,7 +322,7 @@ bool Pseq::VarDB::write_lik(Mask & m)
 bool Pseq::VarDB::write_matrix(Mask & m)
 {
   std::vector<std::string> ids = g.indmap.ind_id();
-  plog << "marker\talleleA\talleleB";
+  plog << "VAR\tREF\tALT";
   for (int i=0; i<ids.size(); i++) 
     plog << "\t" << ids[i] ; 
   plog << "\n";

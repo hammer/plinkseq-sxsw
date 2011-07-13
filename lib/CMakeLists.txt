@@ -107,5 +107,6 @@ netdb.cpp
 svar.cpp
 )
 
-#target_link_libraries (plinkseq protobuf)
-#target_link_libraries (plinkseq z)
+# We need to link these on mac, no effect on linux
+target_link_libraries (plinkseq protobuf)
+target_link_libraries (plinkseq z)

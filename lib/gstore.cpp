@@ -38,6 +38,9 @@ GStore::GStore(bool r)
   // this may get changed later, but assume we have a full project
   in_single_file_mode = false;
 
+  // has a proj specification file been set (or ".")
+  has_projfile = false;
+
   // by default, not in R mode
   r_mode = false;
   
@@ -52,8 +55,16 @@ bool GStore::set_project( const std::string & filename, bool verbose)
   // operate on one database, e.g. SEQDB, without having 
   // a full project in existence
 
-  if ( filename == "." ) return true;
-
+  if ( filename == "." ) 
+    {
+      // so we know not to attempt certain other functions
+      has_project_file( false );
+      
+      return true;
+    }
+  
+  has_project_file(true);
+  
   // TODO: Reserve "-" to mean read from STDIN
 
   // Starting a new project, we need an index file that points to the
@@ -151,7 +162,8 @@ std::string GStore::summary()
 
 
 
-bool GStore::vardb_load_vcf( const std::set<std::string> & includes, 
+bool GStore::vardb_load_vcf( Mask & mask , 
+			     const std::set<std::string> & includes, 
 			     const std::set<std::string> & excludes, 
 			     const std::string * region_mask )
 {
@@ -174,7 +186,7 @@ bool GStore::vardb_load_vcf( const std::set<std::string> & includes,
       std::string filename = (*i)->name();      
       // Do not reload VCF files already in VARDB
       if ( vardb.fileID( (*i)->name() ) == 0 )
-	if ( ! vardb_load_vcf( filename , (*i)->tag() , (*i)->comment() , includes , excludes , pfilter ) )
+	if ( ! vardb_load_vcf( filename , (*i)->tag() , (*i)->comment() , mask , includes , excludes , pfilter ) )
 	  return false;
       ++i;
     }
@@ -197,6 +209,7 @@ bool GStore::vardb_load_vcf( const std::set<std::string> & includes,
 bool GStore::vardb_load_vcf( const std::string & file, 
 			     const std::string & tag , 
 			     const std::string & comment, 
+			     Mask & mask , 
 			     const std::set<std::string> & includes, 
 			     const std::set<std::string> & excludes, 
 			     const std::set<Region> * pfilter )
@@ -219,9 +232,15 @@ bool GStore::vardb_load_vcf( const std::string & file,
 
   // If SEQDB has been disabled
   if ( ! GP->seqdb.attached() ) v.set_seqdb( NULL );
+  
+  // Do we want to apply up-front fix for X/Y genotypes?
+  if ( mask.fixxy() )
+    {
+      v.set_fixxy( &mask , &locdb, &inddb );
+    }
 
   vardb.begin();
-
+  
   int inserted = 0;
 
   plog.counter( "parsing..." );

@@ -539,7 +539,9 @@ std::string Variant::label( const int i  , const std::string & delim ) const
 {   
   
   // get basic textual representation of genotype from SampleVariant function
-  std::string s = consensus.label( consensus(i) );
+  // (w/ phase shown)
+
+  std::string s = consensus.label( consensus(i) , true );
   
   // under a flat alignment, we are done now
   if ( flat() && ! infile_overlap() ) return s;
@@ -556,7 +558,7 @@ std::string Variant::label( const int i  , const std::string & delim ) const
 	{
 	  const SampleVariant * svar = psample( j->first );
 	  if ( svar ) 
-	    s +=  ( j != gm.begin() ? delim : "" ) + svar->label( *(j->second) );	    
+	    s +=  ( j != gm.begin() ? delim : "" ) + svar->label( *(j->second) , true );	    
 	  ++j;
 	}
       s += "}";

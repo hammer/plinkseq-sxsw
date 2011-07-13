@@ -35,6 +35,8 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   reg( "region" , STRING_VECTOR , "region(s) ");
   reg( "alias" , STRING_VECTOR , "locus alias group(s)" );
   reg( "name" , STRING_VECTOR , "generic name(s) variable" );
+  reg( "key" , STRING , "key of key-value pair" );
+  reg( "value" , STRING_VECTOR , "value(s) of key-value pair" );
   reg( "type", STRING , "type of project entry");
   reg( "id" , INT_VECTOR , "generic numeric IDs" );
   reg( "options" , STRING_VECTOR, "context-specific options\n");

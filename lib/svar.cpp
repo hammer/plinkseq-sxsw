@@ -1225,6 +1225,10 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
       
       // Call genotypes, add to variant   
 
+      // check # of allowable alleles
+      // TODO: needless re-parsing of the string, can speed this up if needed
+      const int na = vtarget->alternate() == "." ? 1 : Helper::char_split( vtarget->alternate() , ',' ).size() + 1;
+      
       for ( int i=9; i < vcf_direct_buffer.size(); i++)
 	{
 	  
@@ -1232,14 +1236,43 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	  
 	  if ( align )
 	    {
-	      // is this needed?? -- don't think both are needed
+	      // is this needed?? -- don't think both are needed	      
 	      slot = align->sample_remapping( 1 , j ) ;
 	      if ( align->flat() ) slot = align->get_slot( 1 , slot );
 	    }	  
 	  
 	  if ( slot != -1 )
-	    {
-	      Genotype g( vcf_direct_buffer[i] , vcf_gt_field , *vcf_formats );
+	    {	      	    
+
+	      Genotype g( vcf_direct_buffer[i] , vcf_gt_field , *vcf_formats , na );
+	      
+	      if ( mask && mask->fixxy() ) 
+		{
+		  
+		  // Is this a flagged chromomse?
+		  ploidy_t p = mask->ploidy( Helper::chrCode( parent->chromosome() ) );
+		  
+		  // AA --> A  | AB --> .  | ./. --> .
+		  
+		  if ( p == PLOIDY_HAPLOID )
+		    {
+		      g.make_haploid();
+		    }
+		  else if ( p == PLOIDY_X  
+			    && align->ind( slot )->sex() != FEMALE 			    
+			    && ! mask->pseudo_autosomal( *parent ) )
+		    {
+		      g.make_haploid();
+		    }
+		  else if ( p == PLOIDY_Y )
+		    {
+		      if ( align->ind( slot )->sex() != MALE )
+			g.null( true );
+		      else if ( ! mask->pseudo_autosomal( *parent ) ) 
+			g.make_haploid();
+		    }	  
+		}
+	      
 	      target->calls.add( g , slot );
 	    }
 

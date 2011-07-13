@@ -198,7 +198,7 @@ bool BEDReader::read_bed()
   const int ni = read_fam();
   const int nv = read_bim();
   
-  plog << "expecing " << nv << " variants on " << ni << " individuals\n";
+  plog << "expecting " << nv << " variants on " << ni << " individuals\n";
 
   const long int ng = (long int)ni * (long int)nv;
   if ( ng == 0 ) return false;

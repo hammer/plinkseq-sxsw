@@ -14,47 +14,6 @@
 #include "ibs.h"
 #include "extra.h"
 
-void f_dummy( Variant & v0 , void * p )
-{
-  
-  std::cout << "\n\n-----------------------------------------------------\n"
-	    << v0 << "\n";
-  
-  Variant var = v0;
-  Variant v2;
-  v0 = v2;
-  
-  
-  const int n = var.size();
-  
-  std::cout << var.n_samples() << " is NS\n";
-
-  for (int s = 0; s < var.n_samples(); s++)
-    {	  
-      std::cout << " n = " << n << "\n";
-
-      for (int i = 0 ; i < n; i++ )
-	{
-	  
-	  plog << "Sample " << s << " individual " << i << "\n";
-	  
-	  Genotype * g = var.genotype( s , i );
-	  
-	  std::cout << " *\n";
-	  
-	  if ( g == NULL ) plog << "----------------------------------NULL\n";
-	  else
-	    {	      
-	      plog << *g << "\t"; 	      
-	      plog << var.geno_label( *g ) << "\t";
-	      plog << g->allele_count() << "\t";
-	      plog << g->meta << "\n";
-	    }
-	}
-    }
-}
-
-
 
 using namespace std;
 
@@ -170,6 +129,10 @@ int main(int argc, char ** argv)
 	<< "index-loc|locop|index a LOCDB" 
 	<< "drop-index-loc|locop|remove index from LOCDB"         
 
+	<< "set-special-loc|locop|set special variable in a LOCDB|ARG:key,value"
+	<< "get-special-loc|locop|get special variable(s) from a LOCDB|ARG:key"
+	<< "delete-special-loc|locop|remove all special variables from a LOCDB"
+
 	<< "load-seg|input,segop|input segment data to SEGDB" 
 	<< "merge-seg|segop|merge intervals in SEGDB" 
 	<< "load-segset|input,segop|load locus-sets in SEGDB" 
@@ -254,8 +217,6 @@ int main(int argc, char ** argv)
 	<< "intersect|locop|intersect locus groups"
 	<< "annotate|misc|annotate a list of positions with various fields"
     
-	<< "dummy|system|dummy command|VCF"
-
 	<< "simple-sim|misc|simple gene variant simulation|GRP";
     
   
@@ -790,36 +751,7 @@ int main(int argc, char ** argv)
 	}   	
     }
   
-  
-
-  //
-  // Load VCF files into variant database
-  //
-  
-  if ( command == "load-vcf" )
-    {
-      // Add any VCFs specified on the command line, via --vcf or --file
-      
-      if ( args.has("vcf") ) 
-	{
-	  std::vector<std::string> f = args.as_string_vector( "vcf" ); 
-	  for (int i=0;i<f.size();i++) 
-	    g.fIndex.append_to_projectfile( Helper::fullpath( f[i] ) , "VCF" );
-	}
-
-      if ( args.has("file") ) 
-	{
-	  std::vector<std::string> f = args.as_string_vector( "file" ); 
-	  for (int i=0;i<f.size();i++) 
-	    g.fIndex.append_to_projectfile( Helper::fullpath( f[i] ) , "VCF" );
-	}
-
-      Pseq::VarDB::load_VCF();
-
-      Pseq::finished();
-    }
- 
-  
+    
   
 
   //
@@ -1078,7 +1010,45 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
+    //
+    // Set/get 'special' values from a LOCDB
+    //
 
+    if ( command == "set-special-loc" )
+      {
+	if ( ! args.has("key" ) )
+	  Helper::halt("requires --key");
+	if ( ! args.has("value" ) )
+	  Helper::halt("requires --value");
+	std::string key = args.as_string( "key" );
+
+	//	Pseq::Util::n_arguments<std::string>( args , "key" );
+	std::vector<std::string> value = args.as_string_vector( "value" );
+
+	g.locdb.insert_special( key , value );
+	Pseq::finished();
+      }
+
+
+    if ( command == "get-special-loc" )
+      {
+	if ( ! args.has("key" ) )
+	  Helper::halt("requires --key");
+	std::string key = args.as_string( "key" );
+	std::vector<std::string> value = g.locdb.fetch_special( key );
+	for (int i=0;i<value.size();i++)
+	  plog << value[i] << "\n";
+	Pseq::finished();
+      }
+
+
+    if ( command == "delete-special-loc" )
+      {
+	g.locdb.clear_special();
+	Pseq::finished();
+      }
+
+    
     //
     // Remove a group of loci from SEGDB
     //
@@ -1353,6 +1323,35 @@ int main(int argc, char ** argv)
       }
 
 
+
+
+  //
+  // Load VCF files into variant database
+  //
+  
+  if ( command == "load-vcf" )
+    {
+      // Add any VCFs specified on the command line, via --vcf or --file
+      
+      if ( args.has("vcf") ) 
+	{
+	  std::vector<std::string> f = args.as_string_vector( "vcf" ); 
+	  for (int i=0;i<f.size();i++) 
+	    g.fIndex.append_to_projectfile( Helper::fullpath( f[i] ) , "VCF" );
+	}
+      
+      if ( args.has("file") ) 
+	{
+	  std::vector<std::string> f = args.as_string_vector( "file" ); 
+	  for (int i=0;i<f.size();i++) 
+	    g.fIndex.append_to_projectfile( Helper::fullpath( f[i] ) , "VCF" );
+	}
+      
+      Pseq::VarDB::load_VCF( m );
+
+      Pseq::finished();
+    }
+ 
     
 
 
@@ -1430,8 +1429,7 @@ int main(int argc, char ** argv)
 
 
     if ( command == "i-view" )
-      {
-	
+      {	
 	if ( g.single_file_mode() )
 	  Pseq::VarDB::header_VCF( false , true , m );
 	else if ( options.key("vardb") )
@@ -2063,21 +2061,6 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
-    
-    
-    if ( command == "dummy" ) 
-      {
-	const int n = g.indmap.size();
-
-// 	for (int i=0; i<n; i++)
-// 	  std::cout << i << "\t" 
-// 		    << g.indmap.ind(i)->id() << "\t" 
-// 		    << g.indmap.sample_slot(i,1) << "\t" 
-// 		    << g.indmap.sample_slot(i,2) << "\n";
-
-	g.vardb.iterate( f_dummy , NULL , m );
-	Pseq::finished();
-      }
     
 
 

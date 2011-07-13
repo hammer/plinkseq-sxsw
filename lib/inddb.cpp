@@ -169,6 +169,9 @@ bool IndDBase::init()
     stmt_lookup_pheno_id = 
 	sql.prepare(" SELECT pheno_id FROM metaphenotypes WHERE name == :name; ");
 
+    stmt_fetch_sex = 
+	sql.prepare(" SELECT sex FROM individuals WHERE name == :name; ");
+
     stmt_fetch_phenotype_list = 
 	sql.prepare(" SELECT pheno_id,name,type,missing,description "
 		    " FROM metaphenotypes; ");
@@ -390,7 +393,10 @@ bool IndDBase::load_ped_info( const std::string & filename )
        << " existing individuals\n";
 
   if ( cnt1 + cnt2 ) 
-    GP->fIndex.append_to_projectfile( Helper::fullpath(filename) , "PED" );
+    {
+      if ( GP && GP->has_project_file() )
+	GP->fIndex.append_to_projectfile( Helper::fullpath(filename) , "PED" );      
+    }
 
   return true;
   
@@ -741,3 +747,18 @@ std::map<std::string,std::vector<std::string> > IndDBase::fetch_phenotype_info()
   sql.reset( stmt_fetch_phenotype_list );
   return m;
 }
+
+
+sType IndDBase::sex( const std::string & id ) 
+{  
+  sql.bind_text( stmt_fetch_sex , ":name" , id );
+  if ( sql.step( stmt_fetch_sex ) )
+    {
+      int s = sql.get_int( stmt_fetch_sex , 0 );
+      sql.reset( stmt_fetch_sex );
+      return s == 2 ? FEMALE : ( s == 1 ? MALE : UNKNOWN_SEX ) ;
+    }
+  sql.reset( stmt_fetch_sex );
+  return UNKNOWN_SEX;
+}
+

@@ -29,8 +29,8 @@ class Genotype {
 
   // Core entities
   
-  bool      is_haploid;
-  
+  int       ploidy;  // 0, 1 or 2
+
   uint8_t   allele1; // 255 == missing
   
   uint8_t   allele2; // 255 == missing
@@ -59,7 +59,7 @@ class Genotype {
   /// Set to null and wipe all values
   void set_null() 
   {
-    is_haploid = true;
+    ploidy = 0;
     allele1 = allele2 = 0;      
     is_null = true;
     known_phase = false;     
@@ -67,8 +67,8 @@ class Genotype {
 
 
  public:
-
   
+  static genotype_model_t model;
   
   MetaInformation<GenMeta> meta;
 
@@ -78,15 +78,16 @@ class Genotype {
       set_null();
     }
 
-  Genotype( const std::string & str );
+  Genotype( const std::string & str , const int );
   
   Genotype( const std::string & str , 
 	    const int gt_field , 
-	    const std::vector<meta_index_t*> & formats ) ;
+	    const std::vector<meta_index_t*> & formats , 
+	    const int n_alleles ) ;
   
 
   /// Convert a numeric encoding of a genotype to a Genotype (w/ caching)  
-  void set_from_string( const std::string & str );
+  void set_from_string( const std::string & str , const int n_alleles );
   
   /// Set to null (but preserve other values)
   void null(const bool b)  { is_null = b; } 
@@ -102,14 +103,14 @@ class Genotype {
   { 
     if ( is_null ) return false;
     if ( allele1 > 1 ) return true;
-    if ( is_haploid ) return false;
+    if ( ploidy != 2 ) return true;
     return allele2 > 1;
   }
 
   /// Set a diploid genotype given two allele codes
   void genotype( const uint8_t a1 , const uint8_t a2 ) 
   {
-    is_haploid = false;
+    ploidy = 2;
     allele1 = a1;
     allele2 = a2;    
     is_null = false;
@@ -126,10 +127,25 @@ class Genotype {
   /// Set a haploid genotype given one allele code
   void genotype( const uint8_t a1 ) 
   {
-    is_haploid = true;
+    ploidy = 1 ;
     allele1 = a1;
     is_null = false;
     known_phase = false;
+  }
+
+  /// Convert diploid to haploid call, return F is problem
+  bool make_haploid()
+  {
+    if ( ploidy == 1 ) return true;
+    ploidy = 1 ;
+    known_phase = false;    
+    if ( is_null ) return true;
+    if ( allele1 != allele2 ) 
+      {
+	is_null = true;
+	return false;
+      }
+    return true;
   }
   
   /// Set to diploid genotype w/ 0-2 alt-alleles (assumes basic SNP)
@@ -141,11 +157,11 @@ class Genotype {
     else is_null = true;
   }
 
-  void haploid(const bool b)  { is_haploid = b; }
-  bool haploid() const  { return is_haploid; } 
+  void haploid(const bool b)  { ploidy = 1; }
+  bool haploid() const  { return ploidy == 1; } 
   
-  void diploid(const bool b)  { is_haploid = b; }
-  bool diploid() const  { return ! is_haploid; }
+  void diploid(const bool b)  { ploidy = 2; }
+  bool diploid() const  { return ploidy != 2; }
   
   void phased(const bool b)  { known_phase = b; }
   bool phased() const  { return known_phase; }
@@ -158,8 +174,8 @@ class Genotype {
   // number of alternate alleles
   int allele_count( ) const 
   {
-    if ( is_null ) return 0;
-    if ( is_haploid ) return allele1 != 0;    
+    if ( is_null || ploidy == 0 ) return 0;
+    if ( ploidy == 1 ) return allele1 != 0;    
     int ac = 0;
     if ( allele1 ) ++ac;
     if ( allele2 ) ++ac;
@@ -169,16 +185,19 @@ class Genotype {
   // number of observed alleles
   int copy_number( ) const
   { 
-    return is_null ? 0 : ( is_haploid ? 1 : 2 ) ;
+    return is_null ? 0 : ploidy;
   }
   
   // number of a particular allele, numeric coding (0=ref, 1,2,3,...)
   int allele_count( const int a ) const
   {
-    if ( is_null ) return 0;
-    if ( is_haploid ) return allele1 == a;
+    if ( is_null || ploidy == 0 ) return 0;
+    if ( ploidy == 1 ) return allele1 == a;
     return allele1 == a + allele2 == a;    
   }
+
+  // genotype scoring function
+  double score( genotype_model_t model = GENOTYPE_MODEL_UNSPEC );
 
   // Used when recalling a genotype (i.e. merging SampleVariants with 
   // different alt-alleles
@@ -201,36 +220,36 @@ class Genotype {
   
   bool heterozygote() const
   {
-    if ( is_haploid || is_null ) return false;
+    if ( ploidy != 2 || is_null ) return false;
     return allele1 != allele2;
   }
   
   bool alternate_homozyote() const
   {
-    if ( is_haploid || is_null ) return false;
+    if ( ploidy !=2 || is_null ) return false;
     return allele1 != 0 && allele2 != 0; 
   }
   
   bool reference() const
   {
-    if ( is_null ) return false;
-    if ( is_haploid ) return allele1 == 0;
+    if ( is_null || ploidy == 0 ) return false;
+    if ( ploidy == 1 ) return allele1 == 0;
     return allele1 == 0 && allele2 == 0;
   }
 
   // does this genotype carry at least one copy of a minor allele-class?
   bool minor_allele( const bool reference_is_major ) const
   {
-    if ( is_null ) return false;
-    if ( is_haploid ) return reference_is_major ? allele1 : allele1 != 0;
+    if ( is_null || ploidy == 0 ) return false;
+    if ( ploidy == 1 ) return reference_is_major ? allele1 : allele1 != 0;
     return reference_is_major ? allele1 || allele2 : allele1 != 0 || allele2 != 0;
   }
   
   // number of minor alleles
   int minor_allele_count( const bool reference_is_major ) const 
   {
-    if ( is_null ) return 0;
-    if ( is_haploid ) return reference_is_major ? allele1 : allele1 != 0;
+    if ( is_null || ploidy == 0 ) return 0;
+    if ( ploidy ==1 ) return reference_is_major ? allele1 : allele1 != 0;
     return reference_is_major ? allele1 + allele2 : allele1 != 0 + allele2 != 0; 
   }
   
@@ -264,7 +283,7 @@ class Genotype {
   bool operator==(const Genotype & rhs) const 
   {
     if ( is_null     !=  rhs.is_null     ) return false;
-    if ( is_haploid  !=  rhs.is_haploid  ) return false;
+    if ( ploidy      !=  rhs.ploidy      ) return false;
     if ( allele1     !=  rhs.allele1     ) return false;
     if ( allele2     !=  rhs.allele2     ) return false;
     if ( known_phase !=  rhs.known_phase ) return false;
@@ -280,8 +299,12 @@ class Genotype {
   
   friend std::ostream & operator<<( std::ostream & out, const Genotype & g)  
   {
-    if ( g.is_haploid ) { if ( g.is_null ) out << "."; else out << (int)g.allele1; }
-    else if ( g.is_null ) out << ( g.known_phase ? ".|." : "./." );
+    if ( g.is_null )
+      {
+	if ( g.ploidy == 2 ) out << ( g.known_phase ? ".|." : "./." ); 
+	else out << ".";
+      }
+    else if ( g.ploidy == 1 ) out << (int)g.allele1; 
     else out << (int)g.allele1 << ( g.known_phase ? "|" : "/" ) << (int)g.allele2 ;
     return out;
   }

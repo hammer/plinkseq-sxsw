@@ -1,12 +1,15 @@
 
 #include "genotype.h"
 #include "variant.h"
+#include "defs.h"
 
 #include <bitset>
 #include <iostream>
 using namespace std;
 
 std::map<std::string,Genotype> Genotype::gcache;
+
+genotype_model_t Genotype::model = GENOTYPE_MODEL_ALLELIC ;
 
 void GenotypeSet::summarise_meta( std::map<meta_typed_key_t,std::pair<int,int> > & mk ,  
 				  std::map<meta_typed_key_t,std::string> & mk_name , 
@@ -73,8 +76,8 @@ std::vector<int> Genotype::allele_list( const int na ) const
 {
   std::vector<int> ac(na);
   if ( is_null ) return ac;
-  ac[ allele1 ]++;
-  if ( ! is_haploid ) ac[ allele2 ]++;
+  if ( ploidy != 0 ) ac[ allele1 ]++;
+  if ( ploidy == 2 ) ac[ allele2 ]++;
   return ac;
 }
 
@@ -102,6 +105,128 @@ int Genotype::allele_count( const std::string & acode , const Variant * parent )
 
 }
 
+
+double Genotype::score( genotype_model_t model )
+{
+  // scoring models for biallelic variants (ref/alt)
+
+  // Null genotype always returns 0
+
+  if ( is_null || ploidy == 0 ) return 0;
+  
+  // using default?
+  
+  if ( model == GENOTYPE_MODEL_UNSPEC ) model = Genotype::model;
+  
+  switch ( model ) 
+    {
+      
+    case GENOTYPE_MODEL_ALLELIC : 
+      {
+	if ( ploidy == 2 ) return ( allele1 != 0 ) + ( allele2 != 0 );
+	if ( ploidy == 1 ) return allele1 ? 1 : 0;
+	return 0;
+      }
+
+    case GENOTYPE_MODEL_ALLELIC2 : 
+      {
+	if ( ploidy == 2 ) return ( allele1 != 0 ) + ( allele2 != 0 );
+	if ( ploidy == 1 ) return allele1 ? 2 : 0;
+	return 0;
+      }
+
+    case GENOTYPE_MODEL_ALLELIC3 : 
+      {
+	if ( ploidy == 2 ) return ( allele1 != 0 ) + ( allele2 != 0 );
+	if ( ploidy == 1 ) return allele1 ? 2 : 1;
+	return 2;
+      }
+
+    case GENOTYPE_MODEL_DOM :
+      {
+	if ( ploidy == 1 ) 
+	  {
+	    return allele1;
+	  }
+	else
+	  {
+	    return allele1 || allele2;
+	  }
+      }      
+      
+    case GENOTYPE_MODEL_REC :
+      {
+	return ploidy == 2 && allele1 && allele2;
+      }      
+
+
+    case GENOTYPE_MODEL_REC2 :
+      {
+	if ( ploidy == 2 ) return allele1 && allele2;
+	else if ( ploidy == 1 ) return allele1;
+	else return allele1;
+      }      
+      
+    case GENOTYPE_MODEL_CN :
+      {
+	return ploidy;      
+      }
+      
+    case GENOTYPE_MODEL_NULL :
+      {
+	return ploidy == 0;
+      }
+      
+    case GENOTYPE_MODEL_DOSAGE :
+      {	
+	if ( meta.has_field( PLINKSeq::META_GENO_ALT_DOSAGE() ) )
+	  return meta.get1_double( PLINKSeq::META_GENO_ALT_DOSAGE() );	
+	else
+	  return 0;
+      }
+
+    case GENOTYPE_MODEL_PROB_REF :
+      {
+	if ( meta.has_field( PLINKSeq::META_GENO_POSTPROB() ) )
+	  {
+	    std::vector<double> p = meta.get_double( PLINKSeq::META_GENO_ALT_DOSAGE() );
+	    if ( p.size() != 3 ) return 0; else return p[0];
+	  }
+	else
+	  return 0;
+      }
+
+    case GENOTYPE_MODEL_PROB_HET :
+      {
+	if ( meta.has_field( PLINKSeq::META_GENO_POSTPROB() ) )
+	  {
+	    std::vector<double> p = meta.get_double( PLINKSeq::META_GENO_ALT_DOSAGE() );
+	    if ( p.size() != 3 ) return 0; else return p[1];
+	  }
+	else
+	  return 0;
+      }
+
+    case GENOTYPE_MODEL_PROB_HOM :
+      {
+	if ( meta.has_field( PLINKSeq::META_GENO_POSTPROB() ) )
+	  {
+	    std::vector<double> p = meta.get_double( PLINKSeq::META_GENO_ALT_DOSAGE() );
+	    if ( p.size() != 3 ) return 0; else return p[2];
+	  }
+	else
+	  return 0;
+      }
+
+      
+    }
+
+  // should not get here
+  return 0;
+
+}
+
+
 uint8_t Genotype::bcf() const
 {  
   uint8_t gt;
@@ -127,7 +252,7 @@ uint32_t Genotype::pack() const
   
   uint32_t gt = more() << 19 
     | is_null << 18
-    | is_haploid << 17
+    | ( ploidy == 1 ) << 17
     | known_phase << 16
     | allele1 << 8 
     | allele2 ; 
@@ -138,11 +263,11 @@ uint32_t Genotype::pack() const
 
 bool Genotype::unpack( uint32_t gt )
 {
-  is_null     = ( gt >> 18 ) & 1 ; 
-  is_haploid  = ( gt >> 17 ) & 1 ;
-  known_phase = ( gt >> 16 ) & 1 ;
-  allele1     = ( gt >> 8  ) & 255 ;
-  allele2     =   gt         & 255 ;
+  is_null          = ( gt >> 18 ) & 1 ; 
+  ploidy           = ( gt >> 17 ) & 1 ? 1 : 2 ;
+  known_phase      = ( gt >> 16 ) & 1 ;
+  allele1          = ( gt >> 8  ) & 255 ;
+  allele2          =  gt          & 255 ;
   
   // returns T is okay
   // returns F if genotype is encoded by _GT in meta-information
@@ -157,7 +282,7 @@ bool Genotype::equivalent( const Genotype & a , const Genotype & b )
   if ( a == b ) return true;
 
   // ignore phase when comparing heterozygotes here
-  if ( ! ( a.is_haploid || a.is_null || b.is_haploid || b.is_null ) ) 
+  if ( a.ploidy == 2 && b.ploidy == 2 && ! ( a.is_null || b.is_null ) )
     return a.allele1 == b.allele2 && a.allele2 == b.allele1 ;   
 }
 
@@ -207,7 +332,7 @@ const Genotype & GenotypeSet::genotype(int i) const {  return calls[i]; }
 // } 
 
 
-void Genotype::set_from_string( const std::string & gtok )
+void Genotype::set_from_string( const std::string & gtok , const int n_alleles )
 {
   
   const Genotype * cached = search_genotype_cache( gtok );
@@ -227,7 +352,7 @@ void Genotype::set_from_string( const std::string & gtok )
       bool okay = true;
       if ( ! Helper::str2int( gtok.substr(0,idx_slash) , a1 ) ) okay = false; 
       if ( ! Helper::str2int( gtok.substr(idx_slash+1) , a2 ) ) okay = false; 
-      if ( okay ) genotype(a1,a2);
+      if ( okay && a1 >= 0 && a1 < n_alleles && a2 >= 0 && a2 < n_alleles ) genotype(a1,a2);
       else set_null(); 
     }
   else 
@@ -236,17 +361,18 @@ void Genotype::set_from_string( const std::string & gtok )
       if ( idx_pipe != std::string::npos ) // phased genotype
 	{
 	  int a1, a2;
-	  bool okay = true;
-	  if ( ! Helper::str2int( gtok.substr(0,idx_pipe) ) , a1 ) okay = false;
-	  if ( ! Helper::str2int( gtok.substr(idx_pipe+1) ) , a2 ) okay = false;
-	  if ( okay ) phased_genotype(a1,a2);		    
+	  bool okay = true;	  
+	  if ( ! Helper::str2int( gtok.substr(0,idx_pipe) , a1 ) ) okay = false;
+	  if ( ! Helper::str2int( gtok.substr(idx_pipe+1) , a2 ) ) okay = false;	  
+	  if ( okay && a1 >= 0 && a1 < n_alleles && a2 >= 0 && a2 < n_alleles ) phased_genotype(a1,a2);
 	  else set_null();
 	}
       else // assume haploid 
 	{	      
 	  int a;	      
 	  if ( gtok == "." || ! Helper::str2int( gtok , a ) ) set_null();
-	  else genotype(a);
+	  else if ( a >= 0 && a < n_alleles ) genotype(a);
+	  else set_null();
 	}
     }
 
@@ -255,14 +381,15 @@ void Genotype::set_from_string( const std::string & gtok )
   
 }
 
-Genotype::Genotype( const std::string & str )
+Genotype::Genotype( const std::string & str , const int n_alleles )
 {
-  set_from_string(str);
+  set_from_string(str , n_alleles ); 
 }
 
 Genotype::Genotype( const std::string & str , 
 		    const int gt_field , 
-		    const std::vector<meta_index_t*> & formats )
+		    const std::vector<meta_index_t*> & formats , 
+		    const int n_alleles )
 { 
   
   std::vector<std::string> tok = Helper::char_split( str , ':' );
@@ -273,9 +400,9 @@ Genotype::Genotype( const std::string & str ,
     }
   else 
     {      
-      set_from_string( tok[ gt_field ] );
+      set_from_string( tok[ gt_field ] , n_alleles );
     }
-    
+  
   // Set genotpe meta-fields (GT field should be NULL and thus skipped)
   
   meta.set( tok , &formats );

@@ -178,7 +178,9 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "geno.req" , "str-list" , "retain genotypes passing all meta-field criteria" ); 
   mask_add( s , g , c++ , gl , "null" , "int-range" , "include variants with number of null genotypes in [n-m]" ); 
   mask_add( s , g , c++ , gl , "assume-ref" , "flag" , "assume null/missing genotypes are reference" );
-  mask_add( s , g , c++ , gl , "x-mode" , "str" , "set X-chromosome mode" );
+  mask_add( s , g , c++ , gl , "fix-xy" , "str" , "fix X/Y genotypes when loading a VCF" );
+  mask_add( s , g , c++ , gl , "genotype-model" , "str" , "set genotype scoring model" );
+
   
   // Phenotype
   ++g; c = 0 ; gl="phenotype";
@@ -867,7 +869,87 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     {
       assuming_null_is_reference( true );
     }
+
   
+  if ( m.has_field( "fix-xy" ) )
+    {
+      if ( ! locdb ) 
+	{
+	  plog.warn("no LOCDB attached for fix-xy");	  
+	}
+      else
+	{
+	  std::string g = m.get1_string( "fix-xy" ); 
+	  
+	  // expected format:
+
+	  //  chrX=X
+	  //  chrX:1..3000=PAR
+	  //  chrX:150000000..250000000=PAR
+	  //  
+
+	  std::vector<std::string> v = locdb->fetch_special( g );
+
+	  if ( v.size() == 0 ) 
+	    {
+	      plog.warn("no special region/chromosome codes set for fix-xy");	      
+	    }
+	  else
+	    {
+	      for ( int i = 0; i < v.size() ; i++ )
+		{
+		  std::vector<std::string> k = Helper::char_split( v[i] , '=' );
+		  if ( k.size() != 2 ) continue;		  
+
+		  fixxy( true );
+
+		  // chr-code or region?
+		  if ( k[1] == "PAR" ) 
+		    {
+		      bool okay = true;
+		      Region region( k[0] , okay );
+		      if ( okay ) set_pseudo_autosomal( region ); 
+		      else plog.warn( "trouble setting PAR" , region.coordinate() );			
+		    }		  
+		  else if ( k[0].find( ":" ) == std::string::npos )
+		    {
+		      
+		      ploidy_t p = PLOIDY_UNKNOWN;
+		      
+		      if      ( k[1] == "X" ) ploidy( k[0] , PLOIDY_X );
+		      else if ( k[1] == "Y" ) ploidy( k[0] , PLOIDY_Y );
+		      else if ( k[1] == "HAPLOID" )  ploidy( k[0] , PLOIDY_HAPLOID );
+		      else if ( k[1] == "AUTOSOMAL" )  ploidy( k[0] , PLOIDY_AUTOSOMAL );
+		      else 
+			{ 
+			  plog.warn( "unrecognized ploidy code" , k[1] ); continue; 
+			} 
+		      		      
+		    }
+		}
+	    }
+	}
+    }
+
+
+  if ( m.has_field( "genotype-model" ) )
+    {
+      std::string model = m.get1_string( "genotype-model" );
+
+      if ( model == "ALLELIC" ) Genotype::model = GENOTYPE_MODEL_ALLELIC;
+      else if ( model == "ALLELIC2") Genotype::model = GENOTYPE_MODEL_ALLELIC2;
+      else if ( model == "ALLELIC3") Genotype::model = GENOTYPE_MODEL_ALLELIC3;
+      else if ( model == "DOM") Genotype::model = GENOTYPE_MODEL_DOM;
+      else if ( model == "REC") Genotype::model = GENOTYPE_MODEL_REC;
+      else if ( model == "REC2") Genotype::model = GENOTYPE_MODEL_REC2;
+      else if ( model == "CN") Genotype::model = GENOTYPE_MODEL_CN;
+      else if ( model == "NULL") Genotype::model = GENOTYPE_MODEL_NULL;
+      else if ( model == "DOSAGE" ) Genotype::model = GENOTYPE_MODEL_DOSAGE;
+      else if ( model == "PROB_REF" ) Genotype::model = GENOTYPE_MODEL_PROB_REF;
+      else if ( model == "PROB_HET" ) Genotype::model = GENOTYPE_MODEL_PROB_REF;
+      else if ( model == "PROB_HOM" ) Genotype::model = GENOTYPE_MODEL_PROB_REF;
+      else Helper::halt( "did not recognize genotype model" );
+    }
   
   if ( m.has_field( "downcode" ) )
     downcode( DOWNCODE_MODE_EACH_ALT );
@@ -3514,4 +3596,35 @@ void Mask::set_load_genotype_meta( const std::string & m )
 bool Mask::load_genotype_meta( const std::string & m ) const
 {
   return load_partial_gmeta ? load_gmeta_list.find( m ) != load_gmeta_list.end() : load_gmeta ; 
+}
+
+
+void Mask::ploidy( const std::string & chr , ploidy_t t )
+{
+  fixxy_map_chr[ chr ] = t;
+}
+
+void Mask::set_pseudo_autosomal( const Region & region ) 
+{
+  fixxy_map_par.push_back( region );
+}
+
+ploidy_t Mask::ploidy( const std::string & chr ) const
+{
+  // default is autosomal.
+  std::map<std::string,ploidy_t>::const_iterator i = fixxy_map_chr.find( chr );
+  return i == fixxy_map_chr.end() ? PLOIDY_AUTOSOMAL : i->second;
+}
+
+bool Mask::pseudo_autosomal( const Variant & var ) const
+{
+  // for a more focused look, default is UNKNOWN (i.e. in practice, we will
+  // only ask this of the X chromosome, to determine PAR regions) 
+  std::vector<Region>::const_iterator i = fixxy_map_par.begin();
+  while ( i != fixxy_map_par.end() )
+    {      
+      if ( i->contains( var ) ) return true;     
+      ++i;
+    }
+  return false;
 }
