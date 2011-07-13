@@ -1,0 +1,11 @@
+Package: Rplinkseq
+Version: 0.5
+Title: PLINK/SEQ
+Author: Shaun Purcell <purcell@atgu.mgh.harvard.edu>, with
+    contributions from Brett Thomas <brettpthomas@gmail.com>.
+Maintainer: Brett Thomas <brettpthomas@gmail.com>
+Depends: R (>= 2.12.0)
+SystemRequirements: protobuf
+Description: Genomes!!
+License: GPL (>= 2)
+URL: http://atgu.mgh.harvard.edu/plinkseq
