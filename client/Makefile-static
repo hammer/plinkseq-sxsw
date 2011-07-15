@@ -25,6 +25,7 @@ LIB  = -lplinkseq
 LIB += -lprotobuf
 LIB += -lz
 LIB += -lpthread
+LIB += -ldl
 
 all : $(OUTPUT)
 

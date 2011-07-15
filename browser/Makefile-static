@@ -1,9 +1,9 @@
 
 CXX = g++
-CXXFLAGS = -O2 
+CXXFLAGS = -O2 -static
 
-LFLAGS += -Wl,-rpath=/psych/genetics/shaun/pseq/lib 
-LFLAGS += -Wl,-rpath=/psych/genetics/pseq/share/lib
+#LFLAGS += -Wl,-rpath=/psych/genetics/shaun/pseq/lib 
+#LFLAGS += -Wl,-rpath=/psych/genetics/pseq/share/lib
 
 OUTPUT = pbrowse.cgi
 
@@ -12,13 +12,15 @@ HDR = cgi.h psb.h
 OBJ = $(SRC:.cpp=.o)
 
 INC = -I../lib/
-INC += -I../share/include/ 
+#INC += -I../share/include/ 
 
-LIBDIR = -L../share/lib -L../lib
+LIBDIR = -L../lib
+#LIBDIR += =L../share/lib
 LIB  = -lplinkseq 
 LIB += -lprotobuf
 LIB += -lz
 LIB += -lpthread
+LIB += -ldl
 
 all : $(OUTPUT)
 
