@@ -9,6 +9,7 @@
 
 .First.lib <- function(libname, pkgname) {
 
+	dyn.load(paste(system.file(package="Rplinkseq"), "/lib/libprotobuf.so", sep=""))
 	library.dynam("Rplinkseq")
 
 }

@@ -196,7 +196,7 @@ bool GLM::fit_linear()
   // if only intercept + term, use a quicker
   // version
   
-  if ( np == 2 && ! cluster ) fit_univariate_linear();
+  if ( np == 2 && ! cluster ) return fit_univariate_linear();
   
   all_valid = true;  // replace with checkVIF etc
 
@@ -373,7 +373,6 @@ bool GLM::fit_linear()
 
 bool GLM::fit_univariate_linear() 
 {
-
 
   // Speed-up version for univariate case has set coef and S
   

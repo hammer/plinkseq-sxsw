@@ -16,13 +16,17 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
 				      const Pseq::Util::Options & options )
 {
   
+
   //
-  // Single variant association testsing; assumes a dichotomous phenotype
+  // Single variant association testsing; assumes a dichotomous phenotype; QTs 
+  // are redirected to a different function (below)
   //
   
-  if ( ! g.phmap.type() == PHE_DICHOT ) 
+  if ( g.phmap.type() == PHE_QT ) 
+    return variant_qtassoc_test( m , aux , options );
+  else if ( ! g.phmap.type() == PHE_DICHOT ) 
     Helper::halt("basic association tests assumes a dichotomous phenotype");
-
+  
 
   //
   // Allelic, dominant, recessive tests
@@ -42,6 +46,7 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
 
   aux.yates_chisq = options.key("yates");
   
+
   //
   // Header row
   //
@@ -462,6 +467,7 @@ void f_variant_association( Variant & v , void * p )
     } // Next permutation
   
 
+
   //
   // Output empirical p-value (and minimum obtainable, optionally)
   //
@@ -505,7 +511,736 @@ void f_variant_association( Variant & v , void * p )
   if ( R != 1 ) plog.data( g->perm.min_pvalue(2) , 1 );
 
   plog.print_data_group();
+
 }
+
+
+
+
+//
+// Quantitative traits
+//
+
+
+bool Pseq::Assoc::variant_qtassoc_test( Mask & m , 
+					Pseq::Assoc::Aux_vassoc_options & aux , 
+					const Pseq::Util::Options & options )
+{
+  
+
+//   //
+//   // Allelic, dominant, recessive tests
+//   //
+  
+//   const int ntests = 3 ;
+  
+
+//   //
+//   // Display options
+//   //
+  
+//   bool show_meta = options.key("meta");
+
+
+//   //
+//   // Header row
+//   //
+  
+//   // T 0 means 'variant level info', e.g. VMETA
+//   //     that we only list once, and reference
+//   //     and omnibus test statistic, if any
+
+//   //   1 is alternate allele 1
+
+//   //   2 is alternate allele 2, etc
+
+
+//   plog.data_reset();
+  
+//   plog.data_group_header( "VAR" );
+//   plog.data_header( "REF" );
+//   plog.data_header( "SAMPLES" );
+//   plog.data_header( "FILTER" );
+//   plog.data_header( "VMETA" );
+//   plog.data_header( "CONMETA" );
+//   plog.data_header( "ALT" );
+
+//   plog.data_header( "MAF" );
+//   plog.data_header( "HWE" );
+
+//   plog.data_header( "REFMEAN" );
+//   plog.data_header( "REFSD" );
+//   plog.data_header( "REFOBS" );
+  
+//   plog.data_header( "HETMEAN" );
+//   plog.data_header( "HETSD" );
+//   plog.data_header( "HETOBS" );
+  
+//   plog.data_header( "HOMMEAN" );
+//   plog.data_header( "HOMSD" );
+//   plog.data_header( "HOMOBS" );
+
+//   plog.data_header( "P" );
+//   plog.data_header( "BETA" );
+
+//   plog.data_header( "PDOM" );
+//   plog.data_header( "BETADOM" );
+
+//   plog.data_header( "PREC" );
+//   plog.data_header( "BETAREC" );
+  
+//   plog.data_header_done();
+
+  
+//   //
+//   // Set up permutation class, etc
+//   //
+  
+//   Pseq::Assoc::Aux a;
+//   a.g     = &g;
+//   a.rseed = time(0);
+//   g.perm.initiate( aux.nrep , ntests );
+//   a.fix_null_genotypes = options.key("fix-null");
+
+  
+  
+//   // Set phenotype
+
+//   Pseq::Assoc::Aux_glm aux;
+  
+//   const int n = g.indmap.size();
+//   aux.y.resize( n );
+//   aux.mask.resize( n , false );
+  
+//   for (int i=0; i < n; i++)
+//     {      
+
+//       Individual * person = g.indmap.ind(i);
+      
+//       if ( person->missing() )
+// 	aux.mask[i] = true; //mask out
+//       else
+// 	aux.y[i] = person->qt();
+
+//     }
+
+
+//   //
+//   // Apply function
+//   //
+
+//   g.vardb.iterate( f_variant_qtassociation , &aux , m );
+
+
+//   //
+//   // Post-processing to obtain corrected p-values
+//   //
+
+//   //  plog << Helper::sw( "TEST" , 10 ) 
+//   // 	    << Helper::sw( "VAR" , 10 )
+//   // 	    << Helper::sw( "PCORR" , 10 )
+//   // 	    << "\n";
+  
+//   //   for (int t=0; t < g.perm.n_tests(); t++)
+//   //     for (int s=0; s < g.perm.n_stats(); s++)
+//   //       plog << Helper::sw( s , 10 ) 
+//   // 		<< Helper::sw( t , 10 ) 
+//   // 		<< Helper::sw( g.perm.max_pvalue(s,t) , 10 ) 
+//   // 		<< "\n";
+  
+  return true;
+  
+}
+
+
+
+void f_variant_qtassociation( Variant & v , void * p )
+{
+  
+  // Implements single-variant quantitative trait association tests
+  // Uses univariante linear regression to calculate a quick beta and P, etc
+
+  //
+  // For now, skip anything other than a basic SNP.
+  //
+  
+  if ( ! v.biallelic() ) return;
+  
+  //
+  // Copy-number variable markers? 
+  //
+
+  // TODO ... (?) 
+
+  
+//   Pseq::Assoc::Aux_glm * data = (Pseq::Assoc::Aux_glm *)p;
+  
+
+//   // Extract out non-missing phenotypes
+//   // (in future, set up a MASK on the MATRIX)
+  
+//   // For a given variant, get non-missing n and 
+//   // create phenotypes
+  
+//   const int n = v.size();
+//   const int np = 1;  // num of (genetic) parameters
+
+//   // actual number of non-missing individuals
+
+//   int an = n;
+
+//   std::vector<bool> mask( n , false ); // F means include
+  
+//   for (int i=0; i<n; i++)
+//     {
+//       if ( data->mask[i] ) { --an; mask[i] = true; }
+//       else if ( data->c.masked(i) ) { --an; mask[i] = true; }
+//       else if ( data->use_dosage && ! v(i).meta.has_field( data->softtag ) ) { --an; mask[i] = true; }
+//       else if ( data->use_postprobs && ( ( ! v(i).meta.has_field( data->softtag ) ) || v(i).meta.get_double( data->softtag ).size() != 3 ) ) { --an; mask[i] = true; }
+//       else if ( v(i).null() ) { --an; mask[i] = true; }
+//     }
+
+//   Data::Vector<double> y( an );
+
+//   Data::Matrix<double> x( an , 2 );  // 2 = intercept plus basic encoding
+
+//   // Populate
+
+//   int ni = 0;
+
+//   for (int i=0; i<n; i++)
+//     {
+  
+//       if ( ! mask[i] ) 
+// 	{
+	
+// 	  // DV
+// 	  y[ni] = data->y[i];
+	  
+// 	  // Intercept
+// 	  x(ni,0) = 1;
+	  
+// 	  // Genotype
+// 	  if ( data->use_dosage ) // dosage of alt-allele(s)
+// 	    {
+// 	      x(ni,1) = v(i).meta.get1_double( data->softtag );
+// 	    }	  
+// 	  else if ( data->use_postprobs ) // post-probs (assume biallelic)
+// 	    {
+// 	      std::vector<double> pp = v(i).meta.get_double( data->softtag ); 
+// 	      x(ni,1) = pp[1] + 2 * pp[2]; 		
+// 	    }
+// 	  else // use Genotype::genotype_model to score()
+// 	    {
+// 	      //x(ni,1) = v(i).minor_allele_count( true );
+// 	      x(ni,1) = v(i).score();
+// 	    }
+
+// 	  ++ni;
+// 	}
+//     }
+
+
+//   // Perform test
+
+//   GLM glm( GLM::LINEAR );
+  
+//   glm.set( y , x ); 
+
+//   glm.fit(); // should use fast univariate fit() 
+  
+//   bool valid = glm.valid();
+  
+//   // Aux. output
+  
+//   // calc genotype freqs taking phenotype status into account
+  
+//   // minor allele frequency
+//   double maf = 0;
+
+//   // genotype frequencies (reference-based)
+//   double f_ref = 0, f_het = 0 , f_hom = 0;
+  
+//   int tot_allele = 0, tot_genotype = 0;
+  
+//   for (int i=0; i<n; i++)
+//     {
+
+//       if ( ! mask[i] ) 
+// 	{
+
+// 	  int c = v(i).copy_number(); 
+
+// 	  int a = v(i).minor_allele_count( true );
+
+// 	  maf          += a;
+// 	  tot_allele   += c;
+// 	  tot_genotype += 1;
+	  
+// 	  if ( a == 0 ) ++f_ref;
+// 	  else if ( a == 1 ) ++f_het;
+// 	  else ++f_hom;
+	  
+// 	}
+      
+//     }
+  
+//   maf /= tot_allele ? (double)tot_allele : 1;
+//   f_ref /= tot_genotype ? (double)tot_genotype : 1 ;
+//   f_het /= tot_genotype ? (double)tot_genotype : 1 ;
+//   f_hom = 1 - f_het - f_ref;
+
+//   double pval = valid ? glm.test_pval() : -1 ;
+
+//   if ( pval < 0 ) valid = false;
+  
+//   // Output results
+
+//   if ( valid )
+//     {
+      
+//       double se = glm.test_se();
+//       double statistic = glm.test_statistic();
+//       double coef = glm.test_coef();
+
+//       // For now, let's ignore long-format potential for output. 
+     
+//       plog.data_group( v );
+
+//       plog.data( v.reference() );
+      
+//       plog.data( v.alternate() , 1 );  
+            
+//       plog.data( an , 1 );
+
+//       plog.data( maf , 1 );
+          
+//       if ( data->dichot_pheno )
+// 	{
+// 	  if ( ! data->has_covar ) 
+// 	    {
+// 	      plog.data( mafa );
+// 	      plog.data( mafu );
+// 	    }
+// 	  plog.data( coef );
+// 	}
+//       else
+// 	{
+// 	  plog.data( coef );      
+// 	}
+      
+//       plog.data( se );  
+//       plog.data( statistic );
+//       plog.data( pval );
+      
+//       plog.print_data_group();
+      
+//     }
+//   else
+//     {
+     
+//       plog.data_group( v );
+
+//       plog.data( v.reference() );
+//       plog.data( v.alternate() , 1 );  
+
+//       plog.data( an , 1 );      
+
+//       plog.data( maf , 1 );    
+
+//       if ( data->dichot_pheno )
+// 	{
+// 	  if ( data->has_covar ) 
+// 	    plog.data( maf );
+// 	  else
+// 	    {
+// 	      plog.data( mafa );
+// 	      plog.data( mafu );
+// 	    }
+// 	  plog.data( "NA" );
+// 	}
+//       else
+// 	{
+// 	  plog.data( maf );
+// 	  plog.data( "NA" );      
+// 	}
+      
+//       plog.data( "NA" );  
+//       plog.data( "NA" );
+//       plog.data( "NA" );
+      
+//       plog.print_data_group();
+      
+//     }
+
+
+
+
+//   // ---------------------------------------------------------------------------------------
+
+
+
+
+
+//   //
+//   // Set up permutations
+//   //
+  
+//   Pseq::Assoc::Aux * data = (Pseq::Assoc::Aux*)p;
+  
+//   GStore * g = data->g;
+  
+//   const int R = 1 + g->perm.replicates();
+  
+//   g->perm.seed( data->rseed );
+  
+//   g->perm.reset();
+  
+//   if ( data->fix_null_genotypes ) 
+//     g->perm.fix( VarFunc::missing_genotype_mask( v ) );
+
+  
+//   //
+//   // Begin permutations
+//   //
+  
+//   std::vector<double>  
+
+
+//   int obs_a = 0 , obs_u = 0 , obs_tota = 0, obs_totu = 0;
+
+//   const int n = v.size();
+  
+//   int tota = 0, totu = 0;
+  
+//   std::set<int> het_carriers;
+//   std::set<int> hom_carriers;
+//   std::set<int> missing;
+
+//   int obs_refa, obs_heta , obs_homa;
+//   int obs_refu, obs_hetu , obs_homu;
+
+//   double obs_maf;
+//   double obs_hwe;
+
+//   double obs_statistic;
+//   double obs_statistic_dom;
+//   double obs_statistic_rec;
+      
+//   double obs_odds;
+//   double obs_odds_dom;
+//   double obs_odds_rec;
+
+//   double fisher_pv0, fisher_pv1, fisher_pv2;
+
+//   for (int p = 0; p < R ; p++ )
+//     {
+
+//       std::vector<double> statistics(3,0);
+      
+//       double & statistic     = statistics[0];
+//       double & statistic_dom = statistics[1];
+//       double & statistic_rec = statistics[2];
+      
+//       // Output original data, calculate OR, track alt.allele carriers
+      
+//       if ( p == 0 )
+// 	{
+
+// 	  // Genotype counts
+// 	  int refa = 0 , refu = 0;
+// 	  int heta = 0 , hetu = 0;
+// 	  int homa = 0 , homu = 0;
+
+// 	  for (int i=0; i<n; i++)
+// 	    {
+	      
+// 	      affType aff = v.ind( g->perm.pos( i ) )->affected();
+	      
+// 	      if ( v(i).null() )
+// 		{
+// 		  missing.insert( i );
+// 		  if ( aff == CASE ) ++tota; 
+// 		  else if ( aff == CONTROL ) ++totu;
+// 		}
+// 	      else
+// 		{
+		  
+// 		  const int ac = v(i).allele_count( );	      
+		  
+// 		  if ( aff == CASE ) 
+// 		    {
+		      
+// 		      ++tota;
+		      
+// 		      if ( ac == 1 ) 
+// 			{
+// 			  ++heta;
+// 			  het_carriers.insert(i);
+// 			}
+// 		      else if ( ac == 2 ) 
+// 			{
+// 			  ++homa;
+// 			  hom_carriers.insert(i);
+// 			}
+// 		      else if ( ac == 0 ) 
+// 			{
+// 			  ++refa;
+// 			}		      
+// 		    }
+// 		  else if ( aff == CONTROL )
+// 		    {
+		      
+// 		      ++totu;
+		      
+// 		      if ( ac == 1 ) 
+// 			{
+// 			  ++hetu;
+// 			  het_carriers.insert(i);
+// 			}
+// 		      else if ( ac == 2 ) 
+// 			{
+// 			  ++homu;
+// 			  hom_carriers.insert(i);		      
+// 			}
+// 		      else if ( ac == 0 )
+// 			{
+// 			  ++refu; 
+// 			}
+// 		    }
+// 		}
+// 	    }
+      
+// 	  //
+// 	  // Calculate X2 and OR
+// 	  //
+
+// 	  // Allele counts
+
+// 	  const int allele_refa = refa*2 + heta;
+// 	  const int allele_refu = refu*2 + hetu;
+	  
+// 	  const int allele_alta = homa*2 + heta;
+// 	  const int allele_altu = homu*2 + hetu;
+	  
+// 	  if ( R == 1 ) 
+// 	    {
+// 	      if ( ! fisher( Table( allele_refa, allele_refu, allele_alta, allele_altu ) , &fisher_pv0 ) ) fisher_pv0 = 1;
+// 	    }
+// 	  else
+// 	    statistic = Helper::chi2x2( allele_refa ,
+// 					allele_refu , 
+// 					allele_alta , 
+// 					allele_altu );
+	  
+// 	  bool zero_count = 
+// 	    allele_refa == 0 || allele_refu == 0 || 
+// 	    allele_alta == 0 || allele_altu == 0;
+	  
+// 	  double odds = 0;
+
+// 	  if ( zero_count ) 
+// 	    obs_odds = ( ( allele_alta + 0.5 ) 
+// 			 * ( allele_refu + 0.5 ) ) 
+// 	      / ( ( ( allele_refa + 0.5 ) 
+// 		    * ( allele_altu + 0.5 ) ) ) ;
+// 	  else
+// 	    obs_odds = (double)( allele_alta * allele_refu ) 
+// 	      / (double)( allele_altu * allele_refa );
+	  
+	  
+// 	  // Dominant test
+
+// 	  const int dom_alta = heta + homa;
+// 	  const int dom_altu = hetu + homu;
+	  
+// 	  if ( R == 1 ) 
+// 	    {
+// 	      if (! fisher( Table( refa, refu, dom_alta, dom_altu ) , &fisher_pv1 ) ) fisher_pv1 = 1;
+// 	    }
+// 	  else
+// 	    statistic_dom = Helper::chi2x2( refa , 
+// 					    refu , 
+// 					    dom_alta , 
+// 					    dom_altu );
+	  
+// 	  zero_count = 
+// 	    refa == 0 || refu == 0 || 
+// 	    dom_alta == 0 || dom_altu == 0;
+	
+// 	  double odds_dom = 0;
+// 	  if ( zero_count ) 
+// 	    obs_odds_dom = ( ( dom_alta + 0.5 ) * ( refu + 0.5 ) ) 
+// 	      / ( ( ( refa + 0.5 ) * ( dom_altu + 0.5 ) ) ) ;
+// 	  else
+// 	    obs_odds_dom = (double)( dom_alta * refu ) 
+// 	      / (double)( dom_altu * refa );
+
+// 	  // Recessive test
+	  
+// 	  const int rec_refa = refa + heta;
+// 	  const int rec_refu = refu + hetu;
+	  
+// 	  if ( R == 1 ) 
+// 	    {
+// 	      if ( ! fisher( Table( rec_refa, rec_refu, homa, homu ) , &fisher_pv2 ) ) fisher_pv2 = 1;
+// 	    }
+// 	  else
+// 	    statistic_rec = Helper::chi2x2( rec_refa , 
+// 					    rec_refu , 
+// 					    homa , 
+// 					    homu );
+	  
+// 	  zero_count = 
+// 	    rec_refa == 0 || rec_refu == 0 || 
+// 	    homa == 0 || homu == 0;
+
+// 	  double odds_rec = 0;
+// 	  if ( zero_count ) 
+// 	    obs_odds_rec = ( ( homa + 0.5 ) * ( rec_refu + 0.5 ) ) 
+// 	      / ( ( ( rec_refa + 0.5 ) * ( homu + 0.5 ) ) ) ;
+// 	  else
+// 	    obs_odds_rec = (double)( homa * rec_refu ) 
+// 	      / (double)( homu * rec_refa );
+	  
+// 	  obs_hwe = Helper::hwe( v );  
+
+// 	  obs_maf = ( allele_alta + allele_altu ) 
+// 	    / (double) ( allele_alta + allele_altu 
+// 			 + allele_refa + allele_refu );
+	  
+
+// 	  // track for output
+// 	  obs_a = allele_altu < allele_refu ? allele_alta : allele_refa ;
+// 	  obs_u = allele_altu < allele_refu ? allele_altu : allele_refu ;
+// 	  obs_tota = refa + heta + homa;
+// 	  obs_totu = refu + hetu + homu;
+
+// 	  obs_statistic = statistic;
+// 	  obs_statistic_dom = statistic_dom;
+// 	  obs_statistic_rec = statistic_rec;
+	  
+// 	  obs_refa = refa;
+// 	  obs_heta = heta;
+// 	  obs_homa = homa;
+// 	  obs_refu = refu;
+// 	  obs_hetu = hetu;
+// 	  obs_homu = homu;
+
+// 	}
+//       else
+// 	{
+	  
+// 	  // For permuted datasets, we've already tracked who is an
+// 	  // alternate allele carrier, and who has a missing genotype
+// 	  // -- so only look at these people now
+
+// 	  int heta = 0 , hetu = 0;
+// 	  int homa = 0 , homu = 0;
+// 	  int misa = 0 , misu = 0;
+	  
+// 	  std::set<int>::iterator i = het_carriers.begin();
+// 	  while ( i != het_carriers.end() )
+// 	    {
+// 	      affType aff = v.ind( g->perm.pos( *i ) )->affected();
+// 	      if ( aff == CASE ) ++heta;
+// 	      else if ( aff == CONTROL ) ++hetu;	      
+// 	      ++i;
+// 	    }
+	  
+// 	  i = hom_carriers.begin();
+// 	  while ( i != hom_carriers.end() )
+// 	    {
+// 	      affType aff = v.ind( g->perm.pos( *i ) )->affected();
+// 	      if ( aff == CASE ) ++homa;
+// 	      else if ( aff == CONTROL ) ++homu;	      
+// 	      ++i;
+// 	    }
+
+// 	  i = missing.begin();
+// 	  while ( i != missing.end() )
+// 	    {
+// 	      affType aff = v.ind( g->perm.pos( *i ) )->affected();
+// 	      if ( aff == CASE ) ++misa;
+// 	      else if ( aff == CONTROL ) ++misu;
+// 	      ++i;
+// 	    }
+	  
+	  
+// 	  int refa = tota - misa - heta - homa;
+// 	  int refu = totu - misu - hetu - homu;
+	  
+// 	  // Construct the three tests: allelic, dominant and recessive
+	  
+// 	  statistic =     Helper::chi2x2( refa*2+heta , refu*2+hetu , 
+// 					  homa*2+heta , homu*2+hetu );
+// 	  statistic_dom = Helper::chi2x2( refa        , refu        , 
+// 					  homa+heta   , homu+hetu   );
+// 	  statistic_rec = Helper::chi2x2( refa+heta   , refu+hetu   , 
+// 					  homa        , homu        );
+
+	  
+// 	}
+         
+//       //
+//       // Keep track of statistic, permute
+//       //
+
+//       if ( ! g->perm.score( statistics ) ) break; 
+      
+//     } // Next permutation
+  
+
+
+//   //
+//   // Output empirical p-value (and minimum obtainable, optionally)
+//   //
+  
+//   plog.data_group( v );
+
+//   plog.data( v.reference() );
+//   plog.data( v.print_samples() );
+//   plog.data( v.print_meta_filter() );
+//   plog.data( v.meta );
+//   plog.data( v.consensus.meta );
+  
+//   plog.data( v.alternate() , 1 );
+//   plog.data( obs_maf , 1 );
+//   plog.data( obs_hwe , 1 );
+
+//   plog.data( obs_a , 1 );
+//   plog.data( obs_u , 1 );
+
+//   plog.data( obs_tota , 1 );
+//   plog.data( obs_totu , 1 );
+  
+//   plog.data( obs_refa , 1 );
+//   plog.data( obs_heta , 1 );
+//   plog.data( obs_homa , 1 );
+
+//   plog.data( obs_refu , 1 );
+//   plog.data( obs_hetu , 1 );
+//   plog.data( obs_homu , 1 );
+
+//   plog.data( R == 1 ? fisher_pv0 : g->perm.pvalue(0) , 1 );
+//   plog.data( obs_odds , 1 );  
+//   if ( R != 1 ) plog.data( g->perm.min_pvalue(0) , 1 );
+  
+//   plog.data( R == 1 ? fisher_pv1 : g->perm.pvalue(1) , 1 );
+//   plog.data( obs_odds_dom , 1 );
+//   if ( R != 1 ) plog.data( g->perm.min_pvalue(1) , 1 );
+
+//   plog.data( R == 1 ? fisher_pv2 : g->perm.pvalue(2) , 1 );
+//   plog.data( obs_odds_rec , 1 );
+//   if ( R != 1 ) plog.data( g->perm.min_pvalue(2) , 1 );
+
+//   plog.print_data_group();
+
+}
+
+
+
+
 
 
 

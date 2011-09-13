@@ -83,6 +83,7 @@ namespace Pseq
 	kbac = false;
       }
       
+
       int n_tests() const 
       {
 	return vanilla 
@@ -102,7 +103,8 @@ namespace Pseq
       bool fix_null_genotypes;
       bool show_info;
       bool show_midbp;
-
+      
+      
       // genic tests      
       bool mhit;
       bool vanilla;
@@ -134,6 +136,8 @@ namespace Pseq
 
       std::map<int,int> mc;            // key=#minor alleles,value=#variants   
       std::map<std::string,int> mc_a;  // count in affecteds
+      
+      std::vector<double> wgt;         // generic weights
       
       std::vector<double> fweights;    // frequency weights
       std::vector<int> acounts;        // allele counts (used in VT)
@@ -191,8 +195,11 @@ namespace Pseq
     };
     
 
-    struct Aux_hoffman_witte {      
+    struct Aux_hoffman_witte 
+    {      
+      
       Aux_hoffman_witte( const VariantGroup & vars, Aux_prelim * p );      
+      
       std::vector<int> piece_begin; // cutpoint begin points
       std::vector<int> piece_end;   // cutpoint end points
       double tbar;                  // mean of the trait
@@ -201,9 +208,9 @@ namespace Pseq
       bool dichot;
       
       double calc_stat( const VariantGroup & , 
-		      const std::vector<int> & , 
-		      const std::vector<double> & , 
-		      const std::vector<double> & );
+			const std::vector<int> & , 
+			const std::vector<double> & , 
+			const std::vector<double> & );
       
       void clear() 
       {
@@ -212,16 +219,17 @@ namespace Pseq
 	tbar = 0.0;
 	xbar.clear();
       }      
+      
     };
 
     
-    struct Aux_kbac {
+    struct Aux_kbac 
+    {
       static double lnfact_table[]; 
       double gw_ln_factorial( const double ) const;
       double gw_lnchoose( const double , const double ) const;
       double gw_hypergeometric_pmf(const unsigned int , const unsigned int , const unsigned int , const unsigned int ) const;
       double gw_hypergeometric_cmf(const unsigned int , const unsigned int , const unsigned int , const unsigned int ) const;
-
       
     };
     

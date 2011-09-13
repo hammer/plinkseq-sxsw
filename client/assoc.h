@@ -27,6 +27,8 @@ namespace Pseq
 
       bool variant_assoc_test( Mask & , Aux_vassoc_options &  , const Pseq::Util::Options & options );
 
+      bool variant_qtassoc_test( Mask & , Aux_vassoc_options &  , const Pseq::Util::Options & options );
+
       bool glm_assoc_test( Mask & , Aux_glm &  );
       
       bool set_assoc_test( Mask & , const Pseq::Util::ArgMap & , const Pseq::Util::Options & options );
@@ -99,6 +101,8 @@ namespace Pseq
 // Iteration functions outside of namespace 
 
 void f_variant_association( Variant & v , void * p );
+
+void f_variant_qtassociation( Variant & v , void * p );
 
 void g_set_association( VariantGroup & vars , void * p );
 

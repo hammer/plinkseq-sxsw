@@ -1283,6 +1283,8 @@ uint64_t LocDBase::load_regions( const std::string & filename,
 				 std::map<std::string,int> * meta )
 {
 
+  if ( ! attached() ) Helper::halt( "no LOCDB attached" );
+
   bool subregions = col_sub >= 0;
   bool names = col_name >= 0;
   bool chr = col_chr >= 0;

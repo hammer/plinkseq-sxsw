@@ -1446,7 +1446,8 @@ int main(int argc, char ** argv)
 
     if ( command == "v-dist" )
       {	
-	Pseq::VarDB::vdist_summary( m );
+	long int nrep = args.has( "perm" ) ? args.as_int( "perm" ) : 1000 ;
+	Pseq::VarDB::vdist_summary( m , nrep );
 	Pseq::finished();
       }
 

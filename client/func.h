@@ -86,7 +86,7 @@ namespace Pseq
 
       bool simple_sim();
 
-      bool vdist_summary(Mask & m);
+      bool vdist_summary(Mask & m, long int );
 
     }    
   

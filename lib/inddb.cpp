@@ -231,9 +231,9 @@ int IndDBase::fetch_pheno_id( const std::string & name)
 
 bool IndDBase::index()
 {
-    sql.query("CREATE INDEX IF NOT EXISTS ind1 ON individuals(name); ");
-    sql.query("CREATE INDEX IF NOT EXISTS phe1 ON phenotypes(indiv_id); ");
-    sql.query("CREATE INDEX IF NOT EXISTS phe2 ON phenotypes(pheno_id); ");
+  sql.query("CREATE INDEX IF NOT EXISTS ind1 ON individuals(name); ");
+  sql.query("CREATE INDEX IF NOT EXISTS phe1 ON phenotypes(indiv_id); ");
+  sql.query("CREATE INDEX IF NOT EXISTS phe2 ON phenotypes(pheno_id); ");
 }
 
 bool IndDBase::drop_index()
@@ -426,8 +426,10 @@ bool IndDBase::load_phenotypes( const std::string & filename )
   int expected_col_count = -1;
   int inserted = 0;
   
-  drop_index();
+  sql.begin();
 
+  drop_index();
+ 
   while ( ! f.eof() )
     {
       
@@ -506,13 +508,14 @@ bool IndDBase::load_phenotypes( const std::string & filename )
 	      plog.warn("row in phenotype file with wrong number of fields");
 	      continue;
 	    }
-
+	  
 	  int indiv_id = fetch_id( tok[0] );
 	  
 	  // if individual does not exist, create
 
 	  if ( indiv_id == 0 ) 
 	    {
+
 	      sql.bind_text( stmt_insert_individual , ":name" , tok[0] );
 	      sql.bind_text( stmt_insert_individual , ":fid" , "." );
 	      sql.bind_text( stmt_insert_individual , ":fid" , "." );
@@ -545,23 +548,25 @@ bool IndDBase::load_phenotypes( const std::string & filename )
 	      mType mt = type_codes[ phe_codes[ i-1 ] ];
 	      
 	      // skip invalid values for numerics (as MT will be registered)
+	      
+ 	      if ( mt == META_INT )
+ 		{    
+ 		  int x;
+ 		  if ( Helper::str2int( tok[i] , x ) )
+ 		    insert( indiv_id , phe_codes2[i] , x );
+ 		}
+ 	      else if ( mt == META_FLOAT )
+ 		{
+ 		  double x;
+ 		  if ( Helper::str2dbl( tok[i] , x ) )
+ 		    insert( indiv_id , phe_codes2[i] , x );
+ 		}
+ 	      else 
+ 		{
+ 		  insert( indiv_id , phe_codes2[i] , tok[i] );
+ 		}
 
-	      if ( mt == META_INT )
-		{    
-		  int x;
-		  if ( Helper::str2int( tok[i] , x ) )
-		    insert( indiv_id , phe_codes2[i] , x );
-		}
-	      else if ( mt == META_FLOAT )
-		{
-		  double x;
-		  if ( Helper::str2dbl( tok[i] , x ) )
-		    insert( indiv_id , phe_codes2[i] , x );
-		}
-	      else 
-		{
-		  insert( indiv_id , phe_codes2[i] , tok[i] );
-		}
+
 	    }
 	  ++inserted;	    
 	}
@@ -571,6 +576,8 @@ bool IndDBase::load_phenotypes( const std::string & filename )
 
   index();
   
+  sql.commit();
+
   plog << "Processed " << inserted << " rows\n";
   
   if ( inserted ) GP->fIndex.append_to_projectfile( Helper::fullpath( filename ) , "PHE" );

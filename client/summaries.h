@@ -551,12 +551,10 @@ namespace Pseq
     int group_id;
   };
   
-
+  
   struct AuxVDist {
-    bool use_binary_phenotype;
     bool match_on_strata;
     bool within_stratum_counts;
-    std::map< int2 , int > counts;
     std::map< std::string, std::map<int2,int> > phe_counts;
   };
   
