@@ -3,6 +3,20 @@
 bin_PROGRAMS = pseq
 
 pseq_SOURCES = \
+args.h \
+assoc.h \
+clusters.h \
+compare.h \
+config.h \
+extra.h \
+func.h \
+genic.h \
+ibd.h \
+ibs.h \
+loaders.h \
+netassoc.h \
+summaries.h \
+views.h \
 main.cpp \
 func.cpp \
 summaries.cpp \
@@ -23,7 +37,8 @@ netassoc.cpp \
 gseq.cpp \
 extra.cpp
 
-pseq_CPPFLAGS = -I../lib
+pseq_CPPFLAGS = -I../lib $(PROTOBUF_CFLAGS)
+
 
 # note that we don't need to link to any shared libs here
 # they are all linked transitively from libplinkseq

@@ -748,8 +748,8 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
-protobuf_LIBS
-protobuf_CFLAGS
+PROTOBUF_LIBS
+PROTOBUF_CFLAGS
 PKG_CONFIG
 CXXCPP
 am__fastdepCXX_FALSE
@@ -891,8 +891,8 @@ CXXFLAGS
 CCC
 CXXCPP
 PKG_CONFIG
-protobuf_CFLAGS
-protobuf_LIBS'
+PROTOBUF_CFLAGS
+PROTOBUF_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1542,10 +1542,10 @@ Some influential environment variables:
   CXXFLAGS    C++ compiler flags
   CXXCPP      C++ preprocessor
   PKG_CONFIG  path to pkg-config utility
-  protobuf_CFLAGS
-              C compiler flags for protobuf, overriding pkg-config
-  protobuf_LIBS
-              linker flags for protobuf, overriding pkg-config
+  PROTOBUF_CFLAGS
+              C compiler flags for PROTOBUF, overriding pkg-config
+  PROTOBUF_LIBS
+              linker flags for PROTOBUF, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -15408,41 +15408,8 @@ fi
 
 
 
-#
-# Set up protobuf dependency
-# TODO: should we use pkg-config for this instead?
-#
-# AC_ARG_VAR([PROTOBUF_PREFIX], [Path where we can find protobuf. If you installed protobuf by source, this was specified by the --prefix option.
-# PROTOBUF_PREFIX/lib should contain libprotobuf.so, and PROTOBUF_PREFIX/include should contain a google/ directory.
-# ])
-
-# if test -n "$PROTOBUF_PREFIX"; then
-# 	CPPFLAGS="-I$PROTOBUF_PREFIX/include $CPPFLAGS "
-# 	LDFLAGS="-L$PROTOBUF_PREFIX/lib $LDFLAGS"
-# 	AC_MSG_WARN([Just set the make vars...........
-#
-# 	])
-# fi
-#
-# AC_CHECK_LIB([protobuf], [main])
-#
-# have_protobuf=no
-# AC_CHECK_LIB([protobuf], [main], [have_protobuf=yes])
-#
-# if test "x${have_protobuf}" = xno; then
-# 	AC_MSG_ERROR([
-# 	-------------------------
-# 	Cannot find protobuf. Protobuf version 2.3.0 is required (both header and library files).
-#
-# 	You can install protobuf via your system's package manager, or build and install it from source.
-# 	If you build from source, configure PLINK/SEQ with the PROTOBUF_PREFIX option set to
-# 	the directory where protobuf was installed, like this:
-#
-# 		./configure PROTOBUF_PREFIX=/path/to/protobuf/prefix/
-#
-# 	-------------------------
-# 	])
-# fi
+# UPDATE: removed pkgconfig dependency
+# note that we use pkgconfig to find protobuf, but not the other libraries.
 
 
 if test "x$ac_cv_env_PKG_CONFIG_set" != "xset"; then
@@ -15561,35 +15528,35 @@ $as_echo "no" >&6; }
 fi
 
 pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for protobuf" >&5
-$as_echo_n "checking for protobuf... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for PROTOBUF" >&5
+$as_echo_n "checking for PROTOBUF... " >&6; }
 
-if test -n "$protobuf_CFLAGS"; then
-    pkg_cv_protobuf_CFLAGS="$protobuf_CFLAGS"
+if test -n "$PROTOBUF_CFLAGS"; then
+    pkg_cv_PROTOBUF_CFLAGS="$PROTOBUF_CFLAGS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"protobuf\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "protobuf") 2>&5
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"protobuf = 2.3.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "protobuf = 2.3.0") 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_protobuf_CFLAGS=`$PKG_CONFIG --cflags "protobuf" 2>/dev/null`
+  pkg_cv_PROTOBUF_CFLAGS=`$PKG_CONFIG --cflags "protobuf = 2.3.0" 2>/dev/null`
 else
   pkg_failed=yes
 fi
  else
     pkg_failed=untried
 fi
-if test -n "$protobuf_LIBS"; then
-    pkg_cv_protobuf_LIBS="$protobuf_LIBS"
+if test -n "$PROTOBUF_LIBS"; then
+    pkg_cv_PROTOBUF_LIBS="$PROTOBUF_LIBS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"protobuf\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "protobuf") 2>&5
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"protobuf = 2.3.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "protobuf = 2.3.0") 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_protobuf_LIBS=`$PKG_CONFIG --libs "protobuf" 2>/dev/null`
+  pkg_cv_PROTOBUF_LIBS=`$PKG_CONFIG --libs "protobuf = 2.3.0" 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -15607,22 +15574,22 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        protobuf_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "protobuf" 2>&1`
+	        PROTOBUF_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "protobuf = 2.3.0" 2>&1`
         else
-	        protobuf_PKG_ERRORS=`$PKG_CONFIG --print-errors "protobuf" 2>&1`
+	        PROTOBUF_PKG_ERRORS=`$PKG_CONFIG --print-errors "protobuf = 2.3.0" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
-	echo "$protobuf_PKG_ERRORS" >&5
+	echo "$PROTOBUF_PKG_ERRORS" >&5
 
-	as_fn_error "Package requirements (protobuf) were not met:
+	as_fn_error "Package requirements (protobuf = 2.3.0) were not met:
 
-$protobuf_PKG_ERRORS
+$PROTOBUF_PKG_ERRORS
 
 Consider adjusting the PKG_CONFIG_PATH environment variable if you
 installed software in a non-standard prefix.
 
-Alternatively, you may set the environment variables protobuf_CFLAGS
-and protobuf_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables PROTOBUF_CFLAGS
+and PROTOBUF_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 " "$LINENO" 5
 elif test $pkg_failed = untried; then
@@ -15632,21 +15599,23 @@ as_fn_error "The pkg-config script could not be found or is too old.  Make sure 
 is in your PATH or set the PKG_CONFIG environment variable to the full
 path to pkg-config.
 
-Alternatively, you may set the environment variables protobuf_CFLAGS
-and protobuf_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables PROTOBUF_CFLAGS
+and PROTOBUF_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
 To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See \`config.log' for more details." "$LINENO" 5; }
 else
-	protobuf_CFLAGS=$pkg_cv_protobuf_CFLAGS
-	protobuf_LIBS=$pkg_cv_protobuf_LIBS
+	PROTOBUF_CFLAGS=$pkg_cv_PROTOBUF_CFLAGS
+	PROTOBUF_LIBS=$pkg_cv_PROTOBUF_LIBS
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 	:
 fi
 
 # Check for other libraries
+# TODO: do we really need dl and pthread?
+# I need to explore how these are really used in our code
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -ldl" >&5
 $as_echo_n "checking for main in -ldl... " >&6; }
 if test "${ac_cv_lib_dl_main+set}" = set; then :

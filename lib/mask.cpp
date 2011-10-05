@@ -14,13 +14,13 @@ extern GStore * GP;
 
 void Mask::searchDB()
 {
-    // If we do not have explicitly-specified databases, try to attach the
-    // generic ones
+    // If we do not have explicitly-specified databases, try to attach
+    // the generic ones
   
     if ( !vardb ) vardb = GP ? &GP->vardb : NULL ;
     if ( !locdb ) locdb = GP ? &GP->locdb : NULL ;
     if ( !refdb ) refdb = GP ? &GP->refdb : NULL ;
-  
+    if ( !segdb ) segdb = GP ? &GP->segdb : NULL ;
 }
 
 void mask_add( std::set<mask_command_t> & s , 
@@ -180,6 +180,9 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "assume-ref" , "flag" , "assume null/missing genotypes are reference" );
   mask_add( s , g , c++ , gl , "fix-xy" , "str" , "fix X/Y genotypes when loading a VCF" );
   mask_add( s , g , c++ , gl , "genotype-model" , "str" , "set genotype scoring model" );
+  mask_add( s , g , c++ , gl , "seg" , "str-list" , "include segment mask(s)" );
+  mask_add( s , g , c++ , gl , "seg.req" , "str-list" , "require segment mask(s)" );
+  mask_add( s , g , c++ , gl , "seg.ex" , "str-list" , "exclude segment mask(s)" );
 
   
   // Phenotype
@@ -364,6 +367,23 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       for (int i=0; i<k.size(); i++) require_loc(k[i]);
     }
 
+  if ( m.has_field( "seg" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "seg" );
+      for (int i=0; i<k.size(); i++) include_seg(k[i]);
+    }
+  
+  if ( m.has_field( "seg.req" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "seg.req" );
+      for (int i=0; i<k.size(); i++) require_seg(k[i]);
+    }
+
+  if ( m.has_field( "seg.ex" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "seg.ex" );
+      for (int i=0; i<k.size(); i++) exclude_seg(k[i]);
+    }
 
   if ( m.has_field( "loc.subset" ) ) 
     {
@@ -1297,6 +1317,12 @@ int Mask::include_loc( int x )
   return x;
 }
 
+int Mask::include_seg( int x ) 
+{
+  if ( segdb ) { in_segset.insert(x); return x; } 
+  return 0;
+}
+
 void Mask::include_reg( const std::vector<std::string> & k )
 {
   for (int i=0; i<k.size(); i++) 
@@ -1323,6 +1349,14 @@ int Mask::include_loc( string n )
   if ( ! locdb ) return 0;
   int id = locdb->lookup_group_id( n );
   if ( id > 0 ) return include_loc(id);
+  else return 0;
+}
+
+int Mask::include_seg( const std::string & n )
+{
+  if ( ! segdb ) return 0;
+  int id = segdb->lookup_group_id( n );
+  if ( id > 0 ) return include_seg(id);
   else return 0;
 }
 
@@ -1369,6 +1403,16 @@ int Mask::require_loc( int x )
   return x;
 }
 
+int Mask::require_seg( int x )
+{
+  if ( segdb ) 
+    {
+      req_segset.insert(x); 
+    }
+  else return 0;
+  return x;
+}
+
 int Mask::require_loc( string n )
 {
   if ( ! locdb ) return 0;
@@ -1377,6 +1421,13 @@ int Mask::require_loc( string n )
   else return 0;  
 }
 
+int Mask::require_seg( const std::string & n )
+{
+  if ( ! segdb ) return 0;
+  int id = segdb->lookup_group_id( n );
+  if ( id > 0 ) return require_seg(id);
+  else return 0;  
+}
 
 int Mask::require_var( int x )
 {
@@ -1429,6 +1480,16 @@ int Mask::exclude_loc( int x )
     return x;
 }
 
+int Mask::exclude_seg( int x )
+{  
+    if ( segdb ) 
+      {
+	ex_segset.insert(x); 
+      }
+    else return 0;
+    return x;
+}
+
 int Mask::exclude_var( int x )      
 {  
     if ( vardb ) 
@@ -1445,6 +1506,14 @@ int Mask::exclude_loc( string n )
     if ( ! locdb ) return 0;
     int id = locdb->lookup_group_id( n );
     if ( id > 0 ) return exclude_loc(id);
+    else return 0;
+}
+
+int Mask::exclude_seg( const std::string & n )
+{
+    if ( ! segdb ) return 0;
+    int id = segdb->lookup_group_id( n );
+    if ( id > 0 ) return exclude_seg(id);
     else return 0;
 }
 
@@ -3628,3 +3697,92 @@ bool Mask::pseudo_autosomal( const Variant & var ) const
     }
   return false;
 }
+
+
+void Mask::prep_segmask()
+{
+
+  for (int i = 0 ; i < GP->indmap.size() ; i++ )
+    {
+      
+      Individual * person = GP->indmap(i);
+      
+      std::set<int>::iterator grp = in_segset.begin();
+      while ( grp != in_segset.end() )
+	{
+	  std::set<Region> s = segdb->get_indiv_regions( *grp , person->id() );
+	  std::set<Region>::iterator ss = s.begin();
+	  while ( ss != s.end() )
+	    {
+	      segs[ i ].push_back( *ss );
+	      ++ss;
+	    }
+	  ++grp;
+	}
+
+      grp = req_segset.begin();
+      while ( grp != req_segset.end() )
+	{
+	  std::set<Region> s = segdb->get_indiv_regions( *grp , person->id() );
+	  std::set<Region>::iterator ss = s.begin();
+	  while ( ss != s.end() )
+	    {
+	      req_segs[ i ][ *grp ].push_back( *ss );
+	      ++ss;
+	    }
+	  ++grp;
+	}
+
+      grp = ex_segset.begin();
+      while ( grp != ex_segset.end() )
+	{
+	  std::set<Region> s = segdb->get_indiv_regions( *grp , person->id() );
+	  std::set<Region>::iterator ss = s.begin();
+	  while ( ss != s.end() )
+	    {
+	      ex_segs[ i ].push_back( *ss );
+	      ++ss;
+	    }
+	  ++grp;
+	}
+    }
+}
+
+
+bool Mask::in_any_segmask( const Region & var , const std::vector<Region> & segs )  
+{
+  for ( int s = 0 ; s < segs.size() ; s++ ) 
+    if ( var.overlaps( segs[s] ) ) return true;
+  return false;
+}
+
+
+bool Mask::in_all_segmask( const Region & var , const std::map<int,std::vector<Region> > & segs )  
+{
+  if ( segs.size() == 0 ) return true;  
+  std::map<int,std::vector<Region> >::const_iterator g = segs.begin();
+  while ( g != segs.end() )
+    {
+      if ( ! in_any_segmask( var , g->second ) ) return false;
+      ++g;
+    }
+  return true;
+}
+
+
+bool Mask::eval_segmask( const int i , const Region & region )
+{
+
+  // excludes 
+  if ( in_any_segmask( region , ex_segs[i] ) ) return false;
+
+  // requires
+  if ( ! in_all_segmask( region , req_segs[i] ) ) return false;
+
+  // includes 
+  if ( in_segset.size() == 0 ) return true;
+  if ( in_any_segmask( region , segs[i] ) ) return true;
+
+  return false;
+}
+

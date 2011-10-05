@@ -1025,8 +1025,8 @@ void f_vdist( Variant & v , void * p)
 	  
 	  if ( ! d->match_on_strata )
 	    {
-	      if ( v.ind(i)->affected() == CASE ) ca[ "." ] += ac;
-	      else if ( v.ind(i)->affected() == CONTROL ) cu[ "." ] += ac;
+	      if ( v.ind( g.perm.pos( i ) )->affected() == CASE ) ca[ "." ] += ac;
+	      else if ( v.ind( g.perm.pos( i ) )->affected() == CONTROL ) cu[ "." ] += ac;
 	    }
 	  
 
@@ -1035,14 +1035,14 @@ void f_vdist( Variant & v , void * p)
 	  else
 	    {	  	      
 
-	      std::string label = v.ind(i)->group_label();	      
+	      std::string label = v.ind( g.perm.pos( i ) )->group_label();	      
 	      
 	      if ( label != "." ) 
 		{
 		  grps.insert( label );
-		  if ( v.ind(i)->affected() == CASE ) 
+		  if ( v.ind( g.perm.pos( i ) )->affected() == CASE ) 
 		    ca[ label ] += ac;		    
-		  else if ( v.ind(i)->affected() == CONTROL )
+		  else if ( v.ind( g.perm.pos( i ) )->affected() == CONTROL )
 		    cu[ label ] += ac;
 		}	      
 	    }     
@@ -1102,78 +1102,17 @@ void f_vdist( Variant & v , void * p)
 }
 
 
-bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
+// helper function for vdist_summary()
+
+std::vector<double> vdist_calc( Pseq::AuxVDist & aux ) 
 {
-
-  if ( g.phmap.type() != PHE_DICHOT ) 
-    Helper::halt( "v-dist requires a dichotomous phenotype" );
   
-
-  // count variants seen 2,3 and 4 times the breakdown of case/case,
-  // case/control, control/control counts, and contrast to
-  // expectation; potentially perform this within strata
-
-
-  //
-  // Set up permutation
-  //
+  // all groups (1,2,3,4), then strata1 (1,2,3,4), strata2 (1,2,3,4). etc
   
-  std::set<std::string> grps;
-  for (int i = 0 ; i < g.phmap.size(); i++)
-    if ( g.phmap.ind(i)->label() != "." ) 
-      grps.insert( g.phmap.ind(i)->label() );
-  
-  int nstrata = grps.size();
-  int ntests = 4 * ( nstrata + 1 );
-
-  g.perm.initiate( nrep , ntests );  
-
-  
-  //
-  // Original data
-  //
-  
-  Pseq::AuxVDist aux0;
-  
-  aux.match_on_strata = g.phmap.strata_set();
-  aux.within_stratum_counts = aux.match_on_strata ? ! options.key( "whole-sample-counts" ) : false;   
-  
-  g.vardb.iterate( f_vdist , &aux , mask );
-
-  
-  //
-  // Use permutation to build up a large number of alternate counts
-  //
-  
-  std::vector<Pseq::AuxVDist> aux_perm;
-  
-  for (int r = 0 ; r < N ; r++ ) 
-    {
-      Pseq::AuxVDist & auxp = aux_perm[r];      
-      auxp.match_on_strata = aux0.match_on_strata;
-      auxp.within_stratum_counts = aux0.within_stratum_counts;      
-      g.vardb.iterate( f_vdist , &auxp , mask );
-    }
-
-  
-
-  //
-  // Calculate statistics for each dataset
-  //
-
-//  ( --> put in perm class ) 
-
-
-
-  //
-  // Report summary
-  //
-  
-  
-  plog.precision(4);
+  std::vector<double> chisq; 
   
   std::map<std::string, std::map<int2,int> >::iterator s = aux.phe_counts.begin();
-  
+
   while ( s != aux.phe_counts.end() )
     {
       
@@ -1184,49 +1123,46 @@ bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
       int cnt_00 = 0, cnt_01 = 0, cnt_11 = 0;
       int cnt_000 = 0, cnt_001 = 0, cnt_011 = 0, cnt_111 = 0;
       int cnt_0000 = 0, cnt_0001 = 0, cnt_0011 = 0, cnt_0111 = 0, cnt_1111 = 0;
+      
       std::map<int2,int>::iterator i = s->second.begin();
       while ( i != s->second.end() )
 	{
-	  
+	
 	  if (  i->first == int2(0,1) ) cnt_0 += i->second;
 	  else if (  i->first == int2(1,1) ) cnt_1 += i->second;
 	  
 	  else if ( i->first == int2(0,2) ) cnt_00 += i->second;
 	  else if (  i->first == int2(1,2) ) cnt_01 += i->second;
-	  else if (  i->first == int2(2,2) ) cnt_11 += i->second;
+ 	  else if (  i->first == int2(2,2) ) cnt_11 += i->second;
 	  
-	  else if (  i->first == int2(0,3) ) cnt_000 += i->second;
-	  else if (  i->first == int2(1,3) ) cnt_001 += i->second;
-	  else if (  i->first == int2(2,3) ) cnt_011 += i->second;
-	  else if (  i->first == int2(3,3) ) cnt_111 += i->second;
+ 	  else if (  i->first == int2(0,3) ) cnt_000 += i->second;
+ 	  else if (  i->first == int2(1,3) ) cnt_001 += i->second;
+ 	  else if (  i->first == int2(2,3) ) cnt_011 += i->second;
+ 	  else if (  i->first == int2(3,3) ) cnt_111 += i->second;
 	  
-	  else if (  i->first == int2(0,4) ) cnt_0000 += i->second;
-	  else if (  i->first == int2(1,4) ) cnt_0001 += i->second;
-	  else if (  i->first == int2(2,4) ) cnt_0011 += i->second;
-	  else if (  i->first == int2(3,4) ) cnt_0111 += i->second;
-	  else if (  i->first == int2(4,4) ) cnt_1111 += i->second;
+ 	  else if (  i->first == int2(0,4) ) cnt_0000 += i->second;
+ 	  else if (  i->first == int2(1,4) ) cnt_0001 += i->second;
+ 	  else if (  i->first == int2(2,4) ) cnt_0011 += i->second;
+ 	  else if (  i->first == int2(3,4) ) cnt_0111 += i->second;
+ 	  else if (  i->first == int2(4,4) ) cnt_1111 += i->second;
 	  
-	  ++i;
-	  
-	}
-      
-      // Get expectation
-      
-      // total counts (that might be strata-specific)
+ 	  ++i;	  
+ 	}
+
       
       int ta = 0, tu = 0;
       for (int i = 0 ; i < g.indmap.size(); i++)
 	{
-	  if ( strata == "." || g.indmap(i)->group_label() == strata )
+	  if ( strata == "." || g.indmap( g.perm.pos( i ) )->group_label() == strata )
 	    {
-	      if ( g.indmap(i)->affected() == CASE ) ++ta;
-	      else if ( g.indmap(i)->affected() == CONTROL ) ++tu;
+	      if ( g.indmap( g.perm.pos( i ) )->affected() == CASE ) ++ta;
+	      else if ( g.indmap( g.perm.pos( i ) )->affected() == CONTROL ) ++tu;
 	    }
 	}
       
       double pa = ta / (double)(ta + tu);
       double pu = tu / (double)(ta + tu);
-      int n = ta + tu; // revise N if missing phenotypes
+      
       
       double e_0 = pu*(cnt_0+cnt_1);
       double e_1 = pa*(cnt_0+cnt_1);
@@ -1247,79 +1183,273 @@ bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
       double e_1111 = pa*pa*pa*pa*(cnt_0000+cnt_0001+cnt_0011+cnt_0111+cnt_1111);
       
       double chi1 = (cnt_0-e_0)*(cnt_0-e_0) / e_0
-	+  (cnt_1-e_1)*(cnt_1-e_1) / e_1;
+ 	+  (cnt_1-e_1)*(cnt_1-e_1) / e_1;
       
       double chi2 = (cnt_00-e_00)*(cnt_00-e_00) / e_00
-	+  (cnt_01-e_01)*(cnt_01-e_01) / e_01
-	+  (cnt_11-e_11)*(cnt_11-e_11) / e_11;
+ 	+  (cnt_01-e_01)*(cnt_01-e_01) / e_01
+ 	+  (cnt_11-e_11)*(cnt_11-e_11) / e_11;
       
       double chi3 = (cnt_000-e_000)*(cnt_000-e_000) / e_000
-	+  (cnt_001-e_001)*(cnt_001-e_001) / e_001
-	+  (cnt_011-e_011)*(cnt_011-e_011) / e_011
-	+  (cnt_111-e_111)*(cnt_111-e_111) / e_111;
+ 	+  (cnt_001-e_001)*(cnt_001-e_001) / e_001
+ 	+  (cnt_011-e_011)*(cnt_011-e_011) / e_011
+ 	+  (cnt_111-e_111)*(cnt_111-e_111) / e_111;
       
       double chi4 = (cnt_0000-e_0000)*(cnt_0000-e_0000) / e_0000
-	+  (cnt_0001-e_0001)*(cnt_0001-e_0001) / e_0001
-	+  (cnt_0011-e_0011)*(cnt_0011-e_0011) / e_0011
-	+  (cnt_0111-e_0111)*(cnt_0111-e_0111) / e_0111
-	+  (cnt_1111-e_1111)*(cnt_1111-e_1111) / e_1111;
+ 	+  (cnt_0001-e_0001)*(cnt_0001-e_0001) / e_0001
+ 	+  (cnt_0011-e_0011)*(cnt_0011-e_0011) / e_0011
+ 	+  (cnt_0111-e_0111)*(cnt_0111-e_0111) / e_0111
+ 	+  (cnt_1111-e_1111)*(cnt_1111-e_1111) / e_1111;
       
+      if ( ! Helper::realnum( chi1 ) ) chi1 = 0;
+      if ( ! Helper::realnum( chi2 ) ) chi2 = 0;
+      if ( ! Helper::realnum( chi3 ) ) chi3 = 0;
+      if ( ! Helper::realnum( chi4 ) ) chi4 = 0;
+
+      chisq.push_back( chi1 );
+      chisq.push_back( chi2 );
+      chisq.push_back( chi3 );
+      chisq.push_back( chi4 );
+     
+      // next 'strata'
+      ++s;
+    }
+  
+  return chisq;
+}
+
+
+
+bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
+{
+  
+
+  if ( g.phmap.type() != PHE_DICHOT ) 
+    Helper::halt( "v-dist requires a dichotomous phenotype" );
+  
+  
+  // count variants seen 1 -- 4 times and the breakdown of case/case,
+  // case/control, control/control counts, and contrast to
+  // expectation; potentially perform this within strata
+  
+  // note: this function is horribly inefficient, but probably does
+  // not matter too much in practice.
+  
+
+  //
+  // Set up permutation
+  //
+  
+  std::set<std::string> grps;
+  for (int i = 0 ; i < g.phmap.size(); i++)
+    if ( g.indmap.ind( i )->group_label() != "." ) 
+      grps.insert( g.indmap.ind(i)->group_label() );
+  
+  int nstrata = grps.size();
+  int ntests = 4 * ( nstrata + 1 );
+
+  g.perm.initiate( nrep , ntests );  
+  
+  
+  //
+  // Original data
+  //
+  
+  Pseq::AuxVDist aux;
+  
+  aux.match_on_strata        = g.phmap.strata_set();
+  aux.within_stratum_counts  = aux.match_on_strata ? 
+    ! options.key( "whole-sample-counts" ) 
+    : false;   
+
+
+  //
+  // Iterate over all SNPs, populating the counts in the 'aux' structure for 
+  // each replicate;  should be okay, as will never need that many replicates 
+  // here in any case
+  //
+
+  g.perm.reset();
+  
+  g.vardb.iterate( f_vdist , &aux , mask );
+  
+  std::vector<double> ostats = vdist_calc( aux );
+  
+  g.perm.score( ostats ) ; 
+
+
+  //
+  // Use permutation to build up a large number of alternate counts
+  //
+  
+  std::vector<Pseq::AuxVDist> aux_perm(nrep);
+  
+  for (int r = 0 ; r < nrep ; r++ ) 
+    {
+      std::cerr << "rep " << r+1 << "\n";
+
+      Pseq::AuxVDist & auxp       =  aux_perm[r];      
+      auxp.match_on_strata        =  aux.match_on_strata;
+      auxp.within_stratum_counts  =  aux.within_stratum_counts;      
+      g.vardb.iterate( f_vdist , &auxp , mask );
+      
+      std::vector<double> pstats = vdist_calc( auxp );
+      g.perm.score( pstats ) ; 
+
+    }
+  
+   
+
+
+  //
+  // Report summary
+  //
+  
+ 
+  int cnt = 0 ;
+  plog.precision(4);
+  
+  std::map<std::string, std::map<int2,int> >::iterator s = aux.phe_counts.begin();
+  
+  while ( s != aux.phe_counts.end() )
+    {
+      
+      std::string strata = s->first;
+
+      //
+      // (re)calculate counts and expectations for original data
+      //
+
+      // 1,2,3,4
+      int cnt_0 = 0, cnt_1 = 0;
+      int cnt_00 = 0, cnt_01 = 0, cnt_11 = 0;
+      int cnt_000 = 0, cnt_001 = 0, cnt_011 = 0, cnt_111 = 0;
+      int cnt_0000 = 0, cnt_0001 = 0, cnt_0011 = 0, cnt_0111 = 0, cnt_1111 = 0;
+      
+      std::map<int2,int>::iterator i = s->second.begin();
+      while ( i != s->second.end() )
+	{
 	
+	  if (  i->first == int2(0,1) ) cnt_0 += i->second;
+	  else if (  i->first == int2(1,1) ) cnt_1 += i->second;
+	  
+	  else if ( i->first == int2(0,2) ) cnt_00 += i->second;
+	  else if (  i->first == int2(1,2) ) cnt_01 += i->second;
+ 	  else if (  i->first == int2(2,2) ) cnt_11 += i->second;
+	  
+ 	  else if (  i->first == int2(0,3) ) cnt_000 += i->second;
+ 	  else if (  i->first == int2(1,3) ) cnt_001 += i->second;
+ 	  else if (  i->first == int2(2,3) ) cnt_011 += i->second;
+ 	  else if (  i->first == int2(3,3) ) cnt_111 += i->second;
+	  
+ 	  else if (  i->first == int2(0,4) ) cnt_0000 += i->second;
+ 	  else if (  i->first == int2(1,4) ) cnt_0001 += i->second;
+ 	  else if (  i->first == int2(2,4) ) cnt_0011 += i->second;
+ 	  else if (  i->first == int2(3,4) ) cnt_0111 += i->second;
+ 	  else if (  i->first == int2(4,4) ) cnt_1111 += i->second;
+	  
+ 	  ++i;	  
+ 	}
+
+      
+      int ta = 0, tu = 0;
+      for (int i = 0 ; i < g.indmap.size(); i++)
+	{
+	  if ( strata == "." || g.indmap(i)->group_label() == strata )
+	    {
+	      if ( g.indmap(i)->affected() == CASE ) ++ta;
+	      else if ( g.indmap(i)->affected() == CONTROL ) ++tu;
+	    }
+	}
+      
+      double pa = ta / (double)(ta + tu);
+      double pu = tu / (double)(ta + tu);
+            
+      double e_0 = pu*(cnt_0+cnt_1);
+      double e_1 = pa*(cnt_0+cnt_1);
+      
+      double e_00 = pu*pu*(cnt_00+cnt_01+cnt_11); 
+      double e_01 = 2*pa*pu*(cnt_00+cnt_01+cnt_11); 
+      double e_11 = pa*pa*(cnt_00+cnt_01+cnt_11); 
+      
+      double e_000 = pu*pu*pu*(cnt_000+cnt_001+cnt_011+cnt_111);
+      double e_001 = 3*pa*pu*pu*(cnt_000+cnt_001+cnt_011+cnt_111);
+      double e_011 = 3*pa*pa*pu*(cnt_000+cnt_001+cnt_011+cnt_111);
+      double e_111 = pa*pa*pa*(cnt_000+cnt_001+cnt_011+cnt_111);
+      
+      double e_0000 = pu*pu*pu*pu*(cnt_0000+cnt_0001+cnt_0011+cnt_0111+cnt_1111);
+      double e_0001 = 4*pu*pu*pu*pa*(cnt_0000+cnt_0001+cnt_0011+cnt_0111+cnt_1111);
+      double e_0011 = 6*pu*pu*pa*pa*(cnt_0000+cnt_0001+cnt_0011+cnt_0111+cnt_1111);
+      double e_0111 = 4*pu*pa*pa*pa*(cnt_0000+cnt_0001+cnt_0011+cnt_0111+cnt_1111);
+      double e_1111 = pa*pa*pa*pa*(cnt_0000+cnt_0001+cnt_0011+cnt_0111+cnt_1111);
+
+      
+      //
+      // display 
+      //
+
       plog << "--------------------------- " 
-	   << ( strata == "." ? "All cases & controls" : ( g.phmap.strata() + " = " + strata ) )
-	   << " ( " 
-	   << ta << " cases, " 
-	   << tu << " controls ) ---------------------------\n\n";
+ 	   << ( strata == "." ? "All cases & controls" : ( g.phmap.strata() + " = " + strata ) )
+ 	   << " ( " 
+ 	   << ta << " cases, " 
+ 	   << tu << " controls ) ---------------------------\n\n";
       
+
       if ( cnt_0 + cnt_1 > 0 )
-	{
-	  std::string w = e_0 < 5 || e_1 < 5 ? " ** low expected counts, p-value not valid ** " : ""; 
-	  plog << "Singletons : chi-sq (1df) = " << chi1 << " p = " << Statistics::chi2_prob( chi1 , 1 ) << w << "\n";
+ 	{
 	  
-	  plog << "  A / U  \tExp\tObs\tRatio\n"
-	       << "  0 / 1  \t" << e_0 << "\t" << cnt_0 << "\t" << cnt_0 / e_0 << "\n"
-	       << "  1 / 0  \t" << e_1 << "\t" << cnt_1 << "\t" << cnt_1 / e_1 << "\n\n";
-	}
-      
-      if ( cnt_00 + cnt_01 + cnt_11 > 0 ) 
-	{
-	  std::string w = e_00 < 5 || e_01 < 5 || e_11 < 5 ? " ** low expected counts, p-value not valid ** " : ""; 
-	  plog << "Doubletons : chi-sq (2df) = " << chi2 << " p = " << Statistics::chi2_prob( chi2 , 2 ) << w << "\n";
+ 	  plog << "Singletons : p = " << g.perm.pvalue( cnt ) << "\n";
 	  
-	  plog << "  A / U  \tExp\tObs\tRatio\n"
-	       << "  0 / 2  \t" << e_00 << "\t" << cnt_00 << "\t" << cnt_00 / e_00 << "\n"
-	       << "  1 / 1  \t" << e_01 << "\t" << cnt_01 << "\t" << cnt_01 / e_01 << "\n"
-	       << "  2 / 0  \t" << e_11 << "\t" << cnt_11 << "\t" << cnt_11 / e_11 << "\n\n";
-	}
+ 	  plog << "  A / U  \tExp\tObs\tRatio\n"
+ 	       << "  0 / 1  \t" << e_0 << "\t" << cnt_0 << "\t" << cnt_0 / e_0 << "\n"
+ 	       << "  1 / 0  \t" << e_1 << "\t" << cnt_1 << "\t" << cnt_1 / e_1 << "\n\n";
+ 	}
       
-      if ( cnt_000 + cnt_001 + cnt_011 + cnt_111 > 0 )
-	{
-	  std::string w = e_000 < 5 || e_001 < 5 || e_011 < 5 || e_111 < 5 ? " ** low expected counts, p-value not valid ** " : ""; 
-	  plog << "Tripletons : chi-sq (3df) = " << chi3 << " p = " << Statistics::chi2_prob( chi3 , 3 ) << w << "\n";
+      ++cnt;
+
+       if ( cnt_00 + cnt_01 + cnt_11 > 0 ) 
+ 	{
+ 	  
+ 	  plog << "Doubletons : p = " << g.perm.pvalue( cnt ) << "\n";
 	  
-	  plog << "  A / U  \tExp\tObs\tRatio\n"
-	       << "  0 / 3  \t" << e_000 << "\t" << cnt_000 << "\t" << cnt_000/e_000 << "\n"
-	       << "  1 / 2  \t" << e_001 << "\t" << cnt_001 << "\t" << cnt_001/e_001 << "\n"
-	       << "  2 / 1  \t" << e_011 << "\t" << cnt_011 << "\t" << cnt_011/e_011 << "\n"
-	       << "  3 / 0  \t" << e_111 << "\t" << cnt_111 << "\t" << cnt_111/e_111 << "\n\n";
-	}
-      
-      if ( cnt_0000 + cnt_0001 + cnt_0011 + cnt_0111 + cnt_1111 > 0 )
-	{
-	  std::string w = e_0000 < 5 || e_0001 < 5 || e_0011 < 5 || e_0111 < 5 || e_1111 < 5 ? " ** low expected counts, p-value not valid ** " : ""; 
-	  plog << "Quadruples : chi-sq (4df) = " << chi4 << " p = " << Statistics::chi2_prob( chi4 , 4 ) << w << "\n";
+ 	  plog << "  A / U  \tExp\tObs\tRatio\n"
+ 	       << "  0 / 2  \t" << e_00 << "\t" << cnt_00 << "\t" << cnt_00 / e_00 << "\n"
+ 	       << "  1 / 1  \t" << e_01 << "\t" << cnt_01 << "\t" << cnt_01 / e_01 << "\n"
+ 	       << "  2 / 0  \t" << e_11 << "\t" << cnt_11 << "\t" << cnt_11 / e_11 << "\n\n";
+ 	}
+    
+       ++cnt;
+       
+       if ( cnt_000 + cnt_001 + cnt_011 + cnt_111 > 0 )
+ 	{
+
+ 	  plog << "Tripletons : p = " << g.perm.pvalue( cnt ) << "\n";
 	  
-	  plog << "  A / U  \tExp\tObs\tRatio\n"
-	       << "  0 / 4  \t" << e_0000 << "\t" << cnt_0000 << "\t" << cnt_0000/e_0000 << "\n"
-	       << "  1 / 3  \t" << e_0001 << "\t" << cnt_0001 << "\t" << cnt_0001/e_0001 << "\n"
-	       << "  2 / 2  \t" << e_0011 << "\t" << cnt_0011 << "\t" << cnt_0011/e_0011 << "\n"
-	       << "  3 / 1  \t" << e_0111 << "\t" << cnt_0111 << "\t" << cnt_0111/e_0111 << "\n"
-	       << "  4 / 0  \t" << e_1111 << "\t" << cnt_1111 << "\t" << cnt_1111/e_1111 << "\n\n";
-	}
-      
-      ++s; // next strata
+ 	  plog << "  A / U  \tExp\tObs\tRatio\n"
+ 	       << "  0 / 3  \t" << e_000 << "\t" << cnt_000 << "\t" << cnt_000/e_000 << "\n"
+ 	       << "  1 / 2  \t" << e_001 << "\t" << cnt_001 << "\t" << cnt_001/e_001 << "\n"
+ 	       << "  2 / 1  \t" << e_011 << "\t" << cnt_011 << "\t" << cnt_011/e_011 << "\n"
+ 	       << "  3 / 0  \t" << e_111 << "\t" << cnt_111 << "\t" << cnt_111/e_111 << "\n\n";
+ 	}
+    
+       ++cnt;
+       
+       if ( cnt_0000 + cnt_0001 + cnt_0011 + cnt_0111 + cnt_1111 > 0 )
+	 {
+
+ 	  plog << "Quadruples : p = " << g.perm.pvalue( cnt ) << "\n";
+	  
+ 	  plog << "  A / U  \tExp\tObs\tRatio\n"
+ 	       << "  0 / 4  \t" << e_0000 << "\t" << cnt_0000 << "\t" << cnt_0000/e_0000 << "\n"
+ 	       << "  1 / 3  \t" << e_0001 << "\t" << cnt_0001 << "\t" << cnt_0001/e_0001 << "\n"
+ 	       << "  2 / 2  \t" << e_0011 << "\t" << cnt_0011 << "\t" << cnt_0011/e_0011 << "\n"
+ 	       << "  3 / 1  \t" << e_0111 << "\t" << cnt_0111 << "\t" << cnt_0111/e_0111 << "\n"
+ 	       << "  4 / 0  \t" << e_1111 << "\t" << cnt_1111 << "\t" << cnt_1111/e_1111 << "\n\n";
+ 	}
+       
+       ++s; // next strata
     }
 
 
+  return true;
 }
 

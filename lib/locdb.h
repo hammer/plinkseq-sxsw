@@ -137,6 +137,7 @@ class LocDBase {
    std::set<Region> get_indiv_regions( uint64_t , uint64_t );
 
    std::set<Region> get_indiv_regions( const std::string & group_id , const std::string & indiv_id );
+   std::set<Region> get_indiv_regions( const uint64_t grp_id , const std::string & person );
 
    uint64_t lookup_indiv_id( const std::string & );
 
@@ -313,6 +314,7 @@ class LocDBase {
   std::map<std::string,int> alias_group_table;
   std::map<int,std::string> alias_group_reverse_table;
 
+  std::map<std::string,int> indmap;
 
   // Prepared queries
   

@@ -85,6 +85,10 @@ class Mask {
   int require_loc( int x );    
   int exclude_loc( int x );    
     
+  int include_seg( int x );    
+  int require_seg( int x );    
+  int exclude_seg( int x );    
+
   int include_var( int x );   
   int require_var( int x );   
   int exclude_var( int x );   
@@ -97,6 +101,10 @@ class Mask {
   int require_loc( std::string n );
   int exclude_loc( std::string n );
   
+  int include_seg( const std::string & n );
+  int require_seg( const std::string & n );
+  int exclude_seg( const std::string & n );
+
   int include_var( std::string n );
   int require_var( std::string n );
   int exclude_var( std::string n );
@@ -350,13 +358,13 @@ class Mask {
   // Per-individual segments for SEGDB
   //
 
-  void include_indiv_segment( const uint64_t & );
-  void require_indiv_segment( const uint64_t & );
-  void exclude_indiv_segment( const uint64_t & );
+/*   void include_indiv_segment( const uint64_t & ); */
+/*   void require_indiv_segment( const uint64_t & ); */
+/*   void exclude_indiv_segment( const uint64_t & ); */
 
-  void include_indiv_segment( const std::string & );
-  void require_indiv_segment( const std::string & );
-  void exclude_indiv_segment( const std::string & );
+/*   void include_indiv_segment( const std::string & ); */
+/*   void require_indiv_segment( const std::string & ); */
+/*   void exclude_indiv_segment( const std::string & ); */
   
 
   //
@@ -625,12 +633,25 @@ class Mask {
   void determine_genotype_mask()
     {
       geno_mask = geno_includes() || geno_requires() ;
+      geno_segmask = seg() || rseg() || xseg(); 
+      if ( geno_segmask ) prep_segmask();
     }
   
   bool genotype_mask() const { return geno_mask; }
 
   bool eval( const Genotype & g ) const;
 
+  
+  bool genotype_segmask() const { return geno_segmask; } 
+
+  bool eval_segmask( const int i , const Region & );
+
+  bool in_any_segmask( const Region & var , const std::vector<Region> & segs );
+  
+  bool in_all_segmask( const Region & var , const std::map<int,std::vector<Region> > & segs );
+
+  void prep_segmask();
+  
 
   //
   // Auto-conversion of Null to Reference
@@ -802,6 +823,7 @@ class Mask {
       inddata = true;
 
       in_locset.clear();
+      in_segset.clear();
       in_varset.clear();
       in_refset.clear();
       
@@ -811,10 +833,12 @@ class Mask {
       locset_or_segset.clear();
       
       req_locset.clear();
+      req_segset.clear();
       req_varset.clear();
       req_refset.clear();
 
       ex_locset.clear();
+      ex_segset.clear();
       ex_varset.clear();
       ex_refset.clear();
 
@@ -989,6 +1013,7 @@ class Mask {
   
 
   bool loc() const { return in_locset.size() > 0 ; }
+  bool seg() const { return in_segset.size() > 0 ; } 
   bool var() const { return in_varset.size() > 0 ; }
   bool reg() const { return in_regions.size() > 0 ; }
   
@@ -996,11 +1021,13 @@ class Mask {
   bool loc_set() const { return in_locset_set.size() > 0; }
 
   bool rloc() const { return req_locset.size() > 0; }
+  bool rseg() const { return req_segset.size() > 0; }
   bool rvar() const { return req_varset.size() > 0; }
   bool rreg() const { return req_regions.size() > 0; }
   bool rref() const { return req_refset.size() > 0; }
   
   bool xloc() const { return ex_locset.size() > 0; }
+  bool xseg() const { return ex_segset.size() > 0; }
   bool xvar() const { return ex_varset.size() > 0; }
   bool xreg() const { return ex_regions.size() > 0; }
   bool xref() const { return ex_refset.size() > 0; }
@@ -1290,6 +1317,10 @@ class Mask {
 	merge_ind = true;
 	meta_mask = false;
 	geno_mask = false;
+	geno_segmask = false;
+	segs.clear();
+	req_segs.clear();
+	ex_segs.clear();
 	assume_missing_is_ref = false;
 	genotype_model = GENOTYPE_MODEL_ALLELIC;
 	fixxy_mode = false;
@@ -1362,6 +1393,10 @@ class Mask {
     std::set<int> in_locset;
     std::set<int> req_locset;
     std::set<int> ex_locset;  
+
+    std::set<int> in_segset;
+    std::set<int> req_segset;
+    std::set<int> ex_segset;  
 
     std::set<int> in_varset; 
     std::set<int> req_varset; 
@@ -1588,8 +1623,22 @@ class Mask {
     std::map<std::string,double> req_geno_lt;
     std::map<std::string,double> req_geno_le;
 
+    // filter on GT meta fields
     bool geno_mask;
     
+    // filter GTs on SEGDB (i.e. set to missing potentially)
+    bool geno_segmask;
+
+
+    //
+    // cache for storing all individual segments
+    // (populated in prep_segmask)
+    //
+
+    std::map<int,std::vector<Region> > segs;
+    std::map<int,std::map<int,std::vector<Region> > > req_segs;
+    std::map<int,std::vector<Region> > ex_segs;
+
 
     //
     // VarDB functions

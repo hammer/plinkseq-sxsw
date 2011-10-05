@@ -180,6 +180,7 @@ int main(int argc, char ** argv)
 	<< "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta|OPT:rarelist" 
 	<< "gs-view|views|view gene variants in sequence|GRP"
 	<< "i-view|views|individuals in project/file|VCF|ARG:pheno"
+	<< "seg-view|views|individual segments|ARG:group"
 
 	<< "v-stats|stats|variant statistics|VCF|OPT:counts,gcount,mean,gmean"
 	<< "g-stats|stats|gene-based summary statistics|GRP|OPT:counts,gcount,mean,gmean"
@@ -1108,11 +1109,13 @@ int main(int argc, char ** argv)
 	  {	
 	    std::string ext = s[0].substr( s[0].size() - 4 );
 	    
-	    if ( ext == ".gtf" )	
-	      Pseq::LocDB::load_GTF( s[0], grp[0] , false );
-	    else if ( ext == ".seg" )
+// 	    if ( ext == ".gtf" )	
+// 	      Pseq::LocDB::load_GTF( s[0], grp[0] , false );
+	    
+	    if ( ext == ".seg" )
 	      Pseq::LocDB::load_segments( s[0], grp[0] , options );
-
+	    else
+	      Helper::halt( "expecting a .seg file" );
 	  }
 	
 	Pseq::finished();
@@ -1439,7 +1442,31 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
+    //
+    // Dump individual segments from a SEGDB
+    //
 
+
+    if ( command == "seg-view" )
+      {
+	if ( ! args.has( "group" ) ) 
+	  Helper::halt("requires a locus-group to be specified");
+	std::string grp = args.as_string( "group" );
+	for (int i=0;i<g.indmap.size(); i++)
+	  {
+	    Individual * person = g.indmap(i);
+	    std::cout << *person << "\n";
+	    std::set<Region> s = g.segdb.get_indiv_regions( grp , person->id() );
+	    std::set<Region>::iterator si = s.begin();
+	    while ( si != s.end() ) 
+	      {
+		std::cout << "\t" << *si << "\n";
+		++si;
+	      }
+	  }
+	Pseq::finished();
+      }
+    
     //
     // Breakdown of { 0:1, 1:0 } etc
     //

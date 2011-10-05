@@ -515,14 +515,15 @@ bool IndDBase::load_phenotypes( const std::string & filename )
 
 	  if ( indiv_id == 0 ) 
 	    {
+	      std::string period = ".";
 
 	      sql.bind_text( stmt_insert_individual , ":name" , tok[0] );
-	      sql.bind_text( stmt_insert_individual , ":fid" , "." );
-	      sql.bind_text( stmt_insert_individual , ":fid" , "." );
-	      sql.bind_text( stmt_insert_individual , ":iid" , "." );
-	      sql.bind_text( stmt_insert_individual , ":pat" , "." );
-	      sql.bind_text( stmt_insert_individual , ":mat" , "." );
-	      sql.bind_text( stmt_insert_individual , ":sex" , "." );
+	      sql.bind_text( stmt_insert_individual , ":fid" , period );
+	      sql.bind_text( stmt_insert_individual , ":fid" , period );
+	      sql.bind_text( stmt_insert_individual , ":iid" , period );
+	      sql.bind_text( stmt_insert_individual , ":pat" , period );
+	      sql.bind_text( stmt_insert_individual , ":mat" , period );
+	      sql.bind_text( stmt_insert_individual , ":sex" , period );
 	      
 	      sql.step( stmt_insert_individual );
 	      sql.reset( stmt_insert_individual );

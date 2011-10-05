@@ -20,45 +20,14 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_CXX
 AC_PROG_CC
 
-#
-# Set up protobuf dependency
-# TODO: should we use pkg-config for this instead?
-#
-# AC_ARG_VAR([PROTOBUF_PREFIX], [Path where we can find protobuf. If you installed protobuf by source, this was specified by the --prefix option. 
-# PROTOBUF_PREFIX/lib should contain libprotobuf.so, and PROTOBUF_PREFIX/include should contain a google/ directory. 
-# ])
-
-# if test -n "$PROTOBUF_PREFIX"; then
-# 	CPPFLAGS="-I$PROTOBUF_PREFIX/include $CPPFLAGS "
-# 	LDFLAGS="-L$PROTOBUF_PREFIX/lib $LDFLAGS"
-# 	AC_MSG_WARN([Just set the make vars...........
-# 	
-# 	])
-# fi
-# 
-# AC_CHECK_LIB([protobuf], [main])
-# 
-# have_protobuf=no
-# AC_CHECK_LIB([protobuf], [main], [have_protobuf=yes])
-# 
-# if test "x${have_protobuf}" = xno; then 
-# 	AC_MSG_ERROR([
-# 	-------------------------
-# 	Cannot find protobuf. Protobuf version 2.3.0 is required (both header and library files). 
-# 	
-# 	You can install protobuf via your system's package manager, or build and install it from source. 
-# 	If you build from source, configure PLINK/SEQ with the PROTOBUF_PREFIX option set to 
-# 	the directory where protobuf was installed, like this: 
-# 		
-# 		./configure PROTOBUF_PREFIX=/path/to/protobuf/prefix/
-# 	
-# 	-------------------------
-# 	])
-# fi
+# UPDATE: removed pkgconfig dependency
+# note that we use pkgconfig to find protobuf, but not the other libraries.
 PKG_PROG_PKG_CONFIG
-PKG_CHECK_MODULES([protobuf], [protobuf])
+PKG_CHECK_MODULES([PROTOBUF], [protobuf = 2.3.0]) 
 
 # Check for other libraries
+# TODO: do we really need dl and pthread? 
+# I need to explore how these are really used in our code
 AC_CHECK_LIB([dl], [main])
 AC_CHECK_LIB([pthread], [main])
 AC_CHECK_LIB([z], [main])

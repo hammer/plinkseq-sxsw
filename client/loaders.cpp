@@ -253,7 +253,10 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
 
 bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq::Util::Options & options )
 {
-  
+
+  if ( ! g.segdb.attached() ) 
+    Helper::halt( "no SEGDB attached" );
+
   // Format for ".seg" file as follows
   
   // HEADER 

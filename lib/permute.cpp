@@ -327,20 +327,30 @@ bool Permute::score( const std::vector<double> & v )
 	}
     }
   
+  
+  // are we all done here? 
+  
+  // are we done yet? ( return T if more to do) 
+
+  if ( adaptive_perm ) 
+    {
+      if ( performed % interval == 0 && adaptively_finished() ) return false;
+    }
+  else
+    {
+      if ( performed == nrep ) return false;
+    }
+  
+
+  // If still here, more to do...
 
   ++performed;
-  
+
   // permute before next round
   
   permute();
   
-  // are we done yet? ( return T if more to do) 
-
-  if ( adaptive_perm && performed % interval == 0 ) 
-    return ! adaptively_finished();
-  
-  return performed < nrep;
-
+  return true;
 }
 
 
@@ -371,14 +381,14 @@ std::vector<double> Permute::pvalue() const
 // Minimum pseudo-p obtained under null
 double Permute::min_pvalue(const int i) const
 {
-  return (double)(mintie[i]+1) / (double)(performed+1);
+  return (double)(mintie[i]) / (double)(performed);
 }
 
 std::vector<double> Permute::min_pvalue() const
 {
   vector<double> x( nstats, 0 );
   for (int i=0; i<nstats; i++) 
-    x[i] = (double)(mintie[i]+1) / (double)(performed+1);
+    x[i] = (double)(mintie[i]) / (double)(performed);
   return x;
 }
 

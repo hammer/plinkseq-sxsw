@@ -94,8 +94,7 @@ class Variant {
   /// Return a 'chr1:12345' type string
   std::string coordinate() const { return Helper::coordinate( chr, bp, bp2 ); } 
 
-
-
+  
   //
   // Primary workhorse functions
   //

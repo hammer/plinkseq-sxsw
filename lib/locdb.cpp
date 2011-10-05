@@ -99,7 +99,7 @@ bool LocDBase::attach( const std::string & n )
 	    "   loc_id   INTEGER NOT NULL  ); " );
   
   sql.query(" CREATE TABLE IF NOT EXISTS individuals("
-            "   indiv_id INTEGER NOT NULL , "
+            "   indiv_id INTEGER PRIMARY KEY , "
 	    "   name     VARCHAR(20) NOT NULL , "
             " CONSTRAINT uniqID UNIQUE ( name ) ); " );
 
@@ -467,12 +467,11 @@ bool LocDBase::init()
 
   stmt_insert_segment =
     sql.prepare( "INSERT OR REPLACE INTO segments ( loc_id , indiv_id ) values ( :loc_id , :indiv_id ) ; " );
-  
+
   stmt_fetch_segment =
-    sql.prepare( "SELECT * FROM loci WHERE loc_id IN "
+    sql.prepare( "SELECT * FROM loci WHERE group_id == :group_id AND loc_id IN "
 		 " ( SELECT loc_id FROM segments "
-		 "    WHERE group_id == :group_id "
-		 "      AND indiv_id == :indid_id ) ; " );
+		 "      WHERE indiv_id == :indiv_id ) ; " );
   
 }
 
@@ -917,7 +916,7 @@ bool LocDBase::range_insertion(const Region & region , uint64_t indiv_id )
   insertMeta( stmt_loc_meta_insert , region.meta, loc_id );
 
   // Individual information ?
-  
+
   if ( indiv_id )
     {
       sql.bind_int64( stmt_insert_segment , ":loc_id" , loc_id );
@@ -1387,7 +1386,8 @@ uint64_t LocDBase::load_regions( const std::string & filename,
 		name , 
 		(int)group_id ); 
 
-      
+
+
       ////////////////////
       // Sub-regions
       
@@ -1439,7 +1439,10 @@ uint64_t LocDBase::load_regions( const std::string & filename,
       ///////////////////////////
       // Add region to database
       
-      range_insertion(r);
+      if ( individuals ) 
+	range_insertion( r , insert_indiv( buffer[ col_indiv ] ) );
+      else 
+	range_insertion(r);
 
       ++inserted;
 
@@ -1610,19 +1613,25 @@ std::set<Region> LocDBase::get_regions(uint64_t gid)
 
 uint64_t LocDBase::insert_indiv( const std::string & indiv_id )
 {
+  if ( indmap.find( indiv_id ) != indmap.end() ) return indmap[ indiv_id ];
   sql.bind_text( stmt_insert_indiv , ":name", indiv_id );
   sql.step( stmt_insert_indiv );
   sql.reset( stmt_insert_indiv );
-  return 0;
+  uint64_t i = lookup_indiv_id( indiv_id ); 
+  indmap[ indiv_id ] = i;
+  return i;
 }
 
-uint64_t LocDBase::lookup_indiv_id( const std::string & name ) 
+uint64_t LocDBase::lookup_indiv_id( const std::string & indiv_id ) 
 {
+  
+  if ( indmap.find( indiv_id ) != indmap.end() ) return indmap[ indiv_id ];  
   uint64_t i = 0;
-  sql.bind_text( stmt_lookup_indiv_id , ":name" , name );
-  while ( sql.step( stmt_lookup_indiv_id ) )
+  sql.bind_text( stmt_lookup_indiv_id , ":name" , indiv_id );
+  if ( sql.step( stmt_lookup_indiv_id ) ) 
     i = sql.get_int64( stmt_lookup_indiv_id, 0 );
   sql.reset( stmt_lookup_indiv_id );
+  indmap[ indiv_id ] = i;
   return i;
 }
 
@@ -1633,17 +1642,20 @@ void LocDBase::insert_segment( const std::string & indiv_id , Region & segment )
 }
 
 
-
 std::set<Region> LocDBase::get_indiv_regions( const std::string & group , const std::string & person )
 {
-  std::set<Region> segs;
-  
   uint64_t grp_id = lookup_group_id( group );
+  return get_indiv_regions( grp_id , person );
+}
+
+std::set<Region> LocDBase::get_indiv_regions( const uint64_t grp_id , const std::string & person )
+{
+  std::set<Region> segs;
   if ( grp_id == 0 ) return segs;
-  
+
   uint64_t ind_id = lookup_indiv_id( person );
   if ( ind_id == 0 ) return segs;
-  
+
   return get_indiv_regions( grp_id , ind_id );
 
 }
@@ -1652,8 +1664,6 @@ std::set<Region> LocDBase::get_indiv_regions( uint64_t group_id , uint64_t indiv
 {
   
   std::set<Region> segments;
-  
-  sql.begin();
   
   sql.bind_int64( stmt_fetch_segment , ":group_id" , group_id );
   sql.bind_int64( stmt_fetch_segment , ":indiv_id" , indiv_id );
@@ -2003,7 +2013,7 @@ void LocDBase::load_alias( const std::string & filename )
       // convert 'n/a' to missing
 
       for (int i=0; i<coln; i++)	  
-	if ( buffer[i] == "n/a" || buffer[i] == "N/A" ) 
+	if ( buffer[i] == "." || buffer[i] == "n/a" || buffer[i] == "N/A" ) 
 	  buffer[i] = "";
       
       ++inserted;

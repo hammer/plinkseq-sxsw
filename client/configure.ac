@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.61)
 AC_INIT([plinkseq-client], [0.07], [brettpthomas@gmail.com])
-AM_INIT_AUTOMAKE([-Wall -Werror silent-rules foreign])
+AM_INIT_AUTOMAKE([-Wall silent-rules foreign])
 LT_PREREQ([2.2])
 LT_INIT([])
 
@@ -18,6 +18,11 @@ AC_CONFIG_HEADER([config.h])
 # (compilers)
 AC_PROG_CXX
 AC_PROG_CC
+
+# TODO: we should be able to remove this dependency, but library headers reference protobuf headers. 
+# need to set up public headers for the library 
+#PKG_PROG_PKG_CONFIG
+#PKG_CHECK_MODULES([PROTOBUF], [protobuf = 2.3.0])
 
 # Checks for header files.
 # TODO: need to run autoscan and fill this out

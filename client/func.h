@@ -293,7 +293,7 @@ namespace Pseq
 	  {
 	    std::map<std::string,std::set<opt_t> >::iterator i = comm2opt.find( command );
 	    std::string s = "";
-	    while ( i != comm2opt.end() )
+	    if ( i != comm2opt.end() )
 	      {
 		std::set<opt_t>::iterator j = i->second.begin();
 		while ( j != i->second.end() )
@@ -301,7 +301,6 @@ namespace Pseq
 		    s += "OPT\t" + i->first + "\t" + j->name + "\t" + j->type + "\n";
 		    ++j;
 		  }      
-		++i;
 	      }
 	    return s;
 	  }

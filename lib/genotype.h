@@ -227,7 +227,7 @@ class Genotype {
   bool alternate_homozyote() const
   {
     if ( ploidy !=2 || is_null ) return false;
-    return allele1 != 0 && allele2 != 0; 
+    return allele1 && allele2;
   }
   
   bool reference() const
@@ -241,16 +241,16 @@ class Genotype {
   bool minor_allele( const bool reference_is_major ) const
   {
     if ( is_null || ploidy == 0 ) return false;
-    if ( ploidy == 1 ) return reference_is_major ? allele1 : allele1 != 0;
-    return reference_is_major ? allele1 || allele2 : allele1 != 0 || allele2 != 0;
+    if ( ploidy == 1 ) return reference_is_major ? allele1 : allele1 == 0;
+    return reference_is_major ? allele1 || allele2 : allele1 == 0 || allele2 == 0;
   }
   
   // number of minor alleles
   int minor_allele_count( const bool reference_is_major ) const 
   {
     if ( is_null || ploidy == 0 ) return 0;
-    if ( ploidy ==1 ) return reference_is_major ? allele1 : allele1 != 0;
-    return reference_is_major ? allele1 + allele2 : allele1 != 0 + allele2 != 0; 
+    if ( ploidy ==1 ) return reference_is_major ? allele1 : allele1 == 0;
+    return reference_is_major ? allele1 + allele2 : ( allele1 == 0 ) + ( allele2 == 0 ); 
   }
   
   // given we have na total alleles in the population, return a vector of counts for each allele

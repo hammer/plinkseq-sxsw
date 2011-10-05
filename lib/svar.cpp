@@ -1315,10 +1315,32 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	}
     }
   
-
   
   //
-  // 2). mask 'geno' conditions -- i.e. determineing whether to zero-out specific genotypes
+  // 2) mask any per-individual segments
+  //
+
+
+  if ( mask && mask->genotype_segmask() ) 
+    {
+
+      Region vreg( *parent );
+
+      for ( unsigned int i = 0 ; i < n_var ; i++ )
+	{
+	  if ( ! mask->eval_segmask( i , vreg ) )
+	    {
+	      target->calls.genotype(i).null( true );
+	    }
+	  else
+	    {
+	      std::cout << "keeping " << i << " " << *parent << " " << GP->indmap(i)->id() << "\n";
+	    }
+	}
+    }
+  
+  //
+  // 3). mask 'geno' conditions -- i.e. determineing whether to zero-out specific genotypes
   // because they meet/fail to meet certain criteria, e.g. geno=DP:ge:10
   //
   

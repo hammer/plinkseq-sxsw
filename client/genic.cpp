@@ -1,5 +1,7 @@
 #include "genic.h"
 
+#include <iostream>
+
 extern GStore g;
 
 void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )  
@@ -70,8 +72,10 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
       if ( aff == CASE || aff == CONTROL ) aux->n_t++;
       
       for (int v=0; v<vars.size(); v++ )
-	if ( ! vars.geno(v,i).null() && vars.geno(v,i).minor_allele( aux->refmin.find(v) == aux->refmin.end() ) )
-	  aux->carriers[i].insert( v );		  	  
+	{
+	  if ( ( ! vars.geno(v,i).null() ) && vars.geno(v,i).minor_allele( aux->refmin.find(v) == aux->refmin.end() ) )
+	    aux->carriers[i].insert( v );		  	  	      
+	}
     }
 }
 
@@ -92,50 +96,56 @@ double Pseq::Assoc::stat_calpha( const VariantGroup & vars ,
   
   std::vector<int> y( vars.size() , 0);
   std::vector<int> n( vars.size() , 0);
-  std::map<int, std::set<int> >::iterator i1 = pre->carriers.begin();
+  std::map<int, std::set<int> >::iterator i1 = pre->carriers.begin();  
   
   while ( i1 != pre->carriers.end() )
     {
       int j = g.perm.pos(  i1->first  );
       affType aff = vars.ind( j )->affected();
-	  
+      
       std::set<int>::iterator k = i1->second.begin();
       while ( k != i1->second.end() )
 	{
-	  if ( aff == CASE ) y[ *k ]++;
-	  n[ *k ]++;	      
+	  const int ac = vars.geno(*k,j).minor_allele_count( pre->refmin.find(*k) == pre->refmin.end() ) ;
+	  if ( aff == CASE ) y[ *k ] += ac ;
+	  n[ *k ] += ac ;	      
 	  ++k;
 	}
       ++i1;
     }
   
+
   double score = 0;
   
   for (int i = 0 ; i < vars.size(); i++ )
-    {          
+    {                
       double t = y[i] - n[i] * aux->p_a;
       t *= t;
-      score += t - n[i] * aux->p_ap_u;
+      score += t - n[i] * aux->p_ap_u;     
     }
   
 
   if ( original ) 
     {
       // calculate denominator only once
-
+      
       for (int m = pre->minm ; m <= pre->maxm ; m++ )
 	{
 	  double t = 0;
+	  
+	  if ( pre->mc[m] == 0 ) continue;
 	  for ( int u = 0 ; u <= m ; u++ )
-	    {
+	    {	      
 	      double s = ( u - m * aux->p_a );
 	      s *= s;
 	      s -= m * aux->p_ap_u;
 	      s *= s; 	      
-	      s *= Statistics::dbinom( u , m , aux->p_a );
+	      s *= Statistics::dbinom( u , m , aux->p_a );	      
 	      t += s;
 	    }	      
+	  
 	  aux->variance += pre->mc[m] * t;
+	  
 	}
     }
 

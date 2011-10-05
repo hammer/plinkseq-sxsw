@@ -585,27 +585,17 @@ class VariantBuffer : public ::google::protobuf::Message {
   inline void set_alt(const char* value, size_t size);
   inline ::std::string* mutable_alt();
   
-  // optional string strand = 3;
-  inline bool has_strand() const;
-  inline void clear_strand();
-  static const int kStrandFieldNumber = 3;
-  inline const ::std::string& strand() const;
-  inline void set_strand(const ::std::string& value);
-  inline void set_strand(const char* value);
-  inline void set_strand(const char* value, size_t size);
-  inline ::std::string* mutable_strand();
-  
-  // optional double quality = 4;
+  // optional double quality = 3;
   inline bool has_quality() const;
   inline void clear_quality();
-  static const int kQualityFieldNumber = 4;
+  static const int kQualityFieldNumber = 3;
   inline double quality() const;
   inline void set_quality(double value);
   
-  // repeated string filter = 5;
+  // repeated string filter = 4;
   inline int filter_size() const;
   inline void clear_filter();
-  static const int kFilterFieldNumber = 5;
+  static const int kFilterFieldNumber = 4;
   inline const ::std::string& filter(int index) const;
   inline ::std::string* mutable_filter(int index);
   inline void set_filter(int index, const ::std::string& value);
@@ -627,15 +617,13 @@ class VariantBuffer : public ::google::protobuf::Message {
   static const ::std::string _default_ref_;
   ::std::string* alt_;
   static const ::std::string _default_alt_;
-  ::std::string* strand_;
-  static const ::std::string _default_strand_;
   double quality_;
   ::google::protobuf::RepeatedPtrField< ::std::string> filter_;
   friend void  protobuf_AddDesc_variant_2eproto();
   friend void protobuf_AssignDesc_variant_2eproto();
   friend void protobuf_ShutdownFile_variant_2eproto();
   
-  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
   
   // WHY DOES & HAVE LOWER PRECEDENCE THAN != !?
   inline bool _has_bit(int index) const {
@@ -1496,65 +1484,23 @@ inline ::std::string* VariantBuffer::mutable_alt() {
   return alt_;
 }
 
-// optional string strand = 3;
-inline bool VariantBuffer::has_strand() const {
-  return _has_bit(2);
-}
-inline void VariantBuffer::clear_strand() {
-  if (strand_ != &_default_strand_) {
-    strand_->clear();
-  }
-  _clear_bit(2);
-}
-inline const ::std::string& VariantBuffer::strand() const {
-  return *strand_;
-}
-inline void VariantBuffer::set_strand(const ::std::string& value) {
-  _set_bit(2);
-  if (strand_ == &_default_strand_) {
-    strand_ = new ::std::string;
-  }
-  strand_->assign(value);
-}
-inline void VariantBuffer::set_strand(const char* value) {
-  _set_bit(2);
-  if (strand_ == &_default_strand_) {
-    strand_ = new ::std::string;
-  }
-  strand_->assign(value);
-}
-inline void VariantBuffer::set_strand(const char* value, size_t size) {
-  _set_bit(2);
-  if (strand_ == &_default_strand_) {
-    strand_ = new ::std::string;
-  }
-  strand_->assign(reinterpret_cast<const char*>(value), size);
-}
-inline ::std::string* VariantBuffer::mutable_strand() {
-  _set_bit(2);
-  if (strand_ == &_default_strand_) {
-    strand_ = new ::std::string;
-  }
-  return strand_;
-}
-
-// optional double quality = 4;
+// optional double quality = 3;
 inline bool VariantBuffer::has_quality() const {
-  return _has_bit(3);
+  return _has_bit(2);
 }
 inline void VariantBuffer::clear_quality() {
   quality_ = 0;
-  _clear_bit(3);
+  _clear_bit(2);
 }
 inline double VariantBuffer::quality() const {
   return quality_;
 }
 inline void VariantBuffer::set_quality(double value) {
-  _set_bit(3);
+  _set_bit(2);
   quality_ = value;
 }
 
-// repeated string filter = 5;
+// repeated string filter = 4;
 inline int VariantBuffer::filter_size() const {
   return filter_.size();
 }
