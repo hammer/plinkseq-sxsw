@@ -2,6 +2,9 @@
 
 #define INTERNAL_SUPPRESS_PROTOBUF_FIELD_DEPRECATION
 #include "variant.pb.h"
+
+#include <algorithm>
+
 #include <google/protobuf/stubs/once.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format_lite_inl.h>
@@ -274,7 +277,6 @@ const VariantMetaUnit_Type VariantMetaUnit::Type_MIN;
 const VariantMetaUnit_Type VariantMetaUnit::Type_MAX;
 const int VariantMetaUnit::Type_ARRAYSIZE;
 #endif  // _MSC_VER
-const ::std::string VariantMetaUnit::_default_name_;
 #ifndef _MSC_VER
 const int VariantMetaUnit::kTypeFieldNumber;
 const int VariantMetaUnit::kNameFieldNumber;
@@ -301,7 +303,7 @@ VariantMetaUnit::VariantMetaUnit(const VariantMetaUnit& from)
 void VariantMetaUnit::SharedCtor() {
   _cached_size_ = 0;
   type_ = 1;
-  name_ = const_cast< ::std::string*>(&_default_name_);
+  name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -310,7 +312,7 @@ VariantMetaUnit::~VariantMetaUnit() {
 }
 
 void VariantMetaUnit::SharedDtor() {
-  if (name_ != &_default_name_) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
     delete name_;
   }
   if (this != default_instance_) {
@@ -340,8 +342,8 @@ VariantMetaUnit* VariantMetaUnit::New() const {
 void VariantMetaUnit::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     type_ = 1;
-    if (_has_bit(1)) {
-      if (name_ != &_default_name_) {
+    if (has_name()) {
+      if (name_ != &::google::protobuf::internal::kEmptyString) {
         name_->clear();
       }
     }
@@ -497,13 +499,13 @@ bool VariantMetaUnit::MergePartialFromCodedStream(
 void VariantMetaUnit::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // required .VariantMetaUnit.Type type = 1;
-  if (_has_bit(0)) {
+  if (has_type()) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       1, this->type(), output);
   }
   
   // required string name = 2;
-  if (_has_bit(1)) {
+  if (has_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->name().data(), this->name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -559,13 +561,13 @@ void VariantMetaUnit::SerializeWithCachedSizes(
 ::google::protobuf::uint8* VariantMetaUnit::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
   // required .VariantMetaUnit.Type type = 1;
-  if (_has_bit(0)) {
+  if (has_type()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       1, this->type(), target);
   }
   
   // required string name = 2;
-  if (_has_bit(1)) {
+  if (has_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->name().data(), this->name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -726,10 +728,10 @@ void VariantMetaUnit::MergeFrom(const VariantMetaUnit& from) {
   string_value_.MergeFrom(from.string_value_);
   bool_value_.MergeFrom(from.bool_value_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from._has_bit(0)) {
+    if (from.has_type()) {
       set_type(from.type());
     }
-    if (from._has_bit(1)) {
+    if (from.has_name()) {
       set_name(from.name());
     }
   }
@@ -804,7 +806,6 @@ const GenotypeMetaUnit_Type GenotypeMetaUnit::Type_MIN;
 const GenotypeMetaUnit_Type GenotypeMetaUnit::Type_MAX;
 const int GenotypeMetaUnit::Type_ARRAYSIZE;
 #endif  // _MSC_VER
-const ::std::string GenotypeMetaUnit::_default_name_;
 #ifndef _MSC_VER
 const int GenotypeMetaUnit::kTypeFieldNumber;
 const int GenotypeMetaUnit::kNameFieldNumber;
@@ -836,7 +837,7 @@ GenotypeMetaUnit::GenotypeMetaUnit(const GenotypeMetaUnit& from)
 void GenotypeMetaUnit::SharedCtor() {
   _cached_size_ = 0;
   type_ = 1;
-  name_ = const_cast< ::std::string*>(&_default_name_);
+  name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   fixed_len_ = 0;
   fixed_indiv_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -847,7 +848,7 @@ GenotypeMetaUnit::~GenotypeMetaUnit() {
 }
 
 void GenotypeMetaUnit::SharedDtor() {
-  if (name_ != &_default_name_) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
     delete name_;
   }
   if (this != default_instance_) {
@@ -877,8 +878,8 @@ GenotypeMetaUnit* GenotypeMetaUnit::New() const {
 void GenotypeMetaUnit::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     type_ = 1;
-    if (_has_bit(1)) {
-      if (name_ != &_default_name_) {
+    if (has_name()) {
+      if (name_ != &::google::protobuf::internal::kEmptyString) {
         name_->clear();
       }
     }
@@ -949,7 +950,7 @@ bool GenotypeMetaUnit::MergePartialFromCodedStream(
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
                  input, &fixed_len_)));
-          _set_bit(2);
+          set_has_fixed_len();
         } else {
           goto handle_uninterpreted;
         }
@@ -1067,7 +1068,7 @@ bool GenotypeMetaUnit::MergePartialFromCodedStream(
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
                  input, &fixed_indiv_)));
-          _set_bit(8);
+          set_has_fixed_indiv();
         } else {
           goto handle_uninterpreted;
         }
@@ -1136,13 +1137,13 @@ bool GenotypeMetaUnit::MergePartialFromCodedStream(
 void GenotypeMetaUnit::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // required .GenotypeMetaUnit.Type type = 1;
-  if (_has_bit(0)) {
+  if (has_type()) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       1, this->type(), output);
   }
   
   // required string name = 2;
-  if (_has_bit(1)) {
+  if (has_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->name().data(), this->name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -1151,7 +1152,7 @@ void GenotypeMetaUnit::SerializeWithCachedSizes(
   }
   
   // optional int32 fixed_len = 3;
-  if (_has_bit(2)) {
+  if (has_fixed_len()) {
     ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->fixed_len(), output);
   }
   
@@ -1205,7 +1206,7 @@ void GenotypeMetaUnit::SerializeWithCachedSizes(
   }
   
   // optional int32 fixed_indiv = 9;
-  if (_has_bit(8)) {
+  if (has_fixed_indiv()) {
     ::google::protobuf::internal::WireFormatLite::WriteInt32(9, this->fixed_indiv(), output);
   }
   
@@ -1238,13 +1239,13 @@ void GenotypeMetaUnit::SerializeWithCachedSizes(
 ::google::protobuf::uint8* GenotypeMetaUnit::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
   // required .GenotypeMetaUnit.Type type = 1;
-  if (_has_bit(0)) {
+  if (has_type()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       1, this->type(), target);
   }
   
   // required string name = 2;
-  if (_has_bit(1)) {
+  if (has_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->name().data(), this->name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -1254,7 +1255,7 @@ void GenotypeMetaUnit::SerializeWithCachedSizes(
   }
   
   // optional int32 fixed_len = 3;
-  if (_has_bit(2)) {
+  if (has_fixed_len()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->fixed_len(), target);
   }
   
@@ -1324,7 +1325,7 @@ void GenotypeMetaUnit::SerializeWithCachedSizes(
   }
   
   // optional int32 fixed_indiv = 9;
-  if (_has_bit(8)) {
+  if (has_fixed_indiv()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(9, this->fixed_indiv(), target);
   }
   
@@ -1521,18 +1522,18 @@ void GenotypeMetaUnit::MergeFrom(const GenotypeMetaUnit& from) {
   indiv_index_.MergeFrom(from.indiv_index_);
   missing_index_.MergeFrom(from.missing_index_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from._has_bit(0)) {
+    if (from.has_type()) {
       set_type(from.type());
     }
-    if (from._has_bit(1)) {
+    if (from.has_name()) {
       set_name(from.name());
     }
-    if (from._has_bit(2)) {
+    if (from.has_fixed_len()) {
       set_fixed_len(from.fixed_len());
     }
   }
   if (from._has_bits_[8 / 32] & (0xffu << (8 % 32))) {
-    if (from._has_bit(8)) {
+    if (from.has_fixed_indiv()) {
       set_fixed_indiv(from.fixed_indiv());
     }
   }
@@ -1587,8 +1588,6 @@ void GenotypeMetaUnit::Swap(GenotypeMetaUnit* other) {
 
 // ===================================================================
 
-const ::std::string VariantBuffer::_default_ref_;
-const ::std::string VariantBuffer::_default_alt_;
 #ifndef _MSC_VER
 const int VariantBuffer::kRefFieldNumber;
 const int VariantBuffer::kAltFieldNumber;
@@ -1612,8 +1611,8 @@ VariantBuffer::VariantBuffer(const VariantBuffer& from)
 
 void VariantBuffer::SharedCtor() {
   _cached_size_ = 0;
-  ref_ = const_cast< ::std::string*>(&_default_ref_);
-  alt_ = const_cast< ::std::string*>(&_default_alt_);
+  ref_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  alt_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   quality_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -1623,10 +1622,10 @@ VariantBuffer::~VariantBuffer() {
 }
 
 void VariantBuffer::SharedDtor() {
-  if (ref_ != &_default_ref_) {
+  if (ref_ != &::google::protobuf::internal::kEmptyString) {
     delete ref_;
   }
-  if (alt_ != &_default_alt_) {
+  if (alt_ != &::google::protobuf::internal::kEmptyString) {
     delete alt_;
   }
   if (this != default_instance_) {
@@ -1655,13 +1654,13 @@ VariantBuffer* VariantBuffer::New() const {
 
 void VariantBuffer::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (_has_bit(0)) {
-      if (ref_ != &_default_ref_) {
+    if (has_ref()) {
+      if (ref_ != &::google::protobuf::internal::kEmptyString) {
         ref_->clear();
       }
     }
-    if (_has_bit(1)) {
-      if (alt_ != &_default_alt_) {
+    if (has_alt()) {
+      if (alt_ != &::google::protobuf::internal::kEmptyString) {
         alt_->clear();
       }
     }
@@ -1719,7 +1718,7 @@ bool VariantBuffer::MergePartialFromCodedStream(
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    double, ::google::protobuf::internal::WireFormatLite::TYPE_DOUBLE>(
                  input, &quality_)));
-          _set_bit(2);
+          set_has_quality();
         } else {
           goto handle_uninterpreted;
         }
@@ -1764,7 +1763,7 @@ bool VariantBuffer::MergePartialFromCodedStream(
 void VariantBuffer::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // optional string ref = 1;
-  if (_has_bit(0)) {
+  if (has_ref()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->ref().data(), this->ref().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -1773,7 +1772,7 @@ void VariantBuffer::SerializeWithCachedSizes(
   }
   
   // optional string alt = 2;
-  if (_has_bit(1)) {
+  if (has_alt()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->alt().data(), this->alt().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -1782,7 +1781,7 @@ void VariantBuffer::SerializeWithCachedSizes(
   }
   
   // optional double quality = 3;
-  if (_has_bit(2)) {
+  if (has_quality()) {
     ::google::protobuf::internal::WireFormatLite::WriteDouble(3, this->quality(), output);
   }
   
@@ -1804,7 +1803,7 @@ void VariantBuffer::SerializeWithCachedSizes(
 ::google::protobuf::uint8* VariantBuffer::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
   // optional string ref = 1;
-  if (_has_bit(0)) {
+  if (has_ref()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->ref().data(), this->ref().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -1814,7 +1813,7 @@ void VariantBuffer::SerializeWithCachedSizes(
   }
   
   // optional string alt = 2;
-  if (_has_bit(1)) {
+  if (has_alt()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->alt().data(), this->alt().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -1824,7 +1823,7 @@ void VariantBuffer::SerializeWithCachedSizes(
   }
   
   // optional double quality = 3;
-  if (_has_bit(2)) {
+  if (has_quality()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteDoubleToArray(3, this->quality(), target);
   }
   
@@ -1902,13 +1901,13 @@ void VariantBuffer::MergeFrom(const VariantBuffer& from) {
   GOOGLE_CHECK_NE(&from, this);
   filter_.MergeFrom(from.filter_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from._has_bit(0)) {
+    if (from.has_ref()) {
       set_ref(from.ref());
     }
-    if (from._has_bit(1)) {
+    if (from.has_alt()) {
       set_alt(from.alt());
     }
-    if (from._has_bit(2)) {
+    if (from.has_quality()) {
       set_quality(from.quality());
     }
   }

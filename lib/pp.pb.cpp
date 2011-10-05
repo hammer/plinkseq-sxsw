@@ -2,6 +2,9 @@
 
 #define INTERNAL_SUPPRESS_PROTOBUF_FIELD_DEPRECATION
 #include "pp.pb.h"
+
+#include <algorithm>
+
 #include <google/protobuf/stubs/once.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format_lite_inl.h>
@@ -127,8 +130,6 @@ const PolyPhen2Buffer_pred_t PolyPhen2Buffer::pred_t_MIN;
 const PolyPhen2Buffer_pred_t PolyPhen2Buffer::pred_t_MAX;
 const int PolyPhen2Buffer::pred_t_ARRAYSIZE;
 #endif  // _MSC_VER
-const ::std::string PolyPhen2Buffer::_default_transcript_name_;
-const ::std::string PolyPhen2Buffer::_default_protein_name_;
 #ifndef _MSC_VER
 const int PolyPhen2Buffer::kTranscriptNameFieldNumber;
 const int PolyPhen2Buffer::kProteinNameFieldNumber;
@@ -155,8 +156,8 @@ PolyPhen2Buffer::PolyPhen2Buffer(const PolyPhen2Buffer& from)
 
 void PolyPhen2Buffer::SharedCtor() {
   _cached_size_ = 0;
-  transcript_name_ = const_cast< ::std::string*>(&_default_transcript_name_);
-  protein_name_ = const_cast< ::std::string*>(&_default_protein_name_);
+  transcript_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  protein_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -165,10 +166,10 @@ PolyPhen2Buffer::~PolyPhen2Buffer() {
 }
 
 void PolyPhen2Buffer::SharedDtor() {
-  if (transcript_name_ != &_default_transcript_name_) {
+  if (transcript_name_ != &::google::protobuf::internal::kEmptyString) {
     delete transcript_name_;
   }
-  if (protein_name_ != &_default_protein_name_) {
+  if (protein_name_ != &::google::protobuf::internal::kEmptyString) {
     delete protein_name_;
   }
   if (this != default_instance_) {
@@ -197,13 +198,13 @@ PolyPhen2Buffer* PolyPhen2Buffer::New() const {
 
 void PolyPhen2Buffer::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (_has_bit(0)) {
-      if (transcript_name_ != &_default_transcript_name_) {
+    if (has_transcript_name()) {
+      if (transcript_name_ != &::google::protobuf::internal::kEmptyString) {
         transcript_name_->clear();
       }
     }
-    if (_has_bit(1)) {
-      if (protein_name_ != &_default_protein_name_) {
+    if (has_protein_name()) {
+      if (protein_name_ != &::google::protobuf::internal::kEmptyString) {
         protein_name_->clear();
       }
     }
@@ -390,7 +391,7 @@ bool PolyPhen2Buffer::MergePartialFromCodedStream(
 void PolyPhen2Buffer::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // required string transcript_name = 1;
-  if (_has_bit(0)) {
+  if (has_transcript_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->transcript_name().data(), this->transcript_name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -399,7 +400,7 @@ void PolyPhen2Buffer::SerializeWithCachedSizes(
   }
   
   // required string protein_name = 2;
-  if (_has_bit(1)) {
+  if (has_protein_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->protein_name().data(), this->protein_name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -467,7 +468,7 @@ void PolyPhen2Buffer::SerializeWithCachedSizes(
 ::google::protobuf::uint8* PolyPhen2Buffer::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
   // required string transcript_name = 1;
-  if (_has_bit(0)) {
+  if (has_transcript_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->transcript_name().data(), this->transcript_name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -477,7 +478,7 @@ void PolyPhen2Buffer::SerializeWithCachedSizes(
   }
   
   // required string protein_name = 2;
-  if (_has_bit(1)) {
+  if (has_protein_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
       this->protein_name().data(), this->protein_name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
@@ -658,10 +659,10 @@ void PolyPhen2Buffer::MergeFrom(const PolyPhen2Buffer& from) {
   score_.MergeFrom(from.score_);
   prediction_.MergeFrom(from.prediction_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from._has_bit(0)) {
+    if (from.has_transcript_name()) {
       set_transcript_name(from.transcript_name());
     }
-    if (from._has_bit(1)) {
+    if (from.has_protein_name()) {
       set_protein_name(from.protein_name());
     }
   }

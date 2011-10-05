@@ -23,7 +23,7 @@ AC_PROG_CC
 # UPDATE: removed pkgconfig dependency
 # note that we use pkgconfig to find protobuf, but not the other libraries.
 PKG_PROG_PKG_CONFIG
-PKG_CHECK_MODULES([PROTOBUF], [protobuf = 2.3.0]) 
+PKG_CHECK_MODULES([PROTOBUF], [protobuf = 2.4.1]) 
 
 # Check for other libraries
 # TODO: do we really need dl and pthread? 
