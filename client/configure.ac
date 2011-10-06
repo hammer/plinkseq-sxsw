@@ -22,7 +22,7 @@ AC_PROG_CC
 # TODO: we should be able to remove this dependency, but library headers reference protobuf headers. 
 # need to set up public headers for the library 
 #PKG_PROG_PKG_CONFIG
-#PKG_CHECK_MODULES([PROTOBUF], [protobuf = 2.3.0])
+#PKG_CHECK_MODULES([PROTOBUF], [protobuf = 2.4.1])
 
 # Checks for header files.
 # TODO: need to run autoscan and fill this out
