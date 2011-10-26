@@ -488,6 +488,72 @@ void f_view_gene_matrix( VariantGroup & vars , void * p )
 }
 
 
+
+void f_view_gene_meta_matrix( VariantGroup & vars , void * p )
+{
+  
+  
+  // Output a region x individual matrix in which a genotype-level meta-field
+  // is summarised for each individual across the region
+  
+  OptGMetaMatrix * opt = (OptGMetaMatrix*)p;
+  
+  // for each gene
+  
+  const int nv = vars.size();
+  
+  bool valid = true;
+  
+  // for now, just assume mean.. 
+
+  if ( ! opt->show_mean ) Helper::halt("only mean option enabled for now");
+  
+  std::string s = vars.name() + "\t" + Helper::int2str( nv );  
+  
+  bool variation = false;
+  const int ni = vars.n_individuals();
+  
+  for (int i = 0 ; i < ni ; i++)
+    {
+
+      bool valid = false;
+
+      double numer = 0 , denom = 0;
+      int cnt = 0;
+      
+      for (int v = 0 ; v < nv ; v++)
+	{	  
+	  if ( vars.geno(v,i).meta.has_field( opt->name ) )
+	    {
+	      valid = true;
+	      ++denom;
+	      numer += vars.geno(v,i).meta.get1_int( opt->name ) ;
+	    }
+	}
+      
+
+      /// Calculate 
+
+      double value = 0;
+
+      if ( opt->show_mean && valid ) 
+	value = numer / denom; 
+      
+      /// Display 
+      
+      if ( valid ) 
+ 	s += "\t" + Helper::dbl2str( value ) ;
+      // 	s += "\t" + ( opt->show_mean || opt->show_flag ) ? Helper::int2str( value ) : value ;
+      else
+	s += "\tNA";
+      
+    }
+    
+  plog << s << "\n";
+
+}
+
+
 std::map<int2,std::set<int> >::iterator XQCstats::flush( std::map<int2,std::set<int> >::iterator n )
 {
   

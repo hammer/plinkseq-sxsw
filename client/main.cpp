@@ -157,6 +157,7 @@ int main(int argc, char ** argv)
 	<< "write-lik|output|write a BEALGE likelihood file|VCF"
 	<< "v-matrix|output|write a matrix of allele counts|VCF"
 	<< "g-matrix|output|write a matix of gene-based allele counts|GRP"
+	<< "g-meta-matrix|output|matix of gene-based per-individual meta-information|GRP"
 	<< "meta-matrix|output|write a matrix of variant meta-information|VCF|NOGENO"
 	<< "v-meta-matrix|output|write a matrix of individual genotype meta-information|VCF|ARG:name|NOGENO"
 	<< "annotate-loc|locop,annot|annotate loci|ARG:group"
@@ -2090,6 +2091,15 @@ int main(int argc, char ** argv)
       }
 
     
+    if ( command == "g-meta-matrix" )
+      {	
+	OptGMetaMatrix opt;
+	opt.name = Pseq::Util::single_argument<std::string>( args, "name" );
+	opt.show_mean = true;
+	Pseq::VarDB::write_gene_meta_matrix(m,opt);
+	Pseq::finished();
+      }
+
 
 
     Pseq::finished();

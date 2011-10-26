@@ -1088,8 +1088,9 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
   if ( m.has_field( "loc.group" ) ) 
     {
-      vector<string> k = m.get_string( "loc.group" );
+      std::vector<std::string> k = m.get_string( "loc.group" );
       if ( k.size() > 0 ) group_loc( k[0] );
+      
     }
 
 

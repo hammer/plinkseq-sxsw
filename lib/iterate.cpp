@@ -431,8 +431,8 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
     // are sure this is the variant.
     //
 
-    // std::cout << "Q [" << query << "]\n";
-
+// std::cout << "Q [" << query << "]\n";
+ 
 
     //
     // If we are grouping, need to specify the outer loop
@@ -465,21 +465,21 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	
 	if ( mask.named_grouping() ) 
 	  {
-	    
+
 	    vars.clear();
 	    
 	    if ( sql.step(s0) )
 	      {
-		grp_name = sql.get_text( s0 , 0 );
+		grp_name = sql.get_text( s0 , 0 );		
 		sql.bind_text( s , ":grp_value" , grp_name );
 		vars.name( grp_name );
 	      }
 	    else
 	      break; // all done
-	    
+
 	  }
 	
-
+	
 	//
 	// Process core query
 	//
@@ -502,7 +502,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	
 	if ( sql.step(s) ) 
 	  {	
-	    
+
 	    sample = &(construct( var , s , &indmap ));
 	    
 	    if ( mask.named_grouping () ) 
@@ -511,6 +511,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	    addMetaFields( var , s, mask ); 
 	    expecting_new_variant = false;
 	    any_data = true;
+
 	  }
 	else 
 	  {
@@ -521,8 +522,10 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      {
 		g( vars , gdata );
 	      }
+
 	  }
 
+	
 	
 	//
 	// Iterate through all other rows
@@ -532,6 +535,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	  while ( sql.step(s) ) 
 	    {	      
 	      
+
 	      Variant nextrow;
 
 	      SampleVariant & next_sample = construct( nextrow, s , &indmap );
@@ -539,7 +543,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      if ( mask.named_grouping () ) 
 		nextrow.meta.add( PLINKSeq::META_GROUP() , grp_name );
 	      
-
+	      
 	      // 
 	      // Does this row contain just more meta-information for exactly the 
 	      // same original variant
@@ -663,7 +667,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      
  	      if ( vars.complete() )
  		{	    
-		  
+		  		  		  
  		  // If the above is true, it means that the last 
  		  // variant could not be added to the group. Therefore, 
  		  // process the group as-is, then begin a new group, 

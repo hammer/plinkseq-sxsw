@@ -399,6 +399,18 @@ bool Pseq::VarDB::write_gene_matrix(Mask & m, OptGMatrix & opt)
 }
 
 
+bool Pseq::VarDB::write_gene_meta_matrix(Mask & m, OptGMetaMatrix & opt)
+{
+  std::vector<std::string> ids = g.indmap.ind_id();
+  plog << "GENE\tNV";
+  for (int i=0; i<ids.size(); i++) 
+    plog << "\t" << ids[i] ; 
+  plog << "\n";
+  IterationReport report = g.vardb.iterate( f_view_gene_meta_matrix , &opt , m );
+  return true;
+}
+
+
 bool Pseq::VarDB::consolidate(Mask & m, std::string label)
 {
   

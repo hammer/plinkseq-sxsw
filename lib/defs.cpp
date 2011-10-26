@@ -109,7 +109,9 @@ void PLINKSeq::register_standard_metatypes()
   // FILTER
   //
 
-  MetaInformation<VarFilterMeta>::field( PLINKSeq::PASS_FILTER() , META_FLAG  , 1 , "Passed variant FILTERs" );
+  // TODO: I needed to change this so we can compile statically...
+  MetaInformation<VarFilterMeta>::field( "PASS" , META_FLAG  , 1 , "Passed variant FILTERs" );
+  //MetaInformation<VarFilterMeta>::field( PLINKSeq::PASS_FILTER() , META_FLAG  , 1 , "Passed variant FILTERs" );
 
   //
   // Unless these are explicitly encountered, make invisible

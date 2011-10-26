@@ -37,6 +37,8 @@ void f_view_var_meta_matrix( Variant & , void * p );
 
 void f_view_gene_matrix( VariantGroup & , void * p );
 
+void f_view_gene_meta_matrix( VariantGroup & , void * p );
+
 void f_view_tped( Variant & , void * p );
 
 void f_extra_qc_metrics( Variant & , void * p);
@@ -152,6 +154,28 @@ struct OptGMatrix {
   GStore * g;
   bool hide_zero_variance;
   bool collapse_01;
+};
+
+struct OptGMetaMatrix {
+
+  OptGMetaMatrix()
+  {
+    name = "";
+    show_mean = false;
+    show_sum = false;
+    show_flag01 = false;
+    show_min = false;
+    show_max = false;
+    show_na = false;
+  }
+
+  bool show_mean;  
+  bool show_sum;
+  bool show_flag01;
+  bool show_min;
+  bool show_max;
+  bool show_na;
+  std::string name;
 };
 
 struct OptUniq {

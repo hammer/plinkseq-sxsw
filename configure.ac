@@ -17,9 +17,37 @@ LT_INIT([])
 
 AC_CONFIG_MACRO_DIR([m4])
 
+# --enable-debug
+AC_ARG_ENABLE([debug],
+AS_HELP_STRING([--enable-debug], [[Enable debugging build, which builds faster. \
+"make install" doesn't work - pseq must be run from within the build directory. ]]), 
+[debug=true], 
+[debug=false]
+)
+AM_CONDITIONAL([DEBUG], [test x$debug = xtrue])
+
+# --enable-static
+AC_ARG_ENABLE([static],
+AS_HELP_STRING([--enable-static], [[Static build, which creates a single \
+statically linked pseq binary. Will not work on some platforms, most notably Mac OS X. ]]),
+[static=true],
+[static=false]
+)
+AM_CONDITIONAL([STATIC], [test x$static = xtrue])
+
+AC_ARG_WITH([protobuf],
+        [AS_HELP_STRING(
+		[--with-protobuf=/path/to/protobuf],
+		[Specify path to protobuf]
+		)],
+        [AC_SUBST([PROTOBUF_PREFIX], [${withval}])],
+        [protobuf=false]
+)
+AM_CONDITIONAL([WITH_PROTOBUF], [test "x$protobuf" != xfalse])
+
 # note that util is not a subdir, it is part of the root build
 AC_CONFIG_SUBDIRS([lib client])
-AC_CONFIG_FILES([Makefile util/Makefile])
+AC_CONFIG_FILES([Makefile util/Makefile R/Rplinkseq/src/Makevars])
 
 # Checks for programs.
 AC_PROG_CXX
@@ -37,10 +65,6 @@ echo \
  Prefix: '${prefix}'.
  C Compiler: '${CC} ${CFLAGS} ${CPPFLAGS}'
  C++ Compiler: '${CXX} ${CXXFLAGS} ${CPPFLAGS}'
-
- Package features:
-   Gseq: Yes
-   ACDB: Yes
 
  Now type 'make @<:@<target>@:>@'
    where the optional <target> is:

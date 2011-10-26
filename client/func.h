@@ -6,6 +6,7 @@
 #include <string>
 
 class OptGMatrix;
+class OptGMetaMatrix;
 class OptUniq;
 
 namespace Pseq 
@@ -57,6 +58,8 @@ namespace Pseq
       bool write_var_meta_matrix(Mask & m, std::string & name);
 
       bool write_gene_matrix(Mask & m, OptGMatrix & opt);
+
+      bool write_gene_meta_matrix(Mask & m, OptGMetaMatrix & opt);
       
       bool dump_indiv();
 

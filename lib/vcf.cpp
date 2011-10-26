@@ -183,6 +183,7 @@ void VCFReader::getMetaInformation(const std::string & s)
   if ( tok[0] == "fileformat" || tok[0] == "format" )
     {
       // match on VCFv3.3, vcf3.3, VCF3.3, etc
+
       // and also BCFv4.0
       if ( tok[1].size() >= 3 && tok[1].substr( tok[1].size() - 3 ) == "3.3" ) 
 	version = VCF_3_3;

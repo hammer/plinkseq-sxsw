@@ -1270,6 +1270,196 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
 
 
 
+
+uint64_t LocDBase::load_GFF( const std::string & filename, const std::string & grp, bool use_transcript_id)
+{
+
+  if ( ! attached() ) Helper::halt( "no LOCDB attached" );
+
+  if ( ! Helper::fileExists( filename ) ) return 0;
+  
+  InFile f( filename );
+  
+  // Expect GFF v2 format, as documented 
+  //  http://www.sanger.ac.uk/resources/software/gff/spec.html
+
+  // Tab-delimited
+  // <seqname> <source> <feature> <start> <end> <score> <strand> <frame> [attributes] [comments]
+  
+  // expect 8 fields always; no whitespace
+
+  // missing data = '.'
+  // sequence numbering starts at 1
+  // if score missing, '.'
+  // strand: + - .
+  // frame: same as GTF
+  
+  // comments -- everything after # is ignored
+  // note -- # could come at start, which means whole line is ignored;
+  //         OR after first mandatory fields
+  //  typically may have special ## lines as the header
+   // comments, semi-colon delimited
+  //   can be key 
+  //    or    key=value
+  //    or    key val1 val2 
+  // Free test must be within double-quotes
+
+  
+  
+  // Register meta-types
+  
+  registerMetatype( PLINKSeq::TRANSCRIPT_FRAME() , 
+		    META_INT, 1 , META_GROUP_LOC , "CDS Frame" );
+  
+  uint64_t group_id = set_group_id( grp );
+  
+  /////////////////////////////////////////
+  //                                     //
+  // Begin SQL transaction               //
+  //                                     //
+  /////////////////////////////////////////
+  
+  sql.begin();
+
+  int inserted = 0;
+  
+  
+  /////////////////////////////////////////
+  //                                     //
+  // Process each row of input           //
+  //                                     //
+  /////////////////////////////////////////
+
+  while ( ! f.eof() )
+    {
+
+      // tab-delimited line
+
+      std::vector<std::string> tok = Helper::char_split( f.readLine() , '\t' );
+
+      // empty line, or comment line?
+      if ( tok.size() == 0 || tok[0].substr(0,1) == "#" ) continue;
+      
+      // Should contain at least 8 tab-delimited elements      
+      if ( tok.size() < 8 ) 
+	{
+	  plog.warn( "invalid GFF entry", tok );
+	  continue;
+	}
+
+      // <seqname> <source> <feature> <start> <end> <score> <strand> <frame> [attributes] [comments]
+
+      // AB000381 Twinscan  CDS          380   401   .   +   0  gene_id "001"; transcript_id "001.1";
+            
+      // Start/stop positions
+
+      int p1,p2;
+      if ( ! Helper::str2int( tok[ 3 ] , p1 ) ) continue;
+      if ( ! Helper::str2int( tok[ 4 ] , p2 ) ) continue;
+      
+      // Name (from gene_id
+
+      std::vector<std::string> tok2 = Helper::char_split( tok[8] , ' ' , false );
+      
+      // requires atleast 4 manadatory fields: gene_id XXX transcript_id XXX
+      
+      if ( tok2.size() < 4 ) 
+	{
+	  plog.warn("badly formed GTF, col 9");
+	  continue;
+	}
+      
+      // remove quotes and last semi-colon
+      if ( tok2[0] != "gene_id" ) plog.warn("expecting gene_id in GTF :" + tok2[0] );
+      if ( tok2[2] != "transcript_id" ) plog.warn("expecting transcript_id in GTF :" + tok2[2]);
+
+      if ( tok2[1].substr( tok2[1].size()-1 ) == ";" ) tok2[1] = tok2[1].substr( 0, tok2[1].size()-1 );
+      else plog.warn("no ; after gene_id in GTF");
+
+      if ( tok2[3].substr( tok2[3].size()-1 ) == ";" ) tok2[3] = tok2[3].substr( 0, tok2[3].size()-1 );
+      else plog.warn("no ; after transcript_id in GTF");
+      
+      tok2[1] = Helper::unquote( tok2[1] );
+      tok2[3] = Helper::unquote( tok2[3] );
+
+      // tok2[0] should equal  gene_id
+      // use either gene-name or transcript name as 'name' 
+      
+      std::string name = use_transcript_id ? tok2[3] : tok2[1];
+      
+      // Chromosome
+      int chromosome = Helper::chrCode( tok[0] ) ;      
+      if ( chromosome == 0 ) continue;
+	  
+      Region r( chromosome ,
+		p1 , p2 , 
+		name , 
+		(int)group_id ); 
+
+      // Track gene-name, if unique name is a transcript
+      
+      if ( use_transcript_id ) r.altname = tok2[1];
+      else r.altname = tok2[3]; 
+
+
+      // Always expect gene_id and transcript_id 
+      // Use gene_id
+
+      r.meta.set( "source" , tok[1] );
+      r.meta.set( "feature" , tok[2] );
+      
+
+      // Track strand and frame
+
+      r.meta.set( PLINKSeq::TRANSCRIPT_STRAND() , tok[6] );
+      
+      int frame = 0;
+
+      // implies "." --> 0  (i.e. for stop_codon )
+
+      if ( Helper::str2int( tok[7] , frame ) ) 
+	r.meta.set( PLINKSeq::TRANSCRIPT_FRAME() , frame );
+      
+
+      ///////////////////////////
+      // Add region to database
+      
+      range_insertion(r);
+
+      ++inserted;
+
+    }
+
+
+  /////////////////////////////////////////
+  //                                     //
+  // Finish transaction                  //
+  //                                     //
+  /////////////////////////////////////////
+
+
+  sql.commit();
+  
+  f.close();
+
+  plog << "inserted " << inserted << " rows\n";
+
+  populate_meta_field_map();
+
+
+  /////////////////////////////////////////
+  //                                     //
+  // Return group ID                     //
+  //                                     //
+  /////////////////////////////////////////
+  
+  return group_id;
+
+
+}
+
+
+
 uint64_t LocDBase::load_regions( const std::string & filename,
 				 const std::string & grp, 
 				 int col_pos,

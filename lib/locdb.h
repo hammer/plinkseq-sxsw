@@ -155,6 +155,8 @@ class LocDBase {
 
    uint64_t load_GTF(const std::string & name, const std::string & grp, bool use_transcript_id = true);
 
+   uint64_t load_GFF(const std::string & name, const std::string & grp, bool use_transcript_id = true);
+
    uint64_t load_set(const std::string &, const std::string &, const std::string &, bool use_altname = false );
 
    uint64_t load_regions(const std::string & name, 

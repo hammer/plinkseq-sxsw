@@ -1,5 +1,3 @@
-# TODO: enable -static flag (page 137)
-
 bin_PROGRAMS = pseq
 
 pseq_SOURCES = \
@@ -37,11 +35,24 @@ netassoc.cpp \
 gseq.cpp \
 extra.cpp
 
-pseq_CPPFLAGS = -I../lib $(PROTOBUF_CFLAGS)
-
-
 # note that we don't need to link to any shared libs here
 # they are all linked transitively from libplinkseq
+# we still need to include headers until we create public headers for the lib
 pseq_LDADD = ../lib/libplinkseq.la
+
+pseq_CPPFLAGS = -I../lib
+pseq_LDFLAGS =
+
+if WITH_PROTOBUF
+pseq_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
+endif
+
+#if DEBUG
+#pseq_LDFLAGS += -no-install
+#endif
+
+#if STATIC
+#pseq_LDFLAGS += -all-static
+#endif
 
 ACLOCAL_AMFLAGS = -I m4

@@ -275,6 +275,7 @@ void Pseq::Assoc::NetDB::net_test( const int seed ,
       if ( testset.find( gname ) == testset.end()) return; 
     }
 
+
   std::set<int> connections = netdb.connections( gname , genemap );
   
   // Set up permutations
