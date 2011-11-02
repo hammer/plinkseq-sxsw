@@ -9,8 +9,7 @@ AC_PREREQ(2.61)
 AC_INIT([plinkseq], [0.07], [bthomas@atgu.mgh.harvard.edu])
 
 # foreign allows automake to run without the AUTHORS, COPYING, etc. files
-# silent-rules allows you to add --enable-silent-rules to ./configure for less disastrous output
-AM_INIT_AUTOMAKE([-Wall -Werror silent-rules foreign])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 LT_PREREQ([2.2])
 LT_INIT([])
