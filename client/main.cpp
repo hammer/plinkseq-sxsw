@@ -20,7 +20,7 @@ using namespace std;
 GStore g;
 Pseq::Util::Options options;
 std::string PSEQ_VERSION = "0.08";
-std::string PSEQ_DATE    = "27-Oct-2011";
+std::string PSEQ_DATE    = "2-Nov-2011";
 
 int main(int argc, char ** argv)
 {
