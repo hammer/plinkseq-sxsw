@@ -113,11 +113,11 @@ class MetaInformation {
   
  public:
            
-  void parse(const std::string str, std::string delim = " ;:" , bool autoadd = false , bool empty = false )
+  void parse(const std::string str, std::string delim = " ;" , bool autoadd = false , bool empty = false )
   {
     
     // Take delimited string and parse
-    // Format is  " ;:" ->  X=Y  ->  X single
+    // Format is  " ;" ->  X=Y  ->  X single
     //                           ->  Y1,Y2,Y3
     
     // X=1;Y=2,3;Z;A=House;

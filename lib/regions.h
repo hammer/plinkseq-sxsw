@@ -86,6 +86,7 @@ class Subregion {
       start = Position(chr,bp1);
       stop = Position(chr,bp2);
       name = "-";
+      strand = frame = 0;
     }
 
   Subregion(uint64_t id, int chr, int bp1, int bp2) : id(id)
@@ -93,23 +94,37 @@ class Subregion {
       start = Position(chr,bp1);
       stop = Position(chr,bp2);
       name = "-";
+      strand = frame = 0;
     }
   
   Subregion(uint64_t id, std::string name, int chr, int bp1, int bp2) : id(id), name(name)
     {
       start = Position(chr,bp1);
       stop = Position(chr,bp2);
+      strand = frame = 0;
     }
 
+ Subregion(uint64_t id, std::string name, int chr, int bp1, int bp2, int strand, int frame ) 
+   : id(id), name(name), strand(strand), frame(frame)
+  {
+    start = Position(chr,bp1);
+    stop = Position(chr,bp2);      
+  }
+  
 
   uint64_t         id;
   
-  std::string           name;
+  std::string      name;
 
   Position         start;
   
   Position         stop;
+  
+  int              strand;
+  
+  int              frame;
 
+  
   MetaInformation<LocMeta>  meta;
 
   bool overlaps(const Region & b) const;
@@ -141,9 +156,9 @@ class Region {
 
   Position          stop;
 
-  std::string            name;
+  std::string       name;
 
-  std::string            altname;
+  std::string       altname;
 
   int               group;
   
@@ -228,22 +243,25 @@ class Region {
   void addSubRegion(uint64_t id, std::string name, int chr, int bp1, int bp2)
     { subregion.push_back( Subregion( id, name, chr, bp1, bp2 ) ); }
 
+  void addSubRegion(uint64_t id, std::string name, int chr, int bp1, int bp2, int strand , int frame )
+    { subregion.push_back( Subregion( id, name, chr, bp1, bp2, strand, frame ) ); }
+  
   void addSubRegion(Region & r)
-      { 
-	  // Also copy over meta-information from region -> sub-region
-	  subregion.push_back( Subregion( r.chromosome(), r.start.position(), r.stop.position() ) ); 
-	  subregion.back().meta = r.meta;
-      }
-
+  { 
+    // Also copy over meta-information from region -> sub-region
+    subregion.push_back( Subregion( r.chromosome(), r.start.position(), r.stop.position() ) ) ;
+    subregion.back().meta = r.meta;
+  }
+  
   bool operator< (const Region& b) const
-    { 
-      if ( start < b.start ) return true;
-      if ( start > b.start ) return false;
-      if ( stop < b.stop ) return true;
-      if ( stop > b.stop ) return false;
-      return name < b.name;
-    }
-
+  { 
+    if ( start < b.start ) return true;
+    if ( start > b.start ) return false;
+    if ( stop < b.stop ) return true;
+    if ( stop > b.stop ) return false;
+    return name < b.name;
+  }
+  
   int chromosome() const { return start.chromosome(); }   
 
   bool contains(const Variant & v) const

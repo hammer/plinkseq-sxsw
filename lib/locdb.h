@@ -123,7 +123,7 @@ class LocDBase {
   
    bool     range_insertion(const Region & , uint64_t indiv_id = 0 );
 
-   void insertMeta( sqlite3_stmt * s , const MetaInformation<LocMeta> & , int id, bool subregion = false );
+   void insertMeta( sqlite3_stmt * s , const MetaInformation<LocMeta> & , const int id );
 
 
    //
@@ -155,7 +155,7 @@ class LocDBase {
 
    uint64_t load_GTF(const std::string & name, const std::string & grp, bool use_transcript_id = true);
 
-   uint64_t load_GFF(const std::string & name, const std::string & grp, bool use_transcript_id = true);
+   uint64_t load_GFF(const std::string & name, const std::string & grp, const std::string & name );
 
    uint64_t load_set(const std::string &, const std::string &, const std::string &, bool use_altname = false );
 
@@ -167,6 +167,7 @@ class LocDBase {
 			 int col_bp2 = 2, 
 			 int col_name = 3,
 			 int col_sub = -1, 
+			 int col_meta = -1,
 			 int col_indiv = -1,
 			 std::map<std::string,int> * meta = NULL );
    
@@ -406,8 +407,7 @@ class LocDBase {
 
   // Meta-information
 
-  sqlite3_stmt * stmt_loc_meta_insert_prep;
-  sqlite3_stmt * stmt_loc_meta_insert_prep2;
+  sqlite3_stmt * stmt_loc_meta_insert_type;
   sqlite3_stmt * stmt_loc_meta_insert;
   sqlite3_stmt * stmt_loc_submeta_insert;
   sqlite3_stmt * stmt_loc_get_meta;

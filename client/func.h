@@ -85,7 +85,7 @@ namespace Pseq
 
       bool simple_counts(Mask &m, bool);
 
-      bool lookup_list(const std::string & filename, Mask &m);
+      bool lookup_list(const std::string & filename, Mask &m, const std::vector<Region> * regs = NULL );
 
       bool simple_sim();
 
@@ -136,7 +136,7 @@ namespace Pseq
       
       bool load_pathway( std::string file1 , std::string file2 , std::string group , bool , bool use_altname = false );
 
-      bool loc_view( const std::string & , const std::vector<std::string> & );
+      bool loc_view( const std::string & , const std::vector<std::string> & , const bool meta = true , const bool subregions = false );
     }
 
 

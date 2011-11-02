@@ -105,14 +105,15 @@ class RefVariant {
   friend std::ostream & operator<<( std::ostream & out , const RefVariant & rv)
     {
       if ( rv.obs )
-	out << Helper::chrCode( rv.chr ) << ":"
-	    << rv.bp1 << ".."
-	    << rv.bp2 << ":"
-	    << rv.rname << ":"
-	    << rv.rvalue << ":"
-	    << rv.meta;
+	{
+	  out << Helper::chrCode( rv.chr ) << ":"
+	      << rv.bp1;
+	  if ( rv.bp2 > rv.bp1 ) 
+	    out << ".." << rv.bp2;	  
+	  out << ":" << rv.rname;
+	}	  
       else
-	out << "-";
+	out << ".";
       return out;
     }
   
@@ -166,9 +167,7 @@ class RefDBase {
     
     void set_metatypes( bool clear = false);
 
-    //
     // Main insertion functions
-    //
 
     bool load_VCF( const std::string & file,
 		   const std::string & tag ,
@@ -182,10 +181,9 @@ class RefDBase {
     bool values;
     std::string vstring;
 
-    // need to keep this..
+
     std::map<std::string,mType> populate_metatypes( std::map<std::string,int> * meta );
 
-    // these are now redudnent (next 2(
     void attach_metainformation( RefVariant & , const Variant & );
 				
     void attach_metainformation( RefVariant & rv , 
@@ -207,9 +205,7 @@ class RefDBase {
 			     bool zero1 = false , 
 			     bool zero2 = false );
 
-    //
     // Core inserts
-    //
     
     uint64_t insert( const std::string & filename , const std::string & grp );
 
@@ -223,15 +219,9 @@ class RefDBase {
 
     // Directly insert RefVariant
     bool     refInsertion(const RefVariant &);
+        
     
-
-    
-    
-
-    //
     // Core queries
-    //
-
     
     RefVariant lookup( const Variant & , const int grp_id );
     RefVariant lookup( const Variant & , const std::string &  );
@@ -243,10 +233,12 @@ class RefDBase {
     bool annotate( Variant & , const int grp_id );
     
     int count( const Region & , const std::string & );
+
+    // Data-dumper
     
-    //
+    void dump( const std::string & grp , bool with_meta );
+
     // Groups
-    //
     
     uint64_t set_group_id(const std::string grp, 
 			  const bool temp = false , 
@@ -256,26 +248,17 @@ class RefDBase {
     
     void flush(const uint64_t id = 0);
     
-    //
     // Iterator
-    //
 
     bool init_iterate( const std::string & );
     bool iterate( RefVariant * );
 
-    //
-    // Insertions
-    //
-    
-
-    //
     // Misc
-    //
       
     std::string filename() const { return fname; }
 
- private:
 
+ private:
     
     SQL sql;
     std::string fname;
@@ -283,8 +266,6 @@ class RefDBase {
     RefVariant construct( sqlite3_stmt * );
     void construct_inplace( sqlite3_stmt * s , RefVariant * rv );
     
-//    MetaInformation<RefMeta> meta( uint64_t );
-
     std::map<std::string,meta_key_t> mtmap;
     std::map<int,std::string> grpmap;
       
@@ -313,7 +294,6 @@ class RefDBase {
     sqlite3_stmt * stmt_fetch_group_count;
 
 };
-
 
 
 #endif

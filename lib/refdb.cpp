@@ -44,17 +44,6 @@ bool RefDBase::attach(std::string name)
  	     "   description  VARCHAR(20) ); ");
   
 
-//   sql.query( " CREATE TABLE IF NOT EXISTS metavalues("
-//              "   refvar_id    INTEGER NOT NULL , "
-//              "   field_id  INTEGER , "
-//              "   value     NUMERIC ); " );
-
-
-//   sql.query( " CREATE TABLE IF NOT EXISTS metaheaders("
-//              "   field_id  INTEGER , "
-//              "   hkey      VARCHAR(20) , "
-// 	     "   hvalue    VARCHAR(20) ); " );
-
   
   // Group information table
   
@@ -114,12 +103,6 @@ void RefDBase::drop_index()
 {
   if ( ! attached() ) return;
   sql.query( "DROP INDEX IF EXISTS ind1;");
-  // sql.query( "DROP INDEX IF EXISTS ind2;");
-  //  sql.query( "DROP INDEX IF EXISTS ind3;");
-
-  // to add /remove
-  // "   CONSTRAINT uniqID UNIQUE (group_id,name,chr,bp1) ); " );
-
   release();
   init();
 }
@@ -127,16 +110,8 @@ void RefDBase::drop_index()
 
 void RefDBase::index()
 {
-  if ( ! attached() ) return;
-  
-  sql.query( "CREATE INDEX IF NOT EXISTS ind1 ON refvariants(group_id,chr, bp1); " );  
-
-  //sql.query( "CREATE INDEX IF NOT EXISTS ind2 ON refvariants(group_id,name); " );    
-  //  sql.query( "CREATE INDEX IF NOT EXISTS ind3 ON metavalues(refvar_id); " );  
-
-  // to add
-  // "   CONSTRAINT uniqID UNIQUE (group_id,name,chr,bp1) ); " );
-  
+  if ( ! attached() ) return;  
+  sql.query( "CREATE INDEX IF NOT EXISTS ind1 ON refvariants(group_id,chr, bp1); " );    
   release();
   init();
   
@@ -184,16 +159,6 @@ bool RefDBase::init()
 
   stmt_meta_insert_prep2 =
     sql.prepare(" INSERT INTO metatypes (name,type,number,description) values( :name, :type, :number, :description ); " );
-
-//   stmt_meta_insert =
-//     sql.prepare(" INSERT OR REPLACE INTO metavalues (refvar_id,field_id,value)"
-//                 "  values( :refvar_id, :field_id, :value ); ");
-
-//   stmt_get_meta =
-//     sql.prepare(" SELECT b.name,b.type,a.value FROM metavalues a, metatypes b "
-//                 " WHERE refvar_id == :refvar_id "
-//                 " AND a.field_id == b.field_id ; " );
-
 
   stmt_fetch_metatypes = 
       sql.prepare(" SELECT name , type , number, description "
@@ -250,10 +215,6 @@ bool RefDBase::release()
   sql.finalise( stmt_meta_dump );
   sql.finalise( stmt_meta_insert_prep );
   sql.finalise( stmt_meta_insert_prep2 );
-
-//  sql.finalise( stmt_meta_insert );
-//  sql.finalise( stmt_get_meta );
-
   sql.finalise( stmt_fetch_metatypes );
   sql.finalise( stmt_fetch_groups );
   
@@ -445,46 +406,6 @@ bool RefDBase::refInsertion(const RefVariant & rv)
     sql.step( stmt_insert );
     uint64_t id = sql.last_insert_rowid();
     sql.reset( stmt_insert );
-
-    // And also any meta-information
-
-//     vector<std::string> keys = rv.meta.keys();
-    
-//     for (unsigned int m=0; m< keys.size(); m++)
-//       {
-	
-//         // 1. Get field ID (inserting if doesn't exist)
-	
-// 	uint64_t field_id = mtmap.find( keys[m] )->second;
-	
-// 	// 2. Now insert actual value
-	
-// 	// Now we've got field_id, insert actual value
-	
-// 	sql.bind_int64( stmt_meta_insert , ":refvar_id" , id );
-// 	sql.bind_int64( stmt_meta_insert , ":field_id" , field_id );
-	
-// 	mType mt = MetaInformation<RefMeta>::type( keys[m] );
-	
-// 	switch ( mt ) { 
-// 	case META_FLAG :
-// 	  sql.bind_null( stmt_meta_insert , ":value" );
-// 	  break;
-// 	case META_INT || META_BOOL :
-// 	  sql.bind_int( stmt_meta_insert , ":value" , rv.meta.get1_int( keys[m] ) );
-// 	  break;
-// 	case META_FLOAT :
-// 	  sql.bind_double( stmt_meta_insert , ":value" , rv.meta.get1_double( keys[m] ) );
-// 	  break;
-// 	default : 
-// 	  sql.bind_text( stmt_meta_insert , ":value" , rv.meta.get1_string( keys[m] ) );
-	  
-// 	}
-	
-// 	sql.step( stmt_meta_insert );
-// 	sql.reset( stmt_meta_insert );	  
-	
-//     } // next meta-field
             
 }
 
@@ -700,7 +621,6 @@ uint64_t RefDBase::loadRefVariants(const std::string & filename,
   sql.begin();
   
   int inserted = 0;
-  int wrong_col_cnt = 0;
 
   //
   // Get and write meta-information types
@@ -737,7 +657,7 @@ uint64_t RefDBase::loadRefVariants(const std::string & filename,
       if( (int)buffer.size() < maxcol )
 	{
 	  if ( ! file.eof() ) 
-	    ++wrong_col_cnt;
+	    plog.warn( "too few rows for row", buffer );
 	  continue;
 	}
       
@@ -821,8 +741,6 @@ uint64_t RefDBase::loadRefVariants(const std::string & filename,
     sql.reset( stmt_update_group_count );
 
     plog << filename << " : inserted " << inserted << " reference variants\n";
-    if ( wrong_col_cnt > 0 ) 
-      plog << wrong_col_cnt << " rows skipped due to incorrect number of fields\n";
 
     file.close();
 
@@ -900,19 +818,20 @@ bool RefDBase::init_iterate( const std::string & grp )
   if ( ! attached() ) return false;
   int g = lookup_group_id( grp );
   if ( g == 0 ) return false;
+  std::cout << " binding = " << g << "\n";
   sql.bind_int( stmt_dump , ":group_id" , g );
   return true;
 }
 
 void RefDBase::construct_inplace( sqlite3_stmt * s , RefVariant * rv )
 {
-  rv->group( sql.get_int( s , 0 ) );	    
-  rv->name( sql.get_text( s , 1 ) );
+  rv->group(      sql.get_int( s , 0 ) );	    
+  rv->name(       sql.get_text( s , 1 ) );
   rv->chromosome( sql.get_int( s , 2 ) ) ;
-  rv->start( sql.get_int( s , 3 ) ) ;
-  int bp2 = sql.get_int( s , 4 );
+  rv->start(      sql.get_int( s , 3 ) ) ;
+  int bp2 =       sql.get_int( s , 4 );
   if ( bp2 ) rv->stop( bp2 ? bp2 : rv->start() );
-  rv->value( sql.get_text( s , 5 ) );  
+  rv->value(      sql.get_text( s , 5 ) );  
 }
 
 
@@ -920,11 +839,13 @@ bool RefDBase::iterate( RefVariant * rv )
 {  
   if ( sql.step( stmt_dump ) )
     {
-      construct_inplace( stmt_dump , rv );
+      construct_inplace( stmt_dump , rv );      
+      rv->observed( true ) ;
       return true;
     }
   else
     {      
+      rv->observed( false ) ;
       sql.reset( stmt_dump );
       return false;
     }
@@ -1054,7 +975,7 @@ bool RefDBase::annotate( Variant & v , const int grp_id )
   // attach meta information stored in 'value', but first
   // appending the prefix
   
-  if ( r.value() != "" ) 
+  if ( r.value() != "" && r.value() != "." ) 
     {
       r.meta.parse( r.value() );
       v.meta.append( r.meta , gname );
@@ -1062,6 +983,7 @@ bool RefDBase::annotate( Variant & v , const int grp_id )
   
   return true;
 }
+
 
 bool RefDBase::annotate( Variant & v , const std::string & name )
 {
@@ -1089,42 +1011,9 @@ RefVariant RefDBase::construct( sqlite3_stmt * s)
   int bp2 = sql.get_int( s , 4 ) ;
   std::string value = sql.get_text( s , 5 );
   
-  RefVariant r(grp_id,name,chr,bp1,bp2,value);
-  
-  //  r.meta = meta( id );
-  
-  return r;
+  return RefVariant(grp_id,name,chr,bp1,bp2,value);
+
 }
-
-
-// MetaInformation<RefMeta> RefDBase::meta( uint64_t refvar_id )
-// {
-//   MetaInformation<RefMeta> m;
-//   sql.bind_int64(stmt_get_meta, ":refvar_id" , refvar_id );
-//   while ( sql.step( stmt_get_meta ) )
-//     {
-//       std::string field = sql.get_text( stmt_get_meta , 0 );
-//       mType mt = (mType)sql.get_int( stmt_get_meta , 1 );
-//       switch ( mt ) {
-// 	  case META_FLAG :
-// 	      m.set( field );
-// 	      break;
-// 	  case META_INT || META_BOOL :
-// 	      m.set( field, sql.get_int( stmt_get_meta , 2 ) );
-// 	      break;	      
-// 	  case META_FLOAT :
-// 	      m.set( field, sql.get_double( stmt_get_meta , 2 ) );
-// 	      break;	      
-// 	  default : 
-// 	      m.set( field, sql.get_text( stmt_get_meta , 2 ) );
-// 	      break;	      	      
-//       }
-//     }
-
-//   sql.reset( stmt_get_meta );
-//   return m;  
-// }
-
 
 
 std::vector<std::string> RefDBase::fetch_groups()
@@ -1172,5 +1061,20 @@ std::string RefDBase::summary()
      sql.finalise(s);
 
     return ss.str();
+}
+
+void RefDBase::dump( const std::string & grp , bool with_meta )
+{
+
+  if ( ! init_iterate( grp ) ) return;
+  
+  RefVariant rv;
+  while ( iterate( &rv ) )
+    {
+      plog << rv;
+      if ( with_meta ) plog << "\t" << rv.value();
+      plog << "\n";
+    }
+  return;
 }
 

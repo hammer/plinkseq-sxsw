@@ -1177,19 +1177,24 @@ std::vector<std::map<std::string,std::string> > VarDBase::fetch_metatypes(uint64
 	case META_CHAR :
 	  m[ "TYPE" ] = "Char";
 	}
-      
-      m[ "NUM" ] = n;	
-      if ( g == 1 ) m[ "GRP" ] = "Variant";
+            
+      if      ( g == 1 ) m[ "GRP" ] = "Variant";
       else if ( g == 2 ) m[ "GRP" ] = "Genotype";
       else if ( g == 8 ) m[ "GRP" ] = "Variant Filter";
-      else m[ "GRP" ] = "?";
+      else               m[ "GRP" ] = "?";
+
+      m[ "NUM" ] = n;	
       m[ "DESC" ] = d;
       
       res.push_back(m);
     }
+
   sql.reset( stmt_fetch_metatypes );
+  
   return res;
+
 }
+
 
 int VarDBase::fileID( const std::string & filename )
 {
@@ -1200,6 +1205,7 @@ int VarDBase::fileID( const std::string & filename )
   sql.reset( stmt_fetch_file_id );
   return r;		
 }
+
 
 std::map<int,std::string> VarDBase::fetch_files( Mask * mask )
 {

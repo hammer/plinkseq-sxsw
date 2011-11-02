@@ -6,53 +6,34 @@
 #include <set>
 
 
+
 bool LocDBase::wipe( const std::string & n )
 {
   if ( Helper::fileExists(n) ) 
-  {
-    Helper::remove_file( n );
-    return true;
-  }
+    {
+      Helper::remove_file( n );
+      return true;
+    }
   else
     return false;
 }
 
 
+
 bool LocDBase::attach( const std::string & n )
 {
   
-  if ( n == "-" || n == "." ) { dettach(); return false; } 
-
   if ( attached() ) dettach();
-  
-  // 
-  // If the database already exists, just open it
-  //
 
-  // For now, run through stuff below, to add in new tables, (special table)
-  // we can add this back in once all LOCDB are stable
+  if ( n == "-" || n == "." ) { dettach(); return false; } 
   
-//   if ( Helper::fileExists(n) )
-//     {
-//       sql.open(n);
-//       fname = n;
-//       init();
-//       set_metatypes();
-//       read_alias_groups();
-//       return true;
-//     }
-  
-  
-  //
-  // Otherwise, create it
-  //
-    
   sql.open(n); 
   
   sql.synchronous(false);
   
   fname = n;
   
+
   // Main locus table
   
   sql.query(" CREATE TABLE IF NOT EXISTS loci("
@@ -65,7 +46,7 @@ bool LocDBase::attach( const std::string & n )
 	    "   altname  VARCHAR(20)  ); " );
   
   
-  // Sub-region table
+  // Sub-region/exon table (with strand/frame as fixed fields
   
   sql.query(" CREATE TABLE IF NOT EXISTS subloci("
 	    "   sub_id   INTEGER PRIMARY KEY , "
@@ -73,46 +54,10 @@ bool LocDBase::attach( const std::string & n )
 	    "   name     VARCHAR(20) , "
 	    "   chr      INTEGER  , "
 	    "   bp1      INTEGER  , "
-	    "   bp2      INTEGER  ); " );    
+	    "   bp2      INTEGER  , "
+	    "   strand   INTEGER  , "
+	    "   frame    INTEGER  ); " );    
   
-  // Name alias tables
-    
-  sql.query(" CREATE TABLE IF NOT EXISTS aliases("
-	    "   group_id1 INTEGER      NOT NULL , "
-	    "   name1     VARCHAR(20)  NOT NULL , "
-	    "   group_id2 INTEGER      NOT NULL , "
-	    "   name2     VARCHAR(20)  , "
-	    " CONSTRAINT uniqNames UNIQUE ( group_id1, name1, group_id2, name2 ) ); " );
-  
-  sql.query(" CREATE TABLE IF NOT EXISTS alias_groups("
-	    "   group_id    INTEGER PRIMARY KEY , "
-	    "   group_name  VARCHAR(20) NOT NULL , "
-            " CONSTRAINT uniqID UNIQUE ( group_name ) ); " );
-  
-  // Allow a locus to be assigned to 1 or more individuals
-  // This will be empty for the reference LOCDB, but for the 
-  // user LOCDB could be used to represent CNVs, shared segments, 
-  // ROH, etc
-  
-  sql.query(" CREATE TABLE IF NOT EXISTS segments("
-            "   indiv_id INTEGER NOT NULL , "
-	    "   loc_id   INTEGER NOT NULL  ); " );
-  
-  sql.query(" CREATE TABLE IF NOT EXISTS individuals("
-            "   indiv_id INTEGER PRIMARY KEY , "
-	    "   name     VARCHAR(20) NOT NULL , "
-            " CONSTRAINT uniqID UNIQUE ( name ) ); " );
-
-
-  //
-  // Special region table, e.g. X chromosome
-  //
-
-  sql.query( "CREATE TABLE IF NOT EXISTS special("
-	     "  loc_id   INTEGER PRIMARY KEY , "
-	     "  name     VARCHAR(20) , "
-	     "  value    VARCHAR(20) ); ");
-
 
   //
   // Region-set information
@@ -148,17 +93,59 @@ bool LocDBase::attach( const std::string & n )
 
   sql.query( " CREATE TABLE IF NOT EXISTS loc_meta("
 	     "   loc_id    INTEGER NOT NULL , "
-	     "   field_id  INTEGER , "
-	     "   value     NUMERIC ); " );
-
+	     "   value     VARCHAR(20) ); " );
+  
   sql.query( " CREATE TABLE IF NOT EXISTS subloc_meta("
 	     "   sub_id    INTEGER NOT NULL , "
-	     "   field_id  INTEGER , "
-	     "   value     NUMERIC ); " );
+	     "   value     VARCHAR(20) ); ");
 
 
-  // Group information table
+  //
+  // Name alias tables
+  //
+
+  sql.query(" CREATE TABLE IF NOT EXISTS aliases("
+	    "   group_id1 INTEGER      NOT NULL , "
+	    "   name1     VARCHAR(20)  NOT NULL , "
+	    "   group_id2 INTEGER      NOT NULL , "
+	    "   name2     VARCHAR(20)  , "
+	    " CONSTRAINT uniqNames UNIQUE ( group_id1, name1, group_id2, name2 ) ); " );
   
+  sql.query(" CREATE TABLE IF NOT EXISTS alias_groups("
+	    "   group_id    INTEGER PRIMARY KEY , "
+	    "   group_name  VARCHAR(20) NOT NULL , "
+            " CONSTRAINT uniqID UNIQUE ( group_name ) ); " );
+  
+
+  // Allow a locus to be assigned to 1 or more individuals
+  // This will be empty for the reference LOCDB, but for the 
+  // user LOCDB could be used to represent CNVs, shared segments, 
+  // ROH, etc
+  
+  sql.query(" CREATE TABLE IF NOT EXISTS segments("
+            "   indiv_id INTEGER NOT NULL , "
+	    "   loc_id   INTEGER NOT NULL  ); " );
+  
+  sql.query(" CREATE TABLE IF NOT EXISTS individuals("
+            "   indiv_id INTEGER PRIMARY KEY , "
+	    "   name     VARCHAR(20) NOT NULL , "
+            " CONSTRAINT uniqID UNIQUE ( name ) ); " );
+
+
+  //
+  // Special region table, e.g. X chromosome
+  //
+
+  sql.query( "CREATE TABLE IF NOT EXISTS special("
+	     "  loc_id   INTEGER PRIMARY KEY , "
+	     "  name     VARCHAR(20) , "
+	     "  value    VARCHAR(20) ); ");
+
+
+  //
+  // Group information table
+  //
+
   sql.query( " CREATE TABLE IF NOT EXISTS groups("
 	     "   group_id     INTEGER PRIMARY KEY , "
 	     "   name         VARCHAR(20) NOT NULL , "
@@ -166,8 +153,10 @@ bool LocDBase::attach( const std::string & n )
 	     "   description  TEXT ); " );
 
 
+  //
   // Region overlap table (i.e. all pairs of loci that overlap)
-  
+  //
+
   sql.query( " CREATE TABLE IF NOT EXISTS overlaps("
 	     "   loc_id1    INTEGER NOT NULL , "
 	     "   loc_id2    INTEGER NOT NULL , "
@@ -353,13 +342,13 @@ bool LocDBase::init()
       sql.prepare("SELECT * FROM overlaps WHERE loc_id1 == :loc_id OR loc_id2 == :loc_id ;" );
     
     stmt_loc_subregion_insert =
-      sql.prepare("INSERT OR REPLACE INTO subloci ( loc_id, name, chr, bp1, bp2 ) "
-		  " values ( :loc_id, :name, :chr, :bp1, :bp2 ) ; " );
+      sql.prepare("INSERT OR REPLACE INTO subloci ( loc_id, name, chr, bp1, bp2, strand, frame ) "
+		  " values ( :loc_id, :name, :chr, :bp1, :bp2 , :strand , :frame ) ; " );
     
     
     stmt_loc_subregion_lookup = 
       sql.prepare("SELECT * FROM subloci WHERE loc_id == :loc_id ; ");
-
+    
     stmt_loc_lookup_group_with_overlap = 
       sql.prepare("SELECT * FROM loci a , loci b, overlaps o  "
 		  "WHERE a.group_id == :group_id AND ( ( a.loc_id == o.loc_id1 AND b.loc_id == o.loc_id2 )"
@@ -375,38 +364,31 @@ bool LocDBase::init()
 		  "WHERE a.loc_id == o.loc_id2  "
 		  "ORDER BY o.ROWID ;" );
     
-    stmt_loc_meta_insert_prep = 
-      sql.prepare(" SELECT field_id,type FROM metatypes WHERE name == :name ;" );
-    
-    stmt_loc_meta_insert_prep2 = 
+    stmt_loc_meta_insert_type = 
       sql.prepare(" INSERT INTO metatypes (name,type,number,description) values( :name, :type, :number, :description ); " );
   
 
-
-  stmt_loc_meta_insert = 
-    sql.prepare(" INSERT OR REPLACE INTO loc_meta (loc_id,field_id,value)"
-		"  values( :reg_id, :field_id, :value ); ");
-
-  stmt_loc_submeta_insert = 
-    sql.prepare(" INSERT OR REPLACE INTO subloc_meta (sub_id,field_id,value)"
-		"  values( :reg_id, :field_id, :value ); ");
-
-
-  stmt_loc_get_meta = 
-    sql.prepare(" SELECT field_id, value FROM loc_meta "
-		" WHERE loc_id == :loc_id " );
-		
-  stmt_loc_get_submeta = 
-    sql.prepare(" SELECT field_id,value FROM subloc_meta "
-		" WHERE sub_id == :sub_id ; " );
-
-  stmt_loc_alias_insert = 
-    sql.prepare(" INSERT OR REPLACE INTO aliases (group_id1,name1,group_id2,name2)"
-		"  values( :group_id1, :name1, :group_id2, :name2 ); ");
-
-  stmt_loc_alias_group_insert = 
-    sql.prepare(" INSERT OR IGNORE INTO alias_groups (group_name)"
-		"  values( :group_name ); ");
+    stmt_loc_meta_insert = 
+      sql.prepare(" INSERT OR REPLACE INTO loc_meta (loc_id,value)"
+		  "  values( :reg_id, :value ); ");
+    
+    stmt_loc_submeta_insert = 
+      sql.prepare(" INSERT OR REPLACE INTO subloc_meta (sub_id,value)"
+		  "  values( :reg_id, :value ); ");
+    
+    stmt_loc_get_meta = 
+      sql.prepare(" SELECT value FROM loc_meta WHERE loc_id == :loc_id " );
+    
+    stmt_loc_get_submeta = 
+      sql.prepare(" SELECT value FROM subloc_meta WHERE sub_id == :sub_id ; " );
+    
+    stmt_loc_alias_insert = 
+      sql.prepare(" INSERT OR REPLACE INTO aliases (group_id1,name1,group_id2,name2)"
+		  "  values( :group_id1, :name1, :group_id2, :name2 ); ");
+    
+    stmt_loc_alias_group_insert = 
+      sql.prepare(" INSERT OR IGNORE INTO alias_groups (group_name)"
+		  "  values( :group_name ); ");
   
   stmt_loc_alias_lookup = 
     sql.prepare(" SELECT group_id2, name2 FROM aliases WHERE name1 == :name ;" );
@@ -512,8 +494,7 @@ bool LocDBase::release()
   sql.finalise(stmt_loc_overlap_lookup);
   sql.finalise(stmt_loc_subregion_insert);
   sql.finalise(stmt_loc_subregion_lookup); 
-  sql.finalise(stmt_loc_meta_insert_prep );
-  sql.finalise(stmt_loc_meta_insert_prep2 );
+  sql.finalise(stmt_loc_meta_insert_type );
   sql.finalise(stmt_loc_meta_insert );
   sql.finalise(stmt_loc_get_meta );
 
@@ -721,6 +702,8 @@ Region LocDBase::construct_region( sqlite3_stmt * s  )
       // 3  chr
       // 4  bp1
       // 5  bp2
+      // 6  strand
+      // 7  frame
 
 	sql.bind_int64( stmt_loc_subregion_lookup, ":loc_id" , id );
 
@@ -731,11 +714,13 @@ Region LocDBase::construct_region( sqlite3_stmt * s  )
 	    std::string name = sql.get_text( stmt_loc_subregion_lookup , 2 ) ;
 	    int bp1 = sql.get_int( stmt_loc_subregion_lookup , 4 ) ;
 	    int bp2 = sql.get_int( stmt_loc_subregion_lookup , 5 ) ;
+	    int strand = sql.get_int( stmt_loc_subregion_lookup , 6 ) ;
+	    int frame = sql.get_int( stmt_loc_subregion_lookup , 7 ) ;
 	    
-	    r.addSubRegion( id, name, chr, bp1, bp2 );	    
+	    r.addSubRegion( id, name, chr, bp1, bp2 , strand , frame );
 	    
   	    if ( vget_meta ) 
-  		r.subregion.back().meta = submeta( id );
+	      r.subregion.back().meta = submeta( id );
 	}
       sql.reset( stmt_loc_subregion_lookup );
     }
@@ -879,42 +864,48 @@ void LocDBase::add_overlap_table(uint64_t group1_id, uint64_t group2_id )
 
 bool LocDBase::range_insertion(const Region & region , uint64_t indiv_id )
 {
-
-  sql.bind_text( stmt_loc_insert , ":name" , region.name );
-  sql.bind_int64( stmt_loc_insert , ":group_id" , (uint64_t)region.group );
-  sql.bind_int( stmt_loc_insert , ":chr" , region.start.chromosome() );
-  sql.bind_int( stmt_loc_insert , ":bp1" , region.start.position() );
-  sql.bind_int( stmt_loc_insert , ":bp2" , region.stop.position() );
-  sql.bind_text( stmt_loc_insert , ":altname" , region.altname );
+  
+  sql.bind_text(  stmt_loc_insert , ":name"     , region.name               );
+  sql.bind_int64( stmt_loc_insert , ":group_id" , (uint64_t)region.group    );
+  sql.bind_int(   stmt_loc_insert , ":chr"      , region.start.chromosome() );
+  sql.bind_int(   stmt_loc_insert , ":bp1"      , region.start.position()   );
+  sql.bind_int(   stmt_loc_insert , ":bp2"      , region.stop.position()    );
+  sql.bind_text(  stmt_loc_insert , ":altname"  , region.altname            );
   
   sql.step( stmt_loc_insert );
   sql.reset( stmt_loc_insert );
   
   // Subregions?
+
   uint64_t loc_id = sql.last_insert_rowid();
   int chr = region.start.chromosome();
-
+  
   for (int s = 0 ; s < region.subregion.size(); s++)
     {
+      
+      sql.bind_int64( stmt_loc_subregion_insert , ":loc_id" , loc_id );
+      sql.bind_text( stmt_loc_subregion_insert  , ":name"   , region.subregion[s].name );
+      sql.bind_int( stmt_loc_subregion_insert   , ":chr"    , chr );
+      sql.bind_int( stmt_loc_subregion_insert   , ":bp1"    , region.subregion[s].start.position() );
+      sql.bind_int( stmt_loc_subregion_insert   , ":bp2"    , region.subregion[s].stop.position() );      
+      sql.bind_int( stmt_loc_subregion_insert   , ":strand" , region.subregion[s].strand );
+      sql.bind_int( stmt_loc_subregion_insert   , ":frame"  , region.subregion[s].frame );
+      
+      sql.step( stmt_loc_subregion_insert );
+      sql.reset( stmt_loc_subregion_insert );
 
-       sql.bind_int64( stmt_loc_subregion_insert , ":loc_id" , loc_id );
-       sql.bind_text( stmt_loc_subregion_insert , ":name" , region.subregion[s].name );
-       sql.bind_int( stmt_loc_subregion_insert , ":chr" , chr );
-       sql.bind_int( stmt_loc_subregion_insert , ":bp1" , region.subregion[s].start.position() );
-       sql.bind_int( stmt_loc_subregion_insert , ":bp2" , region.subregion[s].stop.position() );
-       sql.step( stmt_loc_subregion_insert );
-       sql.reset( stmt_loc_subregion_insert );
-       uint64_t sub_id = sql.last_insert_rowid();
-       
-       // Subregion meta-information?
-       insertMeta( stmt_loc_submeta_insert , region.subregion[s].meta , sub_id, true );
+      uint64_t sub_id = sql.last_insert_rowid();
+      
+      // Subregion meta-information?
+      insertMeta( stmt_loc_submeta_insert , region.subregion[s].meta , sub_id );
     }
-
+  
   
   // Meta-information?
   
   insertMeta( stmt_loc_meta_insert , region.meta, loc_id );
-
+  
+  
   // Individual information ?
 
   if ( indiv_id )
@@ -930,78 +921,47 @@ bool LocDBase::range_insertion(const Region & region , uint64_t indiv_id )
 }
 
 
-void LocDBase::insertMeta( sqlite3_stmt * s , const MetaInformation<LocMeta> & meta, int id, bool subregion )
+void LocDBase::insertMeta( sqlite3_stmt * s , const MetaInformation<LocMeta> & meta, const int id )
 {
-    
-    std::vector<std::string> keys = meta.keys();
-    
-    for (int j=0; j<keys.size(); j++)
+  
+  // Just insert as a string/INFO format, e.g.  "ID=name1;VALIDATED;SC=0.99,0.1"
+  // But track meta-types in LocDB as before
+  
+  // 1) Insert any unknown types in LOCDB register 
+  
+  std::vector<std::string> keys = meta.keys();  
+
+  for (int j=0; j<keys.size(); j++)
     {
-	
-	sql.bind_text( stmt_loc_meta_insert_prep , ":name" , keys[j] );
-	
-	uint64_t field_id = 0;
-	
-	if ( sql.step( stmt_loc_meta_insert_prep ) )
+      meta_index_t midx = MetaInformation<LocMeta>::field( keys[j] );
+      
+      if ( midx.mt == META_UNDEFINED ) 
 	{
-	    field_id = sql.get_int64( stmt_loc_meta_insert_prep , 0 );
-	}
-	else // insert this as a new field
-	{
-	    meta_index_t midx = MetaInformation<LocMeta>::field( keys[j] );
-	    sql.bind_text( stmt_loc_meta_insert_prep2 , ":name" , keys[j] );
-	    sql.bind_int( stmt_loc_meta_insert_prep2 , ":type" , midx.mt );
-	    sql.bind_int( stmt_loc_meta_insert_prep2 , ":number" , midx.len );
-	    sql.bind_text( stmt_loc_meta_insert_prep2 , ":description" , midx.description );
-	    sql.step( stmt_loc_meta_insert_prep2 );		
-	    //mtmap[ i->first ] = sql.last_insert_rowid();
-	    field_id = sql.last_insert_rowid();
-	    sql.reset(stmt_loc_meta_insert_prep2);
+	
+	  MetaInformation<LocMeta>::field( keys[j] , META_TEXT , -1 , "undeclared tag");
+	  
+	  sql.bind_text( stmt_loc_meta_insert_type , ":name"        , keys[j] );
+	  sql.bind_int(  stmt_loc_meta_insert_type , ":type"        , midx.mt );
+	  sql.bind_int(  stmt_loc_meta_insert_type , ":number"      , midx.len );
+	  sql.bind_text( stmt_loc_meta_insert_type , ":description" , midx.description );
+
+	  sql.step( stmt_loc_meta_insert_type );		
+	  sql.reset( stmt_loc_meta_insert_type );
 
 	}
-	
-	sql.reset( stmt_loc_meta_insert_prep );
-	
-	// Meta-value
-	// NOTE: for now, only let a single value here, not a vector...
-	
-	mType mt = MetaInformation<LocMeta>::type( keys[j] );
-	
-	
-	// Now we've got field_id, insert actual value
-
-	sql.bind_int64( s , ":reg_id" , id );
-	sql.bind_int64( s , ":field_id" , field_id );
-      
-	//
-	// Note -- should be able to swap in parse_set() here
-	//
-
-	switch ( mt ) {
-	    case META_INT :
-	    {
-		sql.bind_int( s , ":value" , meta.get1_int( keys[j] ) );  
-		break;
-	    }
-	    case META_BOOL :
-	  {
-	      sql.bind_int( s , ":value" , meta.get1_int( keys[j] ) );  
-	      break;
-	  }
-	  case META_FLOAT :
-	  {
-	      sql.bind_double( s , ":value" , meta.get1_double( keys[j] ) );      
-	      break;
-	  }
-	  default :
-	  {
-	      sql.bind_text( s , ":value" , meta.get1_string( keys[j] ) );  
-	  }
-      }
-      
-      sql.step( s );
-      sql.reset( s );	  
     }
+  
+  
+  // 2) Insert actual meta-information as a single string
+  
+  std::stringstream ss;
+  ss << meta;
+  
+  sql.bind_int(  s , ":reg_id" , id );
+  sql.bind_text( s , ":value"  , ss.str() ); 
+  sql.step( s );
+  sql.reset( s );	  
+    
 }
 
 
@@ -1106,6 +1066,7 @@ uint64_t LocDBase::lookup_set_id(const std::string & grp, const std::string & na
   return group_id;
 }
 
+
 uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & grp, bool use_transcript_id)
 {
 
@@ -1125,6 +1086,7 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
   
   uint64_t group_id = set_group_id( grp );
   
+
   /////////////////////////////////////////
   //                                     //
   // Begin SQL transaction               //
@@ -1156,10 +1118,16 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
 	  plog.warn("line in GTF column count != 9");
 	  continue;
 	}
-
+      
+      
       // <seqname> <source> <feature> <start> <end> <score> <strand> <frame> [attributes] [comments]
 
       // AB000381 Twinscan  CDS          380   401   .   +   0  gene_id "001"; transcript_id "001.1";
+
+      // For now, we only want to store CDS exons and stop_codons : (?check)
+      
+      if ( ! ( tok[2] == "CDS" || tok[2] == "stop_codon" ) ) continue;
+      
             
       // Start/stop positions
 
@@ -1271,11 +1239,16 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
 
 
 
-uint64_t LocDBase::load_GFF( const std::string & filename, const std::string & grp, bool use_transcript_id)
+uint64_t LocDBase::load_GFF( const std::string & filename, const std::string & grp, const std::string & name  )
 {
+  
+  Helper::halt("GFF support not yet implemented");
 
+  // if name == "" || ".", then use 'source' as the set name
+  // otherwise, look for a meta-field named 'name' and use that as the name
+  
   if ( ! attached() ) Helper::halt( "no LOCDB attached" );
-
+  
   if ( ! Helper::fileExists( filename ) ) return 0;
   
   InFile f( filename );
@@ -1347,86 +1320,65 @@ uint64_t LocDBase::load_GFF( const std::string & filename, const std::string & g
 	  continue;
 	}
 
+      // GFF2 format:
       // <seqname> <source> <feature> <start> <end> <score> <strand> <frame> [attributes] [comments]
 
-      // AB000381 Twinscan  CDS          380   401   .   +   0  gene_id "001"; transcript_id "001.1";
-            
+       
+      // chr5    nhgri_gwas_catalog      sequence_variant        150240076       150240076       3E-7    +       .       ID=ngc00001;Note=Crohn's disease rs1000113*T 3E-7 17554300;rsid=rs1000113;pmid=17554300;link=http://www.ncbi.nlm.nih.gov/pubmed/17554300
+      
       // Start/stop positions
 
       int p1,p2;
       if ( ! Helper::str2int( tok[ 3 ] , p1 ) ) continue;
       if ( ! Helper::str2int( tok[ 4 ] , p2 ) ) continue;
       
-      // Name (from gene_id
+      
+      // Name (from gene_id)
 
       std::vector<std::string> tok2 = Helper::char_split( tok[8] , ' ' , false );
+            
+//       std::string name = use_transcript_id ? tok2[3] : tok2[1];
       
-      // requires atleast 4 manadatory fields: gene_id XXX transcript_id XXX
-      
-      if ( tok2.size() < 4 ) 
-	{
-	  plog.warn("badly formed GTF, col 9");
-	  continue;
-	}
-      
-      // remove quotes and last semi-colon
-      if ( tok2[0] != "gene_id" ) plog.warn("expecting gene_id in GTF :" + tok2[0] );
-      if ( tok2[2] != "transcript_id" ) plog.warn("expecting transcript_id in GTF :" + tok2[2]);
-
-      if ( tok2[1].substr( tok2[1].size()-1 ) == ";" ) tok2[1] = tok2[1].substr( 0, tok2[1].size()-1 );
-      else plog.warn("no ; after gene_id in GTF");
-
-      if ( tok2[3].substr( tok2[3].size()-1 ) == ";" ) tok2[3] = tok2[3].substr( 0, tok2[3].size()-1 );
-      else plog.warn("no ; after transcript_id in GTF");
-      
-      tok2[1] = Helper::unquote( tok2[1] );
-      tok2[3] = Helper::unquote( tok2[3] );
-
-      // tok2[0] should equal  gene_id
-      // use either gene-name or transcript name as 'name' 
-      
-      std::string name = use_transcript_id ? tok2[3] : tok2[1];
-      
-      // Chromosome
-      int chromosome = Helper::chrCode( tok[0] ) ;      
-      if ( chromosome == 0 ) continue;
+//       // Chromosome
+//       int chromosome = Helper::chrCode( tok[0] ) ;      
+//       if ( chromosome == 0 ) continue;
 	  
-      Region r( chromosome ,
-		p1 , p2 , 
-		name , 
-		(int)group_id ); 
+//       Region r( chromosome ,
+// 		p1 , p2 , 
+// 		name , 
+// 		(int)group_id ); 
 
-      // Track gene-name, if unique name is a transcript
+//       // Track gene-name, if unique name is a transcript
       
-      if ( use_transcript_id ) r.altname = tok2[1];
-      else r.altname = tok2[3]; 
+//       if ( use_transcript_id ) r.altname = tok2[1];
+//       else r.altname = tok2[3]; 
 
 
-      // Always expect gene_id and transcript_id 
-      // Use gene_id
+//       // Always expect gene_id and transcript_id 
+//       // Use gene_id
 
-      r.meta.set( "source" , tok[1] );
-      r.meta.set( "feature" , tok[2] );
-      
-
-      // Track strand and frame
-
-      r.meta.set( PLINKSeq::TRANSCRIPT_STRAND() , tok[6] );
-      
-      int frame = 0;
-
-      // implies "." --> 0  (i.e. for stop_codon )
-
-      if ( Helper::str2int( tok[7] , frame ) ) 
-	r.meta.set( PLINKSeq::TRANSCRIPT_FRAME() , frame );
+//       r.meta.set( "source" , tok[1] );
+//       r.meta.set( "feature" , tok[2] );
       
 
-      ///////////////////////////
-      // Add region to database
-      
-      range_insertion(r);
+//       // Track strand and frame
 
-      ++inserted;
+//       r.meta.set( PLINKSeq::TRANSCRIPT_STRAND() , tok[6] );
+      
+//       int frame = 0;
+
+//       // implies "." --> 0  (i.e. for stop_codon )
+
+//       if ( Helper::str2int( tok[7] , frame ) ) 
+// 	r.meta.set( PLINKSeq::TRANSCRIPT_FRAME() , frame );
+      
+
+//       ///////////////////////////
+//       // Add region to database
+      
+//       range_insertion(r);
+
+//       ++inserted;
 
     }
 
@@ -1466,8 +1418,9 @@ uint64_t LocDBase::load_regions( const std::string & filename,
 				 int col_chr, 
 				 int col_bp1, 
 				 int col_bp2,
-				 int col_name, 
+				 int col_name, 				 
 				 int col_sub,
+				 int col_meta,
 				 int col_indiv,
 				 std::map<std::string,int> * meta )
 {
@@ -1495,6 +1448,15 @@ uint64_t LocDBase::load_regions( const std::string & filename,
       if ( col_bp2 > maxcol ) maxcol = col_bp2;
     }
   if ( subregions && col_sub > maxcol ) maxcol = col_sub;
+  if ( col_meta > maxcol ) maxcol = col_meta;
+
+
+  // user defined meta-data (i.e. col name == "META")
+  // and format is assumed to be String (way to specify in advance?)
+  
+  bool free_meta = col_meta >= 0 ;
+
+  // fixed field meta columns?
   if ( meta )
     {
       std::map<std::string,int>::iterator i = meta->begin();
@@ -1614,6 +1576,8 @@ uint64_t LocDBase::load_regions( const std::string & filename,
       ////////////////////
       // Meta-information
       
+      // Fixed fields
+
       if ( meta )
 	{
 	  std::map<std::string,int>::iterator m = meta->begin();
@@ -1624,8 +1588,24 @@ uint64_t LocDBase::load_regions( const std::string & filename,
 	    }
 
 	}
+      
+      
+      // free fields
+      
+      if ( free_meta )
+	{
 
-
+	  // expecting key=value,value;key=value;key  format
+	  
+	  const std::string & s = buffer[ col_meta ];
+	  
+	  if ( s == "." || s == "" ) continue;
+	  
+	  r.meta.parse( s , ";" , true ); 
+	  
+	}
+ 
+    
       ///////////////////////////
       // Add region to database
       
@@ -1996,9 +1976,8 @@ MetaInformation<LocMeta> LocDBase::meta( uint64_t loc_id )
   sql.bind_int64(stmt_loc_get_meta, ":loc_id" , loc_id ); 
   while ( sql.step( stmt_loc_get_meta ) )
     {
-      int field = sql.get_int( stmt_loc_get_meta , 0 );
-      std::string value = sql.get_text( stmt_loc_get_meta , 1 );           
-      m.parse_set( meta_fields[field] , value ); 
+      std::string value = sql.get_text( stmt_loc_get_meta , 0 );
+      m.parse( value ); 
     }
   
   sql.reset( stmt_loc_get_meta );
@@ -2015,10 +1994,9 @@ MetaInformation<LocMeta> LocDBase::submeta( uint64_t sub_id )
   sql.bind_int64(stmt_loc_get_submeta, ":sub_id" , sub_id ); 
 	
   while ( sql.step( stmt_loc_get_submeta ) )
-    {
-	int field = sql.get_int( stmt_loc_get_submeta , 0 );
-	std::string value = sql.get_text( stmt_loc_get_submeta , 1 );           
-	m.parse_set( meta_fields[field] , value ); 
+    {      
+      std::string value = sql.get_text( stmt_loc_get_submeta , 0 );     
+      m.parse( value ); 
     }
   
   sql.reset( stmt_loc_get_submeta );
@@ -2111,13 +2089,12 @@ uint64_t LocDBase::merge( const std::string & grp_name, const std::string & name
 	    
 	    merged.insert( make_pair( name , par ) );
 	}
-
+      
     }
       
   sql.reset( stmt_loc_lookup_group );
 
   sql.commit();
-
 
 
   /////////////////////////////////////////

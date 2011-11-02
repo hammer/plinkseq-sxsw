@@ -732,7 +732,12 @@ bool Eval::parse( const std::string & input )
 {
 
   delete_symbols();    
+  
+  std::string input2 = input;
+  
+  if ( ! expand_indices( &input2 ) ) return false;
 
+  std::cout << "[" << input2 << "]\n";
 
   // this may contain several statements, delimited by ";"
   // evaluate each sequential, to perform any assignments into
@@ -740,7 +745,7 @@ bool Eval::parse( const std::string & input )
   // endpoint
   
 
-  std::vector<std::string> etok = Helper::parse( input, ";" );
+  std::vector<std::string> etok = Helper::parse( input2, ";" );
 
 
   // set number of evals we need to do
@@ -946,21 +951,33 @@ template<class T> void Eval::bind( MetaInformation<T> & m , bool reset )
       while ( tok != i->second.end() )
 	{
 
-	  mType mt = MetaInformation<T>::type( i->first );
+	  //mType mt = MetaInformation<T>::type( i->first );
 	  
-	  if ( mt != META_UNDEFINED ) 
+	  meta_index_t midx = MetaInformation<VarMeta>::field( i->first );
+
+	  if ( midx.mt != META_UNDEFINED ) 
 	    {
 	      
-	      if ( mt == META_FLAG ) 
+	      if ( midx.mt == META_FLAG ) 
 		{
 		  (*tok)->set( m.has_field( i->first ) ) ; 
 		}
 	      else if ( m.has_field( i->first ) )
 		{
-		  if ( mt == META_INT ) { (*tok)->set( m.get1_int( i->first ) ); }
-		  else if ( mt == META_FLOAT ) { (*tok)->set( m.get1_double( i->first ) ); }
-		  else if ( mt == META_TEXT ) { (*tok)->set( m.get1_string( i->first ) ); }
-		  else if ( mt == META_BOOL ) { (*tok)->set( m.get1_bool( i->first ) ); }	      
+		  if ( midx.len == 0 || midx.len == 1 ) // scalars -- flags len == 0 (?check)
+		    {
+		      if      ( midx.mt == META_INT   )   { (*tok)->set( m.get1_int( i->first ) );    }
+		      else if ( midx.mt == META_FLOAT ) { (*tok)->set( m.get1_double( i->first ) ); }
+		      else if ( midx.mt == META_TEXT  )  { (*tok)->set( m.get1_string( i->first ) ); }
+		      else if ( midx.mt == META_BOOL  )  { (*tok)->set( m.get1_bool( i->first ) );   }	      
+		    }
+		  else //vectors
+		    {
+		      if      ( midx.mt == META_INT   )  { (*tok)->set( m.get_int( i->first ) );    }
+		      else if ( midx.mt == META_FLOAT )  { (*tok)->set( m.get_double( i->first ) ); }
+		      else if ( midx.mt == META_TEXT  )  { (*tok)->set( m.get_string( i->first ) ); }
+		      else if ( midx.mt == META_BOOL  )  { (*tok)->set( m.get_bool( i->first ) );   }	      
+		    }
 		}
 	      else 
 		{ 
@@ -1192,6 +1209,84 @@ void Eval::delete_symbols()
 {
   vartb.clear();
 }
+
+
+bool Eval::expand_indices( std::string * s )
+{
+
+  // simply convert  X[i]  to  xfn(X,i)
+  
+  while ( 1 ) 
+    {
+      
+      bool found = false;      
+      
+      // search for opening index
+      // assume it comes after a variable
+
+      int p = s->find( "[" );
+      
+      if ( p == std::string::npos ) return true;
+      found = true; 
+
+      
+      //  x[y]
+      //  backtrack to get 'x'
+      //  then forwards to get 'y'
+      //  then make extract(x,y)
+
+      // valid delimiters backwards are ' ' , % < > & | ! = * + - / 
+
+      int q = p;
+      
+      while ( --q )
+	{
+	  if ( q < 0 ) return false;
+	  char c = s->substr(q,1)[0];
+	  if ( c == ' ' || c == ',' || c == '&' || c == '%' 
+	       || c == '>' || c == '<' || c == '|' || c== '!' || 
+	       c == '=' || c == '*' || c == '+' || c == '-' || c == '/' )
+	    break;
+	}
+
+      std::string vec_idx = s->substr(q+1,p-q+1) ;
+
+      std::string  arg_idx;
+                  
+      while ( ++p )
+	{  
+
+	  std::cout << p << " " << s->size() << "\n";
+	  // gone past end of string? 
+	  if ( p == s->size() ) return false;
+	    
+	  char c = s->substr(q,1)[0];
+	  
+	  // do not allow nested indexing for now
+	  if ( c == '[' ) return false;
+
+	  if ( c == ']' )
+	    {
+	      arg_idx = s->substr(p,q-p);
+	      break;
+	    }  
+	}
+      
+      std::string label = " x( " + vec_idx + " , " + arg_idx + " ) ";
+      
+      std::cout << "new label = " << label << "\n";
+
+      s->replace( q , (p-q+1) , label );
+      
+      std::cout << "now = [" << *s << "]\n";
+
+      // search for next []
+    }
+  
+  return true;
+    
+}
+
 
 
 void Eval::locate_symbols( std::vector<Token> & tok ) 

@@ -82,6 +82,7 @@ bool Pseq::VarDB::load_PLINK( const std::vector<std::string> & name , const Pseq
 
 bool Pseq::SeqDB::load_FASTA( const std::string & filename )
 {
+
   // process necessary options that describe the data loaded in
 
   std::map<std::string,std::string> meta;
@@ -116,6 +117,7 @@ bool Pseq::SeqDB::load_FASTA( const std::string & filename )
     meta[ PLINKSeq::SEQDB_IUPAC_KEY() ] = "0";
   
   g.seqdb.create( filename );
+  std::cout << "about to load..\n";
   g.seqdb.loadFASTA( filename , meta );
   
   return true;
@@ -161,23 +163,30 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
   //
 
   std::string f_chr = "CHR";
+  std::string f2_chr = "CHROM";
+
   std::string f_bp1 = "BP1";
+  std::string f2_bp1 = "POS";
+  std::string f3_bp1 = "POS1";   
+
   std::string f_bp2 = "BP2";		       
+  std::string f2_bp2 = "POS2";		       
+
   std::string f_id  = "ID";
   
   // allow command-line swap-ins
 
   if ( options.key("CHR") ) f_chr   = options.as<std::string>("CHR");
-  if ( options.key("BP1") )   f_bp1   = options.as<std::string>("BP1");
-  if ( options.key("BP2") )   f_bp2   = options.as<std::string>("BP2");
-  if ( options.key("ID") )    f_id    = options.as<std::string>("ID");
+  if ( options.key("BP1") ) f_bp1   = options.as<std::string>("BP1");
+  if ( options.key("BP2") ) f_bp2   = options.as<std::string>("BP2");
+  if ( options.key("ID") )  f_id    = options.as<std::string>("ID");
   
   for (int i=0; i<h.size(); i++)
     {
       // fixed fields?
-      if ( h[i] == f_chr  )        col_chr   = i; 
-      else if ( h[i] == f_bp1   )  col_bp1   = i;
-      else if ( h[i] == f_bp2   )  col_bp2   = i;
+      if ( h[i] == f_chr || h[i] == f2_chr )        col_chr   = i; 
+      else if ( h[i] == f_bp1 || h[i] == f2_bp1 || h[i] == f3_bp1  )  col_bp1   = i;
+      else if ( h[i] == f_bp2 || h[i] == f2_bp2 )  col_bp2   = i;
       else if ( h[i] == f_id    )  col_name  = i;
       else // a user-defined type
 	{
@@ -288,7 +297,7 @@ bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq
   int col_name = -1;
   int col_indiv = -1;
   int col_sub = -1;
-    
+  int col_meta = -1;
 
 
 
@@ -303,6 +312,7 @@ bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq
       else if ( h[i] == "BP2" || h[i] == "POS2" ) col_bp2 = i;
       else if ( h[i] == "SEGID" ) col_name = i;
       else if ( h[i] == "ID" ) col_indiv = i;
+      else if ( h[i] == "META" ) col_meta = i;
       else // a user-defined type
 	{
 	  mType mt = META_TEXT;
@@ -332,6 +342,7 @@ bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq
 			       -1 ,  // no col_pos here yet
 			       col_chr , col_bp1 , col_bp2 , 
 			       col_name , col_sub , 
+			       col_meta ,
 			       col_indiv , 
 			       mf.size() == 0 ? NULL : &mf ) != 0;
   
@@ -378,6 +389,7 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
   int col_indiv = -1;
   int col_sub = -1;
   int col_pos = -1;
+  int col_meta = -1;
 
   std::map<std::string,int> mf;  // meta-field information
   
@@ -390,6 +402,7 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
       else if ( h[i] == "BP2" || h[i] == "POS2" ) col_bp2 = i;
       else if ( h[i] == "POS" ) col_pos = i;
       else if ( h[i] == "ID" ) col_name = i;
+      else if ( h[i] == "META" ) col_meta = i;
       else // a user-defined type
 	{
 	  mType mt = META_TEXT;
@@ -433,6 +446,7 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
 			   col_pos,
 			   col_chr , col_bp1 , col_bp2 , 
 			   col_name , col_sub , 
+			   col_meta , 
 			   col_indiv , 
 			   mf.size() == 0 ? NULL : &mf ) != 0;
   

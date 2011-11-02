@@ -741,7 +741,7 @@ void f_extra_qc_metrics( Variant & var , void * p )
 // Dump contents of group from LOCDB
 //
 
-bool Pseq::LocDB::loc_view( const std::string & group , const std::vector<std::string> & alias )
+bool Pseq::LocDB::loc_view( const std::string & group , const std::vector<std::string> & alias , const bool meta , const bool subregions )
 {
   LocDBase * db = g.resolve_locgroup( group ) ;
   if ( ! db ) return false;
@@ -753,11 +753,28 @@ bool Pseq::LocDB::loc_view( const std::string & group , const std::vector<std::s
   std::set<Region>::iterator i = loc.begin();
   while ( i != loc.end() ) 
     {
+
       plog << i->name << "\t"
 	   << i->coordinate() << "\t"
 	   << i->altname << "\t"
-	   << db->alias( i->name , false ) << "\n";
-      
+	   << db->alias( i->name , false );
+      if ( meta ) 
+	plog << "\t" << i->meta;
+      plog << "\n";
+
+      if ( subregions ) 
+	{
+	  for (int s=0; s<i->subregion.size(); s++)
+	    {
+	      const Subregion & sub =  i->subregion[s];
+	      plog << "_S" << " " << i->name << "\t" 
+		   << sub;
+	      if ( meta ) 
+		plog << "\t" << sub.meta ;
+	      plog << "\n"; 
+	    }
+	}
+
       ++i;
     }
   return true;

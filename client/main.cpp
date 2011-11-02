@@ -19,14 +19,12 @@ using namespace std;
 
 GStore g;
 Pseq::Util::Options options;
-std::string PSEQ_VERSION = "0.07";
-std::string PSEQ_DATE    = "20-Jun-2011";
+std::string PSEQ_VERSION = "0.08";
+std::string PSEQ_DATE    = "27-Oct-2011";
 
 int main(int argc, char ** argv)
 {
 
-//   extra_code();
-//   exit(0);
 
   //
   // Get command-line options into a sensible form
@@ -118,37 +116,37 @@ int main(int argc, char ** argv)
 	<< "index-bcf|input|add index to VARDB for a BCF|ARG:bcf"
 	<< "write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf"
 
-	<< "load-loc|input,locop|load loci into LOCDB|ARG:file,group" 
-	<< "load-locset|input,locop|load a locus-set|ARG:file,name,group" 
-	<< "load-alias-loc|input,locop|load a gene-alias table|ARG:file" 
+	<< "loc-load|input,locop|load from a .GTF or .REG file into LOCDB|ARG:file,group" 
+    	<< "locset-load|input,locop|load a locus-set|ARG:file,name,group" 
+	<< "loc-load-alias|input,locop|load a gene-alias table|ARG:file" 
 
-	<< "merge-loc|locop|merge a LOCDB group|ARG:group" 
-	<< "delete-alias-loc|locop|remove gene-alias table"
-	<< "swap-names-loc|locop|swap LOCDB names" 
-	<< "delete-loc|locop|remove a LOCDB group" 
-	<< "index-loc|locop|index a LOCDB" 
-	<< "drop-index-loc|locop|remove index from LOCDB"         
+	<< "loc-merge|locop|merge a LOCDB group|ARG:group" 
+	<< "loc-delete-alias|locop|remove gene-alias table"
+	<< "loc-swap-names|locop|swap LOCDB names" 
+	<< "loc-delete|locop|remove a LOCDB group" 
+	<< "loc-index|locop|index a LOCDB" 
+	<< "loc-drop-index|locop|remove index from LOCDB"         
 
-	<< "set-special-loc|locop|set special variable in a LOCDB|ARG:key,value"
-	<< "get-special-loc|locop|get special variable(s) from a LOCDB|ARG:key"
-	<< "delete-special-loc|locop|remove all special variables from a LOCDB"
+	<< "loc-set-special|locop|set special variable in a LOCDB|ARG:key,value"
+	<< "loc-get-special|locop|get special variable(s) from a LOCDB|ARG:key"
+	<< "loc-delete-special|locop|remove all special variables from a LOCDB"
 
-	<< "load-seg|input,segop|input segment data to SEGDB" 
-	<< "merge-seg|segop|merge intervals in SEGDB" 
-	<< "load-segset|input,segop|load locus-sets in SEGDB" 
-	<< "load-alias-seg|input,segop|load alias-table" 
-	<< "delete-alias-seg|segop|remove alias-table"
-	<< "delete-seg|segop|remove segment group" 
-	<< "index-seg|segop|index SEGDB" 
-	<< "drop-index-seg|segop|index"            
+	<< "seg-load|input,segop|input segment data to SEGDB" 
+	<< "seg-merge|segop|merge intervals in SEGDB" 
+	<< "segset-load|input,segop|load locus-sets in SEGDB" 
+	<< "seg-load-alias|input,segop|load alias-table" 
+	<< "seg-delete-alias|segop|remove alias-table"
+	<< "seg-delete|segop|remove segment group" 
+	<< "seg-index|segop|index SEGDB" 
+	<< "seg-drop-index|segop|index"            
 
-	<< "load-ref|input,refop|load data (VCF or flat-file) into REFDB|ARG:file,group"
-	<< "load-seq|input,seqop|load FASTA into SEQDB|ARG:file" 
+	<< "ref-load|input,refop|load data (VCF or flat-file) into REFDB|ARG:file,group"
+	<< "seq-load|input,seqop|load FASTA into SEQDB|ARG:file" 
 	<< "load-weights|input,refop|load weight table|ARG:name,file" 
 	<< "score-weights|annot|score varints for weights|VCF|ARG:name"
     
 	<< "tag-file|varop|add file-tags to VARDB|ARG:file,id" 
-	<< "delete-var|varop|remove file from VARDB|ARG:id" 
+	<< "var-delete|varop|remove file from VARDB|ARG:id" 
 	<< "vacuum|varop|clean-up unused disk-space in VARDB"     
 
 	<< "write-vardb|output,varop|write a new VARDB|ARG:new-vardb,new-project"
@@ -160,17 +158,17 @@ int main(int argc, char ** argv)
 	<< "g-meta-matrix|output|matix of gene-based per-individual meta-information|GRP"
 	<< "meta-matrix|output|write a matrix of variant meta-information|VCF|NOGENO"
 	<< "v-meta-matrix|output|write a matrix of individual genotype meta-information|VCF|ARG:name|NOGENO"
-	<< "annotate-loc|locop,annot|annotate loci|ARG:group"
+	<< "loc-annotate|locop,annot|annotate loci|ARG:group"
 	<< "load-pheno|input,indop|load phenotypes into INDB|ARG:file"
 	<< "load-pedigree|input,indop|load pedigree information into INDDB|ARG:file"    
 
 	<< "summary|project|summary of all databases" 
-	<< "vardb-summary|project|summary of VARDB" 
-	<< "locdb-summary|project|summary of LOCDB" 
-	<< "segdb-summary|project|summary of SEQDB" 
-	<< "inddb-summary|project|summary of INDDB" 
-	<< "refdb-summary|project|summary of REFDB" 
-	<< "seqdb-summary|project|summary of SEQDB" 
+	<< "var-summary|project|summary of VARDB" 
+	<< "loc-summary|project|summary of LOCDB" 
+	<< "seg-summary|project|summary of SEQDB" 
+	<< "ind-summary|project|summary of INDDB" 
+	<< "ref-summary|project|summary of REFDB" 
+	<< "seq-summary|project|summary of SEQDB" 
 	<< "file-summary|project|summary of project files" 
 	<< "meta-summary|project|summary of variant meta-information|VCF"  
 
@@ -189,10 +187,11 @@ int main(int argc, char ** argv)
 	<< "v-dist|stats,association|comparison of rare-variant group distributions|VCF|OPT:whole-sample-counts"
 	<< "v-freq|stats,qc|variant frequency data|VCF|ARG:em"
 
-	<< "loc-view|views,locop|view loci from a LOCDB group with 1 or more variants"
-	<< "loc-dump|views,locop|show all loci in a LOCDB group"
+	<< "loc-intersect|views,locop|view loci from a LOCDB group with 1 or more variants"
+	<< "loc-view|views,locop|show all loci in a LOCDB group"
 	<< "loc-stats|views,locop|locus-based stats"
 	<< "loc-translate|locop|AA sequence of loci"
+	<< "ref-view|views|view a group from a REFDB"
 	<< "seq-view|views|view regions of sequence from SEQDB"
 
 	<< "counts|views,association|summary/count statistics|VCF"
@@ -203,10 +202,10 @@ int main(int argc, char ** argv)
 	<< "s-assoc|association,ibd|segment-based IBD test"
 	<< "unique|views,association|view variants specific to individual groups|VCF"
 
-	<< "load-ibd|input,ibd|load IBD segment data|ARG:ibddb"
+	<< "ibd-load|input,ibd|load IBD segment data|ARG:ibddb"
 	<< "ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb"
 
-	<< "load-net|input,net|populate a NETDB|ARG:netdb,file"
+	<< "net-load|input,net|populate a NETDB|ARG:netdb,file"
 	<< "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
 	<< "net-assoc|net,association|network-based gene-association|GRP|ARG:netdb,pheno"
 
@@ -501,7 +500,7 @@ int main(int argc, char ** argv)
   // Load reference and sequence data
   //
   
-  if ( command == "load-ref" )
+  if ( command == "ref-load" )
     {
       
       if ( ! g.refdb.attached() ) 
@@ -525,16 +524,19 @@ int main(int argc, char ** argv)
     }
   
 
-  if ( command == "load-seq" )
+  if ( command == "seq-load" )
     {	
+
       if ( ! args.has( "file" ) )
 	Helper::halt("no file specified");
+
       std::vector<std::string> s = args.as_string_vector( "file" );
+
       if ( s.size() != 1 )
 	Helper::halt("more than 1 file specified");
       
       Pseq::SeqDB::load_FASTA( s[0] );
-      
+
       Pseq::finished();
     }
   
@@ -598,7 +600,7 @@ int main(int argc, char ** argv)
   
 
   
-  if ( command == "load-locset" )
+  if ( command == "locset-load" )
     {
       if ( ! args.has("name") )
 	Helper::halt("no name specified");	
@@ -628,7 +630,7 @@ int main(int argc, char ** argv)
     }
   
 
-  if ( command == "load-net" )
+  if ( command == "net-load" )
     {
       if ( ! args.has( "netdb" ) ) Helper::halt( "no --netdb specified" );
       if ( ! args.has( "file" ) ) Helper::halt( "no --file specified" );
@@ -646,7 +648,7 @@ int main(int argc, char ** argv)
     }
 
 
-  if ( command == "load-segset" )
+  if ( command == "segset-load" )
     {
       if ( ! args.has("name") )
 	Helper::halt("no name specified");	
@@ -910,7 +912,7 @@ int main(int argc, char ** argv)
   // Load/merge GTF files into locus database
   //
   
-    if ( command == "load-loc" )
+    if ( command == "loc-load" )
       {
 
 	if ( ! args.has("file") )
@@ -926,7 +928,14 @@ int main(int argc, char ** argv)
 	  Helper::halt("more than 1 group specified");
 	
 	if ( Helper::ends_with( s[0] , ".gtf" ) || Helper::ends_with( s[0] , ".gtf.gz" ) )
-	  Pseq::LocDB::load_GTF( s[0], grp[0] , true );
+	  {
+	    // Load GTF, merge transcripts, remove tmp group
+	    const std::string realgrp = grp[0];
+	    const std::string tmpgrp = grp[0] + "-tmpXYZ";	    
+	    Pseq::LocDB::load_GTF( s[0], tmpgrp , true );
+	    Pseq::LocDB::merge( tmpgrp , realgrp , true );
+	    g.locdb.flush( tmpgrp );
+	  }
 	else if ( Helper::ends_with( s[0] , ".reg" ) || Helper::ends_with( s[0] , ".reg.gz" ) )
 	  Pseq::LocDB::load_generic_regions( s[0], grp[0] , options , true );
 	else Helper::halt("invalid file name, expecting extension: .gtf .gtf.gz .reg .reg.gz");
@@ -934,7 +943,7 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
     
-    if ( command == "swap-names-loc" )
+    if ( command == "loc-swap-names" )
       {
 	std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
 	std::string group = Pseq::Util::single_argument<std::string>( args , "group" );
@@ -942,9 +951,9 @@ int main(int argc, char ** argv)
       }
 
 
-    if ( command == "merge-loc" )
+    if ( command == "loc-merge" )
       {
-
+	
 	if ( ! args.has("group") )
 	  Helper::halt("no group specified");
 	std::vector<std::string> grp = args.as_string_vector( "group" );
@@ -952,7 +961,7 @@ int main(int argc, char ** argv)
 	  Helper::halt("need to specify two groups (old-name new-name)");
 
 	Pseq::LocDB::merge( grp[0] , grp[1] , true );
-
+	
 	Pseq::finished();
       }
 
@@ -961,7 +970,7 @@ int main(int argc, char ** argv)
     // Add locus alias table
     //
 
-    if ( command == "load-alias-loc" )
+    if ( command == "loc-load-alias" )
       {	
 	if ( !g.locdb.attached() ) Helper::halt("LOCDB not attached");
 	if ( ! args.has("file") )
@@ -973,7 +982,7 @@ int main(int argc, char ** argv)
       }
 
 
-    if ( command == "delete-alias-loc" )
+    if ( command == "loc-delete-alias" )
       {	
 	if ( ! g.locdb.attached() ) Helper::halt("LOCDB not attached");
 	g.locdb.delete_aliases( );
@@ -985,7 +994,7 @@ int main(int argc, char ** argv)
     // Remove a group of loci from LOCDB
     //
 
-    if ( command == "delete-loc" )
+    if ( command == "loc-delete" )
       {	
 	if ( ! args.has("group") )
 	  Helper::halt("no group specified");
@@ -999,14 +1008,14 @@ int main(int argc, char ** argv)
     // Re/drop index LOCDB
     //
 
-    if ( command == "index-loc" )
+    if ( command == "loc-index" )
       {	
 	g.locdb.drop_index();
 	g.locdb.index();
 	Pseq::finished();
       }
 
-    if ( command == "drop-index-loc" )
+    if ( command == "loc-drop-index" )
       {	
 	g.locdb.drop_index();
 	Pseq::finished();
@@ -1016,7 +1025,7 @@ int main(int argc, char ** argv)
     // Set/get 'special' values from a LOCDB
     //
 
-    if ( command == "set-special-loc" )
+    if ( command == "loc-set-special" )
       {
 	if ( ! args.has("key" ) )
 	  Helper::halt("requires --key");
@@ -1032,7 +1041,7 @@ int main(int argc, char ** argv)
       }
 
 
-    if ( command == "get-special-loc" )
+    if ( command == "loc-get-special" )
       {
 	if ( ! args.has("key" ) )
 	  Helper::halt("requires --key");
@@ -1044,7 +1053,7 @@ int main(int argc, char ** argv)
       }
 
 
-    if ( command == "delete-special-loc" )
+    if ( command == "loc-delete-special" )
       {
 	g.locdb.clear_special();
 	Pseq::finished();
@@ -1055,7 +1064,7 @@ int main(int argc, char ** argv)
     // Remove a group of loci from SEGDB
     //
 
-    if ( command == "delete-seg" )
+    if ( command == "seg-delete" )
       {	
 	if ( ! args.has("group") )
 	  Helper::halt("no group specified");
@@ -1069,14 +1078,14 @@ int main(int argc, char ** argv)
     // Re/drop index SEGDB
     //
 
-    if ( command == "index-seg" )
+    if ( command == "seg-index" )
       {	
 	g.segdb.drop_index();
 	g.segdb.index();
 	Pseq::finished();
       }
 
-    if ( command == "drop-index-seg" )
+    if ( command == "seg-drop-index" )
       {	
 	g.segdb.drop_index();
 	Pseq::finished();
@@ -1088,7 +1097,7 @@ int main(int argc, char ** argv)
     // Load segment (locus plus individual) information into SEGDB
     // 
 
-    if ( command == "load-seg" )
+    if ( command == "seg-load" )
       {
 
 	if ( ! args.has("file") )
@@ -1127,7 +1136,7 @@ int main(int argc, char ** argv)
     // Add locus alias table to SEGDB
     //
 
-    if ( command == "load-alias-seg" )
+    if ( command == "seg-load-alias" )
       {	
 	if ( !g.segdb.attached() ) Helper::halt("LOCDB not attached");
 	if ( ! args.has("file") )
@@ -1138,7 +1147,7 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
-    if ( command == "delete-alias-seg" )
+    if ( command == "seg-delete-alias" )
       {	
 	if ( ! g.segdb.attached() ) Helper::halt("SEGDB not attached");
 	g.segdb.delete_aliases( );
@@ -1150,7 +1159,7 @@ int main(int argc, char ** argv)
     // Merge in SEGDB
     //
 
-    if ( command == "merge-seg" )
+    if ( command == "seg-merge" )
       {
 
 	if ( ! args.has("group") )
@@ -1602,12 +1611,29 @@ int main(int argc, char ** argv)
 
     if ( command == "annotate" )
       {
+
 	if ( args.has( "file" ) )
 	  {
 	    std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
 	    Pseq::VarDB::lookup_list( filename , m );
 	  }
-	else // directly annotate variants in VARDB
+	
+	if ( args.has( "region" ) ) 
+	  {
+	    std::vector<std::string> regions = Pseq::Util::n_arguments<std::string>( args, "region" );
+	    std::vector<Region> regs;
+	    for (int i=0;i<regions.size(); i++)
+	      {
+		bool okay;
+		Region r( regions[i] , okay );
+		if ( okay ) regs.push_back( r );
+		else plog.warn( "could not parse region: " + regions[i] );
+	      }
+	    Pseq::VarDB::lookup_list( "." , m , &regs );
+	  }
+
+	// else directly annotate variants in VARDB
+	if ( ! ( args.has( "file" ) || args.has( "region" ) ) )
 	  {
 	    Pseq::VarDB::lookup_list( "." , m );
 	  }
@@ -1634,37 +1660,37 @@ int main(int argc, char ** argv)
       }
 
     
-    if ( command == "vardb-summary" )
+    if ( command == "var-summary" )
       {
 	Pseq::VarDB::summary(m);
 	Pseq::finished();
       }
 
-    if ( command == "inddb-summary" )
+    if ( command == "ind-summary" )
       {
 	Pseq::IndDB::summary();
 	Pseq::finished();
       }
 
-    if ( command == "locdb-summary" )
+    if ( command == "loc-summary" )
       {
 	Pseq::LocDB::summary( &g.locdb );
 	Pseq::finished();
       }
 
-    if ( command == "segdb-summary" )
+    if ( command == "seg-summary" )
       {
 	Pseq::LocDB::summary( &g.segdb );
 	Pseq::finished();
       }
 
-    if ( command == "refdb-summary" )
+    if ( command == "ref-summary" )
       {
 	Pseq::RefDB::summary();
 	Pseq::finished();
       }
 
-    if ( command == "seqdb-summary" )
+    if ( command == "seq-summary" )
       {
 	Pseq::SeqDB::summary();
 	Pseq::finished();
@@ -1737,7 +1763,7 @@ int main(int argc, char ** argv)
     // Per-locus simple view, or sequence stats, e.g. GC percent 
     //
 
-    if ( command == "loc-dump" )
+    if ( command == "loc-view" )
       {
 	if ( ! ( g.locdb.attached() | g.segdb.attached() ) ) Helper::halt("no LOCDB or SEGDB attached");
 	if ( ! args.has( "group" ) ) 
@@ -1750,15 +1776,20 @@ int main(int argc, char ** argv)
 	if ( args.has("alias") )
 	  alias = args.as_string_vector( "alias" );
 
-	Pseq::LocDB::loc_view( grp[0] , alias );
+	Pseq::LocDB::loc_view( grp[0] , alias , ! options.key("no-meta") , options.key("subregions") );
 
 	Pseq::finished();
       }
 
 
-    if ( command == "loc-view" )
+    if ( command == "loc-intersect" )
       {
+
+	// print LOC group names that have 1+ VARDB variants, according to 
+	// the mask
+	
 	// assumes a mask will specifiy the 'loc.group'
+
 	g.vardb.iterate( g_loc_view , NULL , m );
 	Pseq::finished();
       }
@@ -1794,6 +1825,22 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
+
+    //
+    // Dump RefVariants from REFDB
+    //
+
+    if ( command == "ref-view" )
+      {
+	if ( ! g.refdb.attached() ) Helper::halt("no REFDB attached");
+	if ( ! args.has( "group" ) ) Helper::halt("no group specified");
+	std::string grp = Pseq::Util::single_argument<std::string>( args , "group" );
+	bool with_meta = args.has( "vmeta" );
+	g.refdb.dump( grp , with_meta );
+	Pseq::finished();
+      }
+
+
     //
     // Dump sequence from SEQDB
     //
@@ -1808,7 +1855,7 @@ int main(int argc, char ** argv)
 
 	bool compact = options.key("compact");
 
-	std::vector<std::string> regions = Pseq::Util::n_arguments<std::string>( args, "region");
+	std::vector<std::string> regions = Pseq::Util::n_arguments<std::string>( args, "region" );
 	for (int i=0;i<regions.size(); i++)
 	  {
 	    bool okay;
@@ -1912,7 +1959,7 @@ int main(int argc, char ** argv)
       }
 
 
-    if ( command == "load-ibd" )
+    if ( command == "ibd-load" )
       {
 	if ( !args.has("file") ) Helper::halt("need to specify --file");
 	if ( !args.has("ibddb") ) Helper::halt("need to specify --ibddb");
@@ -2069,7 +2116,7 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
-    if ( command == "annotate-loc" )
+    if ( command == "loc-annotate" )
       {
 	std::string grp = Pseq::Util::single_argument<std::string>( args , "group" );
 	Pseq::VarDB::annotate_loc(grp,m);

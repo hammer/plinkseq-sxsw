@@ -594,6 +594,7 @@ void f_lookup_annotator( Variant & var , void * p )
 	    {
 	      plog << s << "\t"
 		   << "ref_" << *i << "\t"
+		   << "." << "\t"
 		   << "." << "\n";
 	    }
 	  
@@ -602,8 +603,9 @@ void f_lookup_annotator( Variant & var , void * p )
 	    {
 	      plog << s << "\t"
 		   << "ref_" << *i << "\t"
-		   << *j << "\n";
-	      ++j;
+		   << *j << "\t"
+		   << j->value() << "\n";
+	      ++j;    
 	    }
 	  ++i;
 	}
@@ -612,7 +614,7 @@ void f_lookup_annotator( Variant & var , void * p )
 }
 
 
-bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
+bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask , const std::vector<Region> * regs )
 {
  
   AuxLookup aux;
@@ -696,7 +698,7 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
   // Annotate variants internally
   //
   
-  if ( filename == "." ) 
+  if ( filename == "." && ! regs ) 
     {
       g.vardb.iterate( f_lookup_annotator , &aux , mask );
       return true;
@@ -704,57 +706,77 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask )
 
 
   //
-  // Else, annotate variant list from file
+  // Else, annotate variant list from file, or from a list of regions from the command line
   //
 
-  Helper::checkFileExists( filename );
-
-  InFile F1( filename );
-
-  // Assume format is either a) a single site (1 col) OR b) single, REF and ALT (3 col)
-
-  while ( !F1.eof() )
+  if ( filename != "." )
     {
+      Helper::checkFileExists( filename );
+
+      InFile F1( filename );
       
-      bool okay = true;
-      std::vector<std::string> line = F1.tokenizeLine( " \t" );
-
-      if ( line.size() == 0 ) continue;
-
-      if ( ! ( line.size() == 1 || line.size() == 3 ) ) 
+      // Assume format is either a) a single site (1 col) OR b) single, REF and ALT (3 col)
+      
+      while ( !F1.eof() )
 	{
-	  plog.warn( "not a valid line of input" , line );
-	  continue;
-	}
-	      
-
-      // Region REF ALT
-      
-      Region region( line[0] , okay );     
-      std::string ref_allele = line.size() == 3 ? line[1] : ".";
-      std::string alt_allele = line.size() == 3 ? line[2] : ".";
-      
-      if ( okay ) 
-	{	  
-	  Variant var;
-	  var.chromosome( region.start.chromosome() );
-	  var.position( region.start.position() );
 	  
-	  if ( ref_allele == "." )
-	    var.stop( region.stop.position() ); 
+	  bool okay = true;
+	  std::vector<std::string> line = F1.tokenizeLine( " \t" );
+	  
+	  if ( line.size() == 0 ) continue;
+	  
+	  if ( ! ( line.size() == 1 || line.size() == 3 ) ) 
+	    {
+	      plog.warn( "not a valid line of input" , line );
+	      continue;
+	    }
+	  
+	  
+	  // Region REF ALT
+	  
+	  Region region( line[0] , okay );     
+	  std::string ref_allele = line.size() == 3 ? line[1] : ".";
+	  std::string alt_allele = line.size() == 3 ? line[2] : ".";
+	  
+	  if ( okay ) 
+	    {	  
+	      Variant var;
+	      var.chromosome( region.start.chromosome() );
+	      var.position( region.start.position() );
+	      
+	      if ( ref_allele == "." )
+		var.stop( region.stop.position() ); 
+	      else
+		var.stop( var.position() + ref_allele.size() - 1 );
+	      
+	      var.consensus.reference( ref_allele );
+	      var.consensus.alternate( alt_allele );	  
+	      f_lookup_annotator( var , &aux );
+	    }
 	  else
-	    var.stop( var.position() + ref_allele.size() - 1 );
+	    plog.warn( "not a valid region" , line[0] );
+	  
+	} // next input region
 
-	  var.consensus.reference( ref_allele );
-	  var.consensus.alternate( alt_allele );	  
-	  f_lookup_annotator( var , &aux );
-	}
-      else
-	plog.warn( "not a valid region" , line[0] );
-      
-    } // next input region
+      F1.close();      
+    }
+
   
-  F1.close();
+  // And/or Regions from the command line (won't have allelic encoding)
+
+  if ( regs ) 
+    {
+      for (int r = 0 ; r < regs->size(); r++)
+	{
+	  Variant var;
+	  var.chromosome( (*regs)[r].start.chromosome() );
+	  var.position(   (*regs)[r].start.position()   );
+	  var.stop(       (*regs)[r].stop.position()    );
+	  f_lookup_annotator( var , &aux );
+	}      
+    }
+  
+
   return true;
 
 }

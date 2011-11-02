@@ -1330,13 +1330,13 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
 	  if ( sub ) 
 	    {	      
 	      plog << i->name << "\t" 
-			<< alias << "\t"
-			<< "NA\t"
-			<< s+1 << "\t"
-			<< sr.coordinate() << "\t";
+		   << alias << "\t"
+		   << "NA\t"
+		   << s+1 << "\t"
+		   << sr.coordinate() << "\t";
 	      
 	      plog << stot << "\t"
-			<< "NA" << "\t";
+		   << "NA" << "\t";
 	      
 	      if ( okay ) 
 		plog 
@@ -1347,7 +1347,7 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
 	      else
 		plog << "NA\tNA\tNA\tNA";
 	    }
-
+	  
 
 	  //
 	  // Count intersector reference variants

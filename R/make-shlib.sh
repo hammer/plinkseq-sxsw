@@ -1,13 +1,13 @@
 
-REXE=/psych/genetics/pseq/share/bin/R
+REXE=~/R
 
 rm Rplinkseq.so
 
 # compile the R interface code
-g++ -shared -fPIC -O2 -pg -c rint.cpp -I../lib -I../share/include  -I../share/lib64/R/include/
+g++ -shared -fPIC -O2 -pg -c rint.cpp -I../lib -I/psych/genetics/pseq/share/include  -I../share/lib64/R/include/
 
 # also, compile a different version of helper, that handles errors differently (i.e. via the R error())
-g++ -shared -fPIC -O2 -c ../lib/helper.cpp -DR_SHLIB=1 -I. -I../lib -I../share/include  -I../share/lib64/R/include/
+g++ -shared -fPIC -O2 -c ../lib/helper.cpp -DR_SHLIB=1 -I. -I../lib -I/psych/genetics/pseq/share/include  -I../share/lib64/R/include/
 
 $REXE CMD SHLIB \
  -o Rplinkseq.so \
@@ -61,13 +61,13 @@ $REXE CMD SHLIB \
 ../lib/segments.o \
 ../lib/token.o \
 ../lib/varmeta.o \
- -L../share/lib \
+../lib/sqlite3.o \
+ -L/psych/genetics/pseq/share/lib \
  -L../lib \
- -lplinkseq \
- -lsqlite3 \
  -lprotobuf \
-  -lz  \
+ -lz  \
  -lpthread
+
 
 
 
