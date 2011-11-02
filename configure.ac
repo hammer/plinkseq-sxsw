@@ -46,7 +46,7 @@ AM_CONDITIONAL([WITH_PROTOBUF], [test "x$protobuf" != xfalse])
 
 # note that util is not a subdir, it is part of the root build
 AC_CONFIG_SUBDIRS([lib client])
-AC_CONFIG_FILES([Makefile util/Makefile R/Rplinkseq/src/Makevars])
+AC_CONFIG_FILES([Makefile R/Rplinkseq/src/Makevars])
 
 # Checks for programs.
 AC_PROG_CXX

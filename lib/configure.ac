@@ -4,7 +4,7 @@
 AC_PREREQ(2.61)
 AC_INIT([plinkseq-lib], [0.07], [brettpthomas@gmail.com])
 
-AM_INIT_AUTOMAKE([-Wall -Werror silent-rules foreign])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 LT_PREREQ([2.2])
 LT_INIT([pic-only disable-static])

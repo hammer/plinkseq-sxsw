@@ -5,4 +5,4 @@
 ACLOCAL_AMFLAGS = -I m4
 
 # this is necessary even though we've specified AC_CONFIG_SUBDIRS in configure.ac
-SUBDIRS = lib client util
+SUBDIRS = lib client

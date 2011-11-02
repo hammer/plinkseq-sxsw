@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.61)
 AC_INIT([plinkseq-client], [0.07], [brettpthomas@gmail.com])
-AM_INIT_AUTOMAKE([-Wall silent-rules foreign])
+AM_INIT_AUTOMAKE([-Wall foreign])
 LT_PREREQ([2.2])
 LT_INIT([])
 
