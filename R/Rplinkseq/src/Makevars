@@ -1,2 +1,0 @@
-PKG_CXXFLAGS = -I../lib -DR_SHLIB=1
-PKG_LIBS = -lprotobuf -lpthread -lz -ldl
