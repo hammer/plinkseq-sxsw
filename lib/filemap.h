@@ -33,6 +33,9 @@
 #include "zfstream.h"
 #include "bcf.h"
 
+#include <wordexp.h>
+
+
 extern Log plog;
 
 
@@ -126,7 +129,7 @@ class FileMap {
   
   static std::map<std::string,fType> fTypeMap;
   
-  
+  static std::string tilde_expansion( const std::string & f );
   
   static std::string typeName(const fType&);
   

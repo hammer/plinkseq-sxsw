@@ -336,6 +336,15 @@ bool FileMap::exists( const std::string & f ) const
 }
 
 
+std::string FileMap::tilde_expansion( const std::string & f )
+{
+  wordexp_t exp_result;
+  wordexp( f.c_str() , &exp_result, 0);
+  std::string nf = exp_result.we_wordv[0];
+  wordfree(&exp_result);
+  return nf;
+}
+
 File * FileMap::add( const std::string & n, 
 		     fType t, 
 		     const std::string & tag ,

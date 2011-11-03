@@ -20,7 +20,11 @@ extern "C" {
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
 #include <R_ext/Utils.h>
-        
+
+  // Some basic state variables
+  
+  bool R_project_attached;
+  
   void R_init_Rplinkseq(DllInfo *info);
   
   // Attach/dettach a database

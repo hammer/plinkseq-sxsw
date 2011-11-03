@@ -287,7 +287,7 @@ int main(int argc, char ** argv)
   // Set project, attaching all relevant databases
   //
   
-  std::string project_file = args.project_file();
+  std::string project_file = FileMap::tilde_expansion( args.project_file() );
   
 
 

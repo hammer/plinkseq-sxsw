@@ -5,13 +5,9 @@
 #                                                 #
 ###################################################
 
-dyn.load(paste("/psych/genetics/shaun/pseq/R/Rplinkseq", .Platform$dynlib.ext, sep = ""))
-
-.First.lib <- function(libname, pkgname) {
-
-	dyn.load(paste(system.file(package="Rplinkseq"), "/lib/libprotobuf.so", sep=""))
-	library.dynam("Rplinkseq")
-
+.First.lib <- function(libname, pkgname) 
+{
+  library.dynam("Rplinkseq")
 }
 
 ###################################################

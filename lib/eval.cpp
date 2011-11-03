@@ -576,6 +576,8 @@ bool Eval::execute( const std::vector<Token> & input )
       
       Token c = input[i];
       
+      std::cout << "proc " << c.name() << "\n";
+
       // If the token is a value or identifier
       
       if ( c.is_ident() )
@@ -632,10 +634,11 @@ bool Eval::execute( const std::vector<Token> & input )
 		}
 	      
 	      
+	      std::cout << "got fn " << c.name() << "\n";
 	      //
 	      // Perform function calls:
 	      //
-
+	      
 	      // correct # of arguments? 
 
 	      if ( args.size() != Token::fn_map[ c.name() ] ) 
@@ -737,8 +740,6 @@ bool Eval::parse( const std::string & input )
   
   if ( ! expand_indices( &input2 ) ) return false;
 
-  std::cout << "[" << input2 << "]\n";
-
   // this may contain several statements, delimited by ";"
   // evaluate each sequential, to perform any assignments into
   // meta data, but only the last will be reflected in the 'e' 
@@ -761,10 +762,10 @@ bool Eval::parse( const std::string & input )
       output[i].clear();    
 
       errs = "";
-
+            
       if ( ! extract_gfunc( &(etok[i]) ) )
 	is_valid = false;
-            
+      
       if ( ! shunting_yard( etok[i], output[i] ) )
 	is_valid = false;
       
@@ -946,17 +947,18 @@ template<class T> void Eval::bind( MetaInformation<T> & m , bool reset )
   std::map<std::string,std::set<Token*> >::iterator i = vartb.begin();
   while ( i != vartb.end() )
     { 
+
       std::set<Token*>::iterator tok = i->second.begin();
 
       while ( tok != i->second.end() )
 	{
-
-	  //mType mt = MetaInformation<T>::type( i->first );
 	  
-	  meta_index_t midx = MetaInformation<VarMeta>::field( i->first );
-
-	  if ( midx.mt != META_UNDEFINED ) 
+	  mType mt = MetaInformation<T>::type( i->first );
+	  
+	  if ( mt != META_UNDEFINED ) 
 	    {
+	      
+	      meta_index_t midx = MetaInformation<VarMeta>::field( i->first );
 	      
 	      if ( midx.mt == META_FLAG ) 
 		{
@@ -979,11 +981,14 @@ template<class T> void Eval::bind( MetaInformation<T> & m , bool reset )
 		      else if ( midx.mt == META_BOOL  )  { (*tok)->set( m.get_bool( i->first ) );   }	      
 		    }
 		}
-	      else 
-		{ 
-		  (*tok)->set(); // UNDEFINED
-		}
+	      else
+		(*tok)->set(); // UNDEFINED
 	    }
+	  else 
+	    { 	      
+	      (*tok)->set(); // UNDEFINED
+	    }
+	  
 	  ++tok;
 	}
       ++i;
@@ -1219,72 +1224,52 @@ bool Eval::expand_indices( std::string * s )
   while ( 1 ) 
     {
       
-      bool found = false;      
-      
       // search for opening index
       // assume it comes after a variable
-
-      int p = s->find( "[" );
-      
-      if ( p == std::string::npos ) return true;
-      found = true; 
-
-      
       //  x[y]
       //  backtrack to get 'x'
       //  then forwards to get 'y'
       //  then make extract(x,y)
+      // valid delimiters backwards are ' ' , % < > & | ! = * + - / ;
 
-      // valid delimiters backwards are ' ' , % < > & | ! = * + - / 
-
+      int p = s->find( "[" );
+      if ( p == std::string::npos ) return true;
       int q = p;
       
       while ( --q )
 	{
 	  if ( q < 0 ) return false;
+	  if ( q == 0 ) { ++q; break; }
 	  char c = s->substr(q,1)[0];
 	  if ( c == ' ' || c == ',' || c == '&' || c == '%' 
 	       || c == '>' || c == '<' || c == '|' || c== '!' || 
-	       c == '=' || c == '*' || c == '+' || c == '-' || c == '/' )
-	    break;
+	       c == '=' || c == '*' || c == '+' || c == '-' || c == '/' || c == ';'  )
+	    { ++q; break; }	  
 	}
-
-      std::string vec_idx = s->substr(q+1,p-q+1) ;
-
+      
+      std::string vec_idx = s->substr(q,p-q) ;
+  
       std::string  arg_idx;
-                  
+      int r = p;      
       while ( ++p )
 	{  
-
-	  std::cout << p << " " << s->size() << "\n";
-	  // gone past end of string? 
 	  if ( p == s->size() ) return false;
-	    
-	  char c = s->substr(q,1)[0];
-	  
-	  // do not allow nested indexing for now
-	  if ( c == '[' ) return false;
-
+	  char c = s->substr(p,1)[0];
+	  // do not allow nested indexing
+	  if ( c == '[' ) return false;	  
 	  if ( c == ']' )
 	    {
-	      arg_idx = s->substr(p,q-p);
+	      arg_idx = s->substr(r+1,p-r-1);
 	      break;
 	    }  
 	}
       
-      std::string label = " x( " + vec_idx + " , " + arg_idx + " ) ";
-      
-      std::cout << "new label = " << label << "\n";
+      std::string label = "x(" + vec_idx + "," + arg_idx + ")";
+      s->replace( q , (p-q+1) , label );      
 
-      s->replace( q , (p-q+1) , label );
-      
-      std::cout << "now = [" << *s << "]\n";
+    } // search for next []  
 
-      // search for next []
-    }
-  
-  return true;
-    
+  return true;    
 }
 
 

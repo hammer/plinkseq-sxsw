@@ -882,11 +882,10 @@ std::string Helper::fullpath( const std::string & f)
   return f;
 }
 
-bool Helper::fileExists(string f)
+
+bool Helper::fileExists( const std::string & f )
 {
-
-  ifstream inp;
-
+  std::ifstream inp;
   inp.open(f.c_str(), ifstream::in);
   if(inp.fail())
     {
@@ -908,11 +907,9 @@ bool Helper::checkFileExists(File * f)
   return checkFileExists( f->name() );
 }
 
-bool Helper::checkFileExists(string f)
+bool Helper::checkFileExists( const std::string & f )
 {
-
   ifstream inp;
-
   inp.open(f.c_str(), ifstream::in);
   if(inp.fail())
     {
@@ -925,10 +922,9 @@ bool Helper::checkFileExists(string f)
   return true;
 }
 
-bool Helper::checkFileExists(vector<string> f)
+bool Helper::checkFileExists( const std::vector<std::string> & f )
 {
-  for (int k=0; k<f.size(); k++)
-    checkFileExists(f[k]);
+  for (int k=0; k<f.size(); k++) checkFileExists( f[k] );
   return true;
 }
 
@@ -937,12 +933,13 @@ bool Helper::checkFileExists(vector<string> f)
 //////////////////////////
 // Pretty printing
 
-std::string Helper::sw(std::string s , int n)
+std::string Helper::sw( const std::string & s , int n)
 {
   int l = n - s.size();
   if ( l < 1 ) return " " + s;
-  s.insert(s.begin(), l , ' ' );
-  return s;
+  std::string t = s;
+  t.insert( t.begin(), l , ' ' );
+  return t;
 }
 
 std::string Helper::sw(double d , int n)
