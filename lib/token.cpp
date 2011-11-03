@@ -1056,7 +1056,6 @@ Token TokenFunctions::fn_assign( Token & lhs , const Token & rhs )
   int i;
   if ( rhs.is_int(&i) )
     {      
-      
       registerMetatype( lhs.name() , META_INT, 1 , META_GROUP_VAR , "" );
       meta->set( lhs.name() , i );
       lhs.set( i );
@@ -1105,6 +1104,7 @@ Token TokenFunctions::fn_assign( Token & lhs , const Token & rhs )
   std::vector<int> iv;
   if ( rhs.is_int_vector(&iv) )
     {            
+      std::cout << "assigning int vec " << lhs.name() << " " << iv.size() << " elements\n";
       MetaInformation<VarMeta>::field( lhs.name() , META_INT , -1 , "" );
       meta->set( lhs.name() , iv );
       lhs.set( iv );
@@ -1276,6 +1276,8 @@ Token TokenFunctions::fn_vec_count( const Token & tok1 , const Token & tok2 ) co
 
 Token TokenFunctions::fn_vec_sum( const Token & tok ) const
 {
+  
+  std::cout << "calling sum\n";
 
   Token::tok_type ttype = tok.type();
 
@@ -1286,6 +1288,7 @@ Token TokenFunctions::fn_vec_sum( const Token & tok ) const
       int sm = 0;
       std::vector<int> tmp = tok.as_int_vector();
       for (int i=0;i<tmp.size(); i++) sm += tmp[i];
+      std::cout << "got sum of IV = " << sm << "\n";
       return Token( sm );
     }
   
@@ -1318,6 +1321,7 @@ Token TokenFunctions::fn_vec_mean( const Token & tok1 ) const
 
 Token TokenFunctions::fn_vec_extract( const Token & tok , const Token & idx ) const
 {
+
   if ( ! idx.is_int() ) Helper::halt( "index for vector subscripting is not an integer value" );
   int i = idx.as_int();
 

@@ -527,10 +527,10 @@ namespace Helper
   // File handling
 
   void ensure_folder( std::string & );
-  bool fileExists(std::string);
-  bool fileExists(File*);
-  bool checkFileExists(std::string);
-  bool checkFileExists(std::vector<std::string>);
+  bool fileExists( const std::string & );
+  bool fileExists( File* );
+  bool checkFileExists( const std::string &);
+  bool checkFileExists( const std::vector<std::string> &);
   bool checkFileExists(File *);
   bool checkFileRectangular(File *);
   std::string fullpath( const std::string & );
@@ -538,7 +538,7 @@ namespace Helper
   ////////////////////////////
   // Pretty-printing
   
-  std::string sw(std::string s , int n);
+  std::string sw(const std::string & s , int n);
   std::string sw(double d , int n);
   std::string sw(double d , int f, int n);
   std::string sw(int i , int n);

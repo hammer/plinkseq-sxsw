@@ -18,7 +18,7 @@ void R_init_Rplinkseq(DllInfo *info)
 {
   gp = new GStore;    
   gp->R_mode( true );
-  Rprintf("PLINK/Seq genetics library for R | v0.07-alpha | 24-Jun-2011\n");
+  Rprintf("PLINK/Seq genetics library for R | v0.08-alpha | 4-Nov-2011\n");
 }
 
 
@@ -1823,7 +1823,10 @@ SEXP Rvardb_dettach()
 
 SEXP Rset_project(SEXP n)
 {
-  gp->set_project( CHAR(STRING_ELT(n, 0)) );    
+  std::string proj_name = CHAR(STRING_ELT(n, 0));
+  R_project_attached = gp->set_project( FileMap::tilde_expansion( proj_name ) );
+  if ( R_project_attached ) Rprintf("successfully attached project\n");
+  else Rprintf( ("failed: could not attach " + proj_name + "\n").c_str() );
   return(R_NilValue);  
 }
 
