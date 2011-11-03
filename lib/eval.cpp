@@ -32,7 +32,7 @@ void Eval::init()
   gdef["gmedian"] = 2;  
 }
 
-// get a token
+// get a shaun token
 bool Eval::get_token( std::string & input ,  Token & tok )
 {
 
