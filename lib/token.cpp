@@ -163,6 +163,7 @@ bool Token::is_bool(bool * b ) const
     return false;
 }
 
+
 bool Token::is_string( std::string * s ) const 
 { 
     if ( ttype == STRING ) 
@@ -1339,7 +1340,7 @@ std::vector<int> Token::as_int_vector() const
   
   if ( ttype == FLOAT_VECTOR ) 
     {
-      for (int i=0; i<fvec.size(); i++) ans[i] = fvec[i];
+      for (int i=0; i<fvec.size(); i++) ans[i] = (int)fvec[i];
       return ans;
     }
   
@@ -1359,7 +1360,7 @@ std::vector<int> Token::as_int_vector() const
   switch ( ttype ) 
     {
     case INT   : ans[0] = ival; return ans;
-    case FLOAT : ans[0] = fval; return ans;
+    case FLOAT : ans[0] = (int)fval; return ans;
     case BOOL  : ans[0] = bval ? 1 : 0; return ans;
     }
   

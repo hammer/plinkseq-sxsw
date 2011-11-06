@@ -359,7 +359,7 @@ File * FileMap::add( const std::string & n,
   f->included( fileExists(n) );  
   f->comment( comment );
   f->tag( tag );
-  
+
   // add to map
   fmap.insert(make_pair( f->name() , f )) ;
   
@@ -477,20 +477,24 @@ std::string FileMap::replace_variable( std::string & s )
 
 BCF * FileMap::bcf( const std::string & filename )
 {
-  return bcf_map[ filename ]; // NULL if not in map
+    return bcf_map[ filename ]; // NULL if not in map
 }
 
 
 BCF * FileMap::add_BCF( const std::string & f )
 {
-  BCF * bcf = new BCF( f );
-  if ( bcf ) 
+    
+    BCF * bcf = new BCF( f );
+
+    if ( bcf ) 
     {
-      bcf_map[ f ] = bcf;
-      // also add to normal filemap
-      add( f , BCF_FILE , "" , "BCF" );
+	bcf_map[ f ] = bcf;
+
+	// also add to normal filemap
+	add( f , BCF_FILE , "" , "BCF" );
     }
-  return bcf;
+
+    return bcf;
 }
 
 

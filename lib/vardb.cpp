@@ -975,7 +975,7 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
     {
 
       int file_id = sql.get_int( s , 1 );
-
+      
       BCF * bcf = bcfmap[ file_id ];
       
       if ( bcf ) 
@@ -1679,14 +1679,18 @@ bool VarDBase::check_version()
 
 void VarDBase::populate_bcf_map()
 {
-  bcfmap.clear();
-  while ( sql.step( stmt_fetch_bcfs ) )
+    
+    bcfmap.clear();
+    
+    while ( sql.step( stmt_fetch_bcfs ) )
     {
-      int fid = sql.get_int( stmt_fetch_bcfs , 0 );
-      std::string filename = sql.get_text( stmt_fetch_bcfs , 1 );
-      int nind = sql.get_int( stmt_fetch_bcfs , 2 );
-      BCF * bcf = GP->fIndex.bcf( filename );
-      if ( bcf ) 
+	int fid = sql.get_int( stmt_fetch_bcfs , 0 );
+	std::string filename = sql.get_text( stmt_fetch_bcfs , 1 );
+	int nind = sql.get_int( stmt_fetch_bcfs , 2 );
+
+	BCF * bcf = GP->fIndex.bcf( filename );
+	
+	if ( bcf ) 
 	{
 	  bcfmap[ fid ] = bcf;	  
 	  bcf->set_nind( nind );
