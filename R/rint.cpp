@@ -5,7 +5,8 @@
 
 GStore * gp;
 extern GStore * GP;
-
+bool R_project_attached;
+  
 std::string Rversion()
 {
   std::string vmaj = R_MAJOR;
@@ -24,6 +25,7 @@ void R_init_Rplinkseq(DllInfo *info)
 
 SEXP Rattach(SEXP d)
 {
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
   std::string s = CHAR(STRING_ELT(d, 0));  
   gp->vardb_attach(s);
   return(R_NilValue);
@@ -41,12 +43,14 @@ void R_warning( const std::string & s )
 
 void R_flush_plog()
 {
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return; } 
   Rprintf( "want to print more\n" );
   //  Rprintf( plog.R_flush().c_str() );
 }
 
 SEXP Rvardb_new(SEXP d)
 {
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
   std::string s = CHAR(STRING_ELT(d, 0));  
   gp->vardb_new(s);
   return(R_NilValue);
@@ -55,6 +59,7 @@ SEXP Rvardb_new(SEXP d)
 
 SEXP Rdettach()
 {
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
   gp->vardb_dettach();
   return(R_NilValue);
 }
@@ -1034,6 +1039,7 @@ struct R_aux_getmeta
 void R_aux_getmeta_func( Variant & var , void * p )
 {
   
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return; } 
 
   R_aux_getmeta * d = (R_aux_getmeta*)p;
   
@@ -1129,6 +1135,8 @@ void R_aux_getmeta_func( Variant & var , void * p )
 
 SEXP Rgetmeta(SEXP meta, SEXP rmask, SEXP rho)
 {
+
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
 
   // Which variant meta-fields to return?
 
@@ -1341,6 +1349,7 @@ SEXP Rgetmeta(SEXP meta, SEXP rmask, SEXP rho)
 SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
 {    
   
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
   
   // 
   // Do we want to accumulate and return the list of variants?
@@ -1487,6 +1496,8 @@ SEXP Riterate(SEXP fn, SEXP rmask, SEXP ret, SEXP rho)
 SEXP Rhdr_list_int(int f)
 {
 
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
+
   std::vector<std::map<std::string,std::string> > hdrs = gp->vardb.fetch_headers( f );    
   SEXP rhdrs;
   PROTECT( rhdrs = allocVector( VECSXP, hdrs.size() ));
@@ -1521,6 +1532,8 @@ SEXP Rhdr_list_int(int f)
 
 SEXP Rmeta_list_int( int f )
 {
+
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
 
   std::vector<std::map<std::string,std::string> > metas = GP->vardb.fetch_metatypes( f );
   
@@ -1574,6 +1587,8 @@ SEXP Rmeta_list_int( int f )
 
 SEXP Rind_list(SEXP rmask, SEXP phe)
 {
+
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
   
   // Given a mask, and a list of phenotype names, return the individuals (as
   // they will be ordered given a var.fetch() or var.iterate()
@@ -1717,6 +1732,7 @@ SEXP Rind_list(SEXP rmask, SEXP phe)
 
 SEXP Rfile_list()
 {
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
     
   // Files contain
   //  1) Index ID
@@ -1787,11 +1803,13 @@ SEXP Rfile_list()
 
 SEXP Rhdr_list(SEXP f) 
 { 
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
   return Rhdr_list_int( INTEGER(f)[0] ); 
 }
 
 SEXP Rmeta_list(SEXP f) 
 { 
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
   if ( length(f) != 1 ) return R_NilValue;
   std::string fn = CHAR(STRING_ELT( f , 0) );    
   int fi = gp->vardb.file_tag( fn );
@@ -1810,12 +1828,14 @@ SEXP Rmeta_list(SEXP f)
 
 SEXP Rvardb_attach(SEXP filename) 
 { 
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
   gp->vardb.attach( CHAR(STRING_ELT(filename, 0)) );    
   return(R_NilValue);
 }
 
 SEXP Rvardb_dettach() 
 { 
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
   gp->vardb.dettach(); 
   return(R_NilValue);
 }
@@ -1827,11 +1847,14 @@ SEXP Rset_project(SEXP n)
   R_project_attached = gp->set_project( FileMap::tilde_expansion( proj_name ) );
   if ( R_project_attached ) Rprintf("successfully attached project\n");
   else Rprintf( ("failed: could not attach " + proj_name + "\n").c_str() );
-  return(R_NilValue);  
+  return( R_project_attached ? R_NilValue : R_NilValue );
 }
 
 SEXP Rsummary()
 {
+
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
+
   // split on line return, no empty lines
   
   std::vector<std::string> s = Helper::char_split( gp->summary() , '\n' , false );

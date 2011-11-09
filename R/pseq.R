@@ -10,6 +10,8 @@
   library.dynam("Rplinkseq")
 }
 
+.plinkseq_attached <<- F
+
 ###################################################
 #                                                 #
 # Open/re-open projects                           #
@@ -19,7 +21,8 @@
 
 pseq.project <- function(s)
 {
- tmp <- .Call("Rset_project",s)
+ .plinkseq_attached <<- .Call("Rset_project",s)
+ #cat(" status " , .plinkseq_attached , "\n" )
 }
 
 

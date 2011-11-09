@@ -206,6 +206,8 @@ bool Helper::valid_name( const std::string & s )
   return true;
 }
 
+// C++ style conversion functions
+
 bool Helper::str2bool( const std::string & s , const std::string & miss )
 {
   // returns a positive flag
@@ -241,6 +243,60 @@ double Helper::str2dbl(const std::string & s)
     from_string<double>(d,s,std::dec);
     return d;
 }
+
+// C-style conversion functions
+
+bool Helper::str2uint64_t(const char * c , uint64_t & i)
+{
+    
+}
+
+bool Helper::str2int(const char * c , int & i)
+{
+    errno = 0;
+    char * endptr;
+    i = strtol( c , &endptr , 10 );
+    if ( *endptr == '\0' ) return true;
+    i = 0; 
+    return false;
+}
+
+bool Helper::str2dbl(const char * c , double & i)
+{
+    errno = 0;
+    char * endptr;
+    i = strtod( c , &endptr );
+    if ( *endptr == '\0' ) return true;
+    i = 0; 
+    return false;
+}
+
+int Helper::str2int(const char * c )
+{
+    char * endptr;
+    int i = strtol( c , &endptr , 10 );
+    if ( *endptr == '\0' ) return i;
+    plog.warn("problem converting string to integer");
+    return 0;    
+}
+
+double Helper::str2dbl(const char * c)
+{
+    char * endptr;
+    double i = strtod( c , &endptr  );
+    if ( *endptr == '\0' ) return i;
+    plog.warn("problem converting string to integer");
+    return 0;        
+}
+
+bool Helper::str2bool( const char * c )
+{
+    // match on single, first character
+    if ( *c == '0' || *c == 'F' || *c == 'f' || *c == '.' ) return false;
+    return true;
+}
+
+
 
 std::string Helper::search_replace( std::string & str , const std::string & search , const std::string & replace )
 {
@@ -1479,3 +1535,93 @@ void Helper::str2upper( std::string & s )
     ++i;
   }
 }
+
+
+//
+// C-style tokenizer for parsing VCFs
+//
+
+Helper::char_tok::char_tok() 
+{ 
+    s = NULL; clear(); 
+}
+
+Helper::char_tok::char_tok( const char_tok & rhs ) : len(rhs.len) , d(rhs.d) , p(rhs.p) , s(NULL) 
+{
+    if ( rhs.s )
+    {	
+	s = new char[ rhs.len + 1 ];    
+	memcpy( s , rhs.s , rhs.len + 1 );
+    }
+} 
+	  
+Helper::char_tok::char_tok& Helper::char_tok::operator= ( const Helper::char_tok &rhs ) 
+{
+    // clean up first any existing data
+    if ( s ) delete [] s;
+    s = NULL;
+    len = rhs.len;
+    d = rhs.d;
+    p = rhs.p;
+    if ( rhs.s ) 
+    {	
+	// use memcpy, as now we have many \0 delimiters within the string
+	s = new char[ rhs.len + 1 ];	
+	memcpy( s , rhs.s , rhs.len + 1 );
+    }
+    return *this;
+}
+
+
+Helper::char_tok::char_tok( const std::string & istr , int * ps , const char d ) : d(d)
+{
+    len = istr.size();
+    init( istr.c_str(), ps );
+}
+
+Helper::char_tok::char_tok( const char * istr , int l , int * ps , const char d ) : d(d) , len(l)
+{     
+    // if len is positive, assume that is length of 's'
+    if ( len ) init( istr , ps );
+    len = strlen(istr);    
+    init( istr , ps );
+}
+
+Helper::char_tok::~char_tok()
+{
+    if ( s ) delete [] s;
+}
+
+
+void Helper::char_tok::init( const char * istr , int * ps )
+{
+    
+    if ( ! istr ) { s = NULL; return; }
+
+    // make a copy we can modify
+    s = new char[ len+1 ] ;    
+    strcpy( s, istr );
+    
+    p.clear();
+    p.push_back(0); // first token starts at position 0	    
+    
+    // tokenize new string (+1 means position of next token)
+    // consecutive tokens result in empty strings, as desired
+    
+    for (int i=0; i < len; i++) 
+	if ( s[i] == d ) { s[i] = '\0'; p.push_back(i+1); }	   
+    
+    // return number of tokens ( == # of delimiters + 1 )
+    *ps = p.size(); 
+    
+}
+
+void Helper::char_tok::clear()
+{
+    if ( s ) delete [] s;
+    s = NULL;
+    d = '\t';
+    p.clear();
+    len = 0;
+}
+

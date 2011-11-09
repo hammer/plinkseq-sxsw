@@ -4,6 +4,7 @@
 #include "defs.h"
 #include "options.h"
 #include "bcf.h"
+#include "vcfz.h"
 
 #include <iostream>
 #include <fstream>
@@ -45,6 +46,7 @@ void FileMap::setTypes()
   // main input files
   fTypeMap["VCF"] = VCF;
   fTypeMap["BCF"] = BCF_FILE;
+  fTypeMap["VCFZ"] = BGZF_VCF;
   fTypeMap["GTF"] = GTF;
   
   fTypeMap["PHE"] = PHE;
@@ -171,6 +173,7 @@ void FileMap::setCoreFiles( const std::string & f )
       else if ( ft == REFDB ) addSpecial( REFDB , names[0] );
       else if ( ft == SEQDB ) addSpecial( SEQDB , names[0] );
       else if ( ft == BCF_FILE )   add_BCF( names[0] );
+      else if ( ft == BGZF_VCF )   add_VCFZ( names[0] );
     }    
   
   fidx.close();
@@ -359,7 +362,7 @@ File * FileMap::add( const std::string & n,
   f->included( fileExists(n) );  
   f->comment( comment );
   f->tag( tag );
-  
+
   // add to map
   fmap.insert(make_pair( f->name() , f )) ;
   
@@ -477,38 +480,63 @@ std::string FileMap::replace_variable( std::string & s )
 
 BCF * FileMap::bcf( const std::string & filename )
 {
-  return bcf_map[ filename ]; // NULL if not in map
+    return bcf_map[ filename ]; // NULL if not in map
 }
 
-
-BCF * FileMap::add_BCF( const std::string & f )
+VCF * FileMap::add_VCF( const std::string & f )
 {
-  BCF * bcf = new BCF( f );
-  if ( bcf ) 
+    
+    BCF * bcf = new BCF( f );
+
+    if ( bcf ) 
     {
-      bcf_map[ f ] = bcf;
-      // also add to normal filemap
-      add( f , BCF_FILE , "" , "BCF" );
+	bcf_map[ f ] = bcf;
+	
+	// also add to normal filemap
+	add( f , BCF_FILE , "" , "BCF" );
     }
-  return bcf;
+    return bcf;
 }
+
+
+VCFZ * FileMap::vcfz( const std::string & filename )
+{
+    return vcfz_map[ filename ]; // NULL if not in map
+}
+
+VCFZ * FileMap::add_VCFZ( const std::string & f )
+{
+    
+    VCFZ * vcfz = new VCFZ( f );
+
+    if ( vcfz ) 
+    {
+	vcfz_map[ f ] = vcfz;
+	
+	// also add to normal filemap
+	add( f , BGZF_VCF , "" , "VCFZ" );
+    }
+
+    return vcfz;
+}
+
 
 
 bool FileMap::append_to_projectfile( const std::string & s , const std::string & t )
 {
-  
-  if ( exists( s ) ) return false; // already present, nothing to do
-  
-  std::string projectfile = special_files.find( FIDX )->second->name();
-  
-  if ( projectfile == "." ) return false;
-  
-  if ( ! Helper::fileExists( projectfile ) )
+
+    if ( exists( s ) ) return false; // already present, nothing to do
+    
+    std::string projectfile = special_files.find( FIDX )->second->name();
+    
+    if ( projectfile == "." ) return false;
+    
+    if ( ! Helper::fileExists( projectfile ) )
     {
-      plog.warn("could not find projectfile",projectfile);
-      return false;
+	plog.warn("could not find projectfile",projectfile);
+	return false;
     }
-  
+        
   // open in append-to-end mode
   std::ofstream O1( projectfile.c_str() , std::ios::out | std::ios::app );
   O1 << s << "\t" << t << "\n";

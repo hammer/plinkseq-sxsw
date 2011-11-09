@@ -220,6 +220,7 @@ class TokenFunctions{
   Token fn_vec_maj( const Token & tok ) const;
   Token fn_vec_sum( const Token & tok ) const;
   Token fn_vec_mean( const Token & tok ) const;
+  Token fn_vec_sort( const Token & tok ) const;
 
   Token fn_vec_new_float( const Token & tok ) const;
   Token fn_vec_new_int( const Token & tok ) const;

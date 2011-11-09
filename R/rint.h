@@ -23,8 +23,6 @@ extern "C" {
 
   // Some basic state variables
   
-  bool R_project_attached;
-  
   void R_init_Rplinkseq(DllInfo *info);
   
   // Attach/dettach a database

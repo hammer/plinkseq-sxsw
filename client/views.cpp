@@ -327,10 +327,10 @@ void f_view_matrix( Variant & v , void * p )
 
   for (int i = 0 ; i < n ; i++)
     {
-      if ( v(i).null() ) 
-	plog << "\tNA";
-      else
-	plog << "\t" << v(i).score();
+	if ( v(i).null() ) 
+	    plog << "\tNA";
+	else
+	    plog << "\t[" << v(i).score() << "]";
     }
   plog << "\n";
   

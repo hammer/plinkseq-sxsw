@@ -441,7 +441,8 @@ class VarDBase {
   std::map<int,ploidy_t> chr_ploidy_map;
   
   std::map<int,BCF*> bcfmap;
-
+  std::map<int,VCFZ*> vcfzfmap;
+  
   enum fetch_mode_t { ALL = 0 , NO_GMETA , ONLY_VMETA , ONLY_GENO , ONLY_CORE } fetch_mode;
   
 };

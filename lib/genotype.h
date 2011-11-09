@@ -77,10 +77,10 @@ class Genotype {
     { 
       set_null();
     }
-
+  
   Genotype( const std::string & str , const int );
   
-  Genotype( const std::string & str , 
+  Genotype( const char * str , 
 	    const int gt_field , 
 	    const std::vector<meta_index_t*> & formats , 
 	    const int n_alleles ) ;

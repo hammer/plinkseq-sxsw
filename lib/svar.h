@@ -253,7 +253,7 @@ class SampleVariant {
   // Or, direct from a single VCF (and so no BLOB)
   
   bool                         vcf_direct;
-  std::vector<std::string>     vcf_direct_buffer;
+  Helper::char_tok             vcf_direct_buffer;
   int                          vcf_gt_field;
   std::vector<meta_index_t*> * vcf_formats;
   

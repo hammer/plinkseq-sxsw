@@ -32,7 +32,6 @@ void Eval::init()
   gdef["gmedian"] = 2;  
 }
 
-// get AAa token
 bool Eval::get_token( std::string & input ,  Token & tok )
 {
 
@@ -41,7 +40,7 @@ bool Eval::get_token( std::string & input ,  Token & tok )
 
   std::string c = input.substr(0,1);
   
-  // To interpret whether a + or - sign is the start of a number 
+  // To interpret whether a + or - sign, or '.' is the start of a number 
   // rather than a binary operator
   // e.g 
   // (C - 2)  vs ( C < -2 )
@@ -68,12 +67,13 @@ bool Eval::get_token( std::string & input ,  Token & tok )
   std::map<std::string,Token::tok_type>::iterator i = 
     Token::tok_map.find( c ) ;
 
-  // Numeric, allow to start with + or - 
+  // Numeric, allow to start with + or - or .
   
-  if ( ( c >= "0" && c <= "9" ) || ( (!previous_value) && ( c=="-" || c=="+" ) ) ) 
+  if ( ( c >= "0" && c <= "9" ) || c == "." || ( (!previous_value) && ( c=="-" || c=="+" ) ) )
     {
       int p = 1;
-      bool floating = false;
+
+      if ( c == "." ) { c = "0."; }
 
       while ( 1 ) 
 	{
@@ -91,13 +91,14 @@ bool Eval::get_token( std::string & input ,  Token & tok )
 	  else break;
 	  ++p;
 	}
-      
+
       // a valid int or float? 
       int i;
       double d;
       bool err = false;
       if ( ! Helper::from_string<int>( i , c , std::dec ) ) err = true;
       if ( ! Helper::from_string<double>( d , c , std::dec ) ) err = true;
+
       if ( ! err ) 
 	{
 	  if ( i == d ) tok.set(i);
@@ -153,7 +154,7 @@ bool Eval::get_token( std::string & input ,  Token & tok )
   else if ( c == "," )
     {
       tok.oper( Token::ARG_SEPARATOR );
-      previous_value = false;
+      previous_value = false;      
     }
 
   // a literal string
@@ -184,7 +185,8 @@ bool Eval::get_token( std::string & input ,  Token & tok )
       // Is this a function?
       bool isfn = false;
 
-      // read until space or next operator char
+      // read until space or next operator char, or comma
+
       int p = 1;
       while ( 1 ) 
 	{
@@ -196,12 +198,14 @@ bool Eval::get_token( std::string & input ,  Token & tok )
 	  // e.g. end of set(AB) for 'AB'	  
 	  if ( input.substr(p,1) == ")" ) break; 
 	  
+	  if ( input.substr(p,1) == "," ) break;
+
 	  if ( input.substr(p,1) == " " ) break;
 
 	  if ( Token::tok_map.find( input.substr(p,1) ) 
 	       != Token::tok_map.end() ) 
 	    break;
-
+	  
 	  c += input.substr(p,1);
 	  ++p;
 	}
@@ -214,7 +218,7 @@ bool Eval::get_token( std::string & input ,  Token & tok )
 	  
 	  if ( f == Token::fn_map.end() ) 
 	    return false;
-	  
+
 	  // store function token
 	  tok.function( c );	    
 	}
@@ -558,7 +562,7 @@ bool Eval::shunting_yard( const std::string & oinput,
 
 bool Eval::execute( const std::vector<Token> & input )
 {
-  
+
   Token sc;
   
   std::vector<Token> stack;
@@ -576,8 +580,6 @@ bool Eval::execute( const std::vector<Token> & input )
       
       Token c = input[i];
       
-      std::cout << "proc " << c.name() << "\n";
-
       // If the token is a value or identifier
       
       if ( c.is_ident() )
@@ -603,9 +605,7 @@ bool Eval::execute( const std::vector<Token> & input )
 	  
 	  if ( sl < nargs ) 
 	    {
-	      errs += "Badly formed expression -- not enough args \n"; 
-	      // (Error) The user has not input sufficient values in
-	      // the expression.
+	      errs += "Badly formed expression -- not enough args for " + c.name() + "\n"; 
 	      return false;
 	    }
 	  
@@ -622,19 +622,14 @@ bool Eval::execute( const std::vector<Token> & input )
 	      std::vector<Token> args;
 	      
 	      while ( nargs > 0 ) 
-		{
-		  
+		{		  
 		  sc = stack.back();
 		  stack.pop_back(); 
-		  sl--;
-		  
-		  args.push_back(sc);
-		  
+		  sl--;		  
+		  args.push_back(sc);		  
 		  --nargs;
 		}
 	      
-	      
-	      std::cout << "got fn " << c.name() << "\n";
 	      //
 	      // Perform function calls:
 	      //
@@ -656,10 +651,27 @@ bool Eval::execute( const std::vector<Token> & input )
 	      if ( c.name() == "pow" )  res = func.fn_pow( args[1] , args[0] );
 	      
 	      if ( c.name() == "ifelse" ) 
-		{
-		  res = func.fn_ifelse( args[2], args[1], args[0] );
-		}
+		res = func.fn_ifelse( args[2], args[1], args[0] );
 	      
+	      // vector functions
+	      if ( c.name() == "element" ) res = func.fn_vec_extract( args[1] , args[0] );
+	      
+	      if ( c.name() == "length" ) res = func.fn_vec_length( args[0] );	      
+	      
+	      if ( c.name() == "min" ) res = func.fn_vec_min( args[0] );	      
+	      if ( c.name() == "max" ) res = func.fn_vec_maj( args[0] );	      
+	      
+	      if ( c.name() == "sum" ) res = func.fn_vec_sum( args[0] );	      
+	      if ( c.name() == "mean" ) res = func.fn_vec_mean( args[0] );	      
+	      if ( c.name() == "sort" ) res = func.fn_vec_sort( args[0] );
+
+	      if ( c.name() == "vec" ) res = func.fn_vec_new_float( args[0] );	      
+	      if ( c.name() == "int" ) res = func.fn_vec_new_int( args[0] );	      
+	      if ( c.name() == "str" ) res = func.fn_vec_new_str( args[0] );	      
+	      if ( c.name() == "bool" ) res = func.fn_vec_new_bool( args[0] );	      
+	      
+	      if ( c.name() == "any" ) res = func.fn_vec_any( args[1] , args[0] );	      
+	      if ( c.name() == "count" ) res = func.fn_vec_count( args[1] , args[0] );	      
 	    }
 	  else
 	    {
@@ -707,7 +719,7 @@ bool Eval::execute( const std::vector<Token> & input )
   
   if ( sl != 1 || stack.size() != 1 ) 
     {
-      errs += "Badly formed expression -- != 1 value left on stack\n";
+      errs += "Badly formed expression\n";
       return false;
     }
   
@@ -744,10 +756,10 @@ bool Eval::parse( const std::string & input )
   // evaluate each sequential, to perform any assignments into
   // meta data, but only the last will be reflected in the 'e' 
   // endpoint
+
+  //  std::cout << "input = " << input2 << "\n";
   
-
   std::vector<std::string> etok = Helper::parse( input2, ";" );
-
 
   // set number of evals we need to do
 
@@ -774,7 +786,7 @@ bool Eval::parse( const std::string & input )
   // set pointers to all variables now construction of tokens is complete
   for (int i=0; i<etok.size(); i++)  
     locate_symbols( output[i] ); 
-
+  
   return is_valid;
 
 }
@@ -1232,19 +1244,48 @@ bool Eval::expand_indices( std::string * s )
       //  then make extract(x,y)
       // valid delimiters backwards are ' ' , % < > & | ! = * + - / ;
 
+      // but if we hit ")" before anything else (except whitespace) then we need to jump to the next 
+      // "(" and then look for an identifier 
+      
+      
       int p = s->find( "[" );
       if ( p == std::string::npos ) return true;
       int q = p;
-      
+      bool anything = false;
+
       while ( --q )
 	{
 	  if ( q < 0 ) return false;
 	  if ( q == 0 ) { ++q; break; }
 	  char c = s->substr(q,1)[0];
-	  if ( c == ' ' || c == ',' || c == '&' || c == '%' 
+	  
+	  if ( c == ')' )
+	    {
+	      // jump to next '(', allowing nesting
+	      int nest = 1;
+	      while (1) 
+		{
+		  --q;
+		  if ( s->substr(q,1) == ")" ) ++nest;
+		  else if ( s->substr(q,1) == "(" ) --nest;
+		  if ( nest == 0 ) break; 
+		}
+	    }
+
+	  if ( c == ',' || c == '&' || c == '%' 
 	       || c == '>' || c == '<' || c == '|' || c== '!' || 
 	       c == '=' || c == '*' || c == '+' || c == '-' || c == '/' || c == ';'  )
 	    { ++q; break; }	  
+	  
+	  // whitespace is a delimiter (outside of parens) 
+	  
+	  if ( c == ' ' )
+	    {
+	      if ( anything ) { ++q; break; } 
+	    }
+	  else 
+	    anything = true; // i.e. we must have encountered an identifier
+
 	}
       
       std::string vec_idx = s->substr(q,p-q) ;
@@ -1264,7 +1305,7 @@ bool Eval::expand_indices( std::string * s )
 	    }  
 	}
       
-      std::string label = "x(" + vec_idx + "," + arg_idx + ")";
+      std::string label = "element(" + vec_idx + "," + arg_idx + ")";
       s->replace( q , (p-q+1) , label );      
 
     } // search for next []  
@@ -1283,7 +1324,7 @@ void Eval::locate_symbols( std::vector<Token> & tok )
   for (int i=0; i<tok.size(); i++)
     if ( tok[i].is_variable() )
       vartb[ tok[i].name() ].insert( &(tok[i]) );
-
+	
   reset_symbols(); // symbol table
 }
 

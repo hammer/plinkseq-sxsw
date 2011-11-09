@@ -152,19 +152,31 @@ void registerMetatype( const std::string & name, mType mt, int num , int grp , c
 }
 
 
-std::string Helper::metatype_summary() 
+std::string Helper::metatype_summary( const bool pretty ) 
 {
   std::stringstream ss;
-  ss << MetaInformation<VarMeta>::list_fields("META_VARIANT")
-     << MetaInformation<VarFilterMeta>::list_fields("META_FILTER")
-     << MetaInformation<GenMeta>::list_fields("META_GENOTYPE")
-     << MetaInformation<LocMeta>::list_fields("META_LOCUS")
-     << MetaInformation<RefMeta>::list_fields("META_REFVAR")
-     << MetaInformation<FileMeta>::list_fields("META_FILE")
-     << MetaInformation<IndivMeta>::list_fields("META_INDIV")
-     << MetaInformation<AlleleMeta>::list_fields("META_ALLELE");
+
+  if ( ! pretty ) 
+      ss << MetaInformation<VarMeta>::list_fields("META_VARIANT")
+	 << MetaInformation<VarFilterMeta>::list_fields("META_FILTER")
+	 << MetaInformation<GenMeta>::list_fields("META_GENOTYPE")
+	 << MetaInformation<LocMeta>::list_fields("META_LOCUS")
+	 << MetaInformation<RefMeta>::list_fields("META_REFVAR")
+	 << MetaInformation<FileMeta>::list_fields("META_FILE")
+	 << MetaInformation<IndivMeta>::list_fields("META_INDIV")
+	 << MetaInformation<AlleleMeta>::list_fields("META_ALLELE");
+  else
+      ss << MetaInformation<VarMeta>::pretty_list_fields("Variants")
+	 << MetaInformation<VarFilterMeta>::pretty_list_fields("Filters")
+	 << MetaInformation<GenMeta>::pretty_list_fields("Genotypes")
+	 << MetaInformation<LocMeta>::pretty_list_fields("Locus")
+	 << MetaInformation<RefMeta>::pretty_list_fields("Reference variants")
+	 << MetaInformation<FileMeta>::pretty_list_fields("Files")
+	 << MetaInformation<IndivMeta>::pretty_list_fields("Individuals")
+	 << MetaInformation<AlleleMeta>::pretty_list_fields("Alleles");
 
   return ss.str();
+
   // MetaInformation<MiscMeta>::list_fields("MISC");
 
 }
