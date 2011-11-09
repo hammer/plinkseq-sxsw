@@ -433,12 +433,20 @@ namespace Helper
   
   bool str2uint64_t(const std::string s , uint64_t & i);
   bool str2int(const std::string & s , int & i);
-  bool str2dbl(const std::string & s , double & i);
-  
+  bool str2dbl(const std::string & s , double & i);  
   int str2int(const std::string & s);
-  double str2dbl(const std::string & s);
-  
+  double str2dbl(const std::string & s);  
   bool str2bool( const std::string & s , const std::string & miss = "." );
+
+  // C-style versions
+
+  bool str2uint64_t(const char * c , uint64_t & i);
+  bool str2int(const char * c , int & i);
+  bool str2dbl(const char * c , double & i);  
+  int str2int(const char * c );
+  double str2dbl(const char * c);
+  bool str2bool( const char * c );
+
 
   template <class T>
     bool from_string(T& t,
@@ -500,6 +508,56 @@ namespace Helper
 
   std::vector<std::string> tokenizeLine(std::ifstream &);
 
+  //
+  // faster C-string, in place tokenizer for VCF genotype entries
+  //
+  
+  class char_tok
+      {
+	  
+	  // takes a single char delimiter (assumed tab, or :)
+	  // always returns empty tokens
+	  // no allowance for quotes 
+	  
+	  // Usage:
+
+	  // int n;
+	  // char_tok tok( s , &n , ' ' );		
+	  // for (int i = 0 ; i < n; i++) fs( tok(i) , cnt );
+	  //
+	  //  tok(i)  returns char* to \0-terminated C-string
+
+
+      public:	  
+	  char_tok();
+	  char_tok( const char_tok & rhs );
+	  char_tok& operator= ( const char_tok &rhs );
+	  char_tok( const std::string & istr , int * ps , const char d = '\t' );
+	  char_tok( const char * istr , int len , int * ps , const char d = '\t' );
+	  ~char_tok();
+	  void init( const char * istr , int * ps );
+          // return the i'th token as a C-style, \0 terminated
+	  const char * operator() (const int i) const { return s + p[i]; }
+	  const char * operator[] (const int i) const { return s + p[i]; }
+	  int size() const { return p.size(); } 
+	  void clear();
+	  
+      private:
+	  
+	  char * s;    
+	  int len;
+	  char d; 
+	  std::vector<int> p;
+	  
+      };
+  
+
+  
+  //
+  // String list helper functions
+  //
+
+  
   std::string filelist2commalist( const std::string & f );
   void inserter( std::set< std::string > & strset , const std::string & filespec );
 
@@ -516,7 +574,7 @@ namespace Helper
 			  const int bp1 = 0 , 
 			  const int bp2 = 0 );
 
-  std::string metatype_summary();
+  std::string metatype_summary( const bool pretty = true );
 
   double hwe( const Variant & , int * phom1 = NULL , int * phet = NULL , int * phom2 = NULL );
 

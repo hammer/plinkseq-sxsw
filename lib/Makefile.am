@@ -8,6 +8,7 @@ libplinkseq_la_SOURCES = \
 allele.h \
 annot.h \
 bcf.h \
+vcfz.h \
 bed.h \
 bgzf.h \
 cdflib.h \
@@ -68,6 +69,7 @@ regions.cpp \
 filemap.cpp \
 vcf.cpp \
 bcf.cpp \
+vcfz.cpp \
 zfstream.cpp \
 sqlwrap.cpp \
 helper.cpp \

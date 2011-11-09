@@ -32,6 +32,7 @@
 #include "meta.h"
 #include "zfstream.h"
 #include "bcf.h"
+#include "vcfz.h"
 
 #include <wordexp.h>
 
@@ -148,8 +149,9 @@ class FileMap {
   
   std::map<std::string,File*> fmap;
 
-  // Special instance for tracking BCF files
+  // Special instance for tracking BCF files, also compressed VCF
   std::map<std::string,BCF*> bcf_map;
+  std::map<std::string,VCFZ*> vcfz_map;
   
   // Special/core files, of which we expect exactly one
   //  e.g. VARDB
@@ -179,12 +181,21 @@ class FileMap {
   
   ~FileMap()
     {
-      std::map<std::string,BCF*>::iterator i = bcf_map.begin();
-      while ( i != bcf_map.end() )
+
+	std::map<std::string,BCF*>::iterator i = bcf_map.begin();
+	while ( i != bcf_map.end() )
 	{
-	  if ( i->second ) delete i->second;
-	  ++i;
+	    if ( i->second ) delete i->second;
+	    ++i;
 	}
+
+	std::map<std::string,VCFZ*>::iterator i = vcfz_map.begin();
+	while ( i != vcfz_map.end() )
+	{
+	    if ( i->second ) delete i->second;
+	    ++i;
+	}
+
     }
 
   void reset();
@@ -232,12 +243,14 @@ class FileMap {
   std::string summary() const;
 
   //
-  // Specific BCF indexing
+  // Specific BCF, compressed VCFZ indexing
   //
   
   BCF * bcf( const std::string & );
-
   BCF * add_BCF( const std::string & f );
+
+  VCFZ * vcfz( const std::string & );
+  VCFZ * add_VCFZ( const std::string & f );
 
   //
   // Group access functions ( i.e. get all valid VCF )

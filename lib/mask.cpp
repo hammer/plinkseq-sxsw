@@ -252,7 +252,7 @@ std::string Mask::describe_options()
 
 
 Mask::Mask( const std::string & d , const std::string & expr , const bool filter_mode , const bool group_mode ) 
-  : vardb(NULL) , locdb(NULL) , refdb(NULL) , group_mode( group_mode ) 
+    : vardb(NULL) , locdb(NULL) , refdb(NULL) , segdb(NULL) , group_mode( group_mode ) 
 {
   
 

@@ -172,7 +172,7 @@ class Variant {
   /// When directly reading a VCF, store the line for (potential) later parsing. The VCFReader
   /// will have created a single SVAR for this, so use that
 
-  void set_vcf_buffer( const std::vector<std::string> & tokens ) { svar[0].vcf_direct_buffer = tokens; }
+  void set_vcf_buffer( const Helper::char_tok & tokens ) { svar[0].vcf_direct_buffer = tokens; }
 
   void set_vcf_buffer( const int i , std::vector<meta_index_t*> * f )
   { 

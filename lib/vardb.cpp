@@ -165,17 +165,20 @@ bool VarDBase::newDB( std::string n )
 	    "   gdata   BLOB , "      // genotype calls
 	    "   gmdata  BLOB ); " );  // genotype meta-information
 
-  // file-id <--> BCF path table 
+  
+  // file-id <--> BCF and BGZF-compressed VCFs
+  //  type, 1 = VCF w/ BGZF compression
+  //        2 = BCF
 
   sql.query(" CREATE TABLE IF NOT EXISTS bcfs("
-	    "   file_id    INTEGER NOT NULL , "	    
+	    "   file_id    INTEGER NOT NULL , "
+	    "   type       INTEGER NOT NULL , "
 	    "   filepath   VARCHAR(20) NOT NULL , "
             "   nind       INTEGER  ) ; " );
     
   // Independent meta-information (appended outside of main VCF)
   // Not automatically attached to the variant
-  
-  
+    
   sql.query(" CREATE TABLE IF NOT EXISTS indep_meta_groups("
 	    "   group_id    INTEGER PRIMARY KEY , "
 	    "   file_id     INTEGER NOT NULL , "
@@ -359,8 +362,8 @@ bool VarDBase::init()
     // BCFs
 
     stmt_insert_bcf_n = 
-      sql.prepare( " INSERT OR IGNORE INTO bcfs ( file_id , filepath , nind ) "
-                  " values ( :file_id , :filepath, :nind ) ; " );
+      sql.prepare( " INSERT OR IGNORE INTO bcfs ( file_id , type , filepath , nind ) "
+                  " values ( :file_id , :type , :filepath, :nind ) ; " );
     
     stmt_fetch_bcf = 
       sql.prepare( " SELECT filepath FROM bcfs WHERE file_id == :file_id ; " );
@@ -372,8 +375,9 @@ bool VarDBase::init()
       sql.prepare(" INSERT OR IGNORE INTO variants "
 		  "          ( file_id, name , chr, bp1 , bp2 , offset ) "
 		  "   values ( :file_id, :name , :chr, :bp1 , :bp2, :offset ) ; " );
+    
 
-
+    // File tags
 
     stmt_fetch_file_from_tag =
       sql.prepare( " SELECT file_id FROM files WHERE tag == :tag; " );
@@ -967,27 +971,40 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
   var.stop( sql.get_int( s , 5 ) );
   
   // Are data stored in VARDB? 
-  // Or look-up this variant from a BCF? 
+  // Or look-up this variant from a compressed VCF or BCF? 
   
-  int64_t bcf_offset = sql.get_int64( s , 6 );
+  int64_t offset_idx = sql.get_int64( s , 6 );
   
-  if ( bcf_offset )
-    {
+  if ( offset_idx )
+  {
 
       int file_id = sql.get_int( s , 1 );
+
+      // Is this a VCF or BCF?
       
-      BCF * bcf = bcfmap[ file_id ];
+      VCFZ * vcfz = vcfzmap[ file_id ];
       
-      if ( bcf ) 
-	{
+      if ( vcfz ) 
+      {
 	  SampleVariant & target = ( ! align->multi_sample() ) ? var.consensus : sample ;      
 	  SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
-	  bcf->read_record( var , target , genotype_target, bcf_offset); 
-	}
-      else
-	Helper::halt( "requested BCF not attached" );
+	  vcfz->read_record( var , target , genotype_target, offset_idx ); 
+      }
+      else 
+      {
+	  BCF * bcf = bcfmap[ file_id ];	  
+
+	  if ( bcf ) 
+	  {
+	      SampleVariant & target = ( ! align->multi_sample() ) ? var.consensus : sample ;      
+	      SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
+	      bcf->read_record( var , target , genotype_target, bcf_offset); 
+	  }
+	  else
+	      Helper::halt( "requested compressed-VCF or BCF not attached" );
+      }
       
-    }
+  }
   else
     {
 
@@ -1681,27 +1698,50 @@ void VarDBase::populate_bcf_map()
 {
     
     bcfmap.clear();
+    vcfzmap.clear();
     
     while ( sql.step( stmt_fetch_bcfs ) )
     {
-	int fid = sql.get_int( stmt_fetch_bcfs , 0 );
-	std::string filename = sql.get_text( stmt_fetch_bcfs , 1 );
-	int nind = sql.get_int( stmt_fetch_bcfs , 2 );
 
-	BCF * bcf = GP->fIndex.bcf( filename );
-	
-	if ( bcf ) 
+	int fid              = sql.get_int( stmt_fetch_bcfs , 0 );
+	int type             = sql.get_int( stmt_fetch_bcfs , 1 );
+	std::string filename = sql.get_text( stmt_fetch_bcfs , 2 );
+	int nind             = sql.get_int( stmt_fetch_bcfs , 3 );
+
+
+	if ( type == 1 ) // compressed VCF
 	{
-	  bcfmap[ fid ] = bcf;	  
-	  bcf->set_nind( nind );
-	  bcf->reading();
-	  bcf->open();
-	  bcf->set_types();
+	    VCFZ * vcfz = GP->fIndex.vcfz( filename );
+	    
+	    if ( vcfz ) 
+	    {
+		vcfzfmap[ fid ] = bcf;	  
+		vcfz->reading();
+		vcfz->open();
+		vcfz->set_types();
+	    }
+	    else
+		plog.warn( "could not find compressed VCF " , filename );	
 	}
-      else
-	plog.warn( "could not find BCF " , filename );	
-    }
-  sql.reset( stmt_fetch_bcfs );
+	else if ( type == 2 ) // BCF
+	{
+	    
+	    BCF * bcf = GP->fIndex.bcf( filename );
+	    
+	    if ( bcf ) 
+	    {
+		bcfmap[ fid ] = bcf;	  
+		bcf->set_nind( nind );
+		bcf->reading();
+		bcf->open();
+		bcf->set_types();
+	    }
+	    else
+		plog.warn( "could not find BCF " , filename );	
+	}
+	
+    } // next file
+    sql.reset( stmt_fetch_bcfs );
 }
 
 

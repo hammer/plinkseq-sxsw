@@ -1021,12 +1021,11 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 
       // Number of individuals in BCF buffer
       unsigned int n_buffer = target->bcf->sample_n();
-
+      
       
       // Number of individuals we actually want
       unsigned int n_variant = align ? align->size() : n_buffer ;
       
-
       //
       // Allocate space as needed
       //
@@ -1090,9 +1089,13 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 		{
 		  if ( s2t[i] != -1 )
 		    {
-		      // std::cout << "mapping genotype " << i << " " << s2t[i] << " " << "\n";
-		      target->calls.genotype( s2t[i] ).bcf( target->bcf_genotype_buf[ p ] );		      
-		      // std::cout << "geno = " << target->calls.genotype( s2t[i] ) << "\n";
+			
+			std::cout << "mapping genotype " << i << " " << s2t[i] << " " << "\n";
+			
+			target->calls.genotype( s2t[i] ).bcf( target->bcf_genotype_buf[ p ] );		      
+			
+			std::cout << "geno = " << target->calls.genotype( s2t[i] ) << "\n";
+
 		    }
 		  ++p;
 		}
@@ -1243,45 +1246,45 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	  
 	  if ( slot != -1 )
 	    {	      	    
-
-	      Genotype g( vcf_direct_buffer[i] , vcf_gt_field , *vcf_formats , na );
-	      
-	      if ( mask && mask->fixxy() ) 
+		
+		Genotype g( vcf_direct_buffer(i) , vcf_gt_field , *vcf_formats , na );
+		
+		if ( mask && mask->fixxy() ) 
 		{
-		  
-		  // Is this a flagged chromomse?
-		  ploidy_t p = mask->ploidy( Helper::chrCode( parent->chromosome() ) );
-		  
-		  // AA --> A  | AB --> .  | ./. --> .
-		  
-		  if ( p == PLOIDY_HAPLOID )
+		    
+		    // Is this a flagged chromomse?
+		    ploidy_t p = mask->ploidy( Helper::chrCode( parent->chromosome() ) );
+		    
+		    // AA --> A  | AB --> .  | ./. --> .
+		    
+		    if ( p == PLOIDY_HAPLOID )
 		    {
-		      g.make_haploid();
-		    }
-		  else if ( p == PLOIDY_X  
-			    && align->ind( slot )->sex() != FEMALE 			    
-			    && ! mask->pseudo_autosomal( *parent ) )
-		    {
-		      g.make_haploid();
-		    }
-		  else if ( p == PLOIDY_Y )
-		    {
-		      if ( align->ind( slot )->sex() != MALE )
-			g.null( true );
-		      else if ( ! mask->pseudo_autosomal( *parent ) ) 
 			g.make_haploid();
+		    }
+		    else if ( p == PLOIDY_X  
+			      && align->ind( slot )->sex() != FEMALE 			    
+			      && ! mask->pseudo_autosomal( *parent ) )
+		    {
+			g.make_haploid();
+		    }
+		    else if ( p == PLOIDY_Y )
+		    {
+			if ( align->ind( slot )->sex() != MALE )
+			    g.null( true );
+			else if ( ! mask->pseudo_autosomal( *parent ) ) 
+			    g.make_haploid();
 		    }	  
 		}
-	      
-	      target->calls.add( g , slot );
+		
+		target->calls.add( g , slot );
 	    }
-
+	  
 	  ++j;
 	}
-
+      
       // Clear buffer
       vcf_direct_buffer.clear();
-
+      
     }
 
 

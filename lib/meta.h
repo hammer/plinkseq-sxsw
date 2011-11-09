@@ -265,6 +265,11 @@ class MetaInformation {
 	set( MetaInformation::field(name).key , value );
       }
     
+    void set(const meta_name_t & name , const Helper::char_tok & value )
+	{
+	    set( MetaInformation::field(name).key , value );
+	}
+    
     void set(const meta_name_t & name , const std::vector<bool> & value )
       {	  
 	set( MetaInformation::field(name).key , value );
@@ -290,6 +295,13 @@ class MetaInformation {
       m_string[key] = value;
     }
     
+    void set(const meta_key_t key , const Helper::char_tok & value)
+    {
+	std::vector<std::string> & t = m_string[key];
+	t.resize( value.size() , "." );
+	for (int i=0; i<value.size(); i++) t[i] = value[i];
+    }
+
     void set(const meta_key_t key , const std::vector<bool> & value)
     {
       m_bool[key] = value;
@@ -511,94 +523,96 @@ class MetaInformation {
     //
     // Efficient set, with precalculated index list
     //
-
-    bool set( const std::vector<std::string> & tok , 
+    
+    bool set( const Helper::char_tok & tok , 
 	      const std::vector<meta_index_t*> * midx )
-    {
-      
-      // If last values missing, will be set to missing implicitly,
-      // but do not allow a longer-than-expected list
-      
-      if ( tok.size() > midx->size() ) return false;
-      
-      for ( int i = 0 ; i < tok.size(); i++ )
 	{
-
-	  if ( (*midx)[i] == NULL ) continue;
-	  
-	  meta_index_t * m = (*midx)[i];
-
-	  if ( m->len == 1 )  // single value fields
+	    
+	    // If last values missing, will be set to missing implicitly,
+	    // but do not allow a longer-than-expected list
+	    
+	    if ( tok.size() > midx->size() ) return false;
+	    
+	    for ( int i = 0 ; i < tok.size(); i++ )
 	    {
-	      switch( m->mt ) 
-		{ 		  
-		case META_INT   : 
-		  int x;
-		  if ( Helper::str2int( tok[i] , x ) ) set( m->key , x );
-		  break;  		  
-		case META_FLOAT : 
-		  double d;
-		  if ( Helper::str2dbl( tok[i] ,  d) ) set( m->key , d );
-		  break;  		  
-		case META_TEXT  : 
-		  if ( tok[i] != "." ) set( m->key , tok[i] );
-		  break;  		  
-		case META_BOOL  : 
-		  set( m->key , tok[i] != "0" && tok[i] != "." && tok[i] != "F" );
-		  break;  		  
+		
+		if ( (*midx)[i] == NULL ) continue;
+		
+		meta_index_t * m = (*midx)[i];
+		
+		if ( m->len == 1 )  // single value fields
+		{
+		    switch( m->mt ) 
+		    { 		  
+			case META_INT   : 
+			    int x;
+			    if ( Helper::str2int( tok[i] , x ) ) set( m->key , x );
+			    break;  		  
+			case META_FLOAT : 
+			    double d;
+			    if ( Helper::str2dbl( tok[i] ,  d) ) set( m->key , d );
+			    break;  		  
+			case META_TEXT  : 
+			    if ( *tok[i] != '.' ) set( m->key , tok[i] );
+			    break;  		  
+			case META_BOOL  : 
+			    set( m->key , *tok[i] != '0' && *tok[i] != '.' && *tok[i] != 'F' );
+			    break;  		  
 		case META_FLAG  : 
 		  set( m->key );
 		  break;  
 		}
-	    }
+		}
 	  else
 	    {
-	      // Assume comma-delimited vector
-	      std::vector<std::string> tok2 = Helper::char_split( tok[i] , ',' );
-	      
-	      // If an exact length given, check we match
-	      if ( m->len > 1 && m->len != tok2.size() ) continue;
-	      // this implicitly handles the case in which the whole 
-	      // vector is specified as missing 
-	      
-	      // i.e. "."  instead of "0.0,0.1,0.9" for example (and not ".,.,.")
-	      
-	      switch( m->mt )
+		// Assume comma-delimited vector
+		int tok2size = 0;
+		
+		Helper::char_tok tok2( tok[i] , 0 , &tok2size , ',' );
+		
+		// If an exact length given, check we match
+		if ( m->len > 1 && m->len != tok2.size() ) continue;
+		// this implicitly handles the case in which the whole 
+		// vector is specified as missing 
+		
+		// i.e. "."  instead of "0.0,0.1,0.9" for example (and not ".,.,.")
+		
+		switch( m->mt )
                 {
-                case META_INT   :
-		  {
-		    std::vector<int> x(tok2.size());
-		    bool okay = true;
-		    for (int i=0;i<tok2.size();i++) if ( ! Helper::str2int( tok2[i] , x[i] ) ) okay = false;
-		    if ( okay ) set( m->key , x );
-		    break;
+		    case META_INT   :
+		    {
+			std::vector<int> x( tok2size );
+			bool okay = true;
+			for (int i=0;i<tok2size;i++) if ( ! Helper::str2int( tok2[i] , x[i] ) ) okay = false;
+			if ( okay ) set( m->key , x );
+			break;
 		  }
                 case META_FLOAT :
 		  {
-		    std::vector<double> x(tok2.size());
-		    bool okay = true;
-		    for (int i=0;i<tok2.size();i++) if ( ! Helper::str2dbl( tok2[i] , x[i] ) ) okay = false;
-		    if ( okay ) set( m->key , x );
-		    break;
+		      std::vector<double> x( tok2size );
+		      bool okay = true;
+		      for (int i=0;i<tok2size;i++) if ( ! Helper::str2dbl( tok2[i] , x[i] ) ) okay = false;
+		      if ( okay ) set( m->key , x );
+		      break;
 		  }
-                case META_TEXT  :
-		  {
-		    set( m->key , tok2 );
-		    break;
-		  }
-                case META_BOOL  :
-		  {
-		    std::vector<bool> x(tok2.size());
+		    case META_TEXT  :
+		    {
+			set( m->key , tok2 );
+			break;
+		    }
+		    case META_BOOL  :
+		    {
+		    std::vector<bool> x( tok2size );
 		    bool okay = true;
-		    for (int i=0;i<tok2.size();i++) 
+		    for (int i=0;i<tok2size;i++) 
 		      {
-			if ( tok2[i] == "0" || tok2[i] == "F" || tok2[i] == "." ) x[i] = false;
-			else if ( tok2[i] == "1" || tok2[i] == "T" ) x[i] = true;
-			else okay = false;
+			  if ( *tok2[i] == '0' || *tok2[i] == 'F' || *tok2[i] == 'f' || *tok2[i] == '.' ) x[i] = false;
+			  else if ( *tok2[i] == '1' || *tok2[i] == 'T' || *tok2[i] == 't' ) x[i] = true;
+			  else okay = false;
 		      }
 		    if ( okay ) set( m->key , x );
 		    break;
-		  }
+		    }
                 }	      
 	    }
 	}
@@ -1518,10 +1532,62 @@ class MetaInformation {
       return ss.str();
     }
     
+
+    static std::string pretty_list_fields( const std::string & t )
+    {
+	
+	std::stringstream ss;
+	
+	std::map< meta_name_t , meta_index_t >::iterator i = nameMap.begin();
+	
+	while ( i != nameMap.end() )
+	{
+	    
+	    meta_index_t & midx = i->second;
+	    
+	    if ( MetaMeta::display( midx.name ) ) 
+	    {
+		
+		ss << midx.name << "\t(" 
+		   << t << ", ";
+		
+		switch ( midx.mt ) {
+		    case META_INT:
+			ss << "Integer";
+			break;
+		    case META_FLOAT :
+			ss << "Float";
+			break;					 
+		    case META_TEXT :
+			ss << "String";
+		      break;
+		    case META_BOOL :
+			ss << "Bool";
+			break;
+		    case META_FLAG :
+			ss << "Flag";
+			break;
+		    default :
+			ss << "Undef.";
+		}
+		
+		if ( midx.len > 1 ) 
+		    ss << " x " << midx.len;
+		else if ( midx.len == -1 ) 
+		    ss << " variable-length vector";
+		
+		ss << ")\t" << midx.description << "\n";
+	    }
+	    
+	    ++i;
+	}
+	return ss.str();
+    }
+
     
     static void reset()
-      {
-	nameMap.clear();
+	{
+	    nameMap.clear();
 	ordered.clear();
 	cnt_int = cnt_double = cnt_string = cnt_bool = cnt_flag = 0;
       }

@@ -109,7 +109,7 @@ class VCFReader {
  void ignore_meta( const std::set<std::string> & );
  
  int variants_inserted() const { return vcnt; } 
-
+ 
  void insert_meta( const std::string & s ) { getMetaInformation(s); } 
  
  std::map<std::string,std::string> last_meta();
@@ -187,14 +187,11 @@ class VCFReader {
   VCF_version version;
   bool obs_header;
 
-  bool processVCF(std::vector<std::string>::iterator , 
-		  int & a);
+  inline bool processVCF( const char * , int * a ) ;
   
-  bool processVCF(std::vector<std::string>::iterator , 
-		  double & a);
+  inline bool processVCF( const char * , double * a);
   
-  bool processVCF(std::vector<std::string>::iterator , 
-		  std::string & a);
+  inline bool processVCF( const char * , std::string * a);
   
   
 };

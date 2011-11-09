@@ -578,36 +578,36 @@ Variant VCFReader::getVariant(const std::string & s)
   std::string  format;
 
   // Tab-delimited (white-space) ; but do not send trailing \n 
-    
-  std::vector<std::string> tok = Helper::char_split(  s[ s.size()-1] == '\n' ? 
-                                                      s.substr( 0 , s.size() - 1 ) : 
-                                                      s , '\t' );  
-  
-   
+
+  int toksize;
+
+  Helper::char_tok tok( s[ s.size()-1] == '\n' ? s.substr( 0 , s.size() - 1 ) : s , &toksize , '\t' );		
+
   // When reading in from a VCF file, it will, by definition, only
   // correspond to a single sample; therefore, we want to load up
   // into, and write from, the consensus SampleVariant here
   
   Variant var( false );
   
-  if ( tok.size() < 8 ) return var;
+  if ( toksize < 8 ) return var;
 
  
   // Get primary identifiers: CHR,POS and ID, etc.  If anything fails
   // here, return a variant in invalid state
 
-  std::vector<std::string>::iterator tok_iter = tok.begin();
   
-  if ( ! processVCF( tok_iter , chr ) ) return var; 
-  if ( ! processVCF( ++tok_iter , pos ) ) return var; 
-  if ( ! processVCF( ++tok_iter , id ) ) return var; 
-  if ( ! processVCF( ++tok_iter , ref ) ) return var; 
-  if ( ! processVCF( ++tok_iter , alt ) ) return var; 
-  if ( ! processVCF( ++tok_iter , qual ) ) return var; 
-  if ( ! processVCF( ++tok_iter , filter ) ) return var; 
-  if ( ! processVCF( ++tok_iter , info ) ) return var; 
- 
-
+  // requires a valid chr and position to be accepted as a variant
+  if ( ! processVCF( tok(0) , &chr   ) ) return var; 
+  if ( ! processVCF( tok(1) , &pos   ) ) return var; 
+  
+  // these return false is non-valid value
+  processVCF( tok(2) , &id     );
+  processVCF( tok(3) , &ref    );
+  processVCF( tok(4) , &alt    );
+  processVCF( tok(5) , &qual   );
+  processVCF( tok(6) , &filter );
+  processVCF( tok(7) , &info   );
+  
   //
   // If applying a mask, do we want to keep this variant?
   //
@@ -615,13 +615,13 @@ Variant VCFReader::getVariant(const std::string & s)
   if ( pfilter )
     {
 
-      if ( ! contains( Helper::chrCode(chr) , pos , pos ) ) 
-	{
+      if ( ! contains( Helper::chrCode( chr ) , pos , pos ) ) 
+      {
 	  var.valid( false );
 	  return var; 
-	}
+      }
     }
-
+  
 
   // Key variant fields
 
@@ -686,9 +686,9 @@ Variant VCFReader::getVariant(const std::string & s)
   // that tells us what to expect
   //
 
-  if ( tok.size() <= 8 ) return var;
+  if ( toksize <= 8 ) return var;
   
-  if ( ! processVCF( ++tok_iter , format ) ) return var; 
+  processVCF( tok(8) , &format );
   
 
 
@@ -711,17 +711,17 @@ Variant VCFReader::getVariant(const std::string & s)
   // Did we see the correct number of genotypes?
   //
   
-  if ( tok.size() - 9  != icnt )
+  if ( toksize - 9  != icnt )
     {
       plog.warn( "incorrect number of genotypes: " 
-		 + Helper::int2str( tok.size()-9 ) + " observed, " 
+		 + Helper::int2str( toksize-9 ) + " observed, " 
 		 + Helper::int2str( icnt ) + " expected" ) ;
       
       // if less than we expect/need, do not read line at all
-      if ( tok.size() - 9 < icnt )
+      if ( toksize - 9 < icnt )
 	{
-	  var.valid( false );
-	  return var ;
+	    var.valid( false );
+	    return var ;
 	}
       // otherwise, okay to read up to end point and ignore rest
     }
@@ -735,13 +735,12 @@ Variant VCFReader::getVariant(const std::string & s)
   
   if ( return_var ) 
     {
-      // Add a sibdummy, single SampleVariant, just to keep everything happy downstream      
-      var.add(1);
-      var.set_vcf_buffer( tok );
-      return var;
+	// Add a sibdummy, single SampleVariant, just to keep everything happy downstream      
+	var.add(1);
+	var.set_vcf_buffer( tok );
+	return var;
     }
   
-
   
   //
   // Call genotypes, add to variant 
@@ -751,14 +750,14 @@ Variant VCFReader::getVariant(const std::string & s)
   const int na = alt == "." ? 1 : 1 + Helper::char_split( alt , ',' ).size();
   
   int gcnt = 0;
-  
+  int idx = 8;
+
   while ( gcnt != icnt )
-    {
-      
+  {
+
       // get next genotype token
-      ++tok_iter;
       
-      Genotype g( *tok_iter , gt_field , formats , na );
+      Genotype g( tok(++idx) , gt_field , formats , na );
       
       
       // Manually alter genotype to meet X/Y specification?
@@ -853,30 +852,31 @@ bool VCFReader::contains( int chr , int bp1, int bp2 )
 
 
 
-
-bool VCFReader::processVCF( std::vector<std::string>::iterator i , int & a)
+inline bool VCFReader::processVCF( const char * c , int * a)
 { 
-  if ( *i == "." ) { a = -1; return true; } 
-  try { a = Helper::lexical_cast<int>( *i ); } 
-  catch ( std::exception& e) { return false; } 
-  return true;
+    errno = 0;
+    char * endptr;
+    *a = strtol( c , &endptr , 10 );
+    if ( *endptr == '\0' ) return true;
+    *a = 0; 
+    return false;
+    
 }
 
-
-bool VCFReader::processVCF(std::vector<std::string>::iterator i ,
-			   double & a) 
+inline bool VCFReader::processVCF( const char * c , double * a) 
 { 
-  if ( *i == "." ) { a = -1.0; return true; } 
-  try { a = Helper::lexical_cast<double>( *i ); } 
-  catch ( std::exception& e) { return false; } 
-  return true;
+    char * endptr;
+    errno = 0;
+    *a = strtod( c , &endptr );
+    if ( *endptr == '\0' ) return true;
+    *a = 0; 
+    return false;    
 }
 
-bool VCFReader::processVCF(std::vector<std::string>::iterator i , 
-			   std::string & a)
+inline bool VCFReader::processVCF( const char * c , std::string * a)
 { 
-  a = *i;
-  return true;
+    *a = c;
+    return true;
 }
 
 bool VCFReader::set_format( const std::string & f )

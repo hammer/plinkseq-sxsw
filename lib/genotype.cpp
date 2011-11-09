@@ -111,6 +111,7 @@ double Genotype::score( genotype_model_t model )
   // scoring models for biallelic variants (ref/alt)
 
   // Null genotype always returns 0
+    
 
   if ( is_null || ploidy == 0 ) return 0;
   
@@ -123,9 +124,9 @@ double Genotype::score( genotype_model_t model )
       
     case GENOTYPE_MODEL_ALLELIC : 
       {
-	if ( ploidy == 2 ) return ( allele1 != 0 ) + ( allele2 != 0 );
-	if ( ploidy == 1 ) return allele1 ? 1 : 0;
-	return 0;
+	  if ( ploidy == 2 ) return ( allele1 != 0 ) + ( allele2 != 0 );
+	  if ( ploidy == 1 ) return allele1 ? 1 : 0;
+	  return 0;
       }
 
     case GENOTYPE_MODEL_ALLELIC2 : 
@@ -252,7 +253,7 @@ uint32_t Genotype::pack() const
   
   uint32_t gt = more() << 19 
     | is_null << 18
-    | ( ploidy == 1 ) << 17
+      | ( ploidy == 1 ) << 17
     | known_phase << 16
     | allele1 << 8 
     | allele2 ; 
@@ -268,6 +269,8 @@ bool Genotype::unpack( uint32_t gt )
   known_phase      = ( gt >> 16 ) & 1 ;
   allele1          = ( gt >> 8  ) & 255 ;
   allele2          =  gt          & 255 ;
+
+  std::cout << "ploidy = " << ploidy << "\n";
   
   // returns T is okay
   // returns F if genotype is encoded by _GT in meta-information
@@ -334,9 +337,9 @@ const Genotype & GenotypeSet::genotype(int i) const {  return calls[i]; }
 
 void Genotype::set_from_string( const std::string & gtok , const int n_alleles )
 {
-  
-  const Genotype * cached = search_genotype_cache( gtok );
-  
+    
+    const Genotype * cached = search_genotype_cache( gtok );
+    
   if ( cached ) 
     {
       *this = *cached;
@@ -386,26 +389,20 @@ Genotype::Genotype( const std::string & str , const int n_alleles )
   set_from_string(str , n_alleles ); 
 }
 
-Genotype::Genotype( const std::string & str , 
+Genotype::Genotype( const char * c , 
 		    const int gt_field , 
 		    const std::vector<meta_index_t*> & formats , 
 		    const int n_alleles )
 { 
-  
-  std::vector<std::string> tok = Helper::char_split( str , ':' );
-  
-  if ( gt_field >= tok.size() ) 
-    {
-      set_null();
-    }
-  else 
-    {      
-      set_from_string( tok[ gt_field ] , n_alleles );
-    }
-  
-  // Set genotpe meta-fields (GT field should be NULL and thus skipped)
-  
-  meta.set( tok , &formats );
+
+    int toksize = 0;
+    Helper::char_tok tok( c , 0 , &toksize , ':' );
+
+    if ( gt_field >= toksize ) set_null();
+    else set_from_string( tok( gt_field ) , n_alleles );
+
+    // Set genotpe meta-fields (GT field should be NULL and thus skipped)    
+    meta.set( tok , &formats );
   
 }
 

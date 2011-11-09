@@ -1159,14 +1159,14 @@ void f_extra_qc( Variant & var , void * p )
 
 bool Pseq::Util::file_summary()
 {
-  plog << g.fIndex.summary() << "\n";
-  return true;
+    plog << g.fIndex.summary() << "\n";
+    return true;
 }
 
 bool Pseq::Util::meta_summary()
 {
-  plog << Helper::metatype_summary() << "\n";
-  return true;
+    plog << Helper::metatype_summary( ! options.key( "ugly" ) ) << "\n";
+    return true;
 }
 
 

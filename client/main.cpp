@@ -763,64 +763,66 @@ int main(int argc, char ** argv)
   //
   
   if ( command == "index-bcf" ) 
-    {
+  {
       
       if ( ! args.has( "bcf" ) ) 
-	Helper::halt( "no BCF files specified, use --bcf file(s)" );
+	  Helper::halt( "no BCF files specified, use --bcf file(s)" );
       
       std::vector<std::string> t = args.as_string_vector( "bcf" );
+
+      g.vardb.drop_index();
       
       for (int f=0; f<t.size(); f++)
-	{
+      {
 	  
-	    if ( ! Helper::fileExists( t[f] ) )
-	    {
+	  if ( ! Helper::fileExists( t[f] ) )
+	  {
 	      plog.warn( "could not find BCF" , t[f] );
 	      continue;
-	    }
-	    
-	    // ensure we are using the full path
-	    t[f] = Helper::fullpath( t[f] );
-	    
-	    // Add to file-map, and create a BCF instance
-	    BCF * bcf = g.fIndex.add_BCF( t[f] );
-	    
-	    // Add to project index
-	    g.fIndex.append_to_projectfile( Helper::fullpath( t[f] ) , "BCF" );
-	    
-	    // Open BCF via BGZF interface	    
-	    bcf->reading();
-	    bcf->open();
-	    
-	    // Iterate through file, adding index	    
-	    
-	    g.vardb.begin();
-	    g.vardb.drop_index();
-	    
-	    // Get header information, and add to VARDB
-	    
-	    bcf->read_header( &g.vardb );
-	    
-	    uint64_t inserted = 0;
-	    while ( bcf->index_record() )
-	    {
-		if ( ++inserted % 1000 == 0 )
-		    plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
-	    }
-	    plog.counter("\n");
-	    
-	    plog << "inserted " << inserted << " variants from BCF; now finishing index...\n";
-	    
-	    g.vardb.index();
-	    g.vardb.commit();
-	    bcf->close();
-	    
-	    // and calculate summary Ns
-	    int2 niv = g.vardb.make_summary( t[f] );
-	    
-	}
+	  }
+	  
+	  // ensure we are using the full path
+	  t[f] = Helper::fullpath( t[f] );
+	  
+	  // Add to project index
+	  g.fIndex.append_to_projectfile( Helper::fullpath( t[f] ) , "BCF" );
+	  
+	  // Add to file-map, and create a BCF instance
+	  BCF * bcf = g.fIndex.add_BCF( t[f] );
+	  
+	  // Open BCF via BGZF interface	    
+	  bcf->reading();
+	  bcf->open();
+	  
+	  // Iterate through file, adding index	    	    
+	  g.vardb.begin();
+	  
+	  // Get header information, and add to VARDB
+	  
+	  bcf->read_header( &g.vardb );
+	  
+	  uint64_t inserted = 0;
+	  while ( bcf->index_record() )
+	  {
+	      if ( ++inserted % 1000 == 0 )
+		  plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	  }
+	  plog.counter("\n");
+	  
+	  plog << "inserted " << inserted << " variants from BCF; now finishing index...\n";
+	  
+	  g.vardb.commit();
+	  bcf->close();
+	  
+	  // and calculate summary Ns
+	  int2 niv = g.vardb.make_summary( t[f] );
+	  
+      }
+      
+      g.vardb.index();
+      
       Pseq::finished();
-    }
+  }
   
   
   //
