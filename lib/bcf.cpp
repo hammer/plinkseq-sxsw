@@ -174,7 +174,8 @@ void BCF::read_header( VarDBase * v )
       // BCF (i.e. so we do not need to parse the header when
       // accessing variant data from the BCF in future
 
-      vardb->store_bcf_n( file_id , filename , n );
+      // 2 == BCF mode
+      vardb->store_bcf_n( file_id , filename , 2 , n );
 
       plog << "added " << hdr.sample_names.size() << " individuals from BCF " << filename << "\n";
       

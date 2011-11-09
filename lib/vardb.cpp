@@ -977,15 +977,24 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
   
   if ( offset_idx )
   {
-
+    
       int file_id = sql.get_int( s , 1 );
-
+      
       // Is this a VCF or BCF?
       
       VCFZ * vcfz = vcfzmap[ file_id ];
       
+//       std::cout << vcfzmap.size() << " is vcfzmap.size()\n";
+//       std::map<int,VCFZ*>::iterator ii = vcfzmap.begin();
+//       while ( ii != vcfzmap.end() )
+// 	{
+// 	  std::cout << ii->first << "\t" << ii->second->name() << "\n";
+// 	  ++ii;
+// 	}
+//       if ( vcfz == NULL ) std::cout << "null VCFZ for " << file_id << "\n";
+
       if ( vcfz ) 
-      {
+	{
 	  SampleVariant & target = ( ! align->multi_sample() ) ? var.consensus : sample ;      
 	  SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
 	  vcfz->read_record( var , target , genotype_target, offset_idx ); 
@@ -998,7 +1007,7 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
 	  {
 	      SampleVariant & target = ( ! align->multi_sample() ) ? var.consensus : sample ;      
 	      SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
-	      bcf->read_record( var , target , genotype_target, bcf_offset); 
+	      bcf->read_record( var , target , genotype_target, offset_idx ); 
 	  }
 	  else
 	      Helper::halt( "requested compressed-VCF or BCF not attached" );
@@ -1697,57 +1706,59 @@ bool VarDBase::check_version()
 void VarDBase::populate_bcf_map()
 {
     
-    bcfmap.clear();
-    vcfzmap.clear();
-    
-    while ( sql.step( stmt_fetch_bcfs ) )
+  bcfmap.clear();
+  vcfzmap.clear();
+  
+  while ( sql.step( stmt_fetch_bcfs ) )
     {
-
+      
 	int fid              = sql.get_int( stmt_fetch_bcfs , 0 );
 	int type             = sql.get_int( stmt_fetch_bcfs , 1 );
 	std::string filename = sql.get_text( stmt_fetch_bcfs , 2 );
 	int nind             = sql.get_int( stmt_fetch_bcfs , 3 );
-
-
+	
+	
 	if ( type == 1 ) // compressed VCF
-	{
+	  {
+	
 	    VCFZ * vcfz = GP->fIndex.vcfz( filename );
 	    
 	    if ( vcfz ) 
-	    {
-		vcfzfmap[ fid ] = bcf;	  
+	      {
+		vcfzmap[ fid ] = vcfz;	  
 		vcfz->reading();
 		vcfz->open();
-		vcfz->set_types();
-	    }
+	      }
 	    else
-		plog.warn( "could not find compressed VCF " , filename );	
-	}
+	      plog.warn( "could not find compressed VCF " , filename );	
+	  }
 	else if ( type == 2 ) // BCF
-	{
+	  {
 	    
 	    BCF * bcf = GP->fIndex.bcf( filename );
 	    
 	    if ( bcf ) 
 	    {
-		bcfmap[ fid ] = bcf;	  
-		bcf->set_nind( nind );
-		bcf->reading();
-		bcf->open();
-		bcf->set_types();
+	      bcfmap[ fid ] = bcf;	  
+	      bcf->set_nind( nind );
+	      bcf->reading();
+	      bcf->open();
+	      bcf->set_types();
 	    }
 	    else
-		plog.warn( "could not find BCF " , filename );	
-	}
+	      plog.warn( "could not find BCF " , filename );	
+	  }
 	
     } // next file
     sql.reset( stmt_fetch_bcfs );
 }
 
 
-void VarDBase::store_bcf_n( uint64_t f , const std::string & filename , int nind )
+void VarDBase::store_bcf_n( uint64_t f , const std::string & filename , int type , int nind )
 {
+  // type, 1 = VCF(compressed), 2 = BCF
   sql.bind_int64( stmt_insert_bcf_n , ":file_id" , f ); 
+  sql.bind_int( stmt_insert_bcf_n , ":type" , type ); 
   sql.bind_int( stmt_insert_bcf_n , ":nind" , nind ); 
   sql.bind_text( stmt_insert_bcf_n , ":filepath" , filename );
   sql.step( stmt_insert_bcf_n );

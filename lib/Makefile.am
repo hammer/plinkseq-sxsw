@@ -59,6 +59,7 @@ variant.pb.h \
 vcf.h \
 vgroup.h \
 zfstream.h \
+vcfz.cpp \
 gstore.cpp \
 globals.cpp \
 variant.cpp \
@@ -69,7 +70,6 @@ regions.cpp \
 filemap.cpp \
 vcf.cpp \
 bcf.cpp \
-vcfz.cpp \
 zfstream.cpp \
 sqlwrap.cpp \
 helper.cpp \

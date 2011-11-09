@@ -147,9 +147,27 @@ class SampleVariant {
   void bcf_genotype_buf_resize( const int s ) { bcf_genotype_buf.resize(s); }
   
   uint8_t * bcf_pointer( const int p ) { return &(bcf_genotype_buf)[p]; }
-
+  
   void set_pointer_to_bcf( BCF * p ) { bcf = p; } 
   
+
+  //
+  // As above, for for BGZF-compressed VCFs (note; when procesing a single VCF from the
+  // command line (i.e. that isn't indexed in the VARDB, this is handled differently, from
+  // vcfiterate.cpp and the setting of the buffer is done via the parent Variant 
+  //
+
+  void set_vcfz_buffer( const Helper::char_tok & buffer ,      // genotypes and meta-information
+			int gt_field ,                   // from FORMAT, slot containing GT
+			std::vector<meta_index_t*> * formats ) // parsed meta-key vector for FORMAT
+  {
+    vcf_direct = true;
+    vcf_direct_buffer = buffer;
+    vcf_gt_field = gt_field;
+    vcf_formats = formats;
+  }
+  
+
 
   //
   // Convert BLOB to PB format to SampleVariant structure
@@ -287,6 +305,7 @@ class SampleVariant {
     meta.clear();
     calls.clear();     
     alleles.clear();
+    offset = 0;
       
     // for VCF --> SV
     vcf_direct = false;
@@ -295,7 +314,6 @@ class SampleVariant {
     vcf_formats = NULL;
     
     // for BCF --> SV
-    offset = 0;
     bcf = NULL;
     bcf_genotype_buf.clear();
   }

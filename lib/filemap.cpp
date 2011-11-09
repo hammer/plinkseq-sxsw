@@ -483,7 +483,7 @@ BCF * FileMap::bcf( const std::string & filename )
     return bcf_map[ filename ]; // NULL if not in map
 }
 
-VCF * FileMap::add_VCF( const std::string & f )
+BCF * FileMap::add_BCF( const std::string & f )
 {
     
     BCF * bcf = new BCF( f );
@@ -507,17 +507,17 @@ VCFZ * FileMap::vcfz( const std::string & filename )
 VCFZ * FileMap::add_VCFZ( const std::string & f )
 {
     
-    VCFZ * vcfz = new VCFZ( f );
-
-    if ( vcfz ) 
+  VCFZ * vcfz = new VCFZ( f );
+  
+  if ( vcfz ) 
     {
-	vcfz_map[ f ] = vcfz;
-	
-	// also add to normal filemap
-	add( f , BGZF_VCF , "" , "VCFZ" );
+      vcfz_map[ f ] = vcfz;
+      
+      // also add to normal filemap
+      add( f , BGZF_VCF , "" , "VCFZ" );
     }
-
-    return vcfz;
+  
+  return vcfz;
 }
 
 

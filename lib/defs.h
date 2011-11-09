@@ -145,6 +145,7 @@ enum fType { INVALID,
 	     TEMP,       // Folder for SQLite temp files
 	     VCF , 
 	     BCF_FILE , 
+	     BGZF_VCF ,
 	     GTF , 
 	     PHE , 
 	     IND ,

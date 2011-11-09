@@ -111,7 +111,7 @@ class VarDBase {
 
   void populate_bcf_map();
   void insert_bcf_index( uint64_t file_id , const Variant & , int64_t );
-  void store_bcf_n( uint64_t , const std::string & , int s );
+  void store_bcf_n( uint64_t , const std::string & , int t , int s );
   // primary query: get a Variant from a BCF
   bool fetch_bcf( Variant & , const uint64_t & offset );
   
@@ -441,7 +441,7 @@ class VarDBase {
   std::map<int,ploidy_t> chr_ploidy_map;
   
   std::map<int,BCF*> bcfmap;
-  std::map<int,VCFZ*> vcfzfmap;
+  std::map<int,VCFZ*> vcfzmap;
   
   enum fetch_mode_t { ALL = 0 , NO_GMETA , ONLY_VMETA , ONLY_GENO , ONLY_CORE } fetch_mode;
   

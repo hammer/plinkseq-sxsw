@@ -545,7 +545,7 @@ bool SampleVariant::decode_BLOB_vmeta( Mask * mask, Variant * parent , SampleVar
   if ( mask && ! mask->load_variant_meta() ) return true;
   
   
-  // For BCF-derived SVs, or those read direct from a VCF,skip the first step
+  // For BCF-derived SVs, or those read direct from a VCF, skip the first step
   // i.e. genotypes already extracted
   
   if ( ! ( sample->bcf || sample->vcf_direct ) ) 
@@ -693,7 +693,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 
   
   //
-  // Decode genotype information, for 0+ individuals If an optional
+  // Decode genotype information, for 0+ individuals. If an optional
   // alignment is specified, use that to only extract that subset
   //
   
@@ -1222,7 +1222,9 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
       
       unsigned int n_variant = align ? align->size() : vcf_direct_buffer.size()-9 ;
       
-      // Target will always be consensus
+      // Target will always be consensus when reading a single VCF from the command line
+      //  -- but not necessarily if reading BGZF-compressed VCFs that are indexed in thre VARDB
+      // In any case, target *should* be set already to the appropriate place.
 
       target->calls.size( n_variant );
       
@@ -1230,7 +1232,11 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 
       // check # of allowable alleles
       // TODO: needless re-parsing of the string, can speed this up if needed
-      const int na = vtarget->alternate() == "." ? 1 : Helper::char_split( vtarget->alternate() , ',' ).size() + 1;
+      
+      int na = 1;
+      if ( vtarget->alternate() != "." ) 
+	{ Helper::char_tok( vtarget->alternate() , &na , ',' ); ++na; } 
+      
       
       for ( int i=9; i < vcf_direct_buffer.size(); i++)
 	{

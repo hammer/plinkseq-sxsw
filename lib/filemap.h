@@ -189,11 +189,11 @@ class FileMap {
 	    ++i;
 	}
 
-	std::map<std::string,VCFZ*>::iterator i = vcfz_map.begin();
-	while ( i != vcfz_map.end() )
+	std::map<std::string,VCFZ*>::iterator j = vcfz_map.begin();
+	while ( j != vcfz_map.end() )
 	{
-	    if ( i->second ) delete i->second;
-	    ++i;
+	    if ( j->second ) delete j->second;
+	    ++j;
 	}
 
     }
