@@ -1,1 +1,56 @@
-Thank you for reading me.
+**Please Note:** This is the PLINK/SEQ development repository -- this is only for developers. \
+If you trying to install PLINK/SEQ from source, please download the source code from http://atgu.mgh.harvard.edu/plinkseq/download.shtml. 
+
+If you have any questions, email brettpthomas@gmail.com
+
+PREREQUISITES
+PLINK/SEQ uses GNU Autotools for our build system. This is a suite of tools that generates configuration scripts and Makefiles. Specifically, the following tools are required: 
+-- Autoconf 2.61+
+-- Automake 1.10+
+-- Libtool 2.2+
+
+Please be sure these tools are set up (running, for example, "autoconf -v" to test your version of Autoconf) before you continue. 
+
+PLINK/SEQ also requires Google's Protocol Buffers: http://code.google.com/p/protobuf/. Please be sure you have protobuf version 2.4.1 (version is important) installed locally. If you 
+
+GETTING THE SOURCE
+The source is currently private, so you need to be listed as a collaborator. Email Brett for this. 
+
+If you are reading this, presumably you have access to our Github repository. The official PLINK/SEQ code is at http://brettpthomas.github.com/plinkseq. \
+To clone the repository, run git clone git@github.com:brettpthomas/plinkseq.git [target dir]
+
+Before you can get the code, you need to configure Git on your machine. This is a slightly involved process that includes setting up SSH keys. Github has a good guide here: http://help.github.com/mac-set-up-git/
+
+INSTALLATION INSTRUCTIONS
+This repository does not contain configure scripts or Makefiles - rather, it contains the Autotools templates (configure.ac and Makefile.am) that can be used to generate these files. \
+As a developer, you need to generate these files before you can build PLINK/SEQ. Conveniently, this is one command: 
+$ autoreconf -i
+This will create a bunch of files, including configure scripts and Makefiles.
+
+After this step is complete, you are ready to build - just follow the instructions on the website: http://atgu.mgh.harvard.edu/plinkseq/download.shtml. 
+
+Note that while you are developing, you should probably use the --enable-debug configuration option. This does a couple things: 
+-- Stops compiler optimizations, which makes code easier to debug and speeds up the build
+-- Links pseq as a static binary, without a wrapper shell script
+
+ECLIPSE IDE
+There is no preferred way to edit PLINK/SEQ source. However, the Eclipse IDE has been very helpful for Brett - here are some quick notes if you want to give it a try. \
+Eclipse is primarily used with Java. Since PLINK/SEQ is written in C++, you must install a C++ extension called CDT. This is usually not installed by default, so you will probably have to download it at http://www.eclipse.org/cdt/. \
+
+To set up a PLINK/SEQ project, open Eclipse and select File -> New -> C++ Project. Use the following configuration: 
+-- Pocation should be your plinkseq directory. It will warn that "Directory with specified name already exists." - that's fine. 
+-- Project type "Executable" and "Empty Project"
+-- Toolchain doesn't matter, 
+
+If you want to enable interactive debugging (totally optional, and probably not worth the effort for most people): 
+-- First you need to rebuild pseq. Configure with the --enable-debug flags. Be sure to run "make clean" before "make".
+-- select Run -> Debug Configurations
+-- choose C/C++ Application and click "New launch configuration" (the icon with the plus sign) 
+-- select [project directory]/client/pseq as the C/C++ Application. 
+-- select "disable auto build"
+-- go to the "Arguments" tab, and enter a project and command. For example, "$HOME/pseq/proj v-view"
+-- click "Apply" and then "Run"
+
+
+USEFUL GIT COMMANDS
+Coming soon... 

@@ -47,12 +47,8 @@ if WITH_PROTOBUF
 pseq_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
 endif
 
-#if DEBUG
-#pseq_LDFLAGS += -no-install
-#endif
-
-#if STATIC
-#pseq_LDFLAGS += -all-static
-#endif
+if DEBUG
+pseq_LDFLAGS += -no-install all-static
+endif
 
 ACLOCAL_AMFLAGS = -I m4
