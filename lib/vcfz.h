@@ -29,6 +29,15 @@ class VCFZ {
       if ( readmode == 1 ) Helper::halt("not implemented VCFZ writing yet");
     }
 
+  ~VCFZ()
+      {
+	  if ( file ) 
+	  {
+	      bgzf_close( file );
+	      file = NULL;
+	  }
+      }
+
   void set_vardb( VarDBase * v ) { vardb = v; } 
   bool open();
   void close();

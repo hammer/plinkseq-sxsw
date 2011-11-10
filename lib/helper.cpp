@@ -1568,7 +1568,7 @@ Helper::char_tok::char_tok& Helper::char_tok::operator= ( const Helper::char_tok
 	// use memcpy, as now we have many \0 delimiters within the string
 	s = new char[ rhs.len + 1 ];	
 	memcpy( s , rhs.s , rhs.len + 1 );
-    }
+    } 
     return *this;
 }
 
@@ -1582,8 +1582,7 @@ Helper::char_tok::char_tok( const std::string & istr , int * ps , const char d )
 Helper::char_tok::char_tok( const char * istr , int l , int * ps , const char d ) : d(d) , len(l)
 {     
     // if len is positive, assume that is length of 's'
-    if ( len ) init( istr , ps );
-    len = strlen(istr);    
+    if ( ! len ) len = strlen(istr);    
     init( istr , ps );
 }
 

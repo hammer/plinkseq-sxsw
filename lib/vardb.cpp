@@ -310,10 +310,13 @@ bool VarDBase::attach( std::string n )
 bool VarDBase::dettach()
 {
   if ( attached() )
-    {
+  {
       release();
       sql.close();
-    }
+  }
+
+  // FileMap will close any open BCF and VCFZ files
+
   return true;
 }
 
@@ -957,9 +960,9 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
   var.valid( true );  
   
   // fileset is : sql.get_int(  s , 1 ) 
-  
+
   SampleVariant & sample = var.add( sql.get_int(  s , 1 ) );  
-  
+
   // Sample attributes
   sample.index( sql.get_int64( s , 0 ) ) ; 
   
@@ -1725,9 +1728,10 @@ void VarDBase::populate_bcf_map()
 	    
 	    if ( vcfz ) 
 	      {
-		vcfzmap[ fid ] = vcfz;	  
-		vcfz->reading();
-		vcfz->open();
+		  vcfz->set_vardb( this );
+		  vcfzmap[ fid ] = vcfz;	  
+		  vcfz->reading();
+		  vcfz->open();		  
 	      }
 	    else
 	      plog.warn( "could not find compressed VCF " , filename );	

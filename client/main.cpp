@@ -832,7 +832,7 @@ int main(int argc, char ** argv)
   {
       
     if ( ! args.has( "vcf" ) ) 
-      Helper::halt( "no VCF file(s) specified, use --vcf file(s)" );
+	Helper::halt( "no VCF file(s) specified, use --vcf file(s)" );
       
     std::vector<std::string> t = args.as_string_vector( "vcf" );
 

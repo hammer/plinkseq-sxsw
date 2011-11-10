@@ -182,19 +182,36 @@ class FileMap {
   ~FileMap()
     {
 
+	std::map<fType,File*>::const_iterator f = special_files.begin();
+	while ( f != special_files.end() )
+	{
+	    if ( f->second ) delete f->second;
+	    ++f;
+	}
+
+	std::map< std::string, File*>::iterator ff = fmap.begin();
+	while ( ff != fmap.end() )
+	{
+	    if ( ff->second ) delete ff->second;
+	    ++ff;
+	}
+
 	std::map<std::string,BCF*>::iterator i = bcf_map.begin();
 	while ( i != bcf_map.end() )
 	{
 	    if ( i->second ) delete i->second;
 	    ++i;
 	}
-
+	
 	std::map<std::string,VCFZ*>::iterator j = vcfz_map.begin();
 	while ( j != vcfz_map.end() )
 	{
-	    if ( j->second ) delete j->second;
+	    if ( j->second ) delete j->second; 
 	    ++j;
 	}
+
+	bcf_map.clear();
+	vcfz_map.clear();
 
     }
 

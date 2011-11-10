@@ -671,6 +671,11 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 					  SampleVariant * target ) // genotype_target
 {
   
+    
+    std::cout << "this = " << fset << " " << vcf_direct << "\n";
+    std::cout << "source = " << source->fset << source->vcf_direct << "\n";
+    std::cout << "target = " << target->fset << target->vcf_direct << "\n";
+    
 
   // Possible that we do not require any individual/genotypic level
   // information at all, in which case, return now.
@@ -1209,10 +1214,11 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   else if ( vcf_direct )    
     {
       
-//       std::cout << "f = " << fset << " " << target->fset << "\n";
-//       std::cout << target->reference() << " and " << target->alternate() << "\n";
-//       std::cout << "in here..\n";      
-//       std::cout << "vcf_direct_buffer. = " << vcf_direct_buffer.size() << "\n";
+       std::cout << "f = " << fset << " " << target->fset << "\n";
+       std::cout << target->reference() << " and " << target->alternate() << "\n";
+       std::cout << "in here..\n";      
+       std::cout << "vcf_direct_buffer. = " << vcf_direct_buffer.size() << "\n";
+
 
       // If not a valid variant, do not try to expand genotypes
       if ( ! parent->valid() ) return false;

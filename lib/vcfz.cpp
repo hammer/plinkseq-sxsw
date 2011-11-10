@@ -32,8 +32,10 @@ bool VCFZ::open()
 
 void VCFZ::close() 
 {
-  if ( file ) bgzf_close( file );
-  file = NULL;
+    std::cout << "\n\n\nclosing VFCZ\n";
+    if ( file ) { std::cout << "actually doing..\n"; bgzf_close( file ); }
+    else std::cout << "hmm, must be already closed\n";
+    file = NULL;
 }
 
 
@@ -175,7 +177,7 @@ bool VCFZ::index_record( )
   // Add offset to DB (can use 'BCF' function, does same thing; file_id
   // will identify this as a VCF downstram
   
-  vardb->insert_bcf_index( file_id , var , offset );
+//  vardb->insert_bcf_index( file_id , var , offset );
   
   return true;
   
@@ -193,7 +195,7 @@ bool VCFZ::read_record( Variant & var , SampleVariant & svar , SampleVariant & s
 
 bool VCFZ::read_record( Variant & var , SampleVariant & svar , SampleVariant & svar_g )
 {
-
+    
   // Here we are reading genotpe data for a particular Variant 'var'
   // In practice, the wrapper function above will get called, which first moves to 
   // the correct place in the VCF
@@ -214,14 +216,13 @@ bool VCFZ::read_record( Variant & var , SampleVariant & svar , SampleVariant & s
   std::vector<char> line;
   read_line( &line );
 
+  
   int ntok;
   Helper::char_tok tok( &(line[0]) , line.size() , &ntok , '\t' );
   if ( ntok < 8 ) Helper::halt( "invalid VCF entry, less than 8 fields" );
   
   // Sanity check: does BP from VARDB match BP from VCF?
   
-
-
   int bp;
   if ( ! Helper::str2int( tok(1) , bp ) ) Helper::halt( "trouble processing POS field in VCF" );
   if ( bp != var.position() ) Helper::halt( "index out of sync with VCF" );
@@ -271,14 +272,15 @@ bool VCFZ::read_record( Variant & var , SampleVariant & svar , SampleVariant & s
   
   set_format( tok(8) );
   
-
+  
   // Add genotypes to genotype-holding sample-variant; they will be
   // parsed at a later date, if needed; number of genotypes should be
   // checked in svar.cpp when expanding
+
+  // Hmm -- vcf_direct is property of source, not target.
   
   svar_g.set_vcfz_buffer( tok , gt_field , &formats );
-
-    
+  
   // Return this variant (and any called genotypes)
 
   return true;
