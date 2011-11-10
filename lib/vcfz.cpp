@@ -5,6 +5,7 @@
 #include "gstore.h"
 #include "meta.h"
 
+
 #include <iostream>
 
 extern GStore * GP;
@@ -19,23 +20,21 @@ bool VCFZ::open()
   if ( file ) close();
   
   if ( readmode ) file = bgzf_open( filename.c_str(), "r" );
-
+  
   else 
     { 
       Helper::halt( "writing BGZF-VCFs not yet supported" );
       file = bgzf_open( filename.c_str(), "w" );
     }
-
+  
   return file == NULL;
 }
 
 
 void VCFZ::close() 
 {
-    std::cout << "\n\n\nclosing VFCZ\n";
-    if ( file ) { std::cout << "actually doing..\n"; bgzf_close( file ); }
-    else std::cout << "hmm, must be already closed\n";
-    file = NULL;
+  if ( file ) { bgzf_close( file ); }
+  file = NULL;
 }
 
 
@@ -59,73 +58,82 @@ bool VCFZ::read_line( std::vector<char> * line )
 
 
 
-void VCFZ::read_header()
+void VCFZ::read_header( Mask & mask )
 {
-  if ( ! vardb ) Helper::halt( "no VARDB attached to VCFZ class" );
   
+  if ( ! vardb ) Helper::halt( "no VARDB attached to VCFZ class" );  
   
-  // the header should already have been added when doing the index-vcf
-  //  (but implement here: )
+  // When creating the index for a VCFZ, we first need to read the
+  // header and store the INFO in the VARDB, same as if we had used
+  // 'load-vcf'.  This function is only called when performing an
+  // 'index-vcf' call
 
-//   hdr.clear();
-//   hdr.meta_text = Helper::char_split( mtext , '\n' , false ); 
+  // This is largely the same code as in vcfiterate.cpp, where we use VCFReader to process
+  // the VCF header. Because the BGZF can be read like a normal gzipped VCF
   
-
-  // Assign to VarDB
+  // Load, parse VCF file; store variant and genotype information, and
+  // meta-information, in vardb
   
-  if ( vardb )
-    {
-
-      // and meta-information. 
-      // we'll never want to look at this header
-      // again when accessing genotype/variant data      
-      
-      // Use VCFReader class functions to process meta-information
-      
-      // VCFZ will be in file-index
-      
-      File * f = GP->fIndex.file( filename );
-      if ( f == NULL ) Helper::halt( "internal error in VCFZ class, parsing header"  );
-      
-      // NULL means no SEQDB attached for now, i.e no REF checking
-      VCFReader vcf( f , f->tag() , vardb , NULL );
-      
-      // Get file-ID (would have been created from VARDB)
-      file_id = vcf.group_id();
-      
-      int nind = 0;
-
-      //       // Individuals
-//       for (int i=0; i<n; i++)
-// 	{
-// 	  Individual ind( hdr.sample_names[i] );
-// 	  vardb->insert( file_id , ind );
-// 	}
-
-
-//       // Register BCF file in VARDB; also the # of individuals in the
-//       // BCF (i.e. so we do not need to parse the header when
-//       // accessing variant data from the BCF in future
-
-//       // Meta-fields
-//       vcf.insert_meta( "##format=VCF4.1" );
-      
-//       for (int i=0; i<hdr.meta_text.size(); i++)
-// 	{
-// 	  vcf.insert_meta( hdr.meta_text[i] );
-// 	}
-//     }
+  File vcffile( filename , VCF );
   
+  VCFReader v( &vcffile , "" , vardb , NULL );  
+  
+  // Work through VCF
 
-      // 1 means BGZF-compressed VCF (not BCF)
+  vardb->begin();
 
-      //   (only needed to read a BCF)
+  while ( 1 ) 
+    { 
       
-      vardb->store_bcf_n( file_id , filename , 1 , nind );
+      VCFReader::line_t l = v.parseLine();
       
+      if ( l == VCFReader::VCF_EOF ) break;
       
+      if ( l == VCFReader::VCF_INVALID ) 
+	{
+	  continue;
+	}
       
+      if ( l == VCFReader::VCF_HEADER )
+	{
+	  break;
+	}           
     }
+
+  // Wrap up  
+  vardb->commit();
+  
+
+//   //
+//   // In FIX/XY mode when in single-VCF mode, we need to populate the Sex codes in the indmap
+//   //
+  
+//   for (int i = 0; i< GP->indmap.size() ; i++)
+//     {
+//       sType s = GP->inddb.sex( GP->indmap.ind(i)->id() );
+//       GP->indmap.ind(i)->sex( s );
+//     }
+    
+
+  //
+  // Finally, also store in 'bcfs' VARDB table, as type1 (BGZF VCF)
+  //
+
+  // Store file-ID that was assigned in VARBD
+
+  file_id = v.group_id();
+
+  
+  // 1 == VCF (BGZF'ed)
+  // 0 == no need to set N individuals (BCF only)
+  
+  vardb->store_bcf_n( file_id , filename , 1 , 0 );
+
+  // All done reading header, so can close now
+  // File should be closed when VCFReader goes out of scope just below
+
+
+          
 }
 
 
@@ -177,7 +185,7 @@ bool VCFZ::index_record( )
   // Add offset to DB (can use 'BCF' function, does same thing; file_id
   // will identify this as a VCF downstram
   
-//  vardb->insert_bcf_index( file_id , var , offset );
+  vardb->insert_bcf_index( file_id , var , offset );
   
   return true;
   
@@ -185,15 +193,15 @@ bool VCFZ::index_record( )
 
 
 
-bool VCFZ::read_record( Variant & var , SampleVariant & svar , SampleVariant & svar_g, int64_t offset )
+bool VCFZ::read_record( Variant & var , SampleVariant & source , SampleVariant & svar , SampleVariant & svar_g, int64_t offset )
 {
   bgzf_seek( file, offset, SEEK_SET);
-  return read_record( var , svar , svar_g );
+  return read_record( var , source , svar , svar_g );
 }
 
 
 
-bool VCFZ::read_record( Variant & var , SampleVariant & svar , SampleVariant & svar_g )
+bool VCFZ::read_record( Variant & var , SampleVariant & source , SampleVariant & svar , SampleVariant & svar_g )
 {
     
   // Here we are reading genotpe data for a particular Variant 'var'
@@ -203,11 +211,6 @@ bool VCFZ::read_record( Variant & var , SampleVariant & svar , SampleVariant & s
   // We will receive a Variant spec with chr/bp from the VARDB. We should check that it matches
   // what we see here in the file
   
-  // As when parsing a BCF: Variant meta-information goes into 'svar'
-  //                        Genotypes go into 'svar_g' 
-  
-  // 'svar' and 'svar_g' may or may not be the same, depending on the structure of
-  // the project.
 
   //
   // Extract Helper::char_tok from BGZF'ed VCF
@@ -276,10 +279,13 @@ bool VCFZ::read_record( Variant & var , SampleVariant & svar , SampleVariant & s
   // Add genotypes to genotype-holding sample-variant; they will be
   // parsed at a later date, if needed; number of genotypes should be
   // checked in svar.cpp when expanding
-
-  // Hmm -- vcf_direct is property of source, not target.
   
-  svar_g.set_vcfz_buffer( tok , gt_field , &formats );
+  // NOTE: here we set svar, not svar_g, which is the 'target' for genotypes.
+  // Under a single sample, then svar == svar_g == consensus, so no problem.
+  // Under any multiple-sample case, we want the VCF-buffers to stay with each Svar at 
+  // this point, however, similar to 
+  
+  source.set_vcfz_buffer( tok , gt_field , &formats );
   
   // Return this variant (and any called genotypes)
 

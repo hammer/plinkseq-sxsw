@@ -1883,6 +1883,7 @@ SEXP Rdirect_load_vcf( SEXP rfilename , SEXP m , SEXP retn )
   if ( length(retn) != 1 ) return(R_NilValue);    
   
   std::string filename = CHAR(STRING_ELT(rfilename, 0)); 
+  filename = FileMap::tilde_expansion( filename );
   std::string mask = CHAR(STRING_ELT(m, 0)); 
   int ret = INTEGER(retn)[0];
   

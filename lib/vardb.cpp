@@ -1000,7 +1000,8 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
 	{
 	  SampleVariant & target = ( ! align->multi_sample() ) ? var.consensus : sample ;      
 	  SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
-	  vcfz->read_record( var , target , genotype_target, offset_idx ); 
+	  
+	  vcfz->read_record( var , sample , target , genotype_target, offset_idx ); 
       }
       else 
       {

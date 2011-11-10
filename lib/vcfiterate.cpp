@@ -9,7 +9,7 @@ bool VarDBase::vcf_iterate_read_header( Mask & mask )
 
   // Read meta-information, and header row.
   // Populate the vardb, indmap, etc
-  
+
   std::string filename = mask.external_vcf_filename();
   Helper::checkFileExists( filename );
   

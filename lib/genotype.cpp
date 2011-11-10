@@ -270,7 +270,7 @@ bool Genotype::unpack( uint32_t gt )
   allele1          = ( gt >> 8  ) & 255 ;
   allele2          =  gt          & 255 ;
 
-  std::cout << "ploidy = " << ploidy << "\n";
+  //  std::cout << "ploidy = " << ploidy << "\n";
   
   // returns T is okay
   // returns F if genotype is encoded by _GT in meta-information

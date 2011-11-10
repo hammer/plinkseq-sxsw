@@ -80,6 +80,8 @@ class VCFReader {
      file.open( f->name().c_str() );
      return true;
    }
+
+   ~VCFReader();
    
    void return_variant( const bool b ) { return_var = b; } 
 

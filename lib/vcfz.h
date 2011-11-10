@@ -12,7 +12,7 @@
 class Variant;
 class SampleVariant;
 class VarDBase;
-
+class Mask;
 
 class VCFZ {
   
@@ -47,10 +47,10 @@ class VCFZ {
 
   // Main client functions
 
-  void read_header( );
+  void read_header( Mask & mask );
   bool index_record( );
-  bool read_record( Variant & , SampleVariant & , SampleVariant & );
-  bool read_record( Variant & , SampleVariant & , SampleVariant & , int64_t offset );
+  bool read_record( Variant & , SampleVariant & , SampleVariant & , SampleVariant & );
+  bool read_record( Variant & , SampleVariant & , SampleVariant & , SampleVariant & , int64_t offset );
 
   bool write_header();
   bool write_record( const Variant & );

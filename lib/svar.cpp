@@ -483,7 +483,8 @@ bool SampleVariant::decode_BLOB_basic( SampleVariant * svar )
   // If this SampleVariant was created from a BCF, we already will have 
   // populated these fields, nothing to do here
 
-  if ( svar->bcf || svar->vcf_direct ) return true; 
+
+  if ( svar->bcf || vcf_direct ) return true; 
 
   //
   // The index, chr, name and bp1,2 will be already set
@@ -672,9 +673,9 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 {
   
     
-    std::cout << "this = " << fset << " " << vcf_direct << "\n";
-    std::cout << "source = " << source->fset << source->vcf_direct << "\n";
-    std::cout << "target = " << target->fset << target->vcf_direct << "\n";
+//    std::cout << "this = " << fset << " " << vcf_direct << "\n";
+//    std::cout << "source = " << source->fset << " " << source->vcf_direct << "\n";
+//    std::cout << "target = " << target->fset << " " << target->vcf_direct << "\n";
     
 
   // Possible that we do not require any individual/genotypic level
@@ -1095,11 +1096,11 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 		  if ( s2t[i] != -1 )
 		    {
 			
-			std::cout << "mapping genotype " << i << " " << s2t[i] << " " << "\n";
+		      //			std::cout << "mapping genotype " << i << " " << s2t[i] << " " << "\n";
 			
 			target->calls.genotype( s2t[i] ).bcf( target->bcf_genotype_buf[ p ] );		      
 			
-			std::cout << "geno = " << target->calls.genotype( s2t[i] ) << "\n";
+			//  std::cout << "geno = " << target->calls.genotype( s2t[i] ) << "\n";
 
 		    }
 		  ++p;
@@ -1214,20 +1215,24 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   else if ( vcf_direct )    
     {
       
-       std::cout << "f = " << fset << " " << target->fset << "\n";
-       std::cout << target->reference() << " and " << target->alternate() << "\n";
-       std::cout << "in here..\n";      
-       std::cout << "vcf_direct_buffer. = " << vcf_direct_buffer.size() << "\n";
-
-
+//       std::cout << "f = " << fset << " " << target->fset << "\n";
+//       std::cout << target->reference() << " and " << target->alternate() << "\n";
+//       std::cout << "in here..\n";      
+//       std::cout << "vcf_direct_buffer. = " << vcf_direct_buffer.size() << "\n";
+      
       // If not a valid variant, do not try to expand genotypes
       if ( ! parent->valid() ) return false;
       
       // Individual counter
       int j = 0;
       
+
       unsigned int n_variant = align ? align->size() : vcf_direct_buffer.size()-9 ;
-      
+
+//        std::cout << "align ? " << ( align ? "T" : "F" ) << "\n";
+//        std::cout << " vcf bif size = " << vcf_direct_buffer.size() << "\n";
+//        std::cout << "n_var = " << n_variant << "\n";
+
       // Target will always be consensus when reading a single VCF from the command line
       //  -- but not necessarily if reading BGZF-compressed VCFs that are indexed in thre VARDB
       // In any case, target *should* be set already to the appropriate place.
@@ -1246,24 +1251,24 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
       
       for ( int i=9; i < vcf_direct_buffer.size(); i++)
 	{
-	  
+
 	  int slot = j;
-	  
+
 	  if ( align )
 	    {
-	      // is this needed?? -- don't think both are needed	      
-	      slot = align->sample_remapping( 1 , j ) ;
-	      if ( align->flat() ) slot = align->get_slot( 1 , slot );
+	      // is this needed?? -- don't think both are needed 
+	      slot = align->sample_remapping( source->fileset()  , j ) ;
+	      if ( align->flat() ) slot = align->get_slot( source->fileset()  , slot );
 	    }	  
 	  
 	  if ( slot != -1 )
 	    {	      	    
-		
-		Genotype g( vcf_direct_buffer(i) , vcf_gt_field , *vcf_formats , na );
-		
-		if ( mask && mask->fixxy() ) 
+
+	      Genotype g( vcf_direct_buffer(i) , vcf_gt_field , *vcf_formats , na );
+	      	     
+	      if ( mask && mask->fixxy() ) 
 		{
-		    
+		  
 		    // Is this a flagged chromomse?
 		    ploidy_t p = mask->ploidy( Helper::chrCode( parent->chromosome() ) );
 		    
@@ -1349,7 +1354,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	    }
 	  else
 	    {
-	      std::cout << "keeping " << i << " " << *parent << " " << GP->indmap(i)->id() << "\n";
+	      std::cout << "*** keeping " << i << " " << *parent << " " << GP->indmap(i)->id() << "\n";
 	    }
 	}
     }

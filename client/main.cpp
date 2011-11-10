@@ -826,71 +826,6 @@ int main(int argc, char ** argv)
   }
   
   
-  // Same but for VCFs
-
-  if ( command == "index-vcf" ) 
-  {
-      
-    if ( ! args.has( "vcf" ) ) 
-	Helper::halt( "no VCF file(s) specified, use --vcf file(s)" );
-      
-    std::vector<std::string> t = args.as_string_vector( "vcf" );
-
-    g.vardb.drop_index();
-    
-    for (int f=0; f<t.size(); f++)
-      {
-	
-	if ( ! Helper::fileExists( t[f] ) )
-	  {
-	    plog.warn( "could not find VCF" , t[f] );
-	    continue;
-	  }
-	
-	// ensure we are using the full path
-	t[f] = Helper::fullpath( t[f] );
-	
-	// Add to project index
-	g.fIndex.append_to_projectfile( Helper::fullpath( t[f] ) , "VCFZ" );
-	  
-	// Add to file-map, and create a BCF instance
-	VCFZ * vcfz = g.fIndex.add_VCFZ( t[f] );
-	
-	// Open VCFZ via BGZF interface	    
-	vcfz->set_vardb( &g.vardb );
-
-	vcfz->reading();
-	vcfz->open();
-	
-	// Iterate through file, adding index	    	    
-	g.vardb.begin();
-	
-	// Get header information, and add to VARDB
-	vcfz->read_header( );
-	
-	uint64_t inserted = 0;
-	while ( vcfz->index_record() )
-	  {
-	    if ( ++inserted % 1000 == 0 )
-	      plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
-	  }
-	plog.counter("\n");
-	  
-	plog << "inserted " << inserted << " variants from compressed VCF; now finishing index...\n";
-	
-	g.vardb.commit();
-	vcfz->close();
-	
-	// and calculate summary Ns
-	int2 niv = g.vardb.make_summary( t[f] );
-	
-      }
-    
-    g.vardb.index();
-    
-    Pseq::finished();
-  }
-  
 
   
   //
@@ -1439,6 +1374,74 @@ int main(int argc, char ** argv)
     }
  
     
+  //
+  // Just index a BGZF'ed VCF into the VARDB
+  //
+
+  if ( command == "index-vcf" ) 
+  {
+      
+    if ( ! args.has( "vcf" ) ) 
+      Helper::halt( "no VCF file(s) specified, use --vcf file(s)" );
+    
+    std::vector<std::string> t = args.as_string_vector( "vcf" );
+    
+    g.vardb.drop_index();
+    
+    for (int f=0; f<t.size(); f++)
+      {
+	
+	if ( ! Helper::fileExists( t[f] ) )
+	  {
+	    plog.warn( "could not find VCF" , t[f] );
+	    continue;
+	  }
+	
+	// ensure we are using the full path
+	t[f] = Helper::fullpath( t[f] );
+	
+	// Add to project index
+	g.fIndex.append_to_projectfile( Helper::fullpath( t[f] ) , "VCFZ" );
+	
+	// Add to file-map, and create a BCF instance
+	VCFZ * vcfz = g.fIndex.add_VCFZ( t[f] );
+	
+	// Open VCFZ via BGZF interface	    
+	vcfz->set_vardb( &g.vardb );
+	
+	// Read header (uses standard plainext/GZIP reader, then closes)
+	vcfz->read_header( m );
+
+	// Re-open using BGZF interface
+	vcfz->reading();
+	vcfz->open();
+		
+	// Iterate through file, adding index	    	    
+	g.vardb.begin();
+		
+	uint64_t inserted = 0;
+	while ( vcfz->index_record() )
+	  {
+	    if ( ++inserted % 1000 == 0 )
+	      plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	  }
+	plog.counter("\n");
+	
+	plog << "inserted " << inserted << " variants from compressed VCF; now finishing index...\n";
+	
+	g.vardb.commit();
+	vcfz->close();
+	
+	// and calculate summary Ns
+	int2 niv = g.vardb.make_summary( t[f] );
+	
+      }
+    
+    g.vardb.index();
+    
+    Pseq::finished();
+  }
+  
 
 
     //

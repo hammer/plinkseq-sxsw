@@ -944,3 +944,7 @@ void VCFReader::set_fixxy( Mask * m , LocDBase * p , IndDBase * pi )
   fixxy_mode = true;
 }
 
+VCFReader::~VCFReader()
+{
+  if ( file.is_open() ) file.close();
+}
