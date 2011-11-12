@@ -11,12 +11,17 @@ psb.cpp \
 psb.h \
 cgi.h
 
-pbrowse_cgi_LDADD = ../lib/libplinkseq.la
+pbrowse_cgi_LDADD = ../lib/libplinkseq.la -ldl -lpthread
 
 pbrowse_cgi_CPPFLAGS = -I../lib
 
+if WITH_PROTOBUF
+pbrowse_cgi_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
+endif
+
+
 mongoose_CPPFLAGS = 
 
-mongoose_LDFLAGS = 
+mongoose_LDFLAGS = -ldl -lpthread
 
 ACLOCAL_AMFLAGS = -I m4

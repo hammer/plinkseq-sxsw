@@ -37,6 +37,24 @@ statically linked pseq binary. Will not work on some platforms, most notably Mac
 )
 AM_CONDITIONAL([STATIC], [test x$static = xtrue])
 
+#
+# Protobuf dependency
+#
+
+# did user specify --with-protobuf? propagate to automake if she did.
+AC_ARG_WITH([protobuf],
+        [AS_HELP_STRING(
+                [--with-protobuf=/path/to/protobuf],
+                [Specify path to protobuf]
+                )],
+        [AC_SUBST([PROTOBUF_PREFIX], [${withval}])],
+        [protobuf=false]
+)
+
+# set WITH_PROTOBUF variable so the Makefile knows whether protobuf was specified on command line
+AM_CONDITIONAL([WITH_PROTOBUF], [test "x$protobuf" != xfalse])
+
+
 # Checks for header files.
 # TODO: need to run autoscan and fill this out
 
