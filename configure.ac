@@ -34,19 +34,48 @@ statically linked pseq binary. Will not work on some platforms, most notably Mac
 )
 AM_CONDITIONAL([STATIC], [test x$static = xtrue])
 
+#
+# Protobuf dependency
+#
+
+# did user specify --with-protobuf? propagate to automake if she did. 
 AC_ARG_WITH([protobuf],
         [AS_HELP_STRING(
-		[--with-protobuf=/path/to/protobuf],
-		[Specify path to protobuf]
-		)],
+                [--with-protobuf=/path/to/protobuf],
+                [Specify path to protobuf]
+                )],
         [AC_SUBST([PROTOBUF_PREFIX], [${withval}])],
         [protobuf=false]
 )
+
+# set WITH_PROTOBUF variable so the Makefile knows whether protobuf was specified on command line
 AM_CONDITIONAL([WITH_PROTOBUF], [test "x$protobuf" != xfalse])
 
-# note that util is not a subdir, it is part of the root build
-AC_CONFIG_SUBDIRS([lib client browser])
-AC_CONFIG_FILES([Makefile])
+# if --with-protobuf wasn't given, try to build with machine installation of protobuf
+AS_IF(
+[test "x$protobuf" = "xfalse"],
+AC_CHECK_LIB(protobuf, main, 
+[AC_SUBST([HAVE_LIBPROTOBUF], [1])],
+[AC_MSG_ERROR([[
+
+Cannot find protobuf, which is required to build PLINK/SEQ. 
+Please install protobuf (2.4.1) on your system. 
+If you do not have root access, you can install protobuf to 
+a local directory and link to it with:
+
+     ./configure --with-protobuf=/path/to/protobuf/prefix
+
+]])
+])
+)
+
+AC_CONFIG_FILES([
+Makefile 
+lib/Makefile 
+client/Makefile 
+browser/Makefile 
+browser/pbrowse
+])
 
 # Checks for programs.
 AC_PROG_CXX

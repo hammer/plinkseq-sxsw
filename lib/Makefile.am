@@ -118,8 +118,10 @@ libplinkseq_la_LIBADD =
 
 if WITH_PROTOBUF
 libplinkseq_la_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
-libplinkseq_la_LIBADD += -L$(PROTOBUF_PREFIX)/lib -lprotobuf
+libplinkseq_la_LIBADD += -L$(PROTOBUF_PREFIX)/lib
 endif
+
+libplinkseq_la_LIBADD += -lprotobuf
 
 ACLOCAL_AMFLAGS = -I m4
 
