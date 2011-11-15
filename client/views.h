@@ -45,33 +45,49 @@ void f_extra_qc_metrics( Variant & , void * p);
 
 void f_simple_counts( Variant & , void * p );
 
-struct XQCstats {
-  
-  XQCstats() 
-  {
-    curr_chr = -1;
-    em_stats = false;
-  }
-
-  int curr_chr;
-  bool em_stats; // do extra EM-based stats (entropy, etc)
-  
-  template<class T> void add( const int2 & pos , const T & t , int k )
-  {
-    std::stringstream ss;
-    ss << t;
-    data[pos].push_back( ss.str() );
-    datak[pos].push_back( k );
-  }
-
-  std::map<int2,std::vector<std::string> > data;
-  std::map<int2,std::vector<int> > datak;
-  std::map<int2,std::set<int> > neighbours;
-  
-  std::map<int2,std::set<int> >::iterator flush( std::map<int2,std::set<int> >::iterator n );    
-  void flush();
-
+struct XQC_varid { 
+    XQC_varid( const Variant & v ) 
+	: chr(v.chromosome()), bp1(v.position()), alt(v.alternate()) { } 
+    int chr;
+    int bp1;
+    std::string alt;
+    bool operator<( const XQC_varid & rhs ) const {
+	if ( chr < rhs.chr ) return true;
+	if ( chr > rhs.chr ) return false;
+	if ( bp1 < rhs.bp1 ) return true;
+	if ( bp1 > rhs.bp1 ) return false;
+	return  alt < rhs.alt;
+    }    
 };
+
+struct XQCstats {
+    
+    XQCstats() 
+	{
+	    curr_chr = -1;
+	    em_stats = false;
+	}
+    
+    int curr_chr;
+    bool em_stats; // do extra EM-based stats (entropy, etc)
+    
+    template<class T> void add( const XQC_varid & pos , const T & t , int k )
+	{
+	    std::stringstream ss;
+	    ss << t;
+	    data[pos].push_back( ss.str() );
+	    datak[pos].push_back( k );
+	}
+
+    std::map<XQC_varid,std::vector<std::string> > data;
+    std::map<XQC_varid,std::vector<int> > datak;
+    std::map<XQC_varid,std::set<int> > neighbours;
+    
+    std::map<XQC_varid,std::set<int> >::iterator flush( std::map<XQC_varid,std::set<int> >::iterator n );    
+    void flush();
+    
+};
+
 
 struct OptSimpleCounts
 {

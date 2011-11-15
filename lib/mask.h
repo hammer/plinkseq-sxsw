@@ -27,22 +27,16 @@ struct mask_command_t
   : name(n) , name_order(no) , group(g), group_order(go) , argtype(a) , desc(d) , hidden(h) 
   { } 
   
-  std::string name;
-  std::string group;
-  int group_order;
-  int name_order;
-  std::string desc;
-  std::string argtype;
-  bool hidden;
+    std::string name;
+    std::string group;
+    int group_order;
+    int name_order;
+    std::string desc;
+    std::string argtype;
+    bool hidden;
   
-  bool operator<( const mask_command_t & rhs ) const 
-  { 
-    if ( group == "" || rhs.group == "" ) 
-      return name_order < rhs.name_order;       
-    if ( group_order < rhs.group_order ) return true;
-    if ( group_order > rhs.group_order ) return false;    
-    return name_order < rhs.name_order;       
-  }
+    bool operator<( const mask_command_t & rhs ) const ;
+
 };
 
 
@@ -663,6 +657,30 @@ class Mask {
   bool assuming_null_is_reference() const
   { return assume_missing_is_ref; } 
   
+
+  //
+  // Treatment of REF '0' allele when merging variants -- should '0' indicate only the absence of ALT?
+  // i.e. and so might not be inconsistent with another SampleVariant containing a 'contradictory' ALT
+
+  //  e.g. if person really C/G genotype, but represented as follows: 
+
+  //          REF   ALT   P0001
+  //            A     C     0/1
+  //            A     G     1/1
+  
+  // OR, more likely, a combination of an indel and SNP
+  
+  //   true genotype C/AA
+  //          REF    ALT   P0001
+  //            A    C     0/1
+  //            A    AA    0/1
+  
+  //  This is handled in make_consensus() function in variant.cpp
+  //  Make this phase/phase-set aware too
+
+  void soft_reference_calls( const bool b ) { soft_ref = b; }
+  bool soft_reference_calls() const { return soft_ref; } 
+
   
   //
   // X chromosome encoding
@@ -680,9 +698,9 @@ class Mask {
   // Variant merging and allele-downcoding
   //
   
-  bool exact_merge() const { return exact_vmerge; } 
-  void exact_merge( const bool b ) { exact_vmerge = b; }
-
+  merge_mode_t mergemode() const { return merge_mode; } 
+  void mergemode( const merge_mode_t m ) { merge_mode = m; }
+ 
   downcode_mode_t downcode() const { return downcode_mode; } 
   void downcode( const downcode_mode_t d ) { downcode_mode = d; } 
 
@@ -939,9 +957,9 @@ class Mask {
 
       // variant/allele merging/splitting
 
-      exact_vmerge = true;
+      merge_mode = MERGE_MODE_EXACT;
       downcode_mode = DOWNCODE_MODE_ALL_ALT;
-      
+            
       // EM caller
       
       use_em = false;
@@ -1322,6 +1340,7 @@ class Mask {
 	req_segs.clear();
 	ex_segs.clear();
 	assume_missing_is_ref = false;
+	soft_ref = false;
 	genotype_model = GENOTYPE_MODEL_ALLELIC;
 	fixxy_mode = false;
 	mac_filter = false;	
@@ -1344,6 +1363,8 @@ class Mask {
 	fail_on_sample_variant_allow = -1; // allow inf.
 	fail_on_sample_variant_require = -1; // no req.
 	use_em = false;
+	merge_mode = MERGE_MODE_EXACT;
+	downcode_mode = DOWNCODE_MODE_ALL_ALT;
 	em_threshold = 0;
 	will_attach_meta = false;
 	will_attach_all_meta = false;
@@ -1377,8 +1398,7 @@ class Mask {
     void searchDB();
     
     static std::set<mask_command_t> known_commands; // mask commands
-    static std::set<std::string> known_commands_str; // simple str duplicate
-           
+
     bool group_mode;  // will the mask be used in a group-iteration context?
     bool group_region;
 
@@ -1644,9 +1664,10 @@ class Mask {
     // VarDB functions
     //
 
-    bool              exact_vmerge;
+    merge_mode_t      merge_mode;
     downcode_mode_t   downcode_mode;
     bool              assume_missing_is_ref;
+    bool              soft_ref;
 
     genotype_model_t                 genotype_model;
     bool                             fixxy_mode;

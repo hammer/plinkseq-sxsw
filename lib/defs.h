@@ -136,6 +136,11 @@ enum downcode_mode_t {
   DOWNCODE_MODE_EACH_ALT
 }; 
 
+enum merge_mode_t { 
+    MERGE_MODE_NONE,       // never merge if different ALT alleles
+    MERGE_MODE_EXACT,      // default; merge only if ALT (and REF) have similar sizes
+    MERGE_MODE_ANY_OVERLAP // try to merge any overlapping variants
+};
   
 enum fType { INVALID,
 	     UNKNOWN,

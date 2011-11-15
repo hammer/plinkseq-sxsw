@@ -301,15 +301,15 @@ bool FileMap::readFileIndex( const std::string & f )
 
 void FileMap::reset()
 { 
-  std::map<std::string,File*>::iterator i = fmap.begin();
-  while ( i != fmap.end() )
+    std::map<std::string,File*>::iterator i = fmap.begin();
+    while ( i != fmap.end() )
     {
-      if ( i->second )
-	delete i->second;
-      ++i;
+	if ( i->second ) delete i->second;
+	i->second = NULL;
+	++i;
     }
-  fmap.clear();
-  special_files.clear();
+    fmap.clear();
+    special_files.clear();
 }
 
 

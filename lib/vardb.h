@@ -32,8 +32,9 @@ class VarDBase {
     // only combine SampleVariants into a single Variant if they 
     // specify *exactly* the same underlying variation (i.e. not 
     // just overlapping)
+    
+    merge_mode = MERGE_MODE_EXACT;
 
-    exact_merge = false;
     
     //-------------------------------------------------------------
     // mutli-allelic downcoding 
@@ -306,8 +307,7 @@ class VarDBase {
   // misc options controlling how variants are fetched/merged
   // these are populated via the Mask
 
-  bool exact_merge;
-
+  merge_mode_t    merge_mode;
   downcode_mode_t downcode_mode;
 
 

@@ -12,6 +12,15 @@ using namespace Helper;
 
 extern GStore * GP;
 
+bool mask_command_t::operator<( const mask_command_t & rhs ) const
+{ 
+    if ( group_order < rhs.group_order ) return true;
+    if ( group_order > rhs.group_order ) return false;    
+    if ( name_order < rhs.name_order ) return true;
+    if ( name_order > rhs.name_order ) return false;
+    return name < rhs.name;
+}
+
 void Mask::searchDB()
 {
     // If we do not have explicitly-specified databases, try to attach
@@ -32,8 +41,8 @@ void mask_add( std::set<mask_command_t> & s ,
 	       const std::string & d , 
 	       bool h = false ) 
 {
-  s.insert( mask_command_t(n,nn,g,gn,a,d,h) );
-  
+    s.insert( mask_command_t(n,nn,g,gn,a,d,h) );
+    s.insert( mask_command_t(n) );
 }
 
 std::set<mask_command_t> populate_known_commands()
@@ -178,6 +187,8 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "geno.req" , "str-list" , "retain genotypes passing all meta-field criteria" ); 
   mask_add( s , g , c++ , gl , "null" , "int-range" , "include variants with number of null genotypes in [n-m]" ); 
   mask_add( s , g , c++ , gl , "assume-ref" , "flag" , "assume null/missing genotypes are reference" );
+  mask_add( s , g , c++ , gl , "soft-ref" , "flag" , "0/REF allele initially implies only absence of ALT" );
+  mask_add( s , g , c++ , gl , "hard-ref" , "flag" , "0/REF allele always implies presence of REF allele" );
   mask_add( s , g , c++ , gl , "fix-xy" , "str" , "fix X/Y genotypes when loading a VCF" );
   mask_add( s , g , c++ , gl , "genotype-model" , "str" , "set genotype scoring model" );
   mask_add( s , g , c++ , gl , "seg" , "str-list" , "include segment mask(s)" );
@@ -223,9 +234,13 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "em" , "float" , "apply GL/PL-based EM; keep genotypes with prob > n" );
   mask_add( s , g , c++ , gl , "empty.group" , "flag" , "in group-iteration, include groups with no variants" );
   mask_add( s , g , c++ , gl , "limit" , "int" , "limit iteration to first n results" );
+
   mask_add( s , g , c++ , gl , "downcode" , "flag" , "represent multi-allelic variants as k-1 biallelic variants" );
   mask_add( s , g , c++ , gl , "collapse" , "flag" , "represent multi-allelic variants as single biallelic variant" );
-  mask_add( s , g , c++ , gl , "overlap-merge" , "flag" , "combine overlapping variants" );
+  
+  mask_add( s , g , c++ , gl , "no-merge" , "flag" , "do not merge any sites at all" );
+  mask_add( s , g , c++ , gl , "exact-merge" , "flag" , "only merge variants with same REF/ALT alleles" );
+  mask_add( s , g , c++ , gl , "any-merge" , "flag" , "combine overlapping variants" );
   
   mask_add( s , g , c++ , gl , "ex-vcf" , "flag" , "name of external VCF" , true ); // hidden 
 
@@ -298,19 +313,19 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
 
   std::vector<std::string> keys = m.keys();
+
   for( int i=0; i<keys.size(); i++)
-    {
+  {	
       if ( known_commands.find( mask_command_t( keys[i] ) ) == known_commands.end() )
-	{
-	  // is this a single region? 
+      {
+
+	  // If we can interpret this as a region, do so
 	  bool okay = false;
-	  Region r( keys[i] , okay );
-	  if ( !okay ) 
-	    Helper::halt("Mask option " + keys[i] + " not recognised.");
-	  else
-	    keys[i] = "reg=" + keys[i];
-	}
-    }
+	  Region r( keys[i] , okay );	  
+	  if ( !okay ) Helper::halt("Mask option '" + keys[i] + "' not recognised.");
+	  else keys[i] = "reg=" + keys[i];
+      }
+  }
   
   if ( m.has_field( "v-include" ) )
     {      
@@ -890,7 +905,17 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       assuming_null_is_reference( true );
     }
 
-  
+
+  if ( m.has_field( "soft-ref" ) )
+  {
+      soft_reference_calls( true );
+  }
+  else if ( m.has_field( "hard-ref" ) )
+  {
+      soft_reference_calls( false );
+  }
+
+
   if ( m.has_field( "fix-xy" ) )
     {
       if ( ! locdb ) 
@@ -972,17 +997,19 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     }
   
   if ( m.has_field( "downcode" ) )
-    downcode( DOWNCODE_MODE_EACH_ALT );
+      downcode( DOWNCODE_MODE_EACH_ALT );
   else if ( m.has_field( "collapse" ) )
-    downcode( DOWNCODE_MODE_ALL_ALT );
-  else downcode( DOWNCODE_MODE_NONE );
+      downcode( DOWNCODE_MODE_ALL_ALT );
+  else 
+      downcode( DOWNCODE_MODE_NONE );
+  
+  if ( m.has_field( "no-merge" ) )
+      mergemode( MERGE_MODE_NONE );
+  else if ( m.has_field( "any-merge" ) )
+      mergemode( MERGE_MODE_ANY_OVERLAP );
+  else if ( m.has_field( "exact-merge" ) )
+      mergemode( MERGE_MODE_EXACT );
 
-  
-  if ( m.has_field( "overlap-merge" ) )
-    exact_merge( false ) ;
-  else
-    exact_merge( true );
-  
   if ( m.has_field( "null" ) )
     {
       null_filter( m.get1_string( "null" ) );

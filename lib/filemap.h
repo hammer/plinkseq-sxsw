@@ -182,10 +182,11 @@ class FileMap {
   ~FileMap()
     {
 
-	std::map<fType,File*>::const_iterator f = special_files.begin();
+	std::map<fType,File*>::iterator f = special_files.begin();
 	while ( f != special_files.end() )
 	{
 	    if ( f->second ) delete f->second;
+	    f->second = NULL;
 	    ++f;
 	}
 
@@ -193,6 +194,7 @@ class FileMap {
 	while ( ff != fmap.end() )
 	{
 	    if ( ff->second ) delete ff->second;
+	    ff->second = NULL;
 	    ++ff;
 	}
 
@@ -200,6 +202,7 @@ class FileMap {
 	while ( i != bcf_map.end() )
 	{
 	    if ( i->second ) delete i->second;
+	    i->second = NULL;
 	    ++i;
 	}
 	
@@ -207,6 +210,7 @@ class FileMap {
 	while ( j != vcfz_map.end() )
 	{
 	    if ( j->second ) delete j->second; 
+	    j->second = NULL;
 	    ++j;
 	}
 

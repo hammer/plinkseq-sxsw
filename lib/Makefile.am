@@ -117,7 +117,7 @@ libplinkseq_la_CPPFLAGS =
 libplinkseq_la_LIBADD = 
 
 if WITH_PROTOBUF
-libplinkseq_la_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
+libplinkseq_la_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include 
 libplinkseq_la_LIBADD += -L$(PROTOBUF_PREFIX)/lib -lprotobuf
 endif
 

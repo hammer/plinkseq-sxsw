@@ -360,7 +360,9 @@ class SampleVariant {
   bool decode_BLOB( Variant * , IndividualMap * , Mask * );
   
   bool decode_BLOB_basic( SampleVariant * target );
-  
+
+  void decode_BLOB_alleles();
+ 
   bool decode_BLOB_vmeta( Mask * mask ,             // for filters
 			  Variant * parent        , // for pop/static meta-info
 			  SampleVariant * target ); // for straight-to-consensus

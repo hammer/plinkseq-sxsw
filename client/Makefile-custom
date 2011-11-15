@@ -2,10 +2,7 @@
 CXX = g++
 CXXFLAGS = -O2 -fno-common
 
-LFLAGS += -Wl,-rpath=/psych/genetics/shaun/pseq/lib 
-LFLAGS += -Wl,-rpath=/psych/genetics/pseq/share/lib
-
-OUTPUT = pseq-dev
+OUTPUT = pseq
 
 PLINKSEQ = ../lib
 
@@ -25,6 +22,7 @@ LIBDIR = -L../share/lib -L$(PLINKSEQ)
 
 LIB  = -lplinkseq 
 LIB += -lprotobuf
+LIB += -lsqlite3
 LIB += -lz
 LIB += -lpthread
 LIB += -ldl

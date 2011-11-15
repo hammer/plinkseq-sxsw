@@ -761,18 +761,24 @@ bool Variant::simple_snp() const
 
 bool Variant::transition() const
 {
-  if ( ! simple_snp() ) return false;
-  return (    ( consensus.alt == "A" && consensus.ref == "G" )  
-	   || ( consensus.alt == "G" && consensus.ref == "A" ) 
-	   || ( consensus.alt == "C" && consensus.ref == "T" )  
-	   || ( consensus.alt == "T" && consensus.ref == "C" ) );
-
+    if ( ! simple_snp() ) return false;
+    return (    ( consensus.alt == "A" && consensus.ref == "G" )  
+		|| ( consensus.alt == "G" && consensus.ref == "A" ) 
+		|| ( consensus.alt == "C" && consensus.ref == "T" )  
+		|| ( consensus.alt == "T" && consensus.ref == "C" ) );
+    
 }
 
 bool Variant::transversion() const
 {
   if ( ! simple_snp() ) return false;
-  return ! transition();
+  if ( consensus.alt == "A" && ( consensus.ref == "C" || consensus.ref == "T" ) ) return true;
+  if ( consensus.alt == "C" && ( consensus.ref == "A" || consensus.ref == "G" ) ) return true;
+  if ( consensus.alt == "G" && ( consensus.ref == "C" || consensus.ref == "T" ) ) return true;
+  if ( consensus.alt == "T" && ( consensus.ref == "A" || consensus.ref == "G" ) ) return true;
+
+  // this means if we have complex, collapsed variants, we get ti == tv == false, i.e. not defined  
+  return false;  
 }
 
 bool Variant::simple_ins() const

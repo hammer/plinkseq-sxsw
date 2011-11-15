@@ -528,6 +528,18 @@ bool SampleVariant::decode_BLOB_basic( SampleVariant * svar )
 
 
 
+void SampleVariant::decode_BLOB_alleles()
+{ 
+
+    // this function sometimes called when deciding to merge two SampleVariants into one Variant
+    // (i.e. based on MERGE rules).  Thus we may need to peek at the REF and ALT prior to the 
+    // decode_BLOB_basic() being called.
+    
+    if ( bcf || vcf_direct ) return; 
+    alt = var_buf.alt();
+    ref = var_buf.ref();
+}
+
 bool SampleVariant::decode_BLOB_vmeta( Mask * mask, Variant * parent , SampleVariant * sample )
 {    
 
@@ -1597,20 +1609,23 @@ void SampleVariant::recall( Genotype & g , SampleVariant * p )
 {
 
   std::string str1 = p->alleles[ g.acode1() ].name();
-
+  
   int a0 = 0;
-
+  
   for ( int a=0; a<alleles.size(); a++)
     {
       if ( alleles[a].name() == str1 ) 
-	{
-	  g.genotype( a );
+      {
+	  if ( g.haploid() ) 
+	  {
+	      g.genotype( a );
+	      return;
+	  }
 	  a0 = a;
 	  break;
-	}
+      }
     }
-
-  if ( g.haploid() ) return;
+  
 
   // Second swap allele
 
@@ -1634,31 +1649,31 @@ inline int SampleVariant::addIntGenMeta( int j , int f ,
 					 const GenotypeMetaBuffer & v, 
 					 IndividualMap * align, 
 					 int k,   // meta-info slot
-					 int idx, // current counter 		     
+					 int idx, // current counter 
 					 int l ) // length arg 
 {
-
-  if ( align )
+    
+    if ( align )
     {
-      j = align->sample_remapping( f , j);	  
-      if ( align->flat() ) j = align->get_slot( f , j );
+	j = align->sample_remapping( f , j);	  
+	if ( align->flat() ) j = align->get_slot( f , j );
     }      
-  
-  if( j == -1 ) return idx + l;     
-  
-  MetaInformation<GenMeta> & gmeta = calls.genotype( j ).meta ;
-  
-  if ( l == 1 ) 
-    gmeta.set( v.gmeta(k).name() , v.gmeta(k).int_value( idx++ ) );
-  else
+    
+    if( j == -1 ) return idx + l;     
+    
+    MetaInformation<GenMeta> & gmeta = calls.genotype( j ).meta ;
+    
+    if ( l == 1 ) 
+	gmeta.set( v.gmeta(k).name() , v.gmeta(k).int_value( idx++ ) );
+    else
     {
-      std::vector<int> t(l);
-      for ( int i = 0 ; i < l; i++) t[i] = v.gmeta(k).int_value( idx++ );
-      gmeta.set( v.gmeta(k).name() , t );
+	std::vector<int> t(l);
+	for ( int i = 0 ; i < l; i++) t[i] = v.gmeta(k).int_value( idx++ );
+	gmeta.set( v.gmeta(k).name() , t );
     }      
-  return idx;      
+    return idx;      
 }
-  
+
 
 
 inline int SampleVariant::addFloatGenMeta( int j , int f , 

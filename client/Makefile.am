@@ -44,7 +44,7 @@ pseq_CPPFLAGS = -I../lib
 pseq_LDFLAGS =
 
 if WITH_PROTOBUF
-pseq_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
+pseq_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include -lsqlite3
 endif
 
 if DEBUG

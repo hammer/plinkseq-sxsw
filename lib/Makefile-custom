@@ -5,27 +5,27 @@ CC = gcc
 CXXFLAGS = -O2 -shared -fPIC  -fno-common
 CFLAGS = -O2 -shared -fPIC -fno-common
 
-INC = -I/psych/genetics/pseq/share/include
+INC = -I.
 
 GSTORE = libplinkseq.so
 
-LIBHDR = sqlite3.h gstore.h variant.h svar.h genotype.h meta.h regions.h		\
+LIBHDR = gstore.h variant.h svar.h genotype.h meta.h regions.h		\
 filemap.h defs.h options.h helper.h zfstream.h vcf.h bcf.h sqlwrap.h	\
 locdb.h vardb.h segments.h varfunc.h variant.pb.h refdb.h seqdb.h	\
 annot.h inddb.h individual.h indmap.h phmap.h mask.h vgroup.h allele.h	\
 permute.h crandom.h iterrep.h em.h bed.h pp.h pp.pb.h eval.h token.h	\
-statistics.h matrix.h cdflib.h dcdflib.h ipmpar.h knetfile.h khash.h	\
-bgzf.h fisher.h glm.h netdb.h
+statistics.h matrix.h cdflib.h dcdflib.h ipmpar.h khash.h	\
+bgzf.h fisher.h glm.h netdb.h vcfz.h
 
-LIBSRC = gstore.cpp sqlite3.c globals.cpp variant.cpp svar.cpp genotype.cpp	\
+LIBSRC = gstore.cpp globals.cpp variant.cpp svar.cpp genotype.cpp	\
 meta.cpp regions.cpp filemap.cpp vcf.cpp bcf.cpp zfstream.cpp		\
 sqlwrap.cpp helper.cpp options.cpp locdb.cpp vardb.cpp segments.cpp	\
 varfunc.cpp variant.pb.cpp refdb.cpp seqdb.cpp annot.cpp inddb.cpp	\
 mask.cpp reffuncs.cpp vgroup.cpp allele.cpp individual.cpp indmap.cpp	\
 phmap.cpp permute.cpp crandom.cpp defs.cpp em.cpp bed.cpp varmeta.cpp	\
 pp.cpp pp.pb.cpp eval.cpp token.cpp statistics.cpp dcdflib.cpp		\
-bgzf.cpp knetfile.cpp fisher.cpp glm.cpp matrix.cpp iterate.cpp		\
-vcfiterate.cpp netdb.cpp
+bgzf.cpp fisher.cpp glm.cpp matrix.cpp iterate.cpp		\
+vcfiterate.cpp netdb.cpp vcfz.cpp
 
 LIBOBJ0 = $(LIBSRC:.cpp=.o)
 LIBOBJ = $(LIBOBJ0:.c=.o)

@@ -49,6 +49,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 					   Mask & mask ) 
 {
 
+    
   //
   // Does everything look set up correctly?
   //
@@ -114,8 +115,9 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
   // and some other settings from the Mask: should overlapping
   // sample-variants be merged to make a single variant?
   
-  exact_merge = mask.exact_merge();
+  merge_mode = mask.mergemode();
   
+
   // downcode mode for multi-allelic markers
   
   downcode_mode = mask.downcode();
@@ -431,7 +433,6 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
     // are sure this is the variant.
     //
 
-// std::cout << "Q [" << query << "]\n";
  
 
     //
@@ -444,12 +445,14 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
       s0 = sql.prepare( "SELECT grp FROM tmp.grp" );
     
 
+
     //
     // Compile the core query
     //
 
     sqlite3_stmt * s = sql.prepare( query );
     
+
     
     //////////////////////////////////////////////////////////////////////////////////////
     
@@ -457,6 +460,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
     // Step through results of core query (s); if a group-based query
     // has been specified then wrap the core query within that (s0)
     //
+
 
     while ( 1 ) 
       {
@@ -493,25 +497,28 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	
 	// Track ID and position 
 
-	SampleVariant * sample;
+	SampleVariant * sample = NULL;
 	
 
 	//
 	// Read first row
 	//
-	
+
+
 	if ( sql.step(s) ) 
 	  {	
-
-	    sample = &(construct( var , s , &indmap ));
+	      
+	      sample = &(construct( var , s , &indmap ));
+	      
+	      sample->decode_BLOB_alleles();
 	    
-	    if ( mask.named_grouping () ) 
-	      var.meta.add( PLINKSeq::META_GROUP() , grp_name );
-
-	    addMetaFields( var , s, mask ); 
-	    expecting_new_variant = false;
-	    any_data = true;
-
+	      if ( mask.named_grouping () ) 
+		  var.meta.add( PLINKSeq::META_GROUP() , grp_name );
+	      
+	      addMetaFields( var , s, mask ); 
+	      expecting_new_variant = false;
+	      any_data = true;
+	      
 	  }
 	else 
 	  {
@@ -564,42 +571,96 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      
 	      // will always be ordered by start position, so test
 	      // whether the next variant starts after the current
-	      // set. then update the spane of the current variant
+	      // set. then update the span of the current variant
+	      
+	      // NOTE: we will need to come up with a strategy to handle very
+	      // large events (e.g. Mb CNVs) that will otherwise bring many
+	      // distinct variants into one mega-variant, which will typically
+	      // be unwieldy and not what is desired
+	      
+	      bool same_variant; 
+	      
 
-	      // NOTE: we will need to come up with a strategy to
-	      // handle very large events (e.g. Mb CNVs) that will
-	      // otherwise bring 100s of distinct variants into one
-	      // mega-variant, which will typically be unwieldy for
-	      // analysis obviously and not what is desired
+	      // ensure that we know the REF and ALT codes at this stage
 
-	      bool same_variant = exact_merge ? 
-		( nextrow.chromosome() == var.chromosome() && nextrow.position() == var.position() && nextrow.stop() == var.stop() ) :
-		( nextrow.chromosome() == var.chromosome() && nextrow.position() <= var.stop() ) ;
+	      next_sample.decode_BLOB_alleles();
+	      
+
+	      if ( merge_mode == MERGE_MODE_NONE ) 
+	      {
+		  
+                  // for allele codes, look at 
+		  
+// 		  std::cout << "nr " << nextrow.position() << " " << nextrow.reference() << " " << nextrow.alternate() << "\n";
+// 		  std::cout << "s  " << var.position() << " " << sample->reference() << " " << sample->alternate() << "\n";
+
+// 		  std::cout << "svS  " << sample->reference() << " " << sample->alternate() << "\n";
+// 		  std::cout << "svNS  " << next_sample.reference() << " " << next_sample.alternate() << "\n";
+
+		  // requires an exact match of REF and ALT
+		  same_variant = nextrow.chromosome() == var.chromosome() 
+		      && nextrow.position() == var.position() 
+		      && sample->reference() == nextrow.reference() 
+		      && sample->alternate() == nextrow.alternate() ;
+
+//		  std::cout << "same variant??? = " << same_variant << "\n";
+
+	      }
+	      else if ( merge_mode == MERGE_MODE_EXACT )
+	      {
+
+		  // here the REF and ALT alleles must all have the same size
+
+		  same_variant = nextrow.chromosome() == var.chromosome() 
+		      && nextrow.position() == var.position() 
+		      && nextrow.stop() == var.stop();
+		  
+//		  std::cout << "same var? = " << same_variant << "\n";
+		  
+		  if ( same_variant && var.alternate() != nextrow.alternate() )		      
+		  {
+		      // also check that the ALT alleles have a similar size
+		      std::set<int> sz;		      
+		      std::vector<std::string> a1 = Helper::char_split( sample->alternate() , ',' );
+		      std::vector<std::string> a2 = Helper::char_split( nextrow.alternate() , ',' );
+		      for (int i=0;i<a1.size();i++) sz.insert( a1[i].size() );
+		      for (int i=0;i<a2.size();i++) sz.insert( a2[i].size() );
+		      if ( sz.size() != 1 ) same_variant = false; 							
+		  }
+		  
+	      }
+	      else // merge anything that overlaps (or attempt to)
+	      {
+		  same_variant = nextrow.chromosome() == var.chromosome() && nextrow.position() <= var.stop();
+	      }
+	      
+	      
+		  
 	      
 	      if ( same_variant )
 		{
 		  
-		  // if allowing non-exact matches, update spans and keep track of
-		  // individual SV base positions
+		    // if allowing non-exact matches, update spans and keep track of
+		    // individual SV base positions
 		  
-		  if ( ! exact_merge ) 
+		    if ( merge_mode == MERGE_MODE_ANY_OVERLAP )
 		    {
-
-		      if ( nextrow.stop() > var.stop() ) 
-			var.stop( nextrow.stop() );
-		      
-		      // also, ensure that all allele codes start from the same position
-		      
-		      next_sample.offset = nextrow.position() - var.position();
- 		      
+			
+			if ( nextrow.stop() > var.stop() ) 
+			    var.stop( nextrow.stop() );
+			
+			// also, ensure that all allele codes start from the same position
+			
+			next_sample.offset = nextrow.position() - var.position();
+			
 		    }
-		  
-
-		  // track what the latest SampleVariant is in 'sample'
-		  
-		  sample = &(var.add( next_sample ));
-
-		  continue;
+		    
+		    
+		    // track what the latest SampleVariant is in 'sample'
+		    
+		    sample = &(var.add( next_sample ));
+		    
+		    continue;
 		}
 	      
 	      
@@ -1289,7 +1350,7 @@ void VarDBase::build_temporary_db( Mask & mask )
 	      sql.bind_int( stmt_tmp_insert, ":bp2" , bp2 ); 
 	      sql.bind_int( stmt_tmp_insert, ":grp" , *i );
 	      sql.bind_text( stmt_tmp_insert, ":name" , n ); 
-	      
+	    
 	      sql.step( stmt_tmp_insert );
 	      sql.reset( stmt_tmp_insert );
 	      

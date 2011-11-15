@@ -110,10 +110,10 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   shortform( "--weight" , "--weights" );
   
   if ( n == 2 && std::string(argv[1]) == "--help"  )
-    {
+  {
       std::cout << desc() << "\n";
       exit(0);
-    }
+  }
   
   // arg 0 is filename
   // position 1 should be project
@@ -238,7 +238,9 @@ double Pseq::Util::ArgMap::as_float( const std::string & a ) const
 
 std::string Pseq::Util::ArgMap::desc() const 
 {
-  return "usage: pseq {project-file} {command} {--options}\n";
+    return "usage: pseq {project-file} {command} {--options}\n";
+    
+    
 }
 
 

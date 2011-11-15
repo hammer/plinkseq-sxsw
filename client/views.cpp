@@ -330,7 +330,7 @@ void f_view_matrix( Variant & v , void * p )
 	if ( v(i).null() ) 
 	    plog << "\tNA";
 	else
-	    plog << "\t[" << v(i).score() << "]";
+	    plog << "\t" << v(i).score();
     }
   plog << "\n";
   
@@ -554,66 +554,66 @@ void f_view_gene_meta_matrix( VariantGroup & vars , void * p )
 }
 
 
-std::map<int2,std::set<int> >::iterator XQCstats::flush( std::map<int2,std::set<int> >::iterator n )
+std::map<XQC_varid,std::set<int> >::iterator XQCstats::flush( std::map<XQC_varid,std::set<int> >::iterator n )
 {
   
-  int2 pos = n->first;
-  std::vector<std::string> & d = data[pos];
-  std::vector<int> & k = datak[pos];
-  
-  if ( d.size() > 0 )
+    XQC_varid pos = n->first;
+    std::vector<std::string> & d = data[pos];
+    std::vector<int> & k = datak[pos];
+    
+    if ( d.size() > 0 )
     {
-
-      plog.data_group( d[0] );
-      for (int i=1; i<d.size(); i++)
-	plog.data( d[i] , k[i]);      
-
-      plog.data( neighbours[ pos ].size() ); 
-      
-      // end of data for this variant
-      plog.print_data_group();    
+	
+	plog.data_group( d[0] );
+	for (int i=1; i<d.size(); i++)
+	    plog.data( d[i] , k[i]);      
+	
+	plog.data( neighbours[ pos ].size() ); 
+	
+	// end of data for this variant
+	plog.print_data_group();    
     }
-  
-  data.erase( data.find( pos ) );
-  datak.erase( datak.find( pos ) );
-  
-  neighbours.erase( n++ );
-  return n;
+    
+    data.erase( data.find( pos ) );
+    datak.erase( datak.find( pos ) );
+    
+    neighbours.erase( n++ );
+    return n;
 } 
 
 
 void XQCstats::flush() 
 {
-
-  std::map<int2, std::vector<std::string> >::iterator i = data.begin();
-  while ( i != data.end() )
+    
+    std::map<XQC_varid, std::vector<std::string> >::iterator i = data.begin();
+    while ( i != data.end() )
     {	
-      std::vector<std::string> & d = i->second;
-      std::vector<int> & k = datak[ i->first ];
-
-      plog.data_group( d[0] );
-      for (int j=1; j<d.size(); j++)
-	plog.data( d[j] , k[j]);
-      
-      plog.data( neighbours[ i->first ].size() , 0 );
-      
-      plog.print_data_group();
-
-      ++i;
+	std::vector<std::string> & d = i->second;
+	std::vector<int> & k = datak[ i->first ];
+	
+	plog.data_group( d[0] );
+	for (int j=1; j<d.size(); j++)
+	    plog.data( d[j] , k[j]);
+	
+	plog.data( neighbours[ i->first ].size() , 0 );
+	
+	plog.print_data_group();
+	
+	++i;
     }
-  data.clear();
-  datak.clear();
-  neighbours.clear();
+    data.clear();
+    datak.clear();
+    neighbours.clear();
 }
 
 
 
 void f_extra_qc_metrics( Variant & var , void * p )
 {
-
+    
   XQCstats * x = (XQCstats*)p;
   
-  int2 pos = int2( var.chromosome() , var.position() );
+  XQC_varid pos = XQC_varid( var );
   
   x->add( pos , var , 0 ); // first entry will be data_group()
   x->add( pos , var.chromosome() , 0 );
@@ -713,11 +713,11 @@ void f_extra_qc_metrics( Variant & var , void * p )
       // then add
       //
       
-      std::map<int2,std::set<int> >::iterator n = x->neighbours.begin();
+      std::map<XQC_varid,std::set<int> >::iterator n = x->neighbours.begin();
       while ( n != x->neighbours.end() ) 
 	{
 	  
-	  if ( abs( var.position() - n->first.p2 ) <= 100 ) 
+	  if ( abs( var.position() - n->first.bp1 ) <= 100 ) 
 	    {
 	      n->second.insert( var.position() );
 	      ++n;
