@@ -11,7 +11,7 @@ psb.cpp \
 psb.h \
 cgi.h
 
-pbrowse_cgi_LDADD = ../lib/libplinkseq.la -ldl -lpthread
+pbrowse_cgi_LDADD = ../lib/libplinkseq.la -ldl -lpthread -lz
 
 pbrowse_cgi_CPPFLAGS = -I../lib
 

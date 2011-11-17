@@ -114,7 +114,7 @@ sqlite3.c
 # right now, --with-debug and --with-static don't change anything here
 
 libplinkseq_la_CPPFLAGS = 
-libplinkseq_la_LIBADD = 
+libplinkseq_la_LIBADD = -lz
 
 if WITH_PROTOBUF
 libplinkseq_la_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include 
