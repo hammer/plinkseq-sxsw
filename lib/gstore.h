@@ -194,10 +194,7 @@ class GStore {
   void vardb_load_variant_information(std::string filename);
   void vardb_iterate( void (*)(Variant&, void *) , void * data = NULL );
   void vardb_giterate( void (*)(std::vector<Variant>&, void *) , int grp_id , void * data = NULL );
-  void vardb_consolidate( const std::string & name , Mask & mask );
 
-  void vardb_make_set(const std::string &, const std::string &);
-  
       
 
   // Return a variant given it's index

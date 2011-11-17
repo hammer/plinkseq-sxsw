@@ -2000,8 +2000,8 @@ SEXP Rdirect_load_vcf( SEXP rfilename , SEXP m , SEXP retn )
 
 SEXP Rvardb_make_set(SEXP id, SEXP name)
 {
-  std::string grp = CHAR(STRING_ELT(id, 0));
-  gp->vardb_make_set( grp , CHAR(STRING_ELT(name, 0)) );    
+//   std::string grp = CHAR(STRING_ELT(id, 0));
+//   gp->vardb_make_set( grp , CHAR(STRING_ELT(name, 0)) );    
   return(R_NilValue);  
 }
 
