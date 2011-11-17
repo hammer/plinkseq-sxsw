@@ -20,7 +20,7 @@ using namespace std;
 GStore g;
 Pseq::Util::Options options;
 std::string PSEQ_VERSION = "0.08";
-std::string PSEQ_DATE    = "2-Nov-2011";
+std::string PSEQ_DATE    = "14-Nov-2011";
 
 int main(int argc, char ** argv)
 {
@@ -934,15 +934,17 @@ int main(int argc, char ** argv)
 	std::vector<std::string> grp = args.as_string_vector( "group" );
 	if ( grp.size() != 1 )
 	  Helper::halt("more than 1 group specified");
-	
+
+	bool remove_unmerged = ! options.key( "keep-unmerged" );
+
 	if ( Helper::ends_with( s[0] , ".gtf" ) || Helper::ends_with( s[0] , ".gtf.gz" ) )
 	  {
-	    // Load GTF, merge transcripts, remove tmp group
-	    const std::string realgrp = grp[0];
-	    const std::string tmpgrp = grp[0] + "-tmpXYZ";	    
-	    Pseq::LocDB::load_GTF( s[0], tmpgrp , true );
-	    Pseq::LocDB::merge( tmpgrp , realgrp , true );
-	    g.locdb.flush( tmpgrp );
+	      // Load GTF, merge transcripts, remove tmp group
+	      const std::string realgrp = grp[0];
+	      const std::string tmpgrp = grp[0] + "-unmerged";
+	      Pseq::LocDB::load_GTF( s[0], tmpgrp , true );
+	      Pseq::LocDB::merge( tmpgrp , realgrp , true );
+	      if ( remove_unmerged ) g.locdb.flush( tmpgrp );
 	  }
 	else if ( Helper::ends_with( s[0] , ".reg" ) || Helper::ends_with( s[0] , ".reg.gz" ) )
 	  Pseq::LocDB::load_generic_regions( s[0], grp[0] , options , true );

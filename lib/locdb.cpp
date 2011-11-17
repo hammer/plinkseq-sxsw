@@ -263,10 +263,13 @@ bool LocDBase::init()
       sql.prepare("SELECT name FROM loci WHERE group_id == :group_id AND altname == UPPER(:altname) ; " );
 
     stmt_loc_replace_real_name = 
-      sql.prepare("UPDATE OR IGNORE loci SET altname = :altname WHERE group_id == :group_id AND name == :name ; " );
+	sql.prepare("UPDATE OR IGNORE loci SET altname = :altname WHERE group_id == :group_id AND name == :name ; " );
 
-    stmt_loc_replace_real_name_alternate = 
-      sql.prepare("UPDATE OR IGNORE loci SET altname = :altname WHERE group_id == :group_id AND altname == :altname ; " );
+     stmt_loc_replace_real_name_alternate = 
+ 	sql.prepare("UPDATE OR IGNORE loci SET altname = :newname WHERE group_id == :group_id AND altname == :oldname  ; " );
+
+//     stmt_loc_replace_real_name_alternate = 
+// 	sql.prepare("SELECT * FROM loci WHERE group_id == :group_id AND altname == :oldname ; " );
 
     stmt_loc_update_temp_status = 
       sql.prepare("INSERT OR REPLACE INTO groups ( group_id, temp ) "
@@ -2583,11 +2586,12 @@ uint64_t LocDBase::load_set(const std::string & filename,
 	  
 	  if ( use_altname ) 
 	    {
-	      sql.bind_text( stmt_loc_lookup_real_name , ":altname" , gene_name );
-	      sql.bind_int( stmt_loc_lookup_real_name , ":group_id" , sgroup_id ); 
-	      while ( sql.step( stmt_loc_lookup_real_name ) ) 
-		g_id.push_back( sql.get_int( stmt_loc_lookup_real_name , 0 ) );	      
-	      sql.reset( stmt_loc_lookup_real_name );
+		sql.bind_text( stmt_loc_lookup_real_name , ":altname" , gene_name );
+		sql.bind_int( stmt_loc_lookup_real_name , ":group_id" , sgroup_id ); 
+		while ( sql.step( stmt_loc_lookup_real_name ) ) 
+		    g_id.push_back( sql.get_int( stmt_loc_lookup_real_name , 0 ) );	      
+
+		sql.reset( stmt_loc_lookup_real_name );
 	    }
 	  else
 	    {
@@ -2683,11 +2687,17 @@ void LocDBase::replace_real_names( const int grp , const std::string & name , co
 {
   if ( search_alternate )
     {
-      sql.bind_int64( stmt_loc_replace_real_name_alternate , ":group_id" , grp );
-      sql.bind_text( stmt_loc_replace_real_name_alternate , ":altname" , name );
-      sql.bind_text( stmt_loc_replace_real_name_alternate , ":altname" , newname );
-      while ( sql.step( stmt_loc_replace_real_name_alternate ) ) { } 
-      sql.reset( stmt_loc_replace_real_name_alternate );  
+//	std::cout <<" search " << grp << " " << name << " " << newname << "\n";
+	
+	sql.bind_int64( stmt_loc_replace_real_name_alternate , ":group_id" , grp );
+	sql.bind_text( stmt_loc_replace_real_name_alternate , ":oldname" , name );
+	sql.bind_text( stmt_loc_replace_real_name_alternate , ":newname" , newname );
+
+	while ( sql.step( stmt_loc_replace_real_name_alternate ) ) 
+	{ 
+	    // std::cout << " done\t" << sql.get_text( stmt_loc_replace_real_name_alternate , 0 )  << "\n" ;
+	} 
+	sql.reset( stmt_loc_replace_real_name_alternate );  
     }
   else
     {

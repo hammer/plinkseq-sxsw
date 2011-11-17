@@ -567,7 +567,17 @@ class Mask {
   bool eval( SampleVariant & svar );
 
 
+  //
+  // Borders on locdb
+  //
 
+  int border_3prime() const { return loc_border_3p; }
+  void border_3prime(const int a) { loc_border_3p = a; }
+  
+  int border_5prime() const { return loc_border_5p; }
+  void border_5prime(const int a ) { loc_border_5p = a; }
+
+  
   //
   // Genotype masks
   //
@@ -1385,6 +1395,8 @@ class Mask {
 	alt_file_count = 0;
 	alt_file_max = 0;
 	alt_group_filter = false;
+	loc_border_3p = 0;
+	loc_border_5p = 0;
 
 	load_genotypes = true;
 	load_vmeta = true;
@@ -1612,6 +1624,14 @@ class Mask {
     std::map<std::string,double> req_meta_le;
 
     bool meta_mask;
+
+    
+    //
+    // Locus borders
+    //
+    
+    int loc_border_3p;
+    int loc_border_5p;
 
 
     //

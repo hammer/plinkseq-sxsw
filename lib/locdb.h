@@ -3,6 +3,7 @@
 
 #include "sqlwrap.h"
 #include "regions.h"
+#include "helper.h"
 
 #include <string>
 
@@ -15,6 +16,7 @@ class LocDBase {
       // sql.version();
       vget_meta = true;
       vget_subregions = true;
+      border_3prime = border_5prime = 0;
     }
   
   ~LocDBase()
@@ -199,7 +201,22 @@ class LocDBase {
    void clear_alias_groups();
    void read_alias_groups();
 
-      
+   //
+   // Border functions -- to automatically add upstream/downstream flanking regions (i.e. pull variants
+   // from a gene, +/- 20kb, or 50bp, etc)
+   //
+   
+   void border( const int a , const int b ) 
+       {
+	   border_3prime = a;
+	   border_5prime = b;
+       }
+       
+   int2 border() const
+       {
+	   return int2( border_3prime, border_5prime );
+       }
+   
 
    //
    // Output functions for client
@@ -426,6 +443,11 @@ class LocDBase {
   //
 
   Region construct_region(sqlite3_stmt*);
+  
+  // Internal variables
+
+  int border_5prime;
+  int border_3prime;
 
 };
 

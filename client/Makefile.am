@@ -41,10 +41,10 @@ extra.cpp
 pseq_LDADD = ../lib/libplinkseq.la
 
 pseq_CPPFLAGS = -I../lib
-pseq_LDFLAGS =
+pseq_LDFLAGS = -lz -ldl
 
 if WITH_PROTOBUF
-pseq_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include -lsqlite3
+pseq_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
 endif
 
 if DEBUG

@@ -2,7 +2,7 @@
 #include "defs.h"
 #include "meta.h"
 
-std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.07(21-Jun-2011)"; return s; }
+std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.08(14-Nov-2011)"; return s; }
 
 int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 3; return i; }
 

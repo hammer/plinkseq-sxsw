@@ -76,6 +76,7 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "loc.skip", "str-list" , "skipped loci" ); 
   mask_add( s , g , c++ , gl , "loc.ex", "str-list" , "excluded loci" ); 
   mask_add( s , g , c++ , gl , "loc.req", "str-list" , "required loci");
+  mask_add( s , g , c++ , gl , "loc.border" , "float-list" , "3' and 5' borders, bases" );
   mask_add( s , g , c++ , gl , "gene" , "str-list" , "included genes" );
   mask_add( s , g , c++ , gl , "loc.append" , "str-list" , "append meta-information from LOCDB groups" );
 
@@ -371,7 +372,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     }
   
   if ( m.has_field( "loc.ex" ) ) 
-    {
+  {
       std::vector<std::string> k = m.get_string( "loc.ex" );
       for (int i=0; i<k.size(); i++) exclude_loc(k[i]);
     }
@@ -381,6 +382,33 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       std::vector<std::string> k = m.get_string( "loc.req" );
       for (int i=0; i<k.size(); i++) require_loc(k[i]);
     }
+
+
+  if ( m.has_field( "loc.border" ) )
+  {
+      
+      // TODO...
+      Helper::halt( "loc.border not yet implemented" );
+//       std::vector<std::string> k = m.get_string( "loc.border" );
+//       if ( k.size() != 1 && k.size() != 2 ) Helper::halt( "expecting one or two values, e.g. loc.border=50,50" );
+//       int a, b;
+//       if ( k.size() == 2 ) 
+//       {
+// 	  if ( ! ( Helper::str2int( k[0], a ) || Helper::str2int( k[1], b ) ) )
+// 	      Helper::halt( "expecting two values, e.g. loc.border=50,50" );
+// 	  loc_border_3prime( a );
+// 	  loc_border_5prime( b );
+//       }
+//       else if ( k.size() == 1 ) 
+//       {
+// 	  if ( ! ( Helper::str2int( k[0], a ) ) )
+// 	      Helper::halt( "expecting one or two values, e.g. loc.border=50,50" );
+// 	  loc_border_3prime( a );
+// 	  loc_border_5prime( a );
+//       }
+
+  }
+
 
   if ( m.has_field( "seg" ) ) 
     {
