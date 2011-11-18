@@ -18,13 +18,15 @@
 using namespace std;
 
 GStore g;
+
 Pseq::Util::Options options;
+Pseq::Util::Commands pcomm;
+
 std::string PSEQ_VERSION = "0.08";
 std::string PSEQ_DATE    = "14-Nov-2011";
 
 int main(int argc, char ** argv)
 {
-
 
   //
   // Get command-line options into a sensible form
@@ -36,7 +38,7 @@ int main(int argc, char ** argv)
 
 
   // connect with GSEQ job tracking?
-
+  
   if ( args.has( "history" ) )
     {
       std::vector<std::string> tok = args.as_string_vector( "history" );
@@ -44,13 +46,13 @@ int main(int argc, char ** argv)
       g.gseq_tracking( tok[0] , tok[1] );
     }
 
+
   
   // known PSEQ commands, and descriptions
-
-  Pseq::Util::Commands pcomm;
+  
   pcomm.attach( &args );
   pcomm.attach( &options );
-
+  
   // command|group|description|VCF|GRP|ARG|OPT 
   
   // add groups
@@ -221,8 +223,14 @@ int main(int argc, char ** argv)
     
 	<< "simple-sim|misc|simple gene variant simulation|GRP";
     
+
+  //
+  // help message?
+  //
   
+  if ( args.help() ) exit(0);
   
+
   //
   // Reporting and logging options
   //

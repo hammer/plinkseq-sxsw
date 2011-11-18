@@ -336,7 +336,9 @@ namespace Pseq
 	
 	bool known( const std::string & ) const;
 
-	std::string desc() const;
+	bool help() const;
+
+	std::string desc( const std::string & ) const;
 
 	std::vector<std::string> as_string_vector( const std::string & a ) const;
 
@@ -386,6 +388,9 @@ namespace Pseq
 	
 	// attached args to commands
 	std::map<std::string,std::set<std::string> > comm2arg;
+	
+	bool needs_help;
+	std::string help_str;
 
 	std::string command_str;
 	std::string project_str;
@@ -447,7 +452,12 @@ namespace Pseq
 	    std::map<std::string,std::string>::const_iterator i = group_desc.find( group );
 	    return i == group_desc.end() ? "." : i->second;
 	  }
-	
+
+	bool has_group( const std::string & g ) 
+	{
+	  return group_desc.find( g ) != group_desc.end();
+	}
+
 	void new_group( const std::string & group , const std::string & desc )
 	{
 	  group_desc[ group ] = desc;
@@ -484,7 +494,7 @@ namespace Pseq
 	  {
 	    return known(c) ? comm_desc[c] : "?" ;
 	  }
-
+	
 	bool groups( const std::string & c ) 
 	{
 	  return comm_group_iteration.find(c) != comm_group_iteration.end();
@@ -534,7 +544,7 @@ namespace Pseq
 		  ++i;
 		}
 	    }
-
+	  
 	  // if a command (rather than a group) the list all args/opts
 	  
 	  if ( known(n) ) 
@@ -544,6 +554,70 @@ namespace Pseq
 	    }
 	  
 	}
+	
+
+	// simple list of command groups
+	
+	std::vector<std::string> groups() const 
+	  {
+	    std::vector<std::string> s;
+	    std::map<std::string,std::vector<std::string> >::const_iterator i = group_group.begin();
+	    while ( i != group_group.end() )
+	      {
+		s.push_back( i->first );
+		++i;
+	      }
+	    return s;
+	  }
+	
+
+	// given a group, give a list of commands
+	std::vector<std::string> commands( const std::string g ) const 
+	  {	    
+	    if ( comm_group.find( g ) != comm_group.end() )
+	      return comm_group.find( g )->second;
+	    std::vector<std::string> s;
+	    return s;
+	  }
+	
+	// given a command, give the description and options       
+	
+	std::string command_description( const std::string & c ) const 
+	  {
+
+	    std::stringstream ss;
+
+	    if ( known( c ) ) 
+	      {
+		
+
+		std::cout << c << "\t" << comm_desc.find( c )->second << "\n";
+
+		std::cout << "S1\n";
+
+		std::string sarg = pargs->attached( c );
+		std::vector<std::string> sarg1 = Helper::char_split( sarg , '\n' );
+		
+		for (int i = 0 ; i < sarg1.size() ; i++ ) 
+		  {
+		    std::vector<std::string> v = Helper::char_split( sarg1[i] , '\t' );		    
+		    if ( v.size() >= 4 ) std::cout << "\t--" << v[2] << " { " << v[3] << " }\n" ;		  
+		  }
+		
+		std::string sopt = popt->attached( c );
+		if ( sopt != "" ) 
+		  {
+		    std::vector<std::string> sopt1 = Helper::char_split( sopt , '\n' );
+		    for (int i = 0 ; i < sopt1.size() ; i++ ) 
+		      {
+			std::vector<std::string> v = Helper::char_split( sopt1[i] , '\t' );
+			if ( v.size() >= 4 ) std::cout << "\t--options " << v[2] << " { " << v[3] << " }\n" ;		  
+		      }
+		  }
+		std::cout << "S99\n";
+	      }
+	    return ss.str();
+	  }
 
 
       private:

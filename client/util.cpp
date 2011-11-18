@@ -2,6 +2,8 @@
 #include "helper.h"
 #include "func.h"
 
+extern Pseq::Util::Commands pcomm;
+
 enum Pseq::Util::ArgMap::type_t types;
 
 void Pseq::Util::ArgMap::shortform( const std::string & sht , const std::string & lng ) 
@@ -100,20 +102,32 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   shortform( "-f" , "--file" );
   shortform( "-g" , "--group" );
   shortform( "-p" , "--phenotype" );
-  shortform( "-h" , "--help" );
+  shortform( "-h" , "--help" );  
   shortform( "-n" , "--name" );
   shortform( "-w" , "--weights" );
+
+  shortform( "help" , "--help" );
 
   shortform( "--out" , "--output" );
   shortform( "--pheno" , "--phenotype" );
   shortform( "--phe" , "--phenotype" );
   shortform( "--weight" , "--weights" );
   
-  if ( n == 2 && std::string(argv[1]) == "--help"  )
-  {
-      std::cout << desc() << "\n";
-      exit(0);
-  }
+  
+  needs_help = n > 1 && ( std::string( argv[1] ) == "--help" 
+			  || std::string( argv[1] ) == "help" 
+			  || std::string( argv[1] ) == "-h" 
+			  || std::string( argv[1] ) == "masks" 
+			  || std::string( argv[1] ) == "mask" ) ;
+
+
+  if ( needs_help ) // will be called later
+    {      
+      if ( n == 2 ) help_str = std::string(argv[1]).substr(0,1) == "m" ? "mask" : "." ;
+      else if ( n > 2 ) help_str = argv[2];
+      return;
+    }
+
   
   // arg 0 is filename
   // position 1 should be project
@@ -236,11 +250,67 @@ double Pseq::Util::ArgMap::as_float( const std::string & a ) const
   return d;
 }
 
-std::string Pseq::Util::ArgMap::desc() const 
+bool Pseq::Util::ArgMap::help() const
 {
-    return "usage: pseq {project-file} {command} {--options}\n";
-    
-    
+  if ( ! needs_help ) return false;
+  std::cout << desc( help_str ) ;
+  return true;
+}
+
+
+std::string Pseq::Util::ArgMap::desc( const std::string & c ) const 
+{
+
+  std::stringstream ss;
+  
+  // --help         { list all commands } 
+  // --help v-view  { list all arguments for v-view }
+  // --help masks   { list all mask options }
+  
+
+  ss << "usage:\tpseq {project-file} {command} {--options}\n";
+  
+  if ( c == "." )
+    {
+      
+      std::vector<std::string> groups = pcomm.groups();
+
+      std::cout << "g = " << groups.size() << "\n";
+
+      for ( int g = 0 ; g < groups.size() ; g++ )
+	{	  
+	  ss << " --- " << groups[g] << " : " << pcomm.group_description( groups[g] ) << " ---\n";	  
+	  std::vector<std::string> cs = pcomm.commands( groups[g] );
+	  for (int c = 0 ; c < cs.size() ; c++)
+	    ss << pcomm.command_description( cs[c] );
+	  ss << "\n";
+	}
+      
+    }
+  else if ( pcomm.has_group( c ) )
+    {
+      std::cout << "has group + " << c << "\n";
+
+      std::cout << " --- " << c << " : " << pcomm.group_description( c ) << " ---\n";	  
+      std::vector<std::string> cs = pcomm.commands( c );
+std::cout << "cs.sie = " << cs.size() << "\n";
+      for (int c = 0 ; c < cs.size() ; c++)
+	{
+	  std::cout << "c = " << c << "\t" << cs[c] << "\n";
+	  
+	  ss << pcomm.command_description( cs[c] );
+	}
+      ss << "\n";
+    }
+  else if ( pcomm.known( c ) )
+    {
+      std::cout << pcomm.command_description( c );
+    }
+  else
+    {
+      ss << "command [ " << c << " ] not recognised\n";
+    }
+  return ss.str();
 }
 
 
@@ -258,15 +328,11 @@ std::string Pseq::Util::ArgMap::attached( const std::string & command )
 {
   std::map<std::string,std::set<std::string> >::iterator i = comm2arg.find( command );
   std::string s = "";
-  while ( i != comm2arg.end() )
+  std::set<std::string>::iterator j = i->second.begin();
+  while ( j != i->second.end() )
     {
-      std::set<std::string>::iterator j = i->second.begin();
-      while ( j != i->second.end() )
-	{
-	  s += "ARG\t" + i->first + "\t" + *j + "\t" + type( *j ) + "\n";
-	  ++j;
-	}      
-      ++i;
-    }
+      s += "ARG\t" + i->first + "\t" + *j + "\t" + type( *j ) + "\n";
+      ++j;
+    }      
   return s;
 }
