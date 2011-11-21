@@ -71,9 +71,9 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   reg( "show", STRING_VECTOR,"show specific meta-fields" );
 
   reg( "vmeta", NONE, "show variant meta-information" );
-  reg( "samples", NONE, "show specific sample variants in v-view");
+  reg( "samples", NONE, "show each specific sample variant");
   reg( "verbose", NONE, "verbose output");
-  reg( "geno", NONE, "show genotypes (g-view)");
+  reg( "geno", NONE, "show genotypes");
   reg( "gmeta", NONE, "show genotype meta-information" );
   reg( "transpose", NONE, "transposed g-view output");
       
@@ -92,6 +92,13 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
 
   reg( "weights" , STRING , "name of variant weights tag");
   
+  
+  //
+  // Also, add in major descriptors for options
+  //
+
+  Pseq::Util::Options::reg_option( "opt1" , "str" , "this is my description" );
+
 
   //
   // Register some short-cuts
@@ -135,9 +142,9 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   // then commands and flags.
   
   if ( n < 2  ) 
-    Helper::halt("no project or command specified");
+    Helper::halt("no project or command specified; try 'pseq help'");
   else if ( n < 3 ) 
-    Helper::halt("no command specified");
+    Helper::halt("no command specified; try 'pseq help'");
 
   project_str = argv[1];
   command_str = argv[2];
@@ -268,48 +275,101 @@ std::string Pseq::Util::ArgMap::desc( const std::string & c ) const
   // --help masks   { list all mask options }
   
 
-  ss << "usage:\tpseq {project-file} {command} {--options}\n";
+ 
   
   if ( c == "." )
     {
+
+      ss << "\nusage:\tpseq {project-file|VCF} {command} {--options}\n\n";
       
-      std::vector<std::string> groups = pcomm.groups();
-
-      std::cout << "g = " << groups.size() << "\n";
-
+      std::vector<std::string> groups = pcomm.groups( );
+      
+      ss << "\tCommand groups\n";
+      ss << "\t---------------------------------------------------------\n";
       for ( int g = 0 ; g < groups.size() ; g++ )
 	{	  
-	  ss << " --- " << groups[g] << " : " << pcomm.group_description( groups[g] ) << " ---\n";	  
 	  std::vector<std::string> cs = pcomm.commands( groups[g] );
-	  for (int c = 0 ; c < cs.size() ; c++)
-	    ss << pcomm.command_description( cs[c] );
-	  ss << "\n";
-	}
+	  if ( cs.size() ) // do not show hidden/empty ones
+	    ss << "\t" << groups[g] << "\t\t\t" << pcomm.group_description( groups[g] ) << "\n";
+	}      
       
-    }
-  else if ( pcomm.has_group( c ) )
-    {
-      std::cout << "has group + " << c << "\n";
+      ss << "\n\tMask groups\n";
+      ss << "\t---------------------------------------------------------\n";
+      ss << Mask::list_groups();
+      
+      ss << "\n"
+	 << "pseq help all\n"
+	 << "pseq help {group}\n"
+	 << "pseq help {command}\n";
 
-      std::cout << " --- " << c << " : " << pcomm.group_description( c ) << " ---\n";	  
-      std::vector<std::string> cs = pcomm.commands( c );
-std::cout << "cs.sie = " << cs.size() << "\n";
+   }
+  else if ( c == "all" )
+    {
+      // verbose help mode
+      ss << "\nusage:\tpseq {project-file|VCF} {command} {--options}\n\n";
+      
+      ss << "Commands\n";
+      ss << "---------------------------------------------------------\n\n";
+      
+      std::vector<std::string> cs = pcomm.all_commands();
+
       for (int c = 0 ; c < cs.size() ; c++)
 	{
-	  std::cout << "c = " << c << "\t" << cs[c] << "\n";
-	  
-	  ss << pcomm.command_description( cs[c] );
+	  ss << "\t" << pcomm.command_description( cs[c] );
+	  ss << pcomm.command_description( cs[c] , true ) << "\n";
 	}
-      ss << "\n";
+      
+      
+      ss << "\n\nMask groups\n";
+      ss << "---------------------------------------------------------\n\n";
+
+      ss << Mask::list_groups( true );
+      
+      ss << "\n"
+	 << "pseq help {group}\n"
+	 << "pseq help {command}\n";      
+
+    }
+  else if ( pcomm.has_group( c ) )
+    {      
+      ss << "\n\t" << c << " : " << pcomm.group_description( c ) << "\n";
+      ss << "\t---------------------------------------------------------\n";
+      std::vector<std::string> cs = pcomm.commands( c );      
+      for (int c = 0 ; c < cs.size() ; c++)
+	ss << "\t" << pcomm.command_description( cs[c] );
+      
     }
   else if ( pcomm.known( c ) )
     {
-      std::cout << pcomm.command_description( c );
+      std::vector<std::string> str = Helper::char_split( pcomm.command_description( c ) , '\t' , true );
+      ss << "\n\t" << c << " : " << str[str.size()-1] ;
+      ss << "\t---------------------------------------------------------\n";
+      ss << pcomm.command_description( c , true );
     }
-  else
+  else 
     {
-      ss << "command [ " << c << " ] not recognised\n";
+      // is this a Mask group?
+      
+      std::string str = Mask::list_masks( c );
+      if ( str == "" ) 	
+	ss << "[ " << c << " ] not recognised as a command, command-group or mask-group\n";
+      else
+	{
+	  // v. silly way to get desc... quicker for now.
+	  std::string s = Mask::list_groups();	  
+	  std::vector<std::string> s1 = Helper::char_split( s , '\n' );
+	  std::string desc;
+	  for ( int i = 0 ; i < s1.size() ; i++)
+	    {
+	      std::vector<std::string> s2 = Helper::char_split( s1[i] , '\t' , false );
+	      if ( s2.size() == 2 && s2[0] == c ) { desc = s2[1] ; break; }
+	    }
+	  ss << "\n\t" << c << " : " << desc << "\n";
+	  ss << "\t---------------------------------------------------------\n";
+	  ss << str;
+	}
     }
+  ss << "\n";
   return ss.str();
 }
 
@@ -326,12 +386,13 @@ void Pseq::Util::ArgMap::attach( const std::string & command , const std::string
 
 std::string Pseq::Util::ArgMap::attached( const std::string & command )
 {
-  std::map<std::string,std::set<std::string> >::iterator i = comm2arg.find( command );
+  std::map<std::string,std::set<std::string> >::iterator i = comm2arg.find( command );  
+  if ( i == comm2arg.end() ) return "";
   std::string s = "";
   std::set<std::string>::iterator j = i->second.begin();
   while ( j != i->second.end() )
     {
-      s += "ARG\t" + i->first + "\t" + *j + "\t" + type( *j ) + "\n";
+      s += "ARG\t" + i->first + "\t" + *j + "\t" + type( *j ) + "\t" + arg_desc( *j ) + "\n";
       ++j;
     }      
   return s;

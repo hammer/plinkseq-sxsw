@@ -15,8 +15,18 @@ class VarDBase;
 class LocDBase;
 class RefDBase;
 
+struct mask_group_t 
+{
+  mask_group_t( const std::string & g , const std::string & d )
+  : name(g) , desc(d) { } 
+  std::string name;
+  std::string desc;
+  bool operator<( const mask_group_t & rhs ) const { return name < rhs.name; } 
+};
+
+  
 struct mask_command_t 
-{ 
+  { 
   mask_command_t(const std::string & n, 
 		 const int no = 0 , 
 		 const std::string & g = "", 
@@ -840,6 +850,9 @@ class Mask {
   //
 
   static std::string describe_options();     
+  static std::string list_groups( bool verbose = false );     
+  static std::string list_masks( const std::string & g );
+
 
   //
   // Helper functions
@@ -1410,6 +1423,7 @@ class Mask {
     void searchDB();
     
     static std::set<mask_command_t> known_commands; // mask commands
+    static std::set<mask_group_t> known_groups; // mask groups
 
     bool group_mode;  // will the mask be used in a group-iteration context?
     bool group_region;

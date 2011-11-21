@@ -13,6 +13,8 @@ using namespace std;
 extern GStore g;
 extern Pseq::Util::Options options;
 
+std::set< Pseq::Util::opt_t > Pseq::Util::Options::optdesc;
+
 void Pseq::finished()
 {  
   if ( g.gseq_mode() )
@@ -1704,3 +1706,59 @@ bool Pseq::VarDB::write_BCF( Mask & mask , const std::string & bcffile )
   bcf.close();  
   return true;
 }
+
+
+
+std::string Pseq::Util::Commands::command_description( const std::string & c , bool show_args  ) const
+{
+  
+  std::stringstream ss;
+  
+  if ( known( c ) ) 
+    {
+      if ( ! show_args ) 
+	{
+ 	  ss << c << "\t";
+	  if ( c.size() < 8 ) ss << "\t";
+	  if ( c.size() < 16 ) ss << "\t";
+	  ss << comm_desc.find( c )->second << "\n";
+	}
+
+      if ( show_args )
+	{
+	  std::string sarg = pargs->attached( c );
+	  std::vector<std::string> sarg1 = Helper::char_split( sarg , '\n' );
+	  
+	  for (int i = 0 ; i < sarg1.size() ; i++ ) 
+	    {
+	      std::vector<std::string> v = Helper::char_split( sarg1[i] , '\t' );		    
+	      if ( v.size() == 5 )
+		{
+		  ss << "\t  --" << v[2];
+		  if ( v[3] != "." ) ss << " { " << v[3] << " }" ;
+		  ss << "\t" << v[4] << "\n";
+		}
+	    }
+	  
+	  std::string sopt = popt->attached( c );
+	  if ( sopt != "" ) 
+	    {
+	      std::vector<std::string> sopt1 = Helper::char_split( sopt , '\n' );
+	      for (int i = 0 ; i < sopt1.size() ; i++ ) 
+		{
+		  std::vector<std::string> v = Helper::char_split( sopt1[i] , '\t' );
+		  if ( v.size() == 5 ) 
+		    {
+		      ss << "\t  --options " << v[2];
+		      if ( v[3] != "." ) ss << " { " << v[3] << " }" ;
+		      ss << "\t" << v[4] << "\n";
+		    }
+		  
+		}
+	    }
+	}
+      
+    }
+  return ss.str();
+}
+

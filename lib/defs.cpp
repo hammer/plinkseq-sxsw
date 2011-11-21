@@ -4,7 +4,7 @@
 
 std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.08(14-Nov-2011)"; return s; }
 
-int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 3; return i; }
+int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 4; return i; }
 
 std::string & PLINKSeq::SQLITE_SCRATCH_FOLDER() { static std::string s = ""; return s; }
 

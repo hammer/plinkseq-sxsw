@@ -188,10 +188,17 @@ namespace Pseq
       // (to let Commands know which options/arguments are appropriate for a 
       //  given command)
 
-      struct opt_t { 	
-        opt_t( const std::string & name , const std::string & type ) : name(name) , type(type) { } 
-	std::string name;  // e.g. file 
+      struct opt_t 
+      { 	
+      
+      opt_t( const std::string & name , const std::string & type , const std::string & desc ) 
+      : name(name) , type(type) , desc( desc) { } 	
+	
+      opt_t( const std::string & name ) : name(name) { } 
+
+	std::string name;   // e.g. file 
 	std::string type;   //      str
+	std::string desc;   // verbose description	
 	bool operator<( const opt_t & rhs ) const { return name < rhs.name; } 
       };
       
@@ -281,27 +288,42 @@ namespace Pseq
 	  
 	void attach( const std::string & command , const std::string & opt )
 	{
-	  // opt will be comma-delimited list, with types
-	  // ref=str-list,loc=str-list
+
+	  // opt will be comma-delimited list of names
+	  // types and descriptions may be added separately, via a static function
+	  
 	  std::vector<std::string> opts = Helper::char_split( opt , ',' );
 	  for (int i=0; i<opts.size(); i++)
-	    {
-	      std::vector<std::string> o = Helper::char_split( opts[i] , '=' );
-	      if ( o.size() == 2 ) 
-		comm2opt[ command ].insert( opt_t( o[0] , o[1] ) );
-	    }
+	    comm2opt[ command ].insert( opts[i] );  
 	}
 	
+	static void reg_option( const std::string & o , const std::string & t , const std::string & d ) 
+	{
+	  optdesc.insert( opt_t( o , t , d ) );
+	}
+	
+	static std::string option_description( const std::string & o )
+	{
+	  std::set<opt_t>::iterator i = optdesc.find( opt_t(o) );
+	  return i == optdesc.end() ? "" : i->desc ;
+	}
+	
+	static std::string option_type( const std::string & o )
+	{
+	  std::set<opt_t>::iterator i = optdesc.find( opt_t(o) );
+	  return i == optdesc.end() ? "." : i->type ;
+	}
+
 	std::string attached( const std::string & command ) 
 	  {
-	    std::map<std::string,std::set<opt_t> >::iterator i = comm2opt.find( command );
+	    std::map<std::string,std::set<std::string> >::iterator i = comm2opt.find( command );
 	    std::string s = "";
 	    if ( i != comm2opt.end() )
 	      {
-		std::set<opt_t>::iterator j = i->second.begin();
+		std::set<std::string>::iterator j = i->second.begin();
 		while ( j != i->second.end() )
 		  {
-		    s += "OPT\t" + i->first + "\t" + j->name + "\t" + j->type + "\n";
+		    s += "OPT\t" + i->first + "\t" + *j + "\t" + option_type( *j ) + "\t" + option_description( *j) + "\n";
 		    ++j;
 		  }      
 	      }
@@ -313,8 +335,8 @@ namespace Pseq
 	std::map< std::string, std::set< std::string> > optdata;
 	std::map< std::string,std::string> simpledata;
 	
-	std::map< std::string,std::set<opt_t> > comm2opt;
-	
+	std::map< std::string,std::set<std::string> > comm2opt;
+	static std::set< opt_t > optdesc;
       };
       
 
@@ -350,7 +372,7 @@ namespace Pseq
 
 	double as_float( const std::string & a ) const;
 	
-	void reg( const std::string & s , const type_t & , const std::string & desc = "" );	
+	void reg( const std::string & s , const type_t & , const std::string & desc = "" );
 
 	std::string command() const { return command_str; } 
 	
@@ -362,17 +384,25 @@ namespace Pseq
 	
 	std::string attached( const std::string & );
 	
+	std::string arg_desc( const std::string & arg )
+	  {
+	    std::map<std::string,std::string>::iterator i = known_desc.find( arg );
+	    if ( i == known_desc.end() ) return "";
+	    return i->second;
+	  }
+
 	std::string type( const std::string & arg )
 	  {
 	    std::map<std::string,type_t>::iterator i = known_type.find( arg );
 	    if ( i == known_type.end() ) return ".";
-	    if ( i->second == NONE ) return ".";
+	    if ( i->second == NONE ) return "flag";
 	    if ( i->second == STRING ) return "str";
 	    if ( i->second == INT ) return "int";
 	    if ( i->second == FLOAT ) return "float";
 	    if ( i->second == STRING_VECTOR ) return "str-list";
 	    if ( i->second == INT_VECTOR ) return "int-list";
 	    if ( i->second == FLOAT_VECTOR ) return "float-list";
+	    return ".";
 	  }
 
       private:
@@ -410,7 +440,9 @@ namespace Pseq
 	    //             VCF meaning applicable to individual VCFs
 	    //             NOGENO means that, by default, we do not need to look at genotype data
 	    //             ARG:arg1,arg2
-	    //             OPT:opt1=str-list,opt2=str   (we need format for opt)
+	    //             OPT:opt1
+
+	    // formats for options are registered separately
 
 	    std::vector<std::string> d = Helper::char_split( s, '|' );
 	    
@@ -558,16 +590,12 @@ namespace Pseq
 
 	// simple list of command groups
 	
-	std::vector<std::string> groups() const 
+	std::vector<std::string> groups( const std::string & g = "root" ) const 
 	  {
-	    std::vector<std::string> s;
-	    std::map<std::string,std::vector<std::string> >::const_iterator i = group_group.begin();
-	    while ( i != group_group.end() )
-	      {
-		s.push_back( i->first );
-		++i;
-	      }
-	    return s;
+	    std::vector<std::string> s;	    
+	    std::map<std::string,std::vector<std::string> >::const_iterator i = group_group.find(g);
+	    if ( i == group_group.end() ) return s;
+	    return i->second;
 	  }
 	
 
@@ -579,46 +607,23 @@ namespace Pseq
 	    std::vector<std::string> s;
 	    return s;
 	  }
-	
-	// given a command, give the description and options       
-	
-	std::string command_description( const std::string & c ) const 
+
+	// list all commands (only once, alphabetically)
+	std::vector<std::string> all_commands() const
 	  {
-
-	    std::stringstream ss;
-
-	    if ( known( c ) ) 
+	    std::vector<std::string> s;	    
+	    std::map<std::string,std::set<std::string> >::const_iterator i = comm_group_rmap.begin();
+	    while ( i != comm_group_rmap.end() )
 	      {
-		
-
-		std::cout << c << "\t" << comm_desc.find( c )->second << "\n";
-
-		std::cout << "S1\n";
-
-		std::string sarg = pargs->attached( c );
-		std::vector<std::string> sarg1 = Helper::char_split( sarg , '\n' );
-		
-		for (int i = 0 ; i < sarg1.size() ; i++ ) 
-		  {
-		    std::vector<std::string> v = Helper::char_split( sarg1[i] , '\t' );		    
-		    if ( v.size() >= 4 ) std::cout << "\t--" << v[2] << " { " << v[3] << " }\n" ;		  
-		  }
-		
-		std::string sopt = popt->attached( c );
-		if ( sopt != "" ) 
-		  {
-		    std::vector<std::string> sopt1 = Helper::char_split( sopt , '\n' );
-		    for (int i = 0 ; i < sopt1.size() ; i++ ) 
-		      {
-			std::vector<std::string> v = Helper::char_split( sopt1[i] , '\t' );
-			if ( v.size() >= 4 ) std::cout << "\t--options " << v[2] << " { " << v[3] << " }\n" ;		  
-		      }
-		  }
-		std::cout << "S99\n";
+		s.push_back( i->first );
+		++i;
 	      }
-	    return ss.str();
+	    return s;
 	  }
 
+	// given a command, give the description and options       
+	
+	std::string command_description( const std::string & c , bool show_args = false ) const; 
 
       private:
 	

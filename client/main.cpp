@@ -62,7 +62,7 @@ int main(int argc, char ** argv)
   pcomm.new_group( "output"      , "Variant data output" );
   pcomm.new_group( "project"     , "Project functions" );
   pcomm.new_group( "stats"       , "Variant summary statistics" );
-  pcomm.new_group( "association" , "Genotype-phenotype association" );
+  pcomm.new_group( "tests"       , "Genotype-phenotype association tests" );
   pcomm.new_group( "qc"          , "Quality control metrics and tests" );
   pcomm.new_group( "views"       , "Viewing variant and other data" );
   pcomm.new_group( "annot"       , "Annotation functions" );
@@ -81,7 +81,7 @@ int main(int argc, char ** argv)
   pcomm.add_to_group( "root" , "output" );
   pcomm.add_to_group( "root" , "project" );
   pcomm.add_to_group( "root" , "stats" );  
-  pcomm.add_to_group( "root" , "association" );
+  pcomm.add_to_group( "root" , "tests" );
   pcomm.add_to_group( "root" , "qc" );
   pcomm.add_to_group( "root" , "views" );
   pcomm.add_to_group( "root" , "annot" );
@@ -103,8 +103,8 @@ int main(int argc, char ** argv)
 	<< "masks|misc|list mask options"
 	<< "new-project|project,input|set a new project"
            "|ARG:vcf,resources,locdb,refdb,vardb,seqdb,inddb,output,scratch,metameta"
-           "|OPT:opt1=str,opt2=str-list"
-	<< "version|project|display version information"
+           "|OPT:opt1,opt2"
+ 	<< "version|project|display version information"
 	<< "append|project,input|add a file to the project|ARG:file,type"
 	<< "drop|project|drop a file from the project|ARG:file,type"
 
@@ -187,7 +187,7 @@ int main(int argc, char ** argv)
 	<< "v-stats|stats|variant statistics|VCF|OPT:counts,gcount,mean,gmean"
 	<< "g-stats|stats|gene-based summary statistics|GRP|OPT:counts,gcount,mean,gmean"
 	<< "i-stats|stats|per-individual statistics|VCF|OPT:counts,gcount,mean,gmean"
-	<< "v-dist|stats,association|comparison of rare-variant group distributions|VCF|OPT:whole-sample-counts"
+	<< "v-dist|stats,tests|comparison of rare-variant group distributions|VCF|OPT:whole-sample-counts"
 	<< "v-freq|stats,qc|variant frequency data|VCF|ARG:em"
 
 	<< "loc-intersect|views,locop|view loci from a LOCDB group with 1 or more variants"
@@ -197,25 +197,25 @@ int main(int argc, char ** argv)
 	<< "ref-view|views|view a group from a REFDB"
 	<< "seq-view|views|view regions of sequence from SEQDB"
 
-	<< "counts|views,association|summary/count statistics|VCF"
-	<< "g-counts|views,association|genotype summary/count statistics|VCF"
-	<< "assoc|association|gene-based association tests|GRP" 
-	<< "v-assoc|association|single-variant association|VCF" 
-	<< "glm|association|general linear models|VCF"
-	<< "s-assoc|association,ibd|segment-based IBD test"
-	<< "unique|views,association|view variants specific to individual groups|VCF"
+	<< "counts|views,tests|summary/count statistics|VCF"
+	<< "g-counts|views,tests|genotype summary/count statistics|VCF"
+	<< "assoc|tests|gene-based association tests|GRP" 
+	<< "v-assoc|tests|single-variant association|VCF" 
+	<< "glm|tests|general linear models|VCF"
+	<< "s-assoc|tests,ibd|segment-based IBD test"
+	<< "unique|views,tests|view variants specific to individual groups|VCF"
 
 	<< "ibd-load|input,ibd|load IBD segment data|ARG:ibddb"
 	<< "ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb"
 
 	<< "net-load|input,net|populate a NETDB|ARG:netdb,file"
 	<< "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
-	<< "net-assoc|net,association|network-based gene-association|GRP|ARG:netdb,pheno"
+	<< "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,pheno"
 
 	<< "clusters|qc|."
 	<< "proximity-scan|qc|VCF"
 	<< "concordance|qc|genotypic concordance checks"
-	<< "group-comparison|qc,association|"
+	<< "group-comparison|qc,tests|"
 
 	<< "ibs-matrix|qc|IBS matrix calculation|VCF"
 	<< "intersect|locop|intersect locus groups"

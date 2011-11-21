@@ -41,9 +41,17 @@ void mask_add( std::set<mask_command_t> & s ,
 	       const std::string & d , 
 	       bool h = false ) 
 {
-    s.insert( mask_command_t(n,nn,g,gn,a,d,h) );
-    s.insert( mask_command_t(n) );
+  s.insert( mask_command_t(n,nn,g,gn,a,d,h) );
+  s.insert( mask_command_t(n) );
 }
+
+void mask_group( std::set<mask_group_t> & s , 
+		 const std::string & g , 
+		 const std::string & d )
+{
+  s.insert( mask_group_t(g,d) );
+}
+
 
 std::set<mask_command_t> populate_known_commands()
 {
@@ -102,15 +110,15 @@ std::set<mask_command_t> populate_known_commands()
 
 
   // variant-groups -- All hidden for now
-  ++g; c=0; gl="variant-groups";
-  mask_add( s , g , c++ , gl , "var" , "str-list" , "variant include list(s)" , true );
-  mask_add( s , g , c++ , gl , "var.inc" , "str-list" , "variant include list(s)" , true ); // hidden
-  mask_add( s , g , c++ , gl , "var.group" , "str" , "group variants by VARDB group" , true ); //hidden 
-  mask_add( s , g , c++ , gl , "var.subset", "str-list" , "subsetted variants" , true ); 
-  mask_add( s , g , c++ , gl , "var.skip", "str-list" , "skipped variants" , true ); 
-  mask_add( s , g , c++ , gl , "var.ex", "str-list" , "excluded variants" , true ); 
-  mask_add( s , g , c++ , gl , "var.req", "str-list" , "required variants" , true );
-  mask_add( s , g , c++ , gl , "var.append" , "str-list" , "append meta-information from VARDB groups (not implemented)" );
+//   ++g; c=0; gl="variant-groups";
+//   mask_add( s , g , c++ , gl , "var" , "str-list" , "variant include list(s)" , true );
+//   mask_add( s , g , c++ , gl , "var.inc" , "str-list" , "variant include list(s)" , true ); // hidden
+//   mask_add( s , g , c++ , gl , "var.group" , "str" , "group variants by VARDB group" , true ); //hidden 
+//   mask_add( s , g , c++ , gl , "var.subset", "str-list" , "subsetted variants" , true ); 
+//   mask_add( s , g , c++ , gl , "var.skip", "str-list" , "skipped variants" , true ); 
+//   mask_add( s , g , c++ , gl , "var.ex", "str-list" , "excluded variants" , true ); 
+//   mask_add( s , g , c++ , gl , "var.req", "str-list" , "required variants" , true );
+//   mask_add( s , g , c++ , gl , "var.append" , "str-list" , "append meta-information from VARDB groups (not implemented)" );
 
 
   // Reference databases
@@ -129,6 +137,7 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "indiv.ex" , "str-list" , "exclude these individuals" ); 
 
   // Variant masks, but on whether present in file, etc  
+  ++g; c = 0 ; gl = "files" ;
   mask_add( s , g , c++ , gl , "obs.file" , "str-list" , "include variants observed in file(s)" );
   mask_add( s , g , c++ , gl , "obs.file.req" , "str-list" , "require variants observed in file(s)" );
   mask_add( s , g , c++ , gl , "obs.file.ex", "str-list" , "exclude variants observed in file(s)" );
@@ -143,9 +152,9 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "alt.file.ex" , "str-list" , "exclude variants with alt-alleles in file(s)" );
 
   // as above, but with arbitrary groups of people
-  mask_add( s , g , c++ , gl , "alt.group" , "str-list" , "not implemented" , true ); //hidden
-  mask_add( s , g , c++ , gl , "alt.group.req" , "str-list" , "not implemented" , true ); //hidden
-  mask_add( s , g , c++ , gl , "alt.group.ex" , "str-list" , "not implemented" , true ); //hidden
+//   mask_add( s , g , c++ , gl , "alt.group" , "str-list" , "not implemented" , true ); //hidden
+//   mask_add( s , g , c++ , gl , "alt.group.req" , "str-list" , "not implemented" , true ); //hidden
+//   mask_add( s , g , c++ , gl , "alt.group.ex" , "str-list" , "not implemented" , true ); //hidden
   
 
   // FILTERs and QUALs
@@ -214,11 +223,11 @@ std::set<mask_command_t> populate_known_commands()
 
  
   // Annotation
-  ++g; c = 0 ; gl="annot";  
-  mask_add( s , g , c++ , gl , "annot" , "str" , "include variants with coding annotation using locus-group (under revision) ");
-  mask_add( s , g , c++ , gl , "annot.ex" , "str" , "exclude variants with coding annotations using locus-group (under revision) ");
-  mask_add( s , g , c++ , gl , "annot.req" , "str" , "require variant have coding annotations using locus-group (under revision) ");
-  mask_add( s , g , c++ , gl , "annot.append" , "str" , "append annotations using locus-group (under revision) ");
+  ++g; c = 0 ; gl="annotation";  
+  mask_add( s , g , c++ , gl , "annot" , "str" , "include variants with coding annotation");
+  mask_add( s , g , c++ , gl , "annot.ex" , "str" , "exclude variants with coding annotations");
+  mask_add( s , g , c++ , gl , "annot.req" , "str" , "require variant have coding annotations");
+  mask_add( s , g , c++ , gl , "annot.append" , "str" , "append annotations");
 
 
   // Skip data
@@ -248,7 +257,32 @@ std::set<mask_command_t> populate_known_commands()
   return s;
 }
 
+
+std::set<mask_group_t> populate_known_groups()
+{
+  std::set<mask_group_t> s;
+  mask_group( s , "locus-groups" , "Interval-based masks involving LOCDB" );
+  mask_group( s , "regions"      , "Interval-based masks specified on the command line" );
+  mask_group( s , "locus-set-groups" , "Masks based on sets of loci from a LOCDB" );
+  mask_group( s , "ref-variants" , "Masks based on REFDB variants" );
+  mask_group( s , "samples"   , "Include/exclude individuals/files" );
+  mask_group( s , "files"     , "Include/exclude variants based on presence in one or more files" );  
+  mask_group( s , "filters"   , "Masks based on the FILTER and QUAL fields" );
+  mask_group( s , "vmeta"     , "Masks based on a variant's meta-information (INFO field)" );
+  mask_group( s , "frequency" , "Masks based on variant allele frequency" );
+  mask_group( s , "genotype"  , "Per-genotype masks and behaviours" );  
+  mask_group( s , "phenotype" , "Individual masks based on phenotypes from INDDB" );
+  mask_group( s , "case-control" , "Individual masks based on a disease phenotype from INDDB" );
+  mask_group( s , "annotation"  , "Masks based on LOCDB transcript annotation (under revision)" );
+  mask_group( s , "skip"      , "Options to skip reading certain things (improves speed)" );
+  mask_group( s , "misc"      , "Various other masks" );
+  return s;
+}
+
+
 std::set<mask_command_t> Mask::known_commands = populate_known_commands();
+std::set<mask_group_t> Mask::known_groups = populate_known_groups();
+
 
 std::string Mask::describe_options()
 {
@@ -261,6 +295,55 @@ std::string Mask::describe_options()
 	   << i->name << "\t"
 	   << i->argtype << "\t"
 	   << i->desc << "\n";
+      ++i;
+    }
+  return ss.str();
+}
+
+
+std::string Mask::list_groups( bool verbose )
+{
+  std::stringstream ss;
+
+  std::set<mask_group_t>::iterator i = known_groups.begin();
+  while ( i != known_groups.end() )
+    {
+
+      ss << "\t" << i->name;
+      if ( i->name.size() < 8 ) ss << "\t";
+      if ( i->name.size() < 16 ) ss << "\t";
+      ss << "\t" << i->desc << "\n";
+    
+      if ( verbose )
+	{
+	  ss << "\t---------------------------------------------------------\n";
+	  ss << list_masks( i->name ) << "\n";
+	}
+
+      ++i;
+    }
+  return ss.str();
+}
+
+std::string Mask::list_masks( const std::string & g )
+{
+  std::stringstream ss;
+  std::set<mask_command_t>::iterator i = known_commands.begin();
+  while ( i != known_commands.end() )
+    {
+      if ( ! i->hidden )
+	{
+	  if ( i->group == g ) 
+	    {
+	      ss << "\t" << i->name;
+	      int len = i->name.size();
+	      if ( i->argtype != "flag" ) { len += i->argtype.size() + 5; ss << " { " << i->argtype << " }"; } 
+	      if ( len < 8 ) ss << "\t";
+	      if ( len < 16 ) ss << "\t";
+	      if ( len < 24 ) ss << "\t";
+	      ss << "\t" << i->desc << "\n";
+	    }
+	}
       ++i;
     }
   return ss.str();
