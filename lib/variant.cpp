@@ -796,27 +796,26 @@ bool Variant::simple_del() const
 
 std::string Variant::VCF()
 {
-
-  // Construct a string that is a VCF format entry
-  
-  std::ostringstream s;
-  
-  // VCF is tab-delimited 
-  
-  s << Helper::chrCode( chr ) << "\t"
-    << bp << "\t"
-    << vname << "\t"
-    << consensus.ref << "\t"
-    << consensus.alt << "\t";
-
-  if ( consensus.qual < 0 )
-    s << "." << "\t";
-  else
-    s << consensus.qual << "\t";
-
-
-  s << consensus.filter_info << "\t"
-    << consensus.meta << "\t";
+    
+    // Construct a string that is a VCF format entry
+    
+    std::ostringstream s;
+    
+    // VCF is tab-delimited 
+    
+    s << Helper::chrCode( chr ) << "\t"
+      << bp << "\t"
+      << vname << "\t"
+      << consensus.ref << "\t"
+      << consensus.alt << "\t";
+    
+    if ( consensus.qual < 0 )
+	s << "." << "\t";
+    else
+	s << consensus.qual << "\t";
+    
+    s << consensus.filter_info << "\t"
+      << consensus.meta << "\t";
   
   // Format field for genotype info:
   // Just take from the first genotype for now (although, 

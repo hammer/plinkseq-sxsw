@@ -90,30 +90,32 @@ void Annotate::setDB( LocDBase * p , SeqDBase * s )
 
 std::string Annotate::translate(std::string & seq, int frame , std::vector<std::string> & codons )
 {
-  
-  Helper::str2upper(seq);
-  
-  if ( seq.size() - frame == 1 ) seq += "-";
-  else if ( seq.size() - frame == 2 ) seq += "--";
-  
-  std::string trans = "";
-  codons.clear();
-  
-  for (unsigned int i = frame; i<seq.size(); i+=3)
+    
+    Helper::str2upper(seq);
+    
+    if ( seq.size() - frame == 1 ) seq += "-";
+    else if ( seq.size() - frame == 2 ) seq += "--";
+    
+    std::string trans = "";
+    codons.clear();
+    
+    for (unsigned int i = frame; i<seq.size(); i+=3)
     {
-      std::string codon = seq.substr( i,3 );
-      
-      codons.push_back( codon );
-      
-      if ( codon.find("-") != std::string::npos )
-	trans += "i";
-      else
+
+	std::string codon = seq.substr( i,3 );
+
+	codons.push_back( codon );
+	
+	if ( codon.find("-") != std::string::npos )
+	    trans += "i";
+	else
 	{
-	  std::string tmp = t[ codon ];
-	  if ( tmp == "" ) tmp = "?";
-	  trans += tmp;
+	    std::string tmp = t[ codon ];
+	    if ( tmp == "" ) tmp = "?";
+	    trans += tmp;	    
 	}
     }
+
   return trans;
 }
 
@@ -457,7 +459,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  // Strand and exon status
 	  //
 	  
-	  bool negative_strand = r->subregion[0].meta.get1_string( PLINKSeq::TRANSCRIPT_STRAND() ) == "-";
+	  bool negative_strand = r->subregion[0].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() ) == -1;
 	  
 	  int first_exon = negative_strand ? 0 : r->subregion.size()-1;
 
@@ -712,11 +714,11 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  
 	  std::vector<std::string> ref_codon;
 	  std::vector<std::string> alt_codon;	  
-
+	
 	  std::string trans_ref = translate( ref_cds , frame, ref_codon );
 	  std::string trans_var = translate( var_cds , frame, alt_codon );
 	  
-
+	  
 	  //
 	  // Synomous change?
 	  //
@@ -728,7 +730,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      continue;
 	    }
 	  
-	  
+
 	  //
 	  // For indels, will need a better check of synon that above...
 	  //
@@ -861,7 +863,7 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
 	  
   int n_exons = region.subregion.size();
 
-  bool negative_strand = region.subregion[0].meta.get1_string( PLINKSeq::TRANSCRIPT_STRAND() ) == "-";
+  bool negative_strand = region.subregion[0].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() ) == -1;
   
   int first_exon = negative_strand ? 0 : n_exons - 1;
 	  

@@ -723,7 +723,7 @@ Region LocDBase::construct_region( sqlite3_stmt * s  )
 	    r.addSubRegion( id, name, chr, bp1, bp2 , strand , frame );
 	    
   	    if ( vget_meta ) 
-	      r.subregion.back().meta = submeta( id );
+		r.subregion.back().meta = submeta( id );
 	}
       sql.reset( stmt_loc_subregion_lookup );
     }
@@ -1084,9 +1084,7 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
   
   // Register meta-types
   
-  registerMetatype( PLINKSeq::TRANSCRIPT_FRAME() , 
-		    META_INT, 1 , META_GROUP_LOC , "CDS Frame" );
-  
+
   uint64_t group_id = set_group_id( grp );
   
 
@@ -1190,17 +1188,21 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
       r.meta.set( "feature" , tok[2] );
       
 
-      // Track strand and frame
-
-      r.meta.set( PLINKSeq::TRANSCRIPT_STRAND() , tok[6] );
+      // Track strand and frame (-1,1,  0=missing)
       
-      int frame = 0;
+      int strand = 0;
+      if ( tok[6] == "-" ) strand = -1;
+      else if ( tok[6] == "+" ) strand = 1;
+      r.meta.set( PLINKSeq::TRANSCRIPT_STRAND() , strand );
+      
 
       // implies "." --> 0  (i.e. for stop_codon )
-
-      if ( Helper::str2int( tok[7] , frame ) ) 
-	r.meta.set( PLINKSeq::TRANSCRIPT_FRAME() , frame );
+      int frame = 0;
       
+      if ( Helper::str2int( tok[7] , frame ) ) 
+      {	
+	  r.meta.set( PLINKSeq::TRANSCRIPT_FRAME() , frame );
+      }
 
       ///////////////////////////
       // Add region to database
@@ -1280,13 +1282,9 @@ uint64_t LocDBase::load_GFF( const std::string & filename, const std::string & g
   //    or    key val1 val2 
   // Free test must be within double-quotes
 
-  
-  
+    
   // Register meta-types
-  
-  registerMetatype( PLINKSeq::TRANSCRIPT_FRAME() , 
-		    META_INT, 1 , META_GROUP_LOC , "CDS Frame" );
-  
+    
   uint64_t group_id = set_group_id( grp );
   
   /////////////////////////////////////////
@@ -1604,7 +1602,7 @@ uint64_t LocDBase::load_regions( const std::string & filename,
 	  
 	  if ( s == "." || s == "" ) continue;
 	  
-	  r.meta.parse( s , ";" , true ); 
+	  r.meta.parse( s , ';' , true ); 
 	  
 	}
  
@@ -2086,7 +2084,15 @@ uint64_t LocDBase::merge( const std::string & grp_name, const std::string & name
 			r.stop.position() , 
 			name , 
 			r.altname, 
-			new_group_id );	  
+			new_group_id );	  	    	    
+
+	    // hmm, this is quite messy, but live with for now
+	    // will end up with _STRAND tags in the Region for no
+	    // good reason, but the subregion strand/frame members
+	    // will be okay
+	    
+	    par.meta.set( PLINKSeq::TRANSCRIPT_FRAME() , r.meta.get1_int( PLINKSeq::TRANSCRIPT_FRAME() )  );
+	    par.meta.set( PLINKSeq::TRANSCRIPT_STRAND() , r.meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() )  );
 
 	    par.addSubRegion( r );
 	    

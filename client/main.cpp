@@ -27,6 +27,7 @@ std::string PSEQ_DATE    = "14-Nov-2011";
 
 int main(int argc, char ** argv)
 {
+    
 
   //
   // Get command-line options into a sensible form
@@ -153,7 +154,7 @@ int main(int argc, char ** argv)
 	<< "vacuum|varop|clean-up unused disk-space in VARDB"     
 
 	<< "write-vardb|output,varop|write a new VARDB|ARG:new-vardb,new-project"
-	<< "write-vcf|output|write a new VCF file|VCF" 
+	<< "write-vcf|output|write a new VCF file|VCF|"
 	<< "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name|OPT:family-id" 
 	<< "write-lik|output|write a BEALGE likelihood file|VCF"
 	<< "v-matrix|output|write a matrix of allele counts|VCF"
@@ -163,7 +164,7 @@ int main(int argc, char ** argv)
 	<< "v-meta-matrix|output|write a matrix of individual genotype meta-information|VCF|ARG:name|NOGENO"
 	<< "loc-annotate|locop,annot|annotate loci|ARG:group"
 	<< "load-pheno|input,indop|load phenotypes into INDB|ARG:file"
-	<< "load-pedigree|input,indop|load pedigree information into INDDB|ARG:file"    
+	<< "load-pedigree|input,indop|load pedigree information into INDDB|ARG:file"
 
 	<< "summary|project|summary of all databases" 
 	<< "var-summary|project|summary of VARDB" 
@@ -175,7 +176,7 @@ int main(int argc, char ** argv)
 	<< "file-summary|project|summary of project files" 
 	<< "meta-summary|project|summary of variant meta-information|VCF"  
 
-	<< "v-view|views|view variant data|VCF|ARG:vmeta,verbose,geno,gmeta,samples|OPT:hide-null,only-minor,only-alt,pheno" 
+	<< "v-view|views|view variant data|VCF|ARG:simple,vmeta,verbose,geno,gmeta,samples|OPT:hide-null,only-minor,only-alt,pheno" 
 	<< "rv-view|views|view rare alleles|VCF|ARG:pheno" 
 	<< "mv-view|views|view multiple variants|VCF" 
 	<< "mrv-view|views|view multiple rare variants|VCF" 
@@ -304,7 +305,8 @@ int main(int argc, char ** argv)
   // If a single VCF has been specified as the 'project'
   //
   
-  g.single_file_mode( Helper::ends_with( project_file , ".vcf" ) 
+  g.single_file_mode( project_file == "-" 
+		      || Helper::ends_with( project_file , ".vcf" ) 
 		      || Helper::ends_with( project_file , ".vcf.gz" ) );
   
 
@@ -383,16 +385,16 @@ int main(int argc, char ** argv)
   //
   
   if (  g.single_file_mode() ) 
-    {
-      if ( ! Helper::fileExists( project_file ) ) 
-	Helper::halt( "could not open VCF file " + project_file );      
-    }
+  {
+      if ( project_file != "-" && ! Helper::fileExists( project_file ) ) 
+	  Helper::halt( "could not open VCF file " + project_file );      
+  }
   else
-    {
+  {
       if ( ! Pseq::set_project( project_file ) )
-	Helper::halt("Could not open project file " + project_file );      
-    }
-
+	  Helper::halt("Could not open project file " + project_file );      
+  }
+  
 
   //
   // Hot-swap in alternate DBs, core folders, etc
@@ -502,9 +504,12 @@ int main(int argc, char ** argv)
       for (int i=0; i<s.size(); i++) MetaMeta::show( s[i] );
     }
   
+  if ( args.has( "force-consensus" ) )
+    {
+      MetaMeta::set_force_consensus( true );
+    }
   
-  
-  
+
   //
   // Load reference and sequence data
   //
@@ -1467,6 +1472,7 @@ int main(int argc, char ** argv)
 	const bool mview = command == "mv-view" || command == "mrv-view";
 	
 	OptVView opt;
+	opt.simple = args.has("simple");
 	opt.vmeta = args.has("vmeta") || args.has("verbose");
 	opt.vexpand = args.has("verbose");
 	opt.geno = args.has("geno") || args.has("gmeta") || rview || mview;

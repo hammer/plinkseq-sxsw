@@ -11,7 +11,8 @@ bool VarDBase::vcf_iterate_read_header( Mask & mask )
   // Populate the vardb, indmap, etc
 
   std::string filename = mask.external_vcf_filename();
-  Helper::checkFileExists( filename );
+
+  if ( filename != "-" ) Helper::checkFileExists( filename );
   
   //
   // Use VCFReader, into a temporary :memory: database
@@ -45,8 +46,8 @@ bool VarDBase::vcf_iterate_read_header( Mask & mask )
       
       if ( l == VCFReader::VCF_HEADER )
 	{
-	  int n = GP->indmap.populate( GP->vardb , GP->phmap , mask );
-	  break;
+	    int n = GP->indmap.populate( GP->vardb , GP->phmap , mask );
+	    break;
 	}           
     }
 
@@ -78,7 +79,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
   
   std::string filename = mask.external_vcf_filename();
   
-  Helper::checkFileExists( filename );
+  if ( filename != "-" ) Helper::checkFileExists( filename );
 
 
   // Use VCFReader, into a temporary :memory: database
@@ -91,10 +92,18 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 
   VCFReader v( &vcffile , "" , &(GP->vardb) ,  NULL );
 
+  // hack 
+  if ( filename == "-" ) 
+  {
+      v.observed_header( true );
+      v.set_number_individuals( GP->indmap.size() );
+  }
+
+      
   if ( mask.fixxy() )
-    {
+  {
       v.set_fixxy( &mask , &(GP->locdb), &(GP->inddb) );
-    }
+  }
 
 
   // Selectively filter in/out meta-information?

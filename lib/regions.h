@@ -247,11 +247,24 @@ class Region {
     { subregion.push_back( Subregion( id, name, chr, bp1, bp2, strand, frame ) ); }
   
   void addSubRegion(Region & r)
-  { 
-    // Also copy over meta-information from region -> sub-region
-    subregion.push_back( Subregion( r.chromosome(), r.start.position(), r.stop.position() ) ) ;
-    subregion.back().meta = r.meta;
-  }
+      { 
+
+	  
+	  subregion.push_back( Subregion( r.chromosome(), r.start.position(), r.stop.position() ) ) ;
+
+          // Also copy over meta-information from region -> sub-region
+
+	  subregion.back().meta = r.meta;
+	  
+	  // And specially populate frame/strand information, if it exists, from Region meta-information
+
+	  if ( r.meta.has_field( PLINKSeq::TRANSCRIPT_FRAME() ) )
+	      subregion.back().frame = r.meta.get1_int( PLINKSeq::TRANSCRIPT_FRAME() ) ;
+	  
+	  if ( r.meta.has_field( PLINKSeq::TRANSCRIPT_STRAND() ) )
+	      subregion.back().strand = r.meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() ) ;
+	  
+      }
   
   bool operator< (const Region& b) const
   { 

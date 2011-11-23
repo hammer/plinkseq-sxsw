@@ -540,6 +540,8 @@ void SampleVariant::decode_BLOB_alleles()
     ref = var_buf.ref();
 }
 
+
+
 bool SampleVariant::decode_BLOB_vmeta( Mask * mask, Variant * parent , SampleVariant * sample )
 {    
 
@@ -1390,8 +1392,9 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 }
 
 
-void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id ) 
+void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id , Variant * parent ) 
 {
+  
 
   // store original text 
   other_info = s; 
@@ -1399,31 +1402,69 @@ void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id
   if ( s == "." ) return;
   
   // parse semi-colon delimited list
-  std::vector<std::string> f = Helper::parse(s,";");
-  
+  int ntok;
+  Helper::char_tok f( s , &ntok , ';' );
+
+  std::vector<Helper::char_tok*> ptoks;
+
   for (int i=0; i<f.size(); i++)
-    {      
+  {      
       
-      std::vector<std::string> k = Helper::char_split( f[i] , '=' );
-      mType mt = MetaInformation<VarMeta>::type( k[0] );
+      int ntok2;
+      Helper::char_tok * k = new Helper::char_tok( f(i) , &ntok2 , '=' );      
+      ptoks.push_back( k );
+      
+      mType mt = MetaInformation<VarMeta>::type( (*k)(0) );
       
       if ( mt == META_UNDEFINED ) 
-	{	  
-	  MetaInformation<VarMeta>::field( k[0] , k.size() > 1 ? META_TEXT : META_FLAG , 1 , "undeclared tag" );	  
- 	  if ( vardb ) 
- 	    vardb->insert_metatype( file_id , k[0] , k.size() > 1 ? META_TEXT : META_FLAG , 1 , META_GROUP_VAR , "undeclared tag" );
-	  plog.warn("undefined INFO field (absent in VCF header)", k[0] );
-	}
-    }
+      {	  
+	  MetaInformation<VarMeta>::field( (*k)(0) , k->size() > 1 ? META_TEXT : META_FLAG , 1 , "undeclared tag" );	  
+	  if ( vardb ) 
+	      vardb->insert_metatype( file_id , (*k)(0) , k->size() > 1 ? META_TEXT : META_FLAG , 1 , META_GROUP_VAR , "undeclared tag" );
+	  plog.warn("undefined INFO field (absent in VCF header)", (*k)(0) );
+      }
+            
+  }
 
   // parse on ; separators into MetaInformation<VarMeta>   
   // 3rd arg indicates that unknown fields should be 
   // accepted (as a flag, or string value)
-
+  
   //  -- although, given the above fix, this should no longer
   //     be necessary
-
-  meta.parse(s,";",true); 
+  
+  if ( MetaMeta::force_consensus() )
+      parent->consensus.meta.parse( s , ';' , true);
+  else
+      meta.parse( s , ';' , true); 
+  
+  // Now we've added to svar, if the parent pointer is non-null, check whether
+  // or not any tags are static, in which case we also want to add this value
+  // to the parent
+  
+  // add any STATIC tags to parent 
+  // or apply the 'force consensus' mode
+  
+  if ( parent ) 
+  {
+      for (int i=0; i<ptoks.size(); i++)
+      {	  
+	  if ( MetaMeta::static_variant( (*ptoks[i])(0) ) )
+	  {	      	      
+	      const char * str = (*ptoks[i])(0);
+	      
+	      mType mt = MetaInformation<VarMeta>::type( str );
+	      if ( mt == META_UNDEFINED ) Helper::halt( "internal error in SampleVariant::info()" );
+	      if ( mt == META_FLAG ) parent->meta.set( str );
+	      else if ( mt == META_INT ) parent->meta.set( str , meta.get_int( str ) );
+	      else if ( mt == META_FLOAT ) parent->meta.set( str , meta.get_double( str ) );
+	      else if ( mt == META_TEXT ) parent->meta.set( str , meta.get_string( str ) );
+	      else if ( mt == META_BOOL ) parent->meta.set( str , meta.get_bool( str ) );
+	  }
+	  
+	  delete ptoks[i];
+      }
+  }
 
 }
 

@@ -113,6 +113,13 @@ void PLINKSeq::register_standard_metatypes()
   MetaInformation<VarFilterMeta>::field( "PASS" , META_FLAG  , 1 , "Passed variant FILTERs" );
   //MetaInformation<VarFilterMeta>::field( PLINKSeq::PASS_FILTER() , META_FLAG  , 1 , "Passed variant FILTERs" );
 
+  registerMetatype( PLINKSeq::TRANSCRIPT_FRAME() , 
+		    META_INT, 1 , META_GROUP_LOC , "CDS Frame" );
+  
+  registerMetatype( PLINKSeq::TRANSCRIPT_STRAND() , 
+		    META_INT, 1 , META_GROUP_LOC , "CDS Strand" );
+
+
   //
   // Unless these are explicitly encountered, make invisible
   //
@@ -143,6 +150,9 @@ void PLINKSeq::register_standard_metatypes()
   MetaMeta::is_internal("EC");
   MetaMeta::is_internal("GQ");
   MetaMeta::is_internal("FT");
+
+  MetaMeta::is_internal( PLINKSeq::TRANSCRIPT_STRAND() );
+  MetaMeta::is_internal( PLINKSeq::TRANSCRIPT_FRAME() );
 
   MetaMeta::is_internal("PASS");
   

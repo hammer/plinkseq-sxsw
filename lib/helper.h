@@ -532,8 +532,8 @@ namespace Helper
 	  char_tok();
 	  char_tok( const char_tok & rhs );
 	  char_tok& operator= ( const char_tok &rhs );
-	  char_tok( const std::string & istr , int * ps , const char d = '\t' );
-	  char_tok( const char * istr , int len , int * ps , const char d = '\t' );
+	  char_tok( const std::string & istr , int * ps , const char d = '\t' , bool eq = false );
+	  char_tok( const char * istr , int len , int * ps , const char d = '\t' , bool eq = false );
 	  ~char_tok();
 	  void init( const char * istr , int * ps );
           // return the i'th token as a C-style, \0 terminated
@@ -548,7 +548,7 @@ namespace Helper
 	  int len;
 	  char d; 
 	  std::vector<int> p;
-	  
+	  bool escape_quotes;
       };
   
 

@@ -112,6 +112,7 @@ struct OptVView {
     show_only_minor = false;
     show_only_alt = false;
     mview = false;
+    simple = false; 
   }
   
   bool vmeta;
@@ -123,6 +124,7 @@ struct OptVView {
   bool show_only_minor;
   bool show_only_alt;
   bool mview;
+  bool simple;
 
   // for m-view
   Mask dummy;

@@ -15,6 +15,14 @@ void f_view( Variant & v , void * p )
 {
 
   OptVView * opt = (OptVView*)p;
+  
+  if ( opt->simple ) 
+  {
+      plog << v.coordinate() << "\t" 
+	   << v.consensus.reference() << "\t"
+	   << v.consensus.alternate() << "\n";
+      return;
+  }
 
   // do not show now: accumulate for a ind x var display of (rare) genotypes:
   if ( opt->mview ) 

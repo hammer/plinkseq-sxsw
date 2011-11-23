@@ -108,7 +108,7 @@ class SampleVariant {
   double quality() const { return qual; }
   
   /// Set meta-information (info and meta class; assume semi-colon delimited)
-  void info( const std::string & s , VarDBase * vardb = NULL , int file_id = 0 ) ;
+  void info( const std::string & s , VarDBase * vardb = NULL , int file_id = 0 , Variant * parent = NULL ) ;
 
   /// Get meta-information string as specified by void info(string)
   std::string info() const { return other_info; }

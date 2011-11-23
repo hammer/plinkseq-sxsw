@@ -860,46 +860,56 @@ bool VarDBase::eval_and_call( Mask & mask,
   int ngood = 0; // track # of passing sampels
       
   for (int s = 0 ; s < n ; s++ ) 
-    {
+  {
 
       SampleVariant & svar = var.sample( s );
 
       SampleVariant * target = ( ! align->multi_sample() ) ? &(var.consensus) : &svar ;
       
+      SampleVariant * vmeta_target = MetaMeta::force_consensus() ? &(var.consensus) : target ;
+      
       SampleVariant * genotype_target = align->flat() ? &(var.consensus) : &svar ;
 
       bool sample_okay = true;
-      
+
+
+      // Basic stuff (allele encoding)
+
       svar.decode_BLOB_basic( target ); 
       
-      if ( mask.attach_meta() ) 
-	{	  
-	  if ( mask.attach_all_meta() ) 
-	    {
-	      attach_indep_metadata( svar.index() , *target , NULL );
-	    }
-	  else
-	    {
-	      std::set<std::string> s = mask.attach_meta_fields();
-	      attach_indep_metadata( svar.index() , *target , &s );
-	    }
- 	}
+      // Attach any extra meta-information that belongs to this sample-variant
       
+      if ( mask.attach_meta() ) 
+      {	  
+	  if ( mask.attach_all_meta() ) 
+	  {
+	      attach_indep_metadata( svar.index() , *vmeta_target , NULL );
+	  }
+	  else
+	  {
+	      std::set<std::string> s = mask.attach_meta_fields();
+	      attach_indep_metadata( svar.index() , *vmeta_target , &s );
+	  }
+      }
+      
+      
+      // These filters are based on QUAL and FILTER fields -- these
+      // will travel with target, not vmeta_target 
       
       if ( ! mask.eval_filters( *target ) ) 
-	{	  
+      {	  
 	  if ( mask.fail_on_sample_variant() ) return false;
 	  else sample_okay = false;
 	}
       
       
       //
-      // At this point, we now have to create the full variant and all
-      // meta-information and genotype information. Apply any
-      // variant-level meta-information filters at this step also
+      // At this point, we now have to create the full sample-variant with all
+      // meta-information and genotype information. Apply any variant-level
+      // meta-information filters at this step also
       //
       
-      if ( ! svar.decode_BLOB_vmeta( &mask , &var , target ) )
+      if ( ! svar.decode_BLOB_vmeta( &mask , &var , vmeta_target ) )
 	{
 	  if ( mask.fail_on_sample_variant() ) return false;
 	  else sample_okay = false;
@@ -913,9 +923,7 @@ bool VarDBase::eval_and_call( Mask & mask,
       // also evaluate any include="expressions" that depend on 
       // genotpe data (i.e. include a g()) and thus we can reject a 
       // SampleVariant at this level because of that
-      
-      //      if ( mask.individual_data() )
-
+      //
       
       if ( ! svar.decode_BLOB_genotype( align , &mask , &var, &svar , target , genotype_target ) )
 	{
@@ -923,20 +931,22 @@ bool VarDBase::eval_and_call( Mask & mask,
 	  else sample_okay = false;
 	}
 
-
-//       // Assign genotypes if reading directly from a single VCF
-//       if ( genotype_target->vcf_direct ) { genotype_target->vcf_expand_buffer( &var ); } 
-    
+      
+      //
+      // Apply vmeta filters (include statements) if they depend on genotype (
+      // "g()" functions ), as we wouldn't have been able to earlier
+      //
 
       if ( mask.filter_expression() && mask.filter_expression_requires_genotypes() ) 
 	{
-	  if ( ! mask.calc_filter_expression( *target, *genotype_target ) ) 
+	  if ( ! mask.calc_filter_expression( *vmeta_target, *genotype_target ) ) 
 	    {
 	      if ( mask.fail_on_sample_variant() ) return false;
 	      else sample_okay = false;
 	    }
 	}
       
+
       //
       // Here, we must have at least 1 good sample
       //

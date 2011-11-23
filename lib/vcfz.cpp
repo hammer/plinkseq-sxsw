@@ -255,7 +255,7 @@ bool VCFZ::read_record( Variant & var , SampleVariant & source , SampleVariant &
   // been declared...
   
   svar.filter( tok(6) , vardb , file_id );
-  svar.info( tok(7) , vardb , file_id );
+  svar.info( tok(7) , vardb , file_id , &var );
   
   // Let's not bother checking and rechecking the validity of the record; this will
   // be better done with a separate function (or just advocating use of a VCF validator 

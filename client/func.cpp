@@ -187,31 +187,31 @@ bool Pseq::VarDB::vacuum()
 
 void f_vcf( Variant & v , void * p)
 {
-  plog << v.VCF();
+   plog << v.VCF();
 }
 
 bool Pseq::VarDB::write_VCF(Mask & m)
 {
   
-  // VCF headers
-  
-  plog << "##fileformat=VCFv4.0\n"
-       << "##source=pseq\n"
-       << MetaInformation<VarMeta>::headers( )
-       << MetaInformation<GenMeta>::headers( META_GROUP_GEN )
-       << MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
-  
-  // Header line containing Individual IDs
-  
-  const int n = g.indmap.size();
-  plog << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";  
-  for ( int i=0; i<n; i++) plog << "\t" << g.indmap(i)->id();
-  plog << "\n";
-  
-  // Variants
-
-  IterationReport report = g.vardb.iterate( f_vcf , NULL , m );
- 
+    // VCF headers
+    
+    plog << "##fileformat=VCFv4.0\n"
+	 << "##source=pseq\n"
+	 << MetaInformation<VarMeta>::headers( )
+	 << MetaInformation<GenMeta>::headers( META_GROUP_GEN )
+	 << MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
+    
+    // Header line containing Individual IDs
+    
+    const int n = g.indmap.size();
+    plog << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";  
+    for ( int i=0; i<n; i++) plog << "\t" << g.indmap(i)->id();
+    plog << "\n";
+    
+    // Variants
+    
+    IterationReport report = g.vardb.iterate( f_vcf , NULL , m );
+    
 }
 
 

@@ -69,6 +69,7 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
 
   reg( "hide", STRING_VECTOR,"hide specific meta-fields");
   reg( "show", STRING_VECTOR,"show specific meta-fields" );
+  reg( "force-consensus" , NONE , "set all tags to consensus" );
 
   reg( "vmeta", NONE, "show variant meta-information" );
   reg( "samples", NONE, "show each specific sample variant");
@@ -76,7 +77,8 @@ Pseq::Util::ArgMap::ArgMap( int n , char ** argv )
   reg( "geno", NONE, "show genotypes");
   reg( "gmeta", NONE, "show genotype meta-information" );
   reg( "transpose", NONE, "transposed g-view output");
-      
+  reg( "simple" , NONE , "simple variant format, POS RET ALT" );
+  
   reg( "variant", STRING , "show specific variant (v-view)");
   reg( "indiv", STRING_VECTOR , "specify individual(s)");
     

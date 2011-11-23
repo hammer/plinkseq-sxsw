@@ -586,30 +586,30 @@ int main()
   if ( q == Q_GENE ) 
     {
 
-      if ( a.multi_transcripts )
-	std::cout << "Found " << trans.size() 
-	     << " transcript(s) matching gene name <b>" 
-	     << main_gene << "</b></p>";
-      
-      std::cout << "<pre><font size=-1>";
-      
-      for (int r=0; r<trans.size(); r++)
+	if ( a.multi_transcripts )
+	    std::cout << "Found " << trans.size() 
+		      << " transcript(s) matching gene name <b>" 
+		      << main_gene << "</b></p>";
+	
+	std::cout << "<pre><font size=-1>";
+	
+	for (int r=0; r<trans.size(); r++)
 	{
-	  
-	  std::cout << trans[r].altname << "   " ;
-	  std::cout << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
-		    << "&gene="<< trans[r].name	       
-		    << "&meta=" << a.mf_print()
-		    << "&masks=" << a.msk_print() 
-		    << "&pheno=" << pheno
-		    << "\">" << trans[r].name <<"</a>  "
-		    << Helper::chrCode(trans[r].start.chromosome()) << ":" 
-		    << trans[r].start.position() << ".."
-		    << trans[r].stop.position() ;
-	  std::cout <<"<br>";
-	  if ( !cgi ) std::cout << "\n";
+	    
+	    std::cout << trans[r].altname << "   " ;
+	    std::cout << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
+		      << "&gene="<< trans[r].name	       
+		      << "&meta=" << a.mf_print()
+		      << "&masks=" << a.msk_print() 
+		      << "&pheno=" << pheno
+		      << "\">" << trans[r].name <<"</a>  "
+		      << Helper::chrCode(trans[r].start.chromosome()) << ":" 
+		      << trans[r].start.position() << ".."
+		      << trans[r].stop.position() ;
+	    std::cout <<"<br>";
+	    if ( !cgi ) std::cout << "\n";
 	}
-      
+	
       std::cout << "</font></pre>";
             
 
@@ -620,12 +620,12 @@ int main()
       if ( ! a.multi_transcripts )
 	{
 	  
-	  Region reg = g.locdb.get_region( loc_set , genename ) ;
-	  
-	  if ( reg.start.chromosome() == 0 && ! a.extended_search )
+	    Region reg = g.locdb.get_region( loc_set , genename ) ;
+	    
+	    if ( reg.start.chromosome() == 0 && ! a.extended_search )
 	    {
-	      std::cout << "Could not find gene <b> " << genename << "</b> in <b>" << loc_set << "</b> list "
-		   << "</BODY></HTML>";
+		std::cout << "Could not find gene <b> " << genename << "</b> in <b>" << loc_set << "</b> list "
+			  << "</BODY></HTML>";
 	      exit(0);      
 	    }
 	  
@@ -639,14 +639,14 @@ int main()
 	  // Query to get all other transcripts in region
 	  
 	  std::set<Region> others = g.locdb.get_regions( g.locdb.lookup_group_id( loc_set ) , 
-						    g_chr , g_bp1 , g_bp2 );
+							 g_chr , g_bp1 , g_bp2 );
 	  
 	  std::cout << "<b>" << genename << "</b> location : " 
-	       << g_chr_code << ":" << g_bp1 << ".." << g_bp2 
-	       << "  (view in the "
-	       << "<a href=\"http://genome.ucsc.edu/cgi-bin/hgTracks?org=Human&db=hg18&position=" 
-	       << g_chr_code << ":" << g_bp1 << ".." << g_bp2     
-	       << "\" target=\"_blank\">UCSC genome browser</a>)</p>";
+		    << g_chr_code << ":" << g_bp1 << ".." << g_bp2 
+		    << "  (view in the "
+		    << "<a href=\"http://genome.ucsc.edu/cgi-bin/hgTracks?org=Human&db=hg18&position=" 
+		    << g_chr_code << ":" << g_bp1 << ".." << g_bp2     
+		    << "\" target=\"_blank\">UCSC genome browser</a>)</p>";
 	  
 	  
 	  std::cout << "<pre><font size=-1>";

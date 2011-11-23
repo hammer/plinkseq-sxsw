@@ -67,18 +67,23 @@ VCFReader::line_t VCFReader::parseLine( Variant ** pvar )
 
   if ( return_var ) *pvar = NULL;
 
-  if ( file.eof() ) return VCF_EOF;
-  
-  // Is this line meta-information, a header, or a variant?
-  
-  std::string s = file.readLine();
+  if ( from_stdin && cin.eof() ) return VCF_EOF;
+  if ( (!from_stdin) && file.eof() ) return VCF_EOF;
 
-  if ( s == "" ) return VCF_EOF;
-  
+  //
+  // Read next line from file, (or STDIN)
+  // 
 
+  std::string s;
+  if ( from_stdin ) std::getline( std::cin , s );
+  else s = file.readLine();
+
+     
   //
   // If not a valid line, do nothing
   //
+
+  if ( s == "" ) return VCF_EOF;
   
   if ( s.size() < 3 ) 
     {
@@ -946,5 +951,5 @@ void VCFReader::set_fixxy( Mask * m , LocDBase * p , IndDBase * pi )
 
 VCFReader::~VCFReader()
 {
-  if ( file.is_open() ) file.close();
+  if ( (!from_stdin) && file.is_open() ) file.close();
 }

@@ -12,6 +12,8 @@ std::set<std::string> MetaMeta::internal_mask;
 bool MetaMeta::masked_show = false;
 bool MetaMeta::masked_hide = false;
 bool MetaMeta::masked_internal = false;
+bool MetaMeta::force_consensus_mode = false;
+
 
 void MetaMeta::load( const std::string & filename)
 {
@@ -79,7 +81,7 @@ void MetaMeta::clear()
 
 bool MetaMeta::static_variant( const std::string & attrib )
 {
-  return pop_static.find( attrib ) != pop_static.end() ;
+    return pop_static.find( attrib ) != pop_static.end() ;
 }
   
 

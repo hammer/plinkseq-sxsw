@@ -13,7 +13,7 @@ void g_geneseq( VariantGroup & vars , void * p )
   // assume refseq for now... 
   Region region = g.locdb.get_region( "refseq" , vars.name() ) ;  
   if ( region.subregion.size() == 0 ) return;
-  bool positive_strand = region.subregion[0].meta.get1_string( PLINKSeq::TRANSCRIPT_STRAND() ) != "-";
+  bool positive_strand = region.subregion[0].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() ) != -1;
   
   
   // get list of all 'events' (variants, intron/exon boundaries, reference variants)

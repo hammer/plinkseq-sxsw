@@ -76,9 +76,11 @@ class VCFReader {
    
    bool set(File * f)
    {    
-     fileinfo = f;
-     file.open( f->name().c_str() );
-     return true;
+       if ( f->name() == "-" ) { from_stdin = true; return true; }  
+       from_stdin = false;
+       fileinfo = f;
+       file.open( f->name().c_str() );
+       return true;
    }
 
    ~VCFReader();
@@ -123,8 +125,13 @@ class VCFReader {
 
   std::vector<meta_index_t*> formats;
   int gt_field;
-
   
+  // say we've already got the header (fix for STDIN mode, when we use 
+  // two separate VCFReaders in vcfiterate.cpp
+  
+  void observed_header( const bool b ) { obs_header = b; } 
+  void set_number_individuals( const int i ) { icnt = i; } 
+
  private:
 
   uint64_t file_id;
@@ -180,7 +187,7 @@ class VCFReader {
 
   File * fileinfo; 
   InFile file; 
-  
+  bool   from_stdin;
 
   // Misc.
 
