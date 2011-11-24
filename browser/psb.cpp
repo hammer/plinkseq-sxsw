@@ -414,6 +414,18 @@ int main()
   for (int i = 0 ; i < a.msk.size(); i++)
     mstr += ( i ? " " : "" ) + a.msk[i];
 
+
+  // Add some additional mask items to speed things up, and 
+  // check that the output isn't too large; note: the 'no-geno'
+  // assumes that complex mask queries that use genotype data 
+  // aren't applied, e.g. 
+  // include=" g( DP >= 10 ) > 0.1 "
+  
+  if ( q == Q_GENE || q == Q_REGION ) 
+    {
+      mstr = "limit=5000 no-geno " + mstr;
+    }
+
   Mask m( mstr );
   
   g.indmap.populate( g.vardb, g.phmap, m );
@@ -935,8 +947,8 @@ int main()
        std::cout << "<tr><td>Name</td><td>" << rs_link( var.name() ) << "</td></tr>";
        std::cout << "<tr><td>Chromosome</td><td>" << var.chromosome() << "</td></tr>";
        std::cout << "<tr><td>Position</td><td>" << var.position() << "</td></tr>";
-       std::cout << "<tr><td>Reference allele</td><td>" << var.reference() << "</td></tr>";
-       std::cout << "<tr><td>Alternate allele(s)</td><td>" << var.alternate() << "</td></tr>";
+       std::cout << "<tr><td>Reference allele</td><td>" << var.pp_reference() << "</td></tr>";
+       std::cout << "<tr><td>Alternate allele(s)</td><td>" << var.pp_alternate() << "</td></tr>";
        std::cout << "<tr><td>Samples</td><td>" << var.n_samples() << "</td></tr>";
 
        std::vector<std::string> keys = var.meta.keys();
@@ -953,8 +965,8 @@ int main()
        
        std::cout << "<p>Consensus</p>";	   
        std::cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";	   
-       std::cout << "<tr><td>Reference allele</td><td>" << sample.reference() << "</td></tr>";
-       std::cout << "<tr><td>Alternate allele(s)</td><td>" << sample.alternate() << "</td></tr>";
+       std::cout << "<tr><td>Reference allele</td><td>" << sample.pp_reference() << "</td></tr>";
+       std::cout << "<tr><td>Alternate allele(s)</td><td>" << sample.pp_alternate() << "</td></tr>";
 
        if ( sample.quality() < 0 ) 
 	 std::cout << "<tr><td>Quality</td><td>" << "NA" << "</td></tr>";
@@ -986,8 +998,8 @@ int main()
 	   
 	   std::cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";
 	   
-	   std::cout << "<tr><td>Reference allele</td><td>" << sample.reference() << "</td></tr>";
-	   std::cout << "<tr><td>Alternate allele(s)</td><td>" << sample.alternate() << "</td></tr>";
+	   std::cout << "<tr><td>Reference allele</td><td>" << sample.pp_reference() << "</td></tr>";
+	   std::cout << "<tr><td>Alternate allele(s)</td><td>" << sample.pp_alternate() << "</td></tr>";
 
 	   if ( sample.quality() < 0 ) 
 	     std::cout << "<tr><td>Quality</td><td>" << "NA" << "</td></tr>";
@@ -1329,7 +1341,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
   // Print name, with link to dbSNP if appropriate
   o1 << "<td>" << rs_link( var.name() ) << "</td>";
   
-  o1 << "<td>" << var.reference() << "/" << var.alternate() << "</td>";
+  o1 << "<td>" << var.pp_reference() << "/" << var.pp_alternate() << "</td>";
 
   o1 << "<td>" << var.n_samples() << "</td>";
   
@@ -1497,7 +1509,7 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
       // Print name, with link to dbSNP if appropriate
       std::cout << "<td>" << rs_link( vars.var(i).name() ) << "</td>";
            
-      std::cout << "<td>" << vars.var(i).reference() << "/" << vars.var(i).alternate() << "</td>" ;
+      std::cout << "<td>" << vars.var(i).pp_reference() << "/" << vars.var(i).pp_alternate() << "</td>" ;
 
 
       // Optional meta-information?

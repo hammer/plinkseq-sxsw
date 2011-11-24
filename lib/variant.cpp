@@ -1347,3 +1347,16 @@ bool Variant::has_nonreference_by_file( const int file_id ) const
   return false;
 }
 
+std::string Variant::pp_reference() const
+{ 
+  if ( consensus.ref.size() < 10 ) return consensus.ref; 
+  return consensus.ref.substr(0,5) + "...(" + Helper::int2str( consensus.ref.size() ) + "bp)";
+}
+
+std::string Variant::pp_alternate() const 
+{ 
+  if ( consensus.alt.size() < 10 ) return consensus.alt; 
+  return consensus.alt.substr(0,5) + "...(" + Helper::int2str( consensus.alt.size() ) + "bp)";
+}
+
+

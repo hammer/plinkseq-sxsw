@@ -1807,3 +1807,17 @@ inline int SampleVariant::addBoolGenMeta( int j , int f ,
  return idx;
 }  
 
+
+  /// pretty print versions of the above
+std::string SampleVariant::pp_reference() const
+{
+  if ( ref.size() < 10 ) return ref;
+  return ref.substr(0,5) + "...(" + Helper::int2str( ref.size() ) + "bp)";
+}
+
+
+std::string SampleVariant::pp_alternate() const
+{
+  if ( alt.size() < 10 ) return alt;
+  return alt.substr(0,5) + "...(" + Helper::int2str( alt.size() ) + "bp)";
+}

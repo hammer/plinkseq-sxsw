@@ -202,7 +202,12 @@ class Variant {
   /// Get string of alternate allele(s), as comma-delimited string list
   std::string alternate() const { return consensus.alt; }
   
-
+  
+  /// Pretty-print versions of the above (for large events)
+  /// Get reference allele (from consensus SampleVariant)
+  std::string pp_reference() const;
+  std::string pp_alternate() const;
+  
   /// Misc.
 
   void valid( bool b ) { is_valid = b; } 
