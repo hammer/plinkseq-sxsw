@@ -36,7 +36,6 @@ mask.h \
 matrix.h \
 meta.h \
 netdb.h \
-options.h \
 permute.h \
 phmap.h \
 pp.h \
@@ -73,7 +72,6 @@ bcf.cpp \
 zfstream.cpp \
 sqlwrap.cpp \
 helper.cpp \
-options.cpp \
 locdb.cpp \
 vardb.cpp \
 segments.cpp \

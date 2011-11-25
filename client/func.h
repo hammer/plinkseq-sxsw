@@ -17,12 +17,11 @@ namespace Pseq
   namespace Util {
     class Options;
     class Commands;
-    class ArgMap;
   }
 
   class VStat;    
   
-  bool new_project( std::string project , Pseq::Util::ArgMap & args );
+  bool new_project( std::string project , Pseq::Util::Options & args );
 
   bool set_project( std::string project );
 
@@ -183,176 +182,22 @@ namespace Pseq
       bool file_summary();
       
       bool meta_summary();
+            
       
-      // helper class for Options and ArgMap
-      // (to let Commands know which options/arguments are appropriate for a 
-      //  given command)
-
-      struct opt_t 
-      { 	
-      
-      opt_t( const std::string & name , const std::string & type , const std::string & desc ) 
-      : name(name) , type(type) , desc( desc) { } 	
-	
-      opt_t( const std::string & name ) : name(name) { } 
-
-	std::string name;   // e.g. file 
-	std::string type;   //      str
-	std::string desc;   // verbose description	
-	bool operator<( const opt_t & rhs ) const { return name < rhs.name; } 
-      };
-      
-      
-      class Options {
-	
-      public:
-	
-	void set(  const std::vector<std::string > & s ) 
-	{
-	  // asusme all key=value,key,pairs
-	  for (int i=0; i<s.size(); i++)
-	    {
-	      if ( s[i].find("=") != std::string::npos )
-		{
-		  const std::string key = s[i].substr(0, s[i].find("=") );
-		  const std::string vallist = s[i].substr( s[i].find("=") + 1 );
-		  optdata[ key ] = Helper::parseCommaList( vallist );
-		  simpledata[ key ] = vallist;
-		}
-	      else
-		{
-		  // evoke default set constructor
-		  optdata[ s[i] ];		  
-		}
-	    }
-	}
-	
-	void dump() const
-	{
-	  std::map< std::string, std::set< std::string> >::const_iterator i = optdata.begin();
-	  while ( i != optdata.end() )
-	    {
-	      plog << i->first << "\t";
-	      std::set<std::string>::iterator j = i->second.begin();
-	      while ( j != i->second.end() )
-		{
-		  plog << *j << " ";
-		  ++j;
-		}
-	      plog << "\n";
-	      ++i;
-	    }
-	}
-
-
-	bool key( const std::string & k ) const
-	{
-	  std::map< std::string, std::set< std::string > >::const_iterator i = optdata.find(k);
-	  return  i != optdata.end();
-	}
-	
-	bool value( const std::string & k , const std::string & val ) const
-	{
+      class Options { 
 	  
-	  std::map< std::string, std::set< std::string > >::const_iterator i = optdata.find(k);
-	  if ( i == optdata.end() ) return false;
-	  return i->second.find(val) != i->second.end();
-	}
-	
-	std::set<std::string> get_set( const std::string & k ) const
-	  {
-	    std::set<std::string> s;
- 	    std::map< std::string, std::set< std::string > >::const_iterator i = optdata.find(k);
-	    if ( i == optdata.end() ) return s;
-	    else return i->second;
-	  }
-	
-	std::string simple_string( const std::string & k ) const
-	  {
-	    
- 	    std::map< std::string,std::string>::const_iterator i = simpledata.find(k);
-	    if ( i == simpledata.end() ) return "";
-	    return i->second;
-	  }
-	
-	template<class T> 
-        T as( const std::string & k ) const 
-	  {
-            T t;
-            if ( ! key(k) ) return t;
-	    std::map< std::string, std::set< std::string > >::const_iterator i = optdata.find(k);
-	    // We only know how to handle single items here
-	    if ( i->second.size() != 1 ) return t;	    
-	    return Helper::lexical_cast<T>( *(i->second.begin()) );	    
-	  }
-	  
-	void attach( const std::string & command , const std::string & opt )
-	{
-
-	  // opt will be comma-delimited list of names
-	  // types and descriptions may be added separately, via a static function
-	  
-	  std::vector<std::string> opts = Helper::char_split( opt , ',' );
-	  for (int i=0; i<opts.size(); i++)
-	    comm2opt[ command ].insert( opts[i] );  
-	}
-	
-	static void reg_option( const std::string & o , const std::string & t , const std::string & d ) 
-	{
-	  optdesc.insert( opt_t( o , t , d ) );
-	}
-	
-	static std::string option_description( const std::string & o )
-	{
-	  std::set<opt_t>::iterator i = optdesc.find( opt_t(o) );
-	  return i == optdesc.end() ? "" : i->desc ;
-	}
-	
-	static std::string option_type( const std::string & o )
-	{
-	  std::set<opt_t>::iterator i = optdesc.find( opt_t(o) );
-	  return i == optdesc.end() ? "." : i->type ;
-	}
-
-	std::string attached( const std::string & command ) 
-	  {
-	    std::map<std::string,std::set<std::string> >::iterator i = comm2opt.find( command );
-	    std::string s = "";
-	    if ( i != comm2opt.end() )
-	      {
-		std::set<std::string>::iterator j = i->second.begin();
-		while ( j != i->second.end() )
-		  {
-		    s += "OPT\t" + i->first + "\t" + *j + "\t" + option_type( *j ) + "\t" + option_description( *j) + "\n";
-		    ++j;
-		  }      
-	      }
-	    return s;
-	  }
-
-      private:
-	
-	std::map< std::string, std::set< std::string> > optdata;
-	std::map< std::string,std::string> simpledata;
-	
-	std::map< std::string,std::set<std::string> > comm2opt;
-	static std::set< opt_t > optdesc;
-      };
-      
-
-      class ArgMap { 
-	
       public:	
-
-	static enum type_t { NONE , 
-			     STRING , 
-			     INT , 
-			     FLOAT , 
-			     STRING_VECTOR , 
-			     INT_VECTOR , 
-			     FLOAT_VECTOR } types ;
+	  
+	  static enum type_t { NONE , 
+			       STRING , 
+			       INT , 
+			       FLOAT , 
+			       STRING_VECTOR , 
+			       INT_VECTOR , 
+			       FLOAT_VECTOR , 
+			       VARIABLE_TYPE } types ;
 	
-	ArgMap( int , char** );	
+	void load( int , char** );	
 	
 	bool has( const std::string & ) const;
 	
@@ -402,29 +247,135 @@ namespace Pseq
 	    if ( i->second == STRING_VECTOR ) return "str-list";
 	    if ( i->second == INT_VECTOR ) return "int-list";
 	    if ( i->second == FLOAT_VECTOR ) return "float-list";
+	    if ( i->second == VARIABLE_TYPE ) return "variable";
 	    return ".";
 	  }
 
+
+	// FROM OLD OPTIONS
+	
+	// programmatically set options
+
+ 	void set( const std::string & k , std::vector<std::string > & v )  */
+	    {
+		// --options mac=1-2,3-50 
+		// --arg dp=2,3,4,5 mac=1-2,4-5,6-10  
+		
+	    }
+
+/* 	{ */
+/* 	  // asusme all key=value,key,pairs */
+/* 	  for (int i=0; i<s.size(); i++) */
+/* 	    { */
+/* 	      if ( s[i].find("=") != std::string::npos ) */
+/* 		{ */
+/* 		  const std::string key = s[i].substr(0, s[i].find("=") ); */
+/* 		  const std::string vallist = s[i].substr( s[i].find("=") + 1 ); */
+/* 		  optdata[ key ] = Helper::parseCommaList( vallist ); */
+/* 		  simpledata[ key ] = vallist; */
+/* 		} */
+/* 	      else */
+/* 		{ */
+/* 		  // evoke default set constructor */
+/* 		  optdata[ s[i] ];		   */
+/* 		} */
+/* 	    } */
+/* 	} */
+	
+
+ 	std::set<std::string> get_set( const std::string & k ) const 
+ 	  { 
+ 	    std::set<std::string> s; 
+ 	    std::map< std::string, std::vector< std::string > >::const_iterator i = data.find(k); 
+ 	    if ( i == data.end() ) return s; 
+ 	    for (int j=0; j < i->second.size(); j++)
+		s.insert( i->second[j] );
+	    return s;
+ 	  } 
+	
+
+ 	std::string comma_string( const std::string & k ) const 
+ 	    { 
+
+		std::map< std::string,std::vector<std::string> >::const_iterator i = data.find(k); 
+ 		if ( i == simpledata.end() ) return "";
+		std::string s = "";		
+		for (int j=0; j < i->second.size(); j++)
+		    {
+			if ( j ) s += ",";
+			s += i->second[j];
+		    }
+		return s;
+  	  } 
+	
+
+/* 	template<class T>  */
+/*         T as( const std::string & k ) const  */
+/* 	  { */
+/*             T t; */
+/*             if ( ! key(k) ) return t; */
+/* 	    std::map< std::string, std::set< std::string > >::const_iterator i = optdata.find(k); */
+/* 	    // We only know how to handle single items here */
+/* 	    if ( i->second.size() != 1 ) return t;	     */
+/* 	    return Helper::lexical_cast<T>( *(i->second.begin()) );	     */
+/* 	  } */
+	  
+
       private:
 	
+	// primary data-stores
 	
-	// --flag    val1 val2 val3
-	//   KEY    =     VALUE 
+	std::map<std::string, std::vector<std::string> > data;
+
+
+	// some meta-information on each argument, from reg()
+
+	std::map<std::string,type_t>                    known_type;
+	std::map<std::string,std::string>               known_desc;
+
+
+	// e.g. allow --mask to be -m 
+
+	std::map<std::string,std::string>               shortcuts;
+
+
+
+// OLD OPT store
+
+/*       private: */
 	
-	std::map<std::string,std::vector<std::string> > data;
-	std::map<std::string,type_t> known_type;
-	std::map<std::string,std::string> known_desc;
-	std::map<std::string,std::string> shortcuts;
+/* 	std::map< std::string, std::set< std::string> > optdata; */
+/* 	std::map< std::string,std::string> simpledata; */
+	
+/* 	std::map< std::string,std::set<std::string> > comm2opt; */
+/* 	static std::set< opt_t > optdesc; */
+/*       }; */
+      
+
+
 	
 	// attached args to commands
-	std::map<std::string,std::set<std::string> > comm2arg;
+	std::map<std::string,std::set<std::string> >    comm2arg;
 	
-	bool needs_help;
-	std::string help_str;
+
+	// the first two entries always expected to be project and command
+	// (unless 'help' mode)
 
 	std::string command_str;
+
 	std::string project_str;
+
+	
+	// 'help' mode 
+
+	bool needs_help;
+
+	std::string help_str;
+
       };
+
+
+
       
       
       class Commands {
@@ -468,16 +419,13 @@ namespace Pseq
 		if ( d[i] == "GRP" ) comm_group_iteration.insert( d[0] );
 		if ( d[i] == "VCF" ) comm_single_vcf.insert( d[0] );
 		if ( d[i] == "NOGENO" ) comm_no_genotypes.insert( d[0] );
-		if ( d[i].substr(0,4) == "ARG:" ) pargs->attach( d[0] , d[i].substr(4) );
-		if ( d[i].substr(0,4) == "OPT:" ) popt->attach( d[0] , d[i].substr(4) );
+		if ( d[i].substr(0,4) == "ARG:" ) pargs->attach( d[0] , d[i].substr(4) );		
 	      }
 	    
 	    return *this;
 	  }
 	
 	void attach( ArgMap * p ) { pargs = p; }
-
-	void attach( Options * p ) { popt = p; }
 
 	std::string group_description( const std::string & group ) const
 	  {
@@ -580,10 +528,9 @@ namespace Pseq
 	  // if a command (rather than a group) the list all args/opts
 	  
 	  if ( known(n) ) 
-	    {
-	      plog << pargs->attached( n ) 
-		   << popt->attached( n );
-	    }
+	  {
+		plog << pargs->attached( n );		   
+	  }
 	  
 	}
 	
@@ -639,7 +586,6 @@ namespace Pseq
 	std::map<std::string,std::string> group_group_rmap;
 
 	ArgMap * pargs;
-	Options * popt;
 	
       };
 

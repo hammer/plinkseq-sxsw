@@ -7,10 +7,8 @@
 #include "sqlwrap.h"
 #include "regions.h"
 
-#include "options.h"
 #include "helper.h"
 #include "variant.h"
-//#include "locdb.h"
 
 class Region;
 

@@ -2,7 +2,6 @@
 
 #include "variant.h"
 #include "genotype.h"
-#include "options.h"
 #include "helper.h"
 #include "mask.h"
 #include "bcf.h"

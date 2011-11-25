@@ -7,7 +7,6 @@
 #include <cerrno>
 
 #include "helper.h"
-#include "options.h"
 #include "regions.h"
 #include "variant.h"
 #include "gstore.h"

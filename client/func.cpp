@@ -555,8 +555,8 @@ bool Pseq::VarDB::write_vardb( const std::string & new_project ,
   // Add header and meta-information 
   //
   
-  newdb.insert( "newvardb" , "newvardb" );
-  newdb.insert_header( 1, "format" , "VCFv4.0" ); 
+  newdb.insert( "newvardb" , "1" );
+  newdb.insert_header( 1, "format" , "VARDB" ); 
   newdb.insert_header( 1, "source" , "pseq" ); 
   
   //
@@ -566,8 +566,42 @@ bool Pseq::VarDB::write_vardb( const std::string & new_project ,
   std::vector<std::string> ids = g.indmap.ind_id();  
   for (int i = 0 ; i < ids.size() ; i++ )
     newdb.insert( 1 , Individual( ids[i] ) );
-  
 
+  //
+  // Add meta-information descriptors
+  //
+
+  std::map<meta_name_t,meta_index_t> midx_var = MetaInformation<VarMeta>::dump_types();
+  std::map<meta_name_t,meta_index_t> midx_flt = MetaInformation<VarFilterMeta>::dump_types();
+  std::map<meta_name_t,meta_index_t> midx_gen = MetaInformation<GenMeta>::dump_types();
+
+  std::map<meta_name_t,meta_index_t>::iterator mi = midx_var.begin();
+  while ( mi != midx_var.end() )
+  {
+      meta_index_t & midx = mi->second;
+      newdb.insert_metatype( 1 , midx.name , midx.mt , midx.len , META_GROUP_VAR , midx.description );
+      ++mi;
+  }
+
+  mi = midx_flt.begin();
+  while ( mi != midx_flt.end() )
+  {
+      meta_index_t & midx = mi->second;
+      newdb.insert_metatype( 1 , midx.name , midx.mt , midx.len , META_GROUP_FILTER , midx.description );
+      ++mi;
+  }
+
+  mi = midx_gen.begin();
+  while ( mi != midx_gen.end() )
+  {
+      meta_index_t & midx = mi->second;
+      newdb.insert_metatype( 1 , midx.name , midx.mt , midx.len , META_GROUP_GEN , midx.description );
+      ++mi;
+  }
+
+
+
+  
   //
   // Add selected variants (and meta-fields)
   //

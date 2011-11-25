@@ -2,7 +2,6 @@
 #include "filemap.h"
 #include "helper.h"
 #include "defs.h"
-#include "options.h"
 #include "bcf.h"
 #include "vcfz.h"
 

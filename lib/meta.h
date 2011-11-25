@@ -1445,6 +1445,14 @@ class MetaInformation {
 	return i != nameMap.end();
       }
 
+
+    static std::map<meta_name_t, meta_index_t> dump_types()
+	{
+	    return nameMap;
+	}
+
+
+
     static meta_index_t field(const meta_name_t & s,
 			      const mType t = META_UNDEFINED ,
 			      const int num = -1 ,

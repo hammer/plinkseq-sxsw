@@ -27,8 +27,6 @@
 // Helper functions, etc
 
 #include "defs.h"
-#include "options.h"
-
 
 #include <vector>
 #include <map>

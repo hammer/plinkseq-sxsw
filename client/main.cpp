@@ -19,7 +19,7 @@ using namespace std;
 
 GStore g;
 
-Pseq::Util::Options options;
+Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.08";
@@ -35,7 +35,7 @@ int main(int argc, char ** argv)
 
   // pseq {project} {command} {--options}
   
-  Pseq::Util::ArgMap args( argc , argv );
+  args.load( argc , argv );
 
 
   // connect with GSEQ job tracking?
