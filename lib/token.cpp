@@ -41,44 +41,64 @@ void Token::set( const bool b )
 
 void Token::set( const std::vector<std::string> & s )
 {
-    ttype = STRING_VECTOR;
-    svec = s;
+  if ( s.size() == 1 ) 
+    set( s[0] );
+  else
+    {
+      ttype = STRING_VECTOR;
+      svec = s;
+    }
 }
 
 void Token::set( const std::vector<double> & d )
 {
-    ttype = FLOAT_VECTOR;
-    fvec = d;
+  if ( d.size() == 1 ) 
+    set( d[0] );
+  else 
+    {
+      ttype = FLOAT_VECTOR;
+      fvec = d;
+    }
 }
 
 void Token::set( const std::vector<int> & i )
 {
-    ttype = INT_VECTOR;
-    ivec = i;
+  if ( i.size() == 1 ) 
+    set( i[0] ); 
+  else 
+    {
+      ttype = INT_VECTOR;
+      ivec = i;
+    }
 }
 
 void Token::set( const std::vector<bool> & b )
 {
-    ttype = BOOL_VECTOR;
-    bvec = b;
+  if (b.size()==1) 
+    set(b[0]);
+  else 
+    { 
+      ttype = BOOL_VECTOR;
+      bvec = b;
+    }
 }
 
 
 void Token::function( const std::string & fn )
 {
-    ttype = FUNCTION;
-    tname = fn;
+  ttype = FUNCTION;
+  tname = fn;
 }
 
 void Token::oper( Token::tok_type t )
 {
-    ttype = t;    
+  ttype = t;    
 }
 
 void Token::variable( const std::string & mf )
 {
-    ttype = VARIABLE;
-    tname = mf;
+  ttype = VARIABLE;
+  tname = mf;
 }
 
 void Token::init()
@@ -848,10 +868,10 @@ Token Token::operator/(const Token & rhs) const
     {
       const int sz = size();
       if ( sz == 0 ) return Token();
-      std::vector<int> ans( sz );      
-      if      ( rhs.is_int() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] / rhs.ival;
-      else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = ivec[i] / (int)rhs.fval;
-      else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] / (int)rhs.bval;
+      std::vector<double> ans( sz );      
+      if      ( rhs.is_int() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] / (double)rhs.ival;
+      else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = ivec[i] / rhs.fval;
+      else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] / (double)rhs.bval;
       return Token( ans );            
     }
   
@@ -859,10 +879,10 @@ Token Token::operator/(const Token & rhs) const
     {
       const int sz = rhs.size();
       if ( sz == 0 ) return Token();
-      std::vector<int> ans( sz );      
-      if      ( is_int() )   for (int i=0; i<sz; i++) ans[i] = ival      / rhs.ivec[i];
-      else if ( is_float() ) for (int i=0; i<sz; i++) ans[i] = (int)fval / rhs.ivec[i];
-      else if ( is_bool() )  for (int i=0; i<sz; i++) ans[i] = (int)bval / rhs.ivec[i];
+      std::vector<double> ans( sz );      
+      if      ( is_int() )   for (int i=0; i<sz; i++) ans[i] = ival / (double)rhs.ivec[i];
+      else if ( is_float() ) for (int i=0; i<sz; i++) ans[i] = fval / (double)rhs.ivec[i];
+      else if ( is_bool() )  for (int i=0; i<sz; i++) ans[i] = bval / (double)rhs.ivec[i];
       return Token( ans );            
     }
 
@@ -889,17 +909,17 @@ Token Token::operator/(const Token & rhs) const
     }
 
 
-  // scalar + scalar
+  // scalar / scalar  (always return a double)
 
   if ( is_int() ) 
     {
-      if ( rhs.is_int()   ) return Token( ival / rhs.ival );
+      if ( rhs.is_int()   ) return Token( ival / (double)rhs.ival );
       if ( rhs.is_float() ) return Token( ival / rhs.fval );
     }
 
   if ( is_float() ) 
     {
-      if ( rhs.is_int()   ) return Token( fval / rhs.ival );
+      if ( rhs.is_int()   ) return Token( fval / (double)rhs.ival );
       if ( rhs.is_float() ) return Token( fval / rhs.fval );
     }
 
@@ -952,10 +972,10 @@ Token Token::operator<(const Token & rhs) const
     {
       const int sz = rhs.size();
       if ( sz == 0 ) return Token();
-      std::vector<bool> ans( sz );      
-      if      ( is_int() )   for (int i=0; i<sz; i++) ans[i] = ival      < rhs.ivec[i];
-      else if ( is_float() ) for (int i=0; i<sz; i++) ans[i] =      fval < rhs.ivec[i];
-      return Token( ans );            
+      std::vector<bool> ans( sz );
+      if      ( is_int() )   for (int i=0; i<sz; i++) ans[i] = ival < rhs.ivec[i];
+      else if ( is_float() ) for (int i=0; i<sz; i++) ans[i] = fval < rhs.ivec[i];
+      return Token( ans ); 
     }
 
   else if ( is_float_vector() )

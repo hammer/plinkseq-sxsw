@@ -48,6 +48,9 @@ int main()
 
   std::cout << "Content-type: text/html\n\n"
 	    << "<html><head><title>PLINK/SEQ Browser</title>"
+	    << "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />"
+	    << "<title>PLINK/SEQ genetics library</title>"
+	    << "<link href=\"default.css\" rel=\"stylesheet\" type=\"text/css\" />"
 	    << "</head><body>";
   
   if ( cgi ) 
@@ -413,6 +416,24 @@ int main()
   std::string mstr;
   for (int i = 0 ; i < a.msk.size(); i++)
     mstr += ( i ? " " : "" ) + a.msk[i];
+
+
+  // Add some additional mask items to speed things up, and 
+  // check that the output isn't too large; note: the 'no-geno'
+  // assumes that complex mask queries that use genotype data 
+  // aren't applied, e.g. 
+  // include=" g( DP >= 10 ) > 0.1 "
+  
+  if ( q == Q_GENE || q == Q_REGION ) 
+    {
+      // if no mask, safe to add 'no-geno', otherwise, we should keep in case
+      if ( mstr == "" ) 
+	mstr = "limit=5000 no-geno " + mstr;
+      else
+	mstr = "limit=5000 " + mstr;      
+    }
+
+  std::cout << "m = ["<<mstr<<"\n";
 
   Mask m( mstr );
   
@@ -927,7 +948,7 @@ int main()
        //
 
 
-       std::cout << "<table width=90%><tr><td width=40% valign=top>";
+       std::cout << "<table width=100%><tr><td width=50% valign=top>";
 
        std::cout << "<h3><font color=\"blue\">Variant information</font></h3>";
          
@@ -935,8 +956,8 @@ int main()
        std::cout << "<tr><td>Name</td><td>" << rs_link( var.name() ) << "</td></tr>";
        std::cout << "<tr><td>Chromosome</td><td>" << var.chromosome() << "</td></tr>";
        std::cout << "<tr><td>Position</td><td>" << var.position() << "</td></tr>";
-       std::cout << "<tr><td>Reference allele</td><td>" << var.reference() << "</td></tr>";
-       std::cout << "<tr><td>Alternate allele(s)</td><td>" << var.alternate() << "</td></tr>";
+       std::cout << "<tr><td>Reference allele</td><td>" << var.pp_reference() << "</td></tr>";
+       std::cout << "<tr><td>Alternate allele(s)</td><td>" << var.pp_alternate() << "</td></tr>";
        std::cout << "<tr><td>Samples</td><td>" << var.n_samples() << "</td></tr>";
 
        std::vector<std::string> keys = var.meta.keys();
@@ -953,8 +974,8 @@ int main()
        
        std::cout << "<p>Consensus</p>";	   
        std::cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";	   
-       std::cout << "<tr><td>Reference allele</td><td>" << sample.reference() << "</td></tr>";
-       std::cout << "<tr><td>Alternate allele(s)</td><td>" << sample.alternate() << "</td></tr>";
+       std::cout << "<tr><td>Reference allele</td><td>" << sample.pp_reference() << "</td></tr>";
+       std::cout << "<tr><td>Alternate allele(s)</td><td>" << sample.pp_alternate() << "</td></tr>";
 
        if ( sample.quality() < 0 ) 
 	 std::cout << "<tr><td>Quality</td><td>" << "NA" << "</td></tr>";
@@ -986,8 +1007,8 @@ int main()
 	   
 	   std::cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";
 	   
-	   std::cout << "<tr><td>Reference allele</td><td>" << sample.reference() << "</td></tr>";
-	   std::cout << "<tr><td>Alternate allele(s)</td><td>" << sample.alternate() << "</td></tr>";
+	   std::cout << "<tr><td>Reference allele</td><td>" << sample.pp_reference() << "</td></tr>";
+	   std::cout << "<tr><td>Alternate allele(s)</td><td>" << sample.pp_alternate() << "</td></tr>";
 
 	   if ( sample.quality() < 0 ) 
 	     std::cout << "<tr><td>Quality</td><td>" << "NA" << "</td></tr>";
@@ -1329,7 +1350,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
   // Print name, with link to dbSNP if appropriate
   o1 << "<td>" << rs_link( var.name() ) << "</td>";
   
-  o1 << "<td>" << var.reference() << "/" << var.alternate() << "</td>";
+  o1 << "<td>" << var.pp_reference() << "/" << var.pp_alternate() << "</td>";
 
   o1 << "<td>" << var.n_samples() << "</td>";
   
@@ -1358,9 +1379,18 @@ void ExomeBrowser::f_display(Variant & var, void *p)
   // Optional meta-information?
   
   for (int m=0; m < a->mf.size(); m++)
-    o1 << "<td nowrap>" << var.print_meta( a->mf[m] , "<br>" ) << "</td>";
-  
-  
+    {
+      std::string s = var.print_meta( a->mf[m] , "\t" );
+      std::vector<std::string> sv = Helper::char_split( s , '\t' , true );      
+      o1 << "<td nowrap>"; 
+      for (int i=0;i<sv.size(); i++)
+	{ 
+	  if (i) o1 << "<br>"; 
+	  o1 << pp( sv[i] );	  
+	}
+      o1 << "</td>";
+    } 
+     
   // Appends? 
   
   if ( a->extended_search ) 
@@ -1497,7 +1527,7 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
       // Print name, with link to dbSNP if appropriate
       std::cout << "<td>" << rs_link( vars.var(i).name() ) << "</td>";
            
-      std::cout << "<td>" << vars.var(i).reference() << "/" << vars.var(i).alternate() << "</td>" ;
+      std::cout << "<td>" << vars.var(i).pp_reference() << "/" << vars.var(i).pp_alternate() << "</td>" ;
 
 
       // Optional meta-information?
@@ -1568,7 +1598,11 @@ std::string ExomeBrowser::rs_link(const std::string & label )
   return label;
 }
 
-
+std::string ExomeBrowser::pp(const std::string & str , const int len ) 
+{
+  if ( str.size() < len ) return str;
+  return "<abbr title=\"" + str + "\">" + str.substr(0,len) + "...</abbr>";
+}
 
 void ExomeBrowser::make_gene_list(Aux * a)
 {

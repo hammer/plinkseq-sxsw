@@ -1694,7 +1694,7 @@ bool VarDBase::check_version()
       sql.bind_text( si , ":x" , vn );
       sql.bind_int( si , ":y" , v );
       sql.step(si);
-      sql.finalise(si);
+      sql.finalise(si);      
     }
 
   if ( v != PLINKSeq::VARDB_VERSION_NUMBER() ) 

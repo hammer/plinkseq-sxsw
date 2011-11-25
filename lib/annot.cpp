@@ -366,7 +366,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
   // Currently, only annot single-base pair polymorphisms
   // 
 
-  if ( reference.size() > 1 )    
+  if ( reference.size() > 1 )  
     {
       annot.insert( SeqInfo( UNDEF ) ) ;
       return annot; 
@@ -420,7 +420,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
   while ( a != alt.end() )
     {
       
-      if ( a->size() > 1 )    
+      if ( a->size() > 1 )
 	{
 	  annot.insert( SeqInfo( UNDEF ) ) ;
 	  ++a; 

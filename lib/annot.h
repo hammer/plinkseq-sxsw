@@ -55,7 +55,15 @@ struct SeqInfo {
   
   static std::map< seq_annot_t , std::string> types;
   
-  SeqInfo( seq_annot_t t ) : type(t) { } 
+  SeqInfo( seq_annot_t t ) : type(t) 
+  { 
+    genomic_ref = genomic_alt = "";
+    cpos1 = 0;
+    ref_seq = alt_seq = "";
+    ppos1 = 0;
+    ref_aa = alt_aa = "";
+    transcript = "";
+  } 
   
   SeqInfo( const std::string & transcript, 
 	   const seq_annot_t & type , 

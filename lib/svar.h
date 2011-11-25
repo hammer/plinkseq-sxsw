@@ -77,7 +77,7 @@ class SampleVariant {
   
   /// Get reference allele (string, 1+ characters)
   std::string reference() const { return ref; }
-
+  
   /// Set alternate allele(s), comma-delimited list, e.g. A,T
   void alternate(const std::string & s) { alt = s; }
   
@@ -91,6 +91,11 @@ class SampleVariant {
       return alleles[k].name();
     }
   
+  /// pretty print versions of the above
+  std::string pp_reference() const;
+  std::string pp_alternate() const;
+
+
   /// If a VARDB attached, get file-name given fileset() value
   std::string file_name() const;
 
