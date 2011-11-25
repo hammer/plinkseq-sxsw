@@ -44,6 +44,9 @@ namespace ExomeBrowser {
 
   std::string rs_link(const std::string & label );
 
+  // Pretty print long strings
+
+  std::string pp( const std::string & str , const int len = 15 );
   
   struct Aux {
     Aux() 

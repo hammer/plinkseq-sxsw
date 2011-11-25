@@ -986,7 +986,7 @@ template<class T> void Eval::bind( MetaInformation<T> & m , bool reset )
 		      else if ( midx.mt == META_BOOL  )  { (*tok)->set( m.get1_bool( i->first ) );   }	      
 		    }
 		  else //vectors
-		    {
+		    {		      
 		      if      ( midx.mt == META_INT   )  { (*tok)->set( m.get_int( i->first ) );    }
 		      else if ( midx.mt == META_FLOAT )  { (*tok)->set( m.get_double( i->first ) ); }
 		      else if ( midx.mt == META_TEXT  )  { (*tok)->set( m.get_string( i->first ) ); }
@@ -1166,8 +1166,30 @@ std::string Eval::errmsg() const
 bool Eval::value(bool & b)
 {
   if ( e.is_bool(&b) ) return true;
+
   int i;
   if ( e.is_int(&i) ) { b=i; return true; }
+
+  // for vectors, evaluate to T is at least one T
+
+  std::vector<bool> bv;
+  if ( e.is_bool_vector(&bv) ) 
+    {
+      b = false;
+      for (int i=0;i<bv.size();i++) 
+	if ( bv[i] ) { b=true; break; }
+      return true;
+    }
+  
+  std::vector<int> iv;
+  if ( e.is_int_vector(&iv) ) 
+    {
+      b = false;
+      for (int i=0;i<iv.size();i++) 
+	if ( iv[i] ) { b=true; break; }
+      return true;
+    }
+
   return false;
 }
 
