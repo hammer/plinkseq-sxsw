@@ -19,7 +19,7 @@
 #include "variant.h"
 #include "varfunc.h"
 #include "vcf.h"
-#include "vczf.h"
+#include "vcfz.h"
 #include "bcf.h"
 #include "zfstream.h"
 #include "variant.pb.h"

@@ -2,7 +2,13 @@
 #include "func.h"
 
 extern GStore g;
-extern Pseq::Util::Options options;
+extern Pseq::Util::Options args;
+
+void Pseq::IBS::regargs( Pseq::Util::Options * args )
+{
+    args->reg( "long-format" , Pseq::Util::Options::NONE , "output one row per line (instead of n-by-n matrix)" );
+    args->reg( "two-counts"  , Pseq::Util::Options::NONE , "only consider variants seen twice in the sample" );
+}
 
 bool Pseq::IBS::calculate( Mask & m ) 
 {
@@ -12,8 +18,8 @@ bool Pseq::IBS::calculate( Mask & m )
   
   g.vardb.iterate( f_IBS_calculator , &aux , m );
   
-  bool matrix = ! options.key("long-format");
-  bool two_counts = (!matrix) && options.key("two-counts");
+  bool matrix = ! args.has("long-format");
+  bool two_counts = (!matrix) && args.has("two-counts");
   
   if ( matrix ) 
     {

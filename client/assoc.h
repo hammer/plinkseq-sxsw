@@ -31,9 +31,9 @@ namespace Pseq
 
       bool glm_assoc_test( Mask & , Aux_glm &  );
       
-      bool set_assoc_test( Mask & , const Pseq::Util::ArgMap & , const Pseq::Util::Options & options );
+      bool set_assoc_test( Mask & , const Pseq::Util::Options & );
 
-      bool net_assoc_test( Mask & , const Pseq::Util::ArgMap & );
+      bool net_assoc_test( Mask & , const Pseq::Util::Options & );
       
       struct Aux 
       {

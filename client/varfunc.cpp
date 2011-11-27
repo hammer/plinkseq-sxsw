@@ -1,11 +1,11 @@
 
-#include "func.h"
+#include "util.h"
 #include "pseq.h"
 #include "assoc.h"
 #include "genic.h"
 
 extern GStore g;
-extern Pseq::Util::Options options;
+extern Pseq::Util::Options args;
 
 struct AuxConcordanceStats 
 {  
@@ -344,7 +344,7 @@ bool Pseq::VarDB::check_concordance( Mask & m )
 {
   AuxConcordanceCheck aux;
 
-  if ( options.key("report-all") )
+  if ( args.has("report-all") )
     aux.report_all = true;
 
   plog << "_VARIANT" << "\t"
@@ -622,24 +622,23 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask , cons
   // From LOCDB, take set of gene-groups
   // From REFDB, take set of ref-variants
 
-  aux.locs = options.get_set( "loc" );
-  aux.refs = options.get_set( "ref" );
+  aux.locs = args.get_set( "loc" );
+  aux.refs = args.get_set( "ref" );
   
   aux.append_phe = g.vardb.attached() && g.inddb.attached() && g.phmap.type() == PHE_DICHOT;    
   aux.append_loc = g.locdb.attached() && aux.locs.size() > 0;
   aux.append_ref = g.refdb.attached() && aux.refs.size() > 0;
   aux.append_seq = g.seqdb.attached();
   aux.vardb = g.vardb.attached();
-  aux.append_annot = g.seqdb.attached() && ( options.key("annot") || options.key( "annotate" ) );
+  aux.append_annot = g.seqdb.attached() && args.has( "annotate" ) ;
 
   if ( ! ( aux.vardb || aux.append_loc || aux.append_ref || aux.append_seq || aux.append_annot ) ) 
     Helper::halt("no information to append");
   
   if ( aux.append_annot ) 
     {
-      std::string annot_transcripts = PLINKSeq::DEFAULT_LOC_GROUP() ;
-      if ( options.key( "annot" ) ) annot_transcripts = options.as<std::string>( "annot" );
-      else if ( options.key( "annotate" ) ) annot_transcripts = options.as<std::string>( "annotate" );      
+      std::string annot_transcripts = PLINKSeq::DEFAULT_LOC_GROUP() ;      
+      if ( args.has( "annotate" ) ) annot_transcripts = args.as_string( "annotate" );      
       Annotate::load_transcripts( LOCDB, annot_transcripts );
     }
   
@@ -839,7 +838,7 @@ bool Pseq::VarDB::annotate_loc( const std::string & grp, Mask & m )
   Aux_annotate_loc aux( &g.locdb , 
 			grp , 
 			nm , 
-			options.key("show-subregions"));
+			args.has("show-subregions"));
   g.vardb.iterate( f_annotate_loc , &aux , m );
 
   return true;
@@ -870,11 +869,11 @@ bool Pseq::VarDB::simple_sim()
   plog.data_header_done();
   
   a.vanilla = a.burden = a.uniq = true;
-  a.mhit = options.key("mhit" );
-  a.vt = options.key("vt");
-  a.fw = options.key("fw");
-  a.calpha = options.key("calpha");
-  a.cancor = options.key("cancor");
+  a.mhit = args.has( "assoc" , "mhit" );
+  a.vt = args.has( "vt" );
+  a.fw = args.has( "fw" );
+  a.calpha = args.has( "calpha" );
+  a.cancor = args.has( "cancor" );
 
   const int ntests = a.n_tests();
   const int nrep = -1;
@@ -927,7 +926,7 @@ bool Pseq::VarDB::simple_sim()
   // (which requires a constructed IndMap, to specify the # of individuals)
 
   g.perm.initiate(  nrep , ntests );
-  a.fix_null_genotypes = options.key("fix-null");
+  a.fix_null_genotypes = args.has( "fix-null" );
 
 
   // read block-level data
@@ -1210,7 +1209,7 @@ bool Pseq::VarDB::proximity_scan( Mask & mask )
 {
   
   Aux_proximity aux;
-  aux.dist = options.key( "dist" ) ? options.as<int>( "dist" ) : 2 ;
+  aux.dist = args.has( "distance" ) ? args.as_int( "distance" ) : 2 ;
   
   plog.data_reset();	
 

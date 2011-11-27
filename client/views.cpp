@@ -1,6 +1,7 @@
 
 #include "views.h"
 #include "em.h"
+#include "util.h"
 #include "func.h"
 
 #include "pseq.h"
@@ -9,7 +10,7 @@
 #include <cmath>
 
 extern GStore g;
-extern Pseq::Util::Options options;
+extern Pseq::Util::Options args;
 
 void f_view( Variant & v , void * p )
 {
@@ -793,7 +794,7 @@ bool Pseq::LocDB::loc_view( const std::string & group , const std::vector<std::s
 bool Pseq::SeqDB::loc_translate( const std::string & group )
 {
   
-  bool verbose = options.key("verbose");
+  bool verbose = args.has( "verbose" );
   
   LocDBase * db = g.resolve_locgroup( group ) ;
   

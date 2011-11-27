@@ -5,14 +5,18 @@
 #include <vector>
 
 #include "pseq.h"
+#include "util.h"
 
 class Mask;
+
 
 namespace Pseq {
   
   namespace IBS {
-    
-    bool calculate( Mask & );
+
+      void regargs( Pseq::Util::Options * args );    
+      
+      bool calculate( Mask & );
 
     class Aux {
       

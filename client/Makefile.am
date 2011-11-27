@@ -14,7 +14,10 @@ ibs.h \
 loaders.h \
 netassoc.h \
 summaries.h \
+util.h \
 views.h \
+util.cpp \
+ibs.cpp \
 main.cpp \
 func.cpp \
 summaries.cpp \
@@ -23,11 +26,9 @@ assoc.cpp \
 genic.cpp \
 compare.cpp \
 ibd.cpp \
-ibs.cpp \
 loaders.cpp \
 clusters.cpp \
 varfunc.cpp \
-util.cpp \
 glm-tests.cpp \
 stepup.cpp \
 kbac.cpp \

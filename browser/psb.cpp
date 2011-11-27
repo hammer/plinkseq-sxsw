@@ -433,7 +433,7 @@ int main()
 	mstr = "limit=5000 " + mstr;      
     }
 
-  std::cout << "m = ["<<mstr<<"\n";
+//  std::cout << "m = ["<<mstr<<"]\n";
 
   Mask m( mstr );
   

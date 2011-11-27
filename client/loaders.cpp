@@ -1,56 +1,54 @@
 #include "loaders.h"
-#include "func.h"
+#include "util.h"
 #include "netdb.h"
 
 extern GStore g;
-extern Pseq::Util::Options options;
+extern Pseq::Util::Options args;
 extern Log plog;
 
 bool Pseq::VarDB::load_VCF( Mask & mask )
 {
-  // are any optinal locus groups specified (this will act as a mask, such that
-  // we only read in variants that fall in this region
-  
-  bool region_mask = options.key("filter");
-  
-  std::string rmask;
-  if ( region_mask ) rmask = options.as<std::string>("filter");
 
-  // filters on meta-fields?
-  std::set<std::string> includes, excludes;
-  if ( options.key( "meta" ) ) 
-    includes = options.get_set( "meta" );
-  if ( options.key( "meta.ex" ) ) 
-    excludes = options.get_set( "meta.ex" );
+    // are any optinal locus groups specified (this will act as a mask, such that
+    // we only read in variants that fall in this region
+    
+    bool region_mask = args.has("filter");
+    
+    std::string rmask;
+    if ( region_mask ) rmask = args.as_string( "filter" );
 
-  if ( ! options.key("check-reference") ) g.seqdb.dettach();
-       
-  return g.vardb_load_vcf( mask , includes , excludes , region_mask ? & rmask : NULL );
+    // filters on meta-fields?
+
+    std::set<std::string> includes, excludes;
+    if ( args.has( "include-meta" ) ) includes = args.get_set( "include-meta" );
+    if ( args.has( "exclude-meta" ) ) excludes = args.get_set( "exclude-meta" );
+    
+    if ( ! args.has("check-reference") ) g.seqdb.dettach();
+    
+    return g.vardb_load_vcf( mask , includes , excludes , region_mask ? & rmask : NULL );
 }
 
 bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & grp ) 
 {
 
-  bool region_mask = options.key("filter");
+  bool region_mask = args.has( "filter" );
   
   std::set<Region> filter;
-  if ( region_mask ) filter = g.locdb.get_regions( options.as<std::string>("filter") );  
+  if ( region_mask ) filter = g.locdb.get_regions( args.as_string( "filter" ) );  
   std::set<Region> * pfilter = region_mask ? &filter : NULL  ;
   
   // filters on meta-fields?
   std::set<std::string> includes, excludes;
-  if ( options.key( "meta" ) ) 
-    includes = options.get_set( "meta" );
-  if ( options.key( "meta.ex" ) ) 
-    excludes = options.get_set( "meta.ex" );
+  if ( args.has( "include-meta" ) ) includes = args.get_set( "include-meta" );
+  if ( args.has( "exclude-meta" ) ) excludes = args.get_set( "exclude-meta" );
   
   std::string comment;
-  if ( options.key("description") ) comment = options.as<std::string>( "description" );
+  if ( args.has( "description" ) ) comment = args.as_string( "description" );
   
-  if ( ! options.key("check-reference") ) g.seqdb.dettach();
+  if ( ! args.has( "check-reference" ) ) g.seqdb.dettach();
 
   if ( ! Helper::valid_name( grp ) ) 
-    Helper::halt( grp + " is not a valid name" );
+      Helper::halt( grp + " is not a valid name" );
 
   return g.refdb.load_VCF( filename , 
 			   grp , 
@@ -69,9 +67,9 @@ bool Pseq::VarDB::load_PLINK( const std::vector<std::string> & name , const Pseq
   
   BEDReader b( &g.vardb );
   b.set_root( fileroot );
-  if ( ! options.key("check-reference") ) g.seqdb.dettach();
+  if ( ! args.has("check-reference") ) g.seqdb.dettach();
   if ( g.seqdb.attached() ) b.use_seqdb( &g.seqdb );
-  b.store_phenotypes( &g.inddb, options.key("phenotype") ? options.as<std::string>("phenotype") : "phe1" );
+  b.store_phenotypes( &g.inddb, args.has("phenotype") ? args.as_string("phenotype") : "phe1" );
   if ( tag != "" ) b.set_tag( tag );
   bool okay = b.read_bed();
   if ( ! okay ) plog.warn( "problems detected loading BED file, " + fileroot );
@@ -87,37 +85,38 @@ bool Pseq::SeqDB::load_FASTA( const std::string & filename )
 
   std::map<std::string,std::string> meta;
 	
-  if ( options.key("name") ) meta[ PLINKSeq::SEQDB_NAME_KEY() ] = options.as<std::string>("name");
+  if ( args.has("name") ) meta[ PLINKSeq::SEQDB_NAME_KEY() ] = Pseq::Util::single_argument<std::string>( args , "name" ); 
   else Helper::halt("no name specified in options");
 
-  if ( options.key("build") ) meta[ PLINKSeq::SEQDB_GENOME_BUILD_KEY() ] = options.as<std::string>("build");
+  if ( args.has("build") ) meta[ PLINKSeq::SEQDB_GENOME_BUILD_KEY() ] = Pseq::Util::single_argument<std::string>( args , "build" ); 
   else Helper::halt("no build specified in options");
   
-  if ( options.key("repeat-mode") ) 
+  if ( args.has("repeat-mode") ) 
     {
-      std::string m = options.as<std::string>("repeat-mode");
+
+	std::string m = args.as_string( "repeat-mode" );
       
-      // should be none  = none
-      //           N     = N-masked
-      //           lower = lower-case
+	// should be none  = none
+	//           N     = N-masked
+	//           lower = lower-case
+	
+	if ( m != "none" && m != "N" && m != "lower" )
+	    Helper::halt("repeat-mode should be 'none', 'N' or 'lower'");
       
-      if ( m != "none" && m != "N" && m != "lower" )
-	Helper::halt("repeat-mode should be 'none', 'N' or 'lower'");
-      
-      meta[ PLINKSeq::SEQDB_REPEAT_MODE_KEY() ] = m;
+	meta[ PLINKSeq::SEQDB_REPEAT_MODE_KEY() ] = m;
     }
   else Helper::halt("no repeat-mode specified in options");
   
-  if ( options.key("description") ) meta[ PLINKSeq::SEQDB_DESCRIPTION_KEY() ] = options.as<std::string>("description");
+  if ( args.has( "description" ) ) meta[ PLINKSeq::SEQDB_DESCRIPTION_KEY() ] = args.as_string( "description" );
   else Helper::halt("no description specified in options");
   
-  if ( options.key("iupac") || options.key("IUPAC") ) 
+  if ( args.has("iupac") || args.has("IUPAC") ) 
     meta[ PLINKSeq::SEQDB_IUPAC_KEY() ] = "1";
   else
     meta[ PLINKSeq::SEQDB_IUPAC_KEY() ] = "0";
   
   g.seqdb.create( filename );
-  std::cout << "about to load..\n";
+  plog << "loading from FASTA..\n";
   g.seqdb.loadFASTA( filename , meta );
   
   return true;
@@ -126,7 +125,7 @@ bool Pseq::SeqDB::load_FASTA( const std::string & filename )
 
 bool Pseq::RefDB::load_refvar( const std::string & filename , 
 			       const std::string & label , 
-			       Pseq::Util::Options & options )
+			       Pseq::Util::Options & args )
 {
   
   //
@@ -176,25 +175,25 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
   
   // allow command-line swap-ins
 
-  if ( options.key("CHR") ) f_chr   = options.as<std::string>("CHR");
-  if ( options.key("BP1") ) f_bp1   = options.as<std::string>("BP1");
-  if ( options.key("BP2") ) f_bp2   = options.as<std::string>("BP2");
-  if ( options.key("ID") )  f_id    = options.as<std::string>("ID");
+  if ( args.has("chr") ) f_chr   = args.as_string("chr");
+  if ( args.has("bp1") ) f_bp1   = args.as_string("bp2");
+  if ( args.has("bp2") ) f_bp2   = args.as_string("bp2");
+  if ( args.has("id") )  f_id    = args.as_string("id");
   
   for (int i=0; i<h.size(); i++)
     {
+
       // fixed fields?
-      if ( h[i] == f_chr || h[i] == f2_chr )        col_chr   = i; 
+      if ( h[i] == f_chr || h[i] == f2_chr )                          col_chr   = i; 
       else if ( h[i] == f_bp1 || h[i] == f2_bp1 || h[i] == f3_bp1  )  col_bp1   = i;
-      else if ( h[i] == f_bp2 || h[i] == f2_bp2 )  col_bp2   = i;
-      else if ( h[i] == f_id    )  col_name  = i;
+      else if ( h[i] == f_bp2 || h[i] == f2_bp2 )                     col_bp2   = i;
+      else if ( h[i] == f_id    )                                     col_name  = i;
       else // a user-defined type
 	{
-	  
-	  // Should we skip this field?
-	  
-	  if ( options.value( h[i] , "Skip" ) || 
-	       options.value( "Skip" , h[i] ) ) 
+	    
+	    // Should we skip this field?
+	    // --skip col
+	    if ( args.has( "skip" , h[i] ) )
 	    {
 	      skip.insert(i);
 	      continue;
@@ -204,23 +203,26 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
 	  // If this is a "Flag" field, it means that values
 	  // themselves will be the key, so we do not register the
 	  // column name with the meta-information class.
-	  
-	  if ( options.value( h[i] , "Flag" ) )
-	    flags.insert(i);
-	  else
+
+	    // --flags col2
+	    
+	    if ( args.has( "flag" , h[i] ) ) flags.insert(i);
+	    else
 	    {
-	      mType mt = META_TEXT;	  
-	      if ( options.value( h[i] , "Integer" ) ) mt = META_INT;
-	      else if ( options.value( h[i] , "Float" ) ) mt = META_FLOAT;
-	      else if ( options.value( h[i] , "Bool" ) ) mt = META_BOOL;
-	      
-	      // ignore description for now
-	      std::string desc = "";
-
-	      mf[ h[i] ] = i;
-	      registerMetatype( h[i] , mt , 1 , META_GROUP_REF , desc );
+		mType mt = META_TEXT;	  
+		if      ( args.has( "integer" , h[i] ) ) mt = META_INT;
+		else if ( args.has( "float"   , h[i] ) ) mt = META_FLOAT;
+		else if ( args.has( "bool"    , h[i] ) ) mt = META_BOOL;
+		else if ( args.has( "text"    , h[i] ) ) mt = META_TEXT;
+		else if ( args.has( "string"  , h[i] ) ) mt = META_TEXT;
+		
+		// ignore description for now
+		std::string desc = "";
+		
+		mf[ h[i] ] = i;
+		registerMetatype( h[i] , mt , 1 , META_GROUP_REF , desc );
 	    }  
-
+	    
 	}
 
     }
@@ -230,8 +232,8 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
   // Misc. options
   //
 
-  bool zero1 = options.key("0-start") || options.key("0-based");
-  bool zero2 = options.key("0-stop") || options.key("0-based");
+  bool zero1 = args.has("0-start") || args.has("0-based");
+  bool zero2 = args.has("0-stop") || args.has("0-based");
   
 
   //
@@ -260,7 +262,7 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
 //
 
 
-bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq::Util::Options & options )
+bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq::Util::Options & args )
 {
 
   if ( ! g.segdb.attached() ) 
@@ -315,11 +317,14 @@ bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq
       else if ( h[i] == "META" ) col_meta = i;
       else // a user-defined type
 	{
-	  mType mt = META_TEXT;
-	  if ( options.value( h[i] , "Integer" ) ) mt = META_INT;
-	  else if ( options.value( h[i] , "Float" ) ) mt = META_FLOAT;
-	  else if ( options.value( h[i] , "Flag" ) ) mt = META_FLAG;
 
+	  mType mt = META_TEXT;
+
+	  if      ( args.has( "integer" , h[i] ) ) mt = META_INT;
+	  else if ( args.has( "float"   , h[i] ) ) mt = META_FLOAT;
+	  else if ( args.has( "flag"    , h[i] ) ) mt = META_FLAG;
+	  else if ( args.has( "bool"    , h[i] ) ) mt = META_BOOL;
+	  
 	  // ignore description for now
 	  std::string desc = "";
 	  
@@ -353,7 +358,7 @@ bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq
 // Load generic regions into LOCDB or SEGDB
 //
 
-bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::string & label , Pseq::Util::Options & , bool locdb )
+bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::string & label , Pseq::Util::Options & args , bool locdb )
 {
 
   LocDBase * db = locdb ? &g.locdb : &g.segdb ;
@@ -406,9 +411,10 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
       else // a user-defined type
 	{
 	  mType mt = META_TEXT;
-	  if ( options.value( h[i] , "Integer" ) ) mt = META_INT;
-	  else if ( options.value( h[i] , "Float" ) ) mt = META_FLOAT;
-	  else if ( options.value( h[i] , "Flag" ) ) mt = META_FLAG;
+	  if      ( args.has( "integer" , h[i] ) )  mt = META_INT;
+	  else if ( args.has( "float"   , h[i] ) )  mt = META_FLOAT;
+	  else if ( args.has( "flag"    , h[i] ) )  mt = META_FLAG;
+	  else if ( args.has( "bool"    , h[i] ) )  mt = META_BOOL;
 
 	  // ignore description for now
 	  std::string desc = "";

@@ -2,9 +2,10 @@
 #include "netassoc.h"
 #include "pseq.h"
 #include "assoc.h"
+#include "util.h"
 
 extern GStore g;
-extern Pseq::Util::Options options;
+extern Pseq::Util::Options args;
 
 bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , const std::string & grp )
 {
@@ -26,7 +27,7 @@ bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , co
 }
 
 
-bool Pseq::Assoc::net_assoc_test( Mask & m , const Pseq::Util::ArgMap & args )
+bool Pseq::Assoc::net_assoc_test( Mask & m , const Pseq::Util::Options & args )
 {
 
  
@@ -155,7 +156,7 @@ std::map<std::string, Pseq::Assoc::NetDB::Aux_netdet> Pseq::Assoc::NetDB::read_s
 
 
 bool Pseq::Assoc::NetDB::driver( const std::map<std::string,Aux_netdet> & gscore_str , 
-				 const Pseq::Util::ArgMap & args , Mask & m )
+				 const Pseq::Util::Options & args , Mask & m )
 {
   
   //

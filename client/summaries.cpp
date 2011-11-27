@@ -1,12 +1,12 @@
 
 #include "summaries.h"
 #include "pseq.h"
-#include "func.h"
+#include "util.h"
 
 #include <cmath>
 
 extern GStore g;
-extern Pseq::Util::Options options;
+extern Pseq::Util::Options args;
 
 void f_vstat( Variant & v , void * p) 
 {
@@ -123,7 +123,7 @@ void f_vstat( Variant & v , void * p)
   while ( ft != fltrs.end() )
     {
       vstat->n_filter[ *ft ]++;    
-      // this is used only in i-stats (from --options filter=StrandBias, for example
+      // this is used only in i-stats (from --filter StrandBias , for example
       if ( vstat->n_istat_filter.find( *ft ) != vstat->n_istat_filter.end() )
 	vstat->n_istat_filter[ *ft  ]++;
       if ( *ft != "PASS" ) pass = false;
@@ -800,7 +800,7 @@ Pseq::IStat::IStat( GStore * g )
   Pseq::IStat * p = this;
   vstat.set_istat( p );
 
-  alt_not_min = options.key("alternate");
+  alt_not_min = args.has("alternate");
   
   //copy all all headers etc over
   if (g)
@@ -1258,7 +1258,7 @@ bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
   
   aux.match_on_strata        = g.phmap.strata_set();
   aux.within_stratum_counts  = aux.match_on_strata ? 
-    ! options.key( "whole-sample-counts" ) 
+    ! args.has( "whole-sample-counts" ) 
     : false;   
 
 

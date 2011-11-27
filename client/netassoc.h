@@ -43,7 +43,7 @@ namespace Pseq {
 	bool operator< ( const next_node_t & rhs ) const { return extension < rhs.extension; }
       };
       
-      bool driver( const std::map<std::string,Aux_netdet> & gscore , const Pseq::Util::ArgMap & args, Mask & m );
+      bool driver( const std::map<std::string,Aux_netdet> & gscore , const Pseq::Util::Options & args, Mask & m );
       
       void net_test( const int seed , long int , NetDBase & netdb , 
 		     const std::set<std::string> & testset , 

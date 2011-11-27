@@ -1,6 +1,6 @@
 #include "assoc.h"
 #include "pseq.h"
-#include "func.h"
+#include "util.h"
 #include "genic.h"
 
 #include <iostream>
@@ -13,7 +13,7 @@ extern GStore g;
 
 bool Pseq::Assoc::variant_assoc_test( Mask & m , 
 				      Pseq::Assoc::Aux_vassoc_options & aux , 
-				      const Pseq::Util::Options & options )
+				      const Pseq::Util::Options & args )
 {
   
 
@@ -23,7 +23,7 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   //
   
   if ( g.phmap.type() == PHE_QT ) 
-    return variant_qtassoc_test( m , aux , options );
+    return variant_qtassoc_test( m , aux , args );
   else if ( ! g.phmap.type() == PHE_DICHOT ) 
     Helper::halt("basic association tests assumes a dichotomous phenotype");
   
@@ -39,12 +39,12 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   // Display options
   //
   
-  bool show_ival = options.key("i-stats");
-  bool show_meta = options.key("meta");
+  bool show_ival = args.has( "info" );
+  bool show_meta = args.has( "vmeta" );
 
   // Use Yates-chisq (instead of standard, or instead of Fisher's exact if no perms)
 
-  aux.yates_chisq = options.key("yates");
+  aux.yates_chisq = args.has( "yates" );
   
 
   //
@@ -106,10 +106,10 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   Pseq::Assoc::Aux a;
   a.g     = &g;
   a.rseed = time(0);
-  a.show_info = options.key("info");
+  a.show_info = args.has( "info" );
   g.perm.initiate( aux.nrep , ntests );
-  //  if ( options.key("aperm") ) g.perm.adaptive( options.as_int_vector("aperm") );
-  a.fix_null_genotypes = options.key("fix-null");
+  //  if ( args.has("aperm") ) g.perm.adaptive( args.as_int_vector( "aperm" ) );
+  a.fix_null_genotypes = args.has("fix-null");
 
 
   //
@@ -524,7 +524,7 @@ void f_variant_association( Variant & v , void * p )
 
 bool Pseq::Assoc::variant_qtassoc_test( Mask & m , 
 					Pseq::Assoc::Aux_vassoc_options & aux , 
-					const Pseq::Util::Options & options )
+					const Pseq::Util::Options & args )
 {
   
 
@@ -539,7 +539,7 @@ bool Pseq::Assoc::variant_qtassoc_test( Mask & m ,
 //   // Display options
 //   //
   
-//   bool show_meta = options.key("meta");
+//   bool show_meta = args.has("vmeta");
 
 
 //   //
@@ -600,7 +600,7 @@ bool Pseq::Assoc::variant_qtassoc_test( Mask & m ,
 //   a.g     = &g;
 //   a.rseed = time(0);
 //   g.perm.initiate( aux.nrep , ntests );
-//   a.fix_null_genotypes = options.key("fix-null");
+//   a.fix_null_genotypes = args.has("fix-null");
 
   
   
@@ -1244,7 +1244,7 @@ void f_variant_qtassociation( Variant & v , void * p )
 
 
 
-bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::ArgMap & args , const Pseq::Util::Options & options )
+bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 {
 
   //
@@ -1262,9 +1262,8 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::ArgMap & args , c
   // Implement the following gene-based tests
   //
 
-  if ( options.key("mid-length") )
-    a.show_midbp = true;
-
+  if ( args.has( "midpoint" ) ) a.show_midbp = true;
+  
   plog.data_reset();
   
   plog.data_group_header( "LOCUS" );
@@ -1294,17 +1293,18 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::ArgMap & args , c
   // Which tests to apply?
   //
   
-  a.vanilla = options.key("sumstat");
-  a.burden = ! options.key("no-burden");
-  a.uniq = options.key("uniq");
-  a.site_burden = options.key("site-burden");
-  a.mhit = options.key("mhit" );
-  a.vt = options.key("vt");
-  a.fw = options.key("fw");
-  a.calpha = options.key("calpha");
-  a.cancor = options.key("cancor");
-  a.hoffman_witte = options.key("stepup");
-  a.kbac = options.key("kbac");
+  a.vanilla       =   args.has( "tests" , "sumstat" );
+  a.burden        = ! args.has( "tests" , "no-burden" );
+  a.uniq          =   args.has( "tests" , "uniq" );
+  a.site_burden   =   args.has( "tests" , "site-burden" );
+  a.mhit          =   args.has( "tests" , "mhit" );
+  a.vt            =   args.has( "tests" , "vt" );
+  a.fw            =   args.has( "tests" , "fw" );
+  a.calpha        =   args.has( "tests" , "calpha" );
+  a.cancor        =   args.has( "tests" , "cancor" );
+  a.hoffman_witte =   args.has( "tests" , "stepup" );
+  a.kbac          =   args.has( "tests" , "kbac" );
+
 
   const int ntests = a.n_tests();
   
@@ -1327,7 +1327,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::ArgMap & args , c
   //
    
   g.perm.initiate( nrep , ntests );
-  a.fix_null_genotypes = options.key("fix-null");
+  a.fix_null_genotypes = args.has("fix-null");
  
   
   //

@@ -2,6 +2,7 @@
 #include "func.h"
 #include "views.h"
 #include "summaries.h"
+#include "util.h"
 
 #include "pseq.h"
 
@@ -11,9 +12,7 @@
 using namespace std;
 
 extern GStore g;
-extern Pseq::Util::Options options;
-
-std::set< Pseq::Util::opt_t > Pseq::Util::Options::optdesc;
+extern Pseq::Util::Options args;
 
 void Pseq::finished()
 {  
@@ -28,7 +27,7 @@ void Pseq::finished()
   exit(0);
 }
 
-bool Pseq::new_project( std::string project , Pseq::Util::ArgMap & args )
+bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
 {
   
   // Ensure full paths are used
@@ -644,20 +643,16 @@ bool Pseq::LocDB::attach( std::string db )
 bool Pseq::LocDB::load_GTF( std::string file , std::string label , bool locdb )
 {
 
-  // use transcript_id field by default to index genes, unless 'gene_id' option
+  // use transcript_id field by default to index genes, unless 'gene-id' option
   // is given
 
   if ( locdb ) 
-    return g.locdb.load_GTF( file , label , ! options.key("gene_id") ) != 0;
+    return g.locdb.load_GTF( file , label , ! args.has("use-gene-id") ) != 0;
   else
-    return g.segdb.load_GTF( file , label , ! options.key("gene_id") ) != 0;
+    return g.segdb.load_GTF( file , label , ! args.has("use-gene-id") ) != 0;
 }
 
 
-// bool Pseq::LocDB::load_set( std::string file , std::string set_label , std::string group_label , oll )
-// {
-//   return g.locdb.load_set( file, set_label, group_label ) != 0;
-// }
 
 bool Pseq::LocDB::merge( std::string label1 , std::string label2 , bool locdb )
 {
@@ -666,6 +661,7 @@ bool Pseq::LocDB::merge( std::string label1 , std::string label2 , bool locdb )
   else 
     return g.segdb.merge( label1, label2 ) != 0;
 }
+
 
 bool Pseq::LocDB::index()
 {  
@@ -705,7 +701,7 @@ bool Pseq::LocDB::swap_alternate_names( const std::string & group , const std::s
 	  continue;
 	}
 
-      g.locdb.replace_real_names( gid , tok[0] , tok[1] , options.key("alternate") );
+      g.locdb.replace_real_names( gid , tok[0] , tok[1] , args.has( "alternate-name" ) );
 
       if ( ++cnt % 1000 == 0 ) 
 	plog.counter( "replaced " + Helper::int2str( cnt ) + " locus names" );
@@ -724,18 +720,16 @@ bool Pseq::LocDB::overlap_analysis( std::string label1, std::string label2 )
 }
 
 
-bool Pseq::LocDB::intersection( std::string filename , std::string group , bool segdb )
+bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDBase & db )
 {
 
-  LocDBase & db = segdb ? g.segdb : g.locdb;
-  
-  if ( ! db.attached() ) return false;
+    if ( ! db.attached() ) return false;
 
-  if ( ! Helper::fileExists( filename ) ) 
-    Helper::halt("could not find " + filename );
-  
-  if ( db.lookup_group_id( group ) == 0 )
-    Helper::halt("could not find group " + group );
+    if ( ! Helper::fileExists( filename ) ) 
+	Helper::halt("could not find " + filename );
+    
+    if ( db.lookup_group_id( group ) == 0 )
+      Helper::halt("could not find group " + group );
 
   //
   // Read a vector of regions
@@ -1017,126 +1011,126 @@ Mask Pseq::Util::construct_mask( std::string desc )
 
 void Pseq::Util::set_default( VStat & vstat )
 {
-  
-  if ( options.key("hwe") )
-    vstat.add_hwe_p( options.simple_string("hwe") );
-  
-  if ( options.key("ref") )
+    
+    if ( args.has( "stats" , "hwe" ) )
+	vstat.add_hwe_p( args.as_string( "stats" , "hwe" ) ); // implicitly a comma-string
+    
+    if ( args.has( "stats" , "ref" ) )
     {
-      std::set<std::string> s = options.get_set( "ref" );
-      std::set<std::string>::iterator i = s.begin();
-      while ( i != s.end() )
+	std::vector<std::string> s = args.as_string_vector( "stats" , "ref" );
+	std::vector<std::string>::iterator i = s.begin();
+	while ( i != s.end() )
 	{
 	  vstat.add_refgroup( *i );
 	  ++i;
 	}
     }
 
-  if ( options.key("loc") )
+    if ( args.has( "stats" , "loc" ) )
     {
-      std::set<std::string> s = options.get_set( "loc" );
-      std::set<std::string>::iterator i = s.begin();
-      while ( i != s.end() )
+	std::vector<std::string> s = args.as_string_vector( "stats" , "loc" );
+	std::vector<std::string>::iterator i = s.begin();
+	while ( i != s.end() )
 	{
-	  vstat.add_locgroup( *i );
-	  ++i;
+	    vstat.add_locgroup( *i );
+	    ++i;
 	}
     }
-
-  if ( options.key("mac") )
+    
+    if ( args.has( "stats" , "mac" ) )
     {
-      std::set<std::string> s = options.get_set( "mac" );
-      std::set<std::string>::iterator i = s.begin();
-      while ( i != s.end() )
+	std::vector<std::string> s = args.as_string_vector( "stats" , "mac" );
+	std::vector<std::string>::iterator i = s.begin();
+	while ( i != s.end() )
 	{
-	  vstat.add_mac( *i );
-	  ++i;
+	    vstat.add_mac( *i );
+	    ++i;
 	}
     }
-
-  if ( options.key("maf") )
+    
+    if ( args.has( "stats" , "maf" ) )
     {
-      std::set<std::string> s = options.get_set( "maf" );
-      std::set<std::string>::iterator i = s.begin();
-      while ( i != s.end() )
+	std::vector<std::string> s = args.as_string_vector( "stats" , "maf" );
+	std::vector<std::string>::iterator i = s.begin();
+	while ( i != s.end() )
 	{
-	  vstat.add_maf( *i );
-	  ++i;
+	    vstat.add_maf( *i );
+	    ++i;
 	}
     }
-
-  if ( options.key("qual") )
+    
+    if ( args.has( "stats" , "qual" ) )
     {
-      std::set<std::string> s = options.get_set( "qual" );
-      std::set<std::string>::iterator i = s.begin();
-      while ( i != s.end() )
+	std::vector<std::string> s = args.as_string_vector( "stats" , "qual" );
+	std::vector<std::string>::iterator i = s.begin();
+	while ( i != s.end() )
 	{
-	  vstat.add_qual( *i );
-	  ++i;
+	    vstat.add_qual( *i );
+	    ++i;
 	}
     }
-
-  if ( options.key("dp") )
+    
+    if ( args.has( "stats", "dp" ) )
     {
-      std::set<std::string> s = options.get_set( "dp" );
-      std::set<std::string>::iterator i = s.begin();
-      while ( i != s.end() )
+	std::vector<std::string> s = args.as_string_vector( "stats" , "dp" );
+	std::vector<std::string>::iterator i = s.begin();
+	while ( i != s.end() )
 	{
-	  vstat.add_depth( *i );
-	  ++i;
+	    vstat.add_depth( *i );
+	    ++i;
 	}
     }
-  
-  if ( options.key("mean") )
+    
+    if ( args.has( "stats" , "mean" ) )
     {
-      std::set<std::string> s = options.get_set( "mean" );
-      std::set<std::string>::iterator i = s.begin();
-      while ( i != s.end() )
+	std::vector<std::string> s = args.as_string_vector( "stats" , "mean" );
+	std::vector<std::string>::iterator i = s.begin();
+	while ( i != s.end() )
 	{
-	  vstat.add_mean_tag( *i );
-	  ++i;
+	    vstat.add_mean_tag( *i );
+	    ++i;
 	}
     }
-
+    
   // --options count=AN:2:3,DP
   //           count=AN,2:3  
   //           count=AN      //table
 
-  if ( options.key("count") )
+    if ( args.has( "stats" , "count" ) )
     {
-      std::set<std::string> s = options.get_set( "count" );
-      std::set<std::string>::iterator i = s.begin();
-      while ( i != s.end() )
+	std::vector<std::string> s = args.as_string_vector( "stats" , "count" );
+	std::vector<std::string>::iterator i = s.begin();
+	while ( i != s.end() )
 	{
-	  std::vector<std::string> tok = Helper::char_split( *i , ':' );
-	  if ( tok.size() == 3 )  
-	    vstat.add_count_tag( tok[0] , tok[1] + ":" + tok[2] );
-	  if ( tok.size() == 2 )  
-	    vstat.add_count_tag( tok[0] , tok[1] );
-	  else if ( tok.size() == 1 )  // i.e. list all values
-	    vstat.add_table_tag( tok[0] );
-	  ++i;
+	    std::vector<std::string> tok = Helper::char_split( *i , ':' );
+	    if ( tok.size() == 3 )  
+		vstat.add_count_tag( tok[0] , tok[1] + ":" + tok[2] );
+	    if ( tok.size() == 2 )  
+		vstat.add_count_tag( tok[0] , tok[1] );
+	    else if ( tok.size() == 1 )  // i.e. list all values
+		vstat.add_table_tag( tok[0] );
+	    ++i;
 	}
     }
-
-  bool all_istat_filter = false;
-
-  if ( options.key("filter") )
+    
+    bool all_istat_filter = false;
+    
+    if ( args.has( "stats" , "filter" ) )
     {
-      std::set<std::string> s = options.get_set( "filter" );
-      std::set<std::string>::iterator i = s.begin();
-      while ( i != s.end() )
+	std::vector<std::string> s = args.as_string_vector( "stats" , "filter" );
+	std::vector<std::string>::iterator i = s.begin();
+	while ( i != s.end() )
 	{
-	  if ( *i != PLINKSeq::PASS_FILTER() )
+	    if ( *i != PLINKSeq::PASS_FILTER() )
 	    {
-	      if ( *i == "." ) all_istat_filter = true;
-	      else vstat.add_istat_filter( *i );
+		if ( *i == "." ) all_istat_filter = true;
+		else vstat.add_istat_filter( *i );
 	    }
-	  ++i;
+	    ++i;
 	}
-
+	
     }
-
+    
   // Add all non-PASS filters to the report fields
   std::vector<std::string> f = MetaInformation<VarFilterMeta>::field_names();
   for ( int i = 0 ; i < f.size() ; i++ ) 
@@ -1152,46 +1146,35 @@ void Pseq::Util::set_default( VStat & vstat )
 
   // G-TAGs
   
-  if ( options.key( "gmean" ) )
-    {
-      std::set<std::string> s = options.get_set( "gmean" );
-      std::set<std::string>::iterator i = s.begin();
+  if ( args.has( "stats" , "gmean" ) )
+  {
+      std::vector<std::string> s = args.as_string_vector( "stats" , "gmean" );
+      std::vector<std::string>::iterator i = s.begin();
       while ( i != s.end() )
-	{
+      {
 	  vstat.add_mean_gtag( *i );
 	  ++i;
-	}
+      }
     }
-
   
-  if ( options.key( "gcount" ) )
-    {
-      std::set<std::string> s = options.get_set( "gcount" );
-      std::set<std::string>::iterator i = s.begin();
+  
+  if ( args.has( "stats" , "gcount" ) )
+  {
+      std::vector<std::string> s = args.as_string_vector( "stats" , "gcount" );
+      std::vector<std::string>::iterator i = s.begin();
       while ( i != s.end() )
-	{
+      {
 	  std::vector<std::string> tok = Helper::char_split( *i , ':' );
 	  if ( tok.size() == 3 )  
-	    vstat.add_count_gtag( tok[0] , tok[1] + ":" + tok[2] );
+	      vstat.add_count_gtag( tok[0] , tok[1] + ":" + tok[2] );
 	  if ( tok.size() == 2 )  
-	    vstat.add_count_gtag( tok[0] , tok[1] );
+	      vstat.add_count_gtag( tok[0] , tok[1] );
 	  ++i;
 	}
-    }
-
-
+  }
+  
 }
 
-
-bool extra_QC_metrics( Mask &m)
-{
-
-}
-
-void f_extra_qc( Variant & var , void * p )
-{
-
-}
 
 bool Pseq::Util::file_summary()
 {
@@ -1201,7 +1184,7 @@ bool Pseq::Util::file_summary()
 
 bool Pseq::Util::meta_summary()
 {
-    plog << Helper::metatype_summary( ! options.key( "ugly" ) ) << "\n";
+    plog << Helper::metatype_summary( ! args.has( "ugly" ) ) << "\n";
     return true;
 }
 
@@ -1254,8 +1237,8 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
   // Optional to display subregions 
   //
 
-  bool sub = options.key("show-subregions");
-  bool ignore_sub = options.key("no-subregions");
+  bool sub = args.has("show-subregions");
+  bool ignore_sub = args.has("no-subregions");
 
   //
   // Do we wish to count the instances of intersecting reference-group variants?
@@ -1609,7 +1592,7 @@ bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
   AuxCountReport aux;
   aux.label = name;
   aux.by_case_control = g.phmap.type() == PHE_DICHOT;
-  aux.unphased = ! options.key( "show-phase" );
+  aux.unphased = ! args.has( "show-phase" );
 
   // VCF header
   
@@ -1644,11 +1627,11 @@ bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
 {
   
   OptSimpleCounts opt;
-  opt.apply_annot = options.key( "annotate" );
-  opt.apply_full_annot = options.key( "full-annotate" );
+  opt.apply_annot = args.has( "annotate" );
+  opt.apply_full_annot = args.has( "full-annotate" );
   if ( opt.apply_full_annot ) opt.apply_annot = true;
   opt.dichot_pheno = g.phmap.type() == PHE_DICHOT;
-  opt.show_filter = options.key( "filters" );
+  opt.show_filter = args.has( "show-filters" );
   opt.genotypes = genotypes;
   
   plog << "VAR";
@@ -1693,7 +1676,7 @@ bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
   // Any optional variant meta-fields to be displayed?
   //
 
-  opt.meta = options.get_set( "meta" );
+  opt.meta = args.get_set( "meta" );
   std::set<std::string>::iterator i = opt.meta.begin();
   while ( i != opt.meta.end() )
     {
@@ -1743,56 +1726,4 @@ bool Pseq::VarDB::write_BCF( Mask & mask , const std::string & bcffile )
 
 
 
-std::string Pseq::Util::Commands::command_description( const std::string & c , bool show_args  ) const
-{
-  
-  std::stringstream ss;
-  
-  if ( known( c ) ) 
-    {
-      if ( ! show_args ) 
-	{
- 	  ss << c << "\t";
-	  if ( c.size() < 8 ) ss << "\t";
-	  if ( c.size() < 16 ) ss << "\t";
-	  ss << comm_desc.find( c )->second << "\n";
-	}
-
-      if ( show_args )
-	{
-	  std::string sarg = pargs->attached( c );
-	  std::vector<std::string> sarg1 = Helper::char_split( sarg , '\n' );
-	  
-	  for (int i = 0 ; i < sarg1.size() ; i++ ) 
-	    {
-	      std::vector<std::string> v = Helper::char_split( sarg1[i] , '\t' );		    
-	      if ( v.size() == 5 )
-		{
-		  ss << "\t  --" << v[2];
-		  if ( v[3] != "." ) ss << " { " << v[3] << " }" ;
-		  ss << "\t" << v[4] << "\n";
-		}
-	    }
-	  
-	  std::string sopt = popt->attached( c );
-	  if ( sopt != "" ) 
-	    {
-	      std::vector<std::string> sopt1 = Helper::char_split( sopt , '\n' );
-	      for (int i = 0 ; i < sopt1.size() ; i++ ) 
-		{
-		  std::vector<std::string> v = Helper::char_split( sopt1[i] , '\t' );
-		  if ( v.size() == 5 ) 
-		    {
-		      ss << "\t  --options " << v[2];
-		      if ( v[3] != "." ) ss << " { " << v[3] << " }" ;
-		      ss << "\t" << v[4] << "\n";
-		    }
-		  
-		}
-	    }
-	}
-      
-    }
-  return ss.str();
-}
 

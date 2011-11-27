@@ -10,7 +10,7 @@
 
 extern GStore g;
 
-extern Pseq::Util::Options options;
+extern Pseq::Util::Options args;
 
 void f_glm_association( Variant & v , void * p );
 

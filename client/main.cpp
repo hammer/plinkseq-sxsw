@@ -4,7 +4,6 @@
 
 #include "pseq.h"
 
-#include "args.h"
 #include "func.h"
 #include "views.h"
 #include "summaries.h"
@@ -23,7 +22,7 @@ Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.08";
-std::string PSEQ_DATE    = "14-Nov-2011";
+std::string PSEQ_DATE    = "25-Nov-2011";
 
 int main(int argc, char ** argv)
 {
@@ -52,178 +51,9 @@ int main(int argc, char ** argv)
   // known PSEQ commands, and descriptions
   
   pcomm.attach( &args );
-  pcomm.attach( &options );
-  
-  // command|group|description|VCF|GRP|ARG|OPT 
-  
-  // add groups
 
-  pcomm.new_group( "root"        , "All commands groups" );
-  pcomm.new_group( "input"       , "Data input" );
-  pcomm.new_group( "output"      , "Variant data output" );
-  pcomm.new_group( "project"     , "Project functions" );
-  pcomm.new_group( "stats"       , "Variant summary statistics" );
-  pcomm.new_group( "tests"       , "Genotype-phenotype association tests" );
-  pcomm.new_group( "qc"          , "Quality control metrics and tests" );
-  pcomm.new_group( "views"       , "Viewing variant and other data" );
-  pcomm.new_group( "annot"       , "Annotation functions" );
-  pcomm.new_group( "varop"       , "Variant database operations" );
-  pcomm.new_group( "locop"       , "Locus database operations" );
-  pcomm.new_group( "refop"       , "Reference database operations" );
-  pcomm.new_group( "segop"       , "Segment database operations" );
-  pcomm.new_group( "seqop"       , "Sequence database operations" );
-  pcomm.new_group( "indop"       , "Individual database operations" );
-  pcomm.new_group( "ibd"         , "IBD analysis" );
-  pcomm.new_group( "net"         , "Network-based analysis" );
-  pcomm.new_group( "misc"        , "Misc." );
-  pcomm.new_group( "system"      , "System functions" ); // not shown in GUI
-  
-  pcomm.add_to_group( "root" , "input" );
-  pcomm.add_to_group( "root" , "output" );
-  pcomm.add_to_group( "root" , "project" );
-  pcomm.add_to_group( "root" , "stats" );  
-  pcomm.add_to_group( "root" , "tests" );
-  pcomm.add_to_group( "root" , "qc" );
-  pcomm.add_to_group( "root" , "views" );
-  pcomm.add_to_group( "root" , "annot" );
-  pcomm.add_to_group( "root" , "varop" );
-  pcomm.add_to_group( "root" , "locop" );
-  pcomm.add_to_group( "root" , "segop" );
-  pcomm.add_to_group( "root" , "seqop" );
-  pcomm.add_to_group( "root" , "refop" );
-  pcomm.add_to_group( "root" , "indop" );
-  pcomm.add_to_group( "root" , "ibd" );
-  pcomm.add_to_group( "root" , "net" );
-  pcomm.add_to_group( "root" , "misc" );
-  pcomm.add_to_group( "root" , "system" );
-
-
-  // add commands (will be grouped in order of entry)
-
-  pcomm << "commands|misc|list commands/groups"
-	<< "masks|misc|list mask options"
-	<< "new-project|project,input|set a new project"
-           "|ARG:vcf,resources,locdb,refdb,vardb,seqdb,inddb,output,scratch,metameta"
-           "|OPT:opt1,opt2"
- 	<< "version|project|display version information"
-	<< "append|project,input|add a file to the project|ARG:file,type"
-	<< "drop|project|drop a file from the project|ARG:file,type"
-
-	<< "load-vcf|input|load all VCF files not already in VARDB|ARG:file|OPT:filter" 
-	<< "reload-vcf|input|clear VARDB, then reload all VCF (not implemented yet)"
-	<< "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id" 
-
-	<< "load-meta|input|load meta-information for existing VARDB variants" 
-	<< "delete-meta|varop|remove meta-information"    
-
-	<< "index-bcf|input|add index to VARDB for a BCF|ARG:bcf"
-	<< "index-vcf|input|add index to VARDB for a BGZF-compressed VCF|ARG:vcf"
-	<< "write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf"
-
-	<< "loc-load|input,locop|load from a .GTF or .REG file into LOCDB|ARG:file,group" 
-    	<< "locset-load|input,locop|load a locus-set|ARG:file,name,group" 
-	<< "loc-load-alias|input,locop|load a gene-alias table|ARG:file" 
-
-	<< "loc-merge|locop|merge a LOCDB group|ARG:group" 
-	<< "loc-delete-alias|locop|remove gene-alias table"
-	<< "loc-swap-names|locop|swap LOCDB names" 
-	<< "loc-delete|locop|remove a LOCDB group" 
-	<< "loc-index|locop|index a LOCDB" 
-	<< "loc-drop-index|locop|remove index from LOCDB"         
-
-	<< "loc-set-special|locop|set special variable in a LOCDB|ARG:key,value"
-	<< "loc-get-special|locop|get special variable(s) from a LOCDB|ARG:key"
-	<< "loc-delete-special|locop|remove all special variables from a LOCDB"
-
-	<< "seg-load|input,segop|input segment data to SEGDB" 
-	<< "seg-merge|segop|merge intervals in SEGDB" 
-	<< "segset-load|input,segop|load locus-sets in SEGDB" 
-	<< "seg-load-alias|input,segop|load alias-table" 
-	<< "seg-delete-alias|segop|remove alias-table"
-	<< "seg-delete|segop|remove segment group" 
-	<< "seg-index|segop|index SEGDB" 
-	<< "seg-drop-index|segop|index"            
-
-	<< "ref-load|input,refop|load data (VCF or flat-file) into REFDB|ARG:file,group"
-	<< "seq-load|input,seqop|load FASTA into SEQDB|ARG:file" 
-	<< "load-weights|input,refop|load weight table|ARG:name,file" 
-	<< "score-weights|annot|score varints for weights|VCF|ARG:name"
-    
-	<< "tag-file|varop|add file-tags to VARDB|ARG:file,id" 
-	<< "var-delete|varop|remove file from VARDB|ARG:id" 
-	<< "vacuum|varop|clean-up unused disk-space in VARDB"     
-
-	<< "write-vardb|output,varop|write a new VARDB|ARG:new-vardb,new-project"
-	<< "write-vcf|output|write a new VCF file|VCF|"
-	<< "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name|OPT:family-id" 
-	<< "write-lik|output|write a BEALGE likelihood file|VCF"
-	<< "v-matrix|output|write a matrix of allele counts|VCF"
-	<< "g-matrix|output|write a matix of gene-based allele counts|GRP"
-	<< "g-meta-matrix|output|matix of gene-based per-individual meta-information|GRP"
-	<< "meta-matrix|output|write a matrix of variant meta-information|VCF|NOGENO"
-	<< "v-meta-matrix|output|write a matrix of individual genotype meta-information|VCF|ARG:name|NOGENO"
-	<< "loc-annotate|locop,annot|annotate loci|ARG:group"
-	<< "load-pheno|input,indop|load phenotypes into INDB|ARG:file"
-	<< "load-pedigree|input,indop|load pedigree information into INDDB|ARG:file"
-
-	<< "summary|project|summary of all databases" 
-	<< "var-summary|project|summary of VARDB" 
-	<< "loc-summary|project|summary of LOCDB" 
-	<< "seg-summary|project|summary of SEQDB" 
-	<< "ind-summary|project|summary of INDDB" 
-	<< "ref-summary|project|summary of REFDB" 
-	<< "seq-summary|project|summary of SEQDB" 
-	<< "file-summary|project|summary of project files" 
-	<< "meta-summary|project|summary of variant meta-information|VCF"  
-
-	<< "v-view|views|view variant data|VCF|ARG:simple,vmeta,verbose,geno,gmeta,samples|OPT:hide-null,only-minor,only-alt,pheno" 
-	<< "rv-view|views|view rare alleles|VCF|ARG:pheno" 
-	<< "mv-view|views|view multiple variants|VCF" 
-	<< "mrv-view|views|view multiple rare variants|VCF" 
-	<< "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta|OPT:rarelist" 
-	<< "gs-view|views|view gene variants in sequence|GRP"
-	<< "i-view|views|individuals in project/file|VCF|ARG:pheno"
-	<< "seg-view|views|individual segments|ARG:group"
-
-	<< "v-stats|stats|variant statistics|VCF|OPT:counts,gcount,mean,gmean"
-	<< "g-stats|stats|gene-based summary statistics|GRP|OPT:counts,gcount,mean,gmean"
-	<< "i-stats|stats|per-individual statistics|VCF|OPT:counts,gcount,mean,gmean"
-	<< "v-dist|stats,tests|comparison of rare-variant group distributions|VCF|OPT:whole-sample-counts"
-	<< "v-freq|stats,qc|variant frequency data|VCF|ARG:em"
-
-	<< "loc-intersect|views,locop|view loci from a LOCDB group with 1 or more variants"
-	<< "loc-view|views,locop|show all loci in a LOCDB group"
-	<< "loc-stats|views,locop|locus-based stats"
-	<< "loc-translate|locop|AA sequence of loci"
-	<< "ref-view|views|view a group from a REFDB"
-	<< "seq-view|views|view regions of sequence from SEQDB"
-
-	<< "counts|views,tests|summary/count statistics|VCF"
-	<< "g-counts|views,tests|genotype summary/count statistics|VCF"
-	<< "assoc|tests|gene-based association tests|GRP" 
-	<< "v-assoc|tests|single-variant association|VCF" 
-	<< "glm|tests|general linear models|VCF"
-	<< "s-assoc|tests,ibd|segment-based IBD test"
-	<< "unique|views,tests|view variants specific to individual groups|VCF"
-
-	<< "ibd-load|input,ibd|load IBD segment data|ARG:ibddb"
-	<< "ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb"
-
-	<< "net-load|input,net|populate a NETDB|ARG:netdb,file"
-	<< "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
-	<< "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,pheno"
-
-	<< "clusters|qc|."
-	<< "proximity-scan|qc|VCF"
-	<< "concordance|qc|genotypic concordance checks"
-	<< "group-comparison|qc,tests|"
-
-	<< "ibs-matrix|qc|IBS matrix calculation|VCF"
-	<< "intersect|locop|intersect locus groups"
-	<< "annotate|misc|annotate a list of positions with various fields"
-    
-	<< "simple-sim|misc|simple gene variant simulation|GRP";
-    
+  Pseq::Util::populate_commands( pcomm );
+       
 
   //
   // help message?
@@ -271,16 +101,7 @@ int main(int argc, char ** argv)
   
   std::string command = "";
   
-    
-  //
-  // Context-specific options (-o, --options)
-  //
-  
-  std::map<std::string, std::set<std::string> > general_options;
-  if ( args.has("options" ) )
-    options.set( args.as_string_vector( "options" ) ) ;
-  
-  
+      
   //
   // Always, we require a single command, and a single project to be
   // specified (by first and second arguments)
@@ -529,7 +350,7 @@ int main(int argc, char ** argv)
 	{      
 	  Pseq::RefDB::load_refvar( args.as_string( "file" ) , 
 				    args.as_string( "group" ) ,
-				    options );
+				    args );
 	}
       else 
 	Helper::halt("no file or VCF specified");
@@ -576,38 +397,25 @@ int main(int argc, char ** argv)
   
   if ( command == "intersect" ) 
     {
+
       if ( ! args.has("file") )
 	Helper::halt("no file specified");
+
       std::vector<std::string> s = args.as_string_vector( "file" );
       if ( s.size() != 1 )
 	Helper::halt("more than 1 file specified");
       
-      bool segdb = options.key( "segdb" );
-      
-      if ( ! args.has("group") )
+      if ( ! args.has( "group" ) )
 	Helper::halt("no group specified");
+
       std::vector<std::string> grp = args.as_string_vector( "group" );
       if ( grp.size() != 1 )
-	Helper::halt("more than 1 group specified");
+	  Helper::halt("more than 1 group specified");
       
-      int f = grp[0].find("::");
-      if ( f != std::string::npos )
-	{
-	  if( grp[0].substr( 0 , f ) == "SEGDB" ) 
-	    {  
-	      segdb = true;
-	      grp[0] = grp[0].substr( f + 2 );
-	    }
-	  else if ( grp[0].substr( 0 , f ) == "LOCDB" ) 
-	    {  
-	      segdb = false;
-	      grp[0] = grp[0].substr( f + 2 );
-	    } 
-	  else 
-	      Helper::halt("database::group not recognised");
-	}
-      
-      Pseq::LocDB::intersection( s[0] , grp[0] , segdb );
+      LocDBase * db = g.resolve_locgroup( grp[0] );
+      if ( ! db ) Helper::halt("group not found");
+            
+      Pseq::LocDB::intersection( s[0] , grp[0] , *db );
       
       Pseq::finished();
     }
@@ -631,7 +439,7 @@ int main(int argc, char ** argv)
       if ( grp.size() != 1 )
 	Helper::halt("more than 1 group specified");
       
-      bool use_altname = options.key("altname");
+      bool use_altname = args.has( "alternate-name" );
       
       if ( ! Pseq::LocDB::load_pathway( s[0],
 					Pseq::Util::single_argument<std::string>( args, "name" ) ,
@@ -683,7 +491,7 @@ int main(int argc, char ** argv)
 					Pseq::Util::single_argument<std::string>( args, "name" ) ,
 					grp[0] ,
 					false , 
-					options.key("altname") ) )
+					args.has("alternate-name") ) )
 	Helper::halt("problem loading segset");
       
       Pseq::finished();
@@ -854,7 +662,7 @@ int main(int argc, char ** argv)
       if ( ! args.has("id") ) 
 	tag = Pseq::Util::single_argument<std::string>( args , "id" );	
       
-      Pseq::VarDB::load_PLINK( args.as_string_vector( "file" ) , options , tag );
+      Pseq::VarDB::load_PLINK( args.as_string_vector( "file" ) , args , tag );
       
       Pseq::finished();
     }
@@ -948,7 +756,7 @@ int main(int argc, char ** argv)
 	if ( grp.size() != 1 )
 	  Helper::halt("more than 1 group specified");
 
-	bool remove_unmerged = ! options.key( "keep-unmerged" );
+	bool remove_unmerged = ! args.has( "keep-unmerged" );
 
 	if ( Helper::ends_with( s[0] , ".gtf" ) || Helper::ends_with( s[0] , ".gtf.gz" ) )
 	  {
@@ -960,7 +768,7 @@ int main(int argc, char ** argv)
 	      if ( remove_unmerged ) g.locdb.flush( tmpgrp );
 	  }
 	else if ( Helper::ends_with( s[0] , ".reg" ) || Helper::ends_with( s[0] , ".reg.gz" ) )
-	  Pseq::LocDB::load_generic_regions( s[0], grp[0] , options , true );
+	  Pseq::LocDB::load_generic_regions( s[0], grp[0] , args , true );
 	else Helper::halt("invalid file name, expecting extension: .gtf .gtf.gz .reg .reg.gz");
 	
 	Pseq::finished();
@@ -1146,7 +954,7 @@ int main(int argc, char ** argv)
 // 	      Pseq::LocDB::load_GTF( s[0], grp[0] , false );
 	    
 	    if ( ext == ".seg" )
-	      Pseq::LocDB::load_segments( s[0], grp[0] , options );
+	      Pseq::LocDB::load_segments( s[0], grp[0] , args );
 	    else
 	      Helper::halt( "expecting a .seg file" );
 	  }
@@ -1233,12 +1041,12 @@ int main(int argc, char ** argv)
     // prior to constructing the Mask
     //
 
-    if ( args.has("annot") )
-      {
-	std::string agrp = Pseq::Util::single_argument<std::string>( args , "annot" );	
+    if ( args.has( "annotate" ) )
+    {
+	std::string agrp = Pseq::Util::single_argument<std::string>( args , "annotate" );	
 	if ( ! Pseq::SeqDB::load_transcripts( agrp ) ) 
-	  Helper::halt("problem loading annotation transcripts");
-      }
+	    Helper::halt("problem loading annotation transcripts");
+    }
 
     
     //
@@ -1478,9 +1286,9 @@ int main(int argc, char ** argv)
 	opt.geno = args.has("geno") || args.has("gmeta") || rview || mview;
 	opt.gmeta = args.has("gmeta");
 	opt.show_samples = args.has("samples");
-	opt.show_nonmissing_geno = ! options.key( "hide-null" );
-	opt.show_only_minor      =   options.key( "only-minor" ) || options.key( "minor-only" ) || rview;
-	opt.show_only_alt        =   options.key( "only-alt" )  || options.key( "alt-only" );
+	opt.show_nonmissing_geno = ! args.has( "hide-null" );
+	opt.show_only_minor      =   args.has( "only-minor" ) || rview;
+	opt.show_only_alt        =   args.has( "only-alt" ) ;
 	if ( opt.show_only_alt || opt.show_only_minor ) opt.show_nonmissing_geno = false;
 	opt.mview = mview;
 
@@ -1511,7 +1319,7 @@ int main(int argc, char ** argv)
 	opt.gmeta = args.has("gmeta");
 	opt.vexpand = args.has("verbose");
 	opt.transpose = args.has("transpose");
-	opt.rarelist = options.key("rarelist");
+	opt.rarelist = args.has("rarelist");
 	opt.show_phenotype = args.has("phenotype");
 	
 	IterationReport report = g.vardb.iterate( g_view , &opt , m );	
@@ -1523,8 +1331,8 @@ int main(int argc, char ** argv)
     if ( command == "gs-view" )
       {
 	Opt_geneseq opt;
-	if ( options.key("ref") ) 
-	  opt.ref = g.refdb.lookup_group_id( options.as<std::string>( "ref" ) );
+	if ( args.has( "ref-variants" ) ) 
+	    opt.ref = g.refdb.lookup_group_id( args.as_string( "ref-variants" ) );
 	opt.pheno = g.phmap.type() == PHE_DICHOT;
 	if ( ! g.seqdb.attached() ) Helper::halt( "no SEQDB attached" );
 	if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
@@ -1537,7 +1345,7 @@ int main(int argc, char ** argv)
       {	
 	if ( g.single_file_mode() )
 	  Pseq::VarDB::header_VCF( false , true , m );
-	else if ( options.key("vardb") )
+	else if ( args.has( "from-vardb" ) )
 	  Pseq::VarDB::dump_indiv();
 	else
 	  Pseq::IndDB::dump_table( m );
@@ -1685,18 +1493,19 @@ int main(int argc, char ** argv)
 
     if ( command == "counts" || command == "g-counts" )
       {
-	if ( options.key("vcf") )
+	if ( args.has( "output-vcf" ) )
 	  {
 	    std::string proj = Pseq::Util::single_argument<std::string>( args , "name" );
 	    Pseq::VarDB::make_counts_file( m , proj );
 	  }
 	else
 	  {	 	    
-	    bool genotypes = options.key("genotypes") || command == "g-counts" ;
+	    bool genotypes = command == "g-counts" ;
 	    Pseq::VarDB::simple_counts( m , genotypes );
 	  }
 	Pseq::finished();
       }
+
 
     //
     // Lookup DB information for a list of positions
@@ -1809,17 +1618,17 @@ int main(int argc, char ** argv)
     if ( command == "v-stats" )
       {	
 
-	// Hard-code some of these values for now
-	
-	Pseq::VStat vstat(&g);
-
-	Pseq::Util::set_default( vstat );
-
-	IterationReport report = g.vardb.iterate( f_vstat , &vstat , m );	
-	
-	vstat.report();
-
-	Pseq::finished();
+	  // Hard-code some of these values for now
+	  
+	  Pseq::VStat vstat(&g);
+	  
+	  Pseq::Util::set_default( vstat );
+	  
+	  IterationReport report = g.vardb.iterate( f_vstat , &vstat , m );	
+	  
+	  vstat.report();
+	  
+	  Pseq::finished();
       }
     
     if ( command == "g-stats" )
@@ -1857,20 +1666,18 @@ int main(int argc, char ** argv)
     //
 
     if ( command == "loc-view" )
-      {
+    {
 	if ( ! ( g.locdb.attached() | g.segdb.attached() ) ) Helper::halt("no LOCDB or SEGDB attached");
-	if ( ! args.has( "group" ) ) 
-	  Helper::halt("requires a locus-group to be specified");
+	if ( ! args.has( "group" ) ) Helper::halt("requires a locus-group to be specified");
+	
 	std::vector<std::string> grp = args.as_string_vector( "group" );
-	if ( grp.size() != 1 ) 
-	  Helper::halt("requires a single locus-group to be specified");	
-
+	if ( grp.size() != 1 ) Helper::halt("requires a single locus-group to be specified");	
+	
 	std::vector<std::string> alias;
-	if ( args.has("alias") )
-	  alias = args.as_string_vector( "alias" );
+	if ( args.has( "alias" ) ) alias = args.as_string_vector( "alias" );
 
-	Pseq::LocDB::loc_view( grp[0] , alias , ! options.key("no-meta") , options.key("subregions") );
-
+	Pseq::LocDB::loc_view( grp[0] , alias , ! args.has("no-meta") , args.has("show-subregions") );
+	
 	Pseq::finished();
       }
 
@@ -1894,13 +1701,13 @@ int main(int argc, char ** argv)
 	
 	if ( ! g.seqdb.attached() ) Helper::halt("no SEQDB attached");
 	
-	if ( ! args.has( "group" ) ) 
-	  Helper::halt("requires a locus-group to be specified");
+	if ( ! args.has( "loc-group" ) ) 
+	  Helper::halt("requires a locus-group to be specified, with loc-group");
 	
-	std::vector<std::string> grp = args.as_string_vector( "group" );
+	std::vector<std::string> grp = args.as_string_vector( "loc-group" );
 	
 	for (int i=0; i<grp.size(); i++) 
-	  Pseq::SeqDB::loc_stats( grp[i] , options.as<std::string>("ref-group") );
+	  Pseq::SeqDB::loc_stats( grp[i] , args.as_string("ref-group") );
 	
 	Pseq::finished();
       }
@@ -1946,7 +1753,7 @@ int main(int argc, char ** argv)
 	if ( ! args.has( "region" ) )
 	  Helper::halt("need to specify --region");
 
-	bool compact = options.key("compact");
+	bool compact = args.has( "compact" );
 
 	std::vector<std::string> regions = Pseq::Util::n_arguments<std::string>( args, "region" );
 	for (int i=0;i<regions.size(); i++)
@@ -1968,17 +1775,19 @@ int main(int argc, char ** argv)
     
     if ( command == "unique" )
       {
+
 	if ( ! args.has("indiv") ) 
 	  Helper::halt("no individuals specified");
+
 	std::vector<std::string> indiv = args.as_string_vector( "indiv" );
 
 	OptUniq opt;
 
-	if ( options.key( "require" ) )
-	  opt.ingroup_req = options.as<int>( "require" );
+	if ( args.has( "require" ) )
+	  opt.ingroup_req = args.as_int( "require" );
 
-	if ( options.key( "allow" ) ) 
-	  opt.outgroup_allow = options.as<int>( "allow" );
+	if ( args.has( "allow" ) ) 
+	  opt.outgroup_allow = args.as_int( "allow" );
 
 	Pseq::VarDB::uniq_report( indiv , m , opt );
 	Pseq::finished();
@@ -2020,7 +1829,7 @@ int main(int argc, char ** argv)
 	  Helper::halt("no dichotomous phenotype specified");
 
 	// if no perms specified, use adaptive permutation mode
-	Pseq::Assoc::set_assoc_test( m , args , options );
+	Pseq::Assoc::set_assoc_test( m , args );
 	
       }
     
@@ -2078,15 +1887,15 @@ int main(int argc, char ** argv)
       {
 
 	Pseq::Assoc::Aux_vassoc_options aux;
-	if ( options.key("i-stats") ) aux.show_istat = true;
-	if ( options.key("chr-bp") ) aux.separate_chr_bp = true;
+	if ( args.has("info") ) aux.show_istat = true;
+	if ( args.has("separate-chr-bp") ) aux.separate_chr_bp = true;
 	if ( args.has("vmeta") ) aux.show_meta = true;
 	aux.nrep = args.has( "perm" ) ? args.as_int( "perm" ) : 0 ;
 
 	if ( g.phmap.type() != PHE_DICHOT ) 
 	  Helper::halt("no dichotomous phenotype specified");	
 
-	Pseq::Assoc::variant_assoc_test( m , aux , options );
+	Pseq::Assoc::variant_assoc_test( m , aux , args );
 
 	Pseq::finished();
       }
@@ -2105,31 +1914,31 @@ int main(int argc, char ** argv)
 
 	Pseq::Assoc::Aux_glm aux;
 	
-	aux.show_meta = args.has("vmeta");
-
+	aux.show_meta = args.has( "vmeta" );
+	
 	aux.dichot_pheno = g.phmap.type() == PHE_DICHOT;
 	
-	if ( options.key("postprobs") )
-	  {
+	if ( args.has( "use-postprobs" ) )
+	{
 	    aux.use_postprobs = true;
-	    aux.softtag = options.as<std::string>("postprobs");
-	  }
-	else if ( options.key("dosages") )
-	  {
+	    aux.softtag = args.as_string( "use-postprobs" );
+	}
+	else if ( args.has( "use-dosages" ) )
+	{
 	    aux.use_dosage = true;
-	    aux.softtag = options.as<std::string>("dosages");
-	  }
-
-	if ( args.has("covar") )
-	  {
+	    aux.softtag = args.as_string( "use-dosages" );
+	}
+	
+	if ( args.has( "covar" ) )
+	{
 	    aux.has_covar = true;
-	    aux.covars = args.as_string_vector("covar");
+	    aux.covars = args.as_string_vector( "covar" );
 	    
-	    if ( options.key("show-covar") )
-	      {
+	    if ( args.has( "show-covar" ) )
+	    {
 		aux.show_all_covar = true;
 	      }
-	  }
+	}
 	
 	// for now, no permutations
 	// aux.nrep = args.has( "perm" ) ? args.as_int( "perm" ) : 0 ;
@@ -2177,7 +1986,7 @@ int main(int argc, char ** argv)
 	if ( ! args.has("name") )
 	  Helper::halt("no output file given, use --name");
 	string filename = args.as_string( "name" );
-	Pseq::VarDB::write_PED(m,filename, options.key( "family-id" ) );
+	Pseq::VarDB::write_PED(m,filename, args.has( "family-id" ) );
 	Pseq::finished();
       }
 
@@ -2222,9 +2031,9 @@ int main(int argc, char ** argv)
 	// 1) only show genes with non-zero variance
 
 	OptGMatrix opt(&g);
-	if ( options.key( "hide-invariant" )  )
+	if ( args.has( "hide-invariant" )  )
 	  opt.hide_zero_variance = true;
-	if ( options.key( "collapse" ) ) 
+	if ( args.has( "collapse" ) ) 
 	  opt.collapse_01 = true;
 	Pseq::VarDB::write_gene_matrix(m,opt);
 	Pseq::finished();
