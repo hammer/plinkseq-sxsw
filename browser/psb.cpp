@@ -2,6 +2,7 @@
 #include "cgi.h"
 
 #include <iostream>
+#include <algorithm>
 
 using namespace ExomeBrowser;
 
@@ -431,7 +432,11 @@ int main()
   //
 
   std::vector<std::string> toks = Helper::parse( a.reg_list , " \n" );
-  if ( toks.size() == 1 ) genename = toks[0];
+  if ( toks.size() == 1 ) 
+    {
+      genename = toks[0];
+      Helper::str2upper( genename );
+    }
   else genename = "";
 
   if ( a.reg_list == "" )
@@ -942,7 +947,7 @@ int main()
       
       // Optional case/control counts?
       
-      if ( a.show_phenotype )
+      if ( a.show_phenotype && g.phmap.type() == PHE_DICHOT )
 	std::cout << "<th>C/C count</th>";
       
   
@@ -1200,16 +1205,34 @@ int main()
 		{
 
 		  Individual * person = var.ind( i );
-		  
+		  		  
 		  if ( person ) 
 		    {
-		      if ( person->affected() == CASE )
-			std::cout << "<td>CASE</td>";
-		      else if ( person->affected() == CONTROL )
-			std::cout << "<td>CONTROL</td>";
-		      else
-			std::cout << "<td>MISSING</td>";
-		    }
+		      
+		      if ( g.phmap.type() == PHE_DICHOT )
+			{
+			  if ( person->affected() == CASE )
+			    std::cout << "<td>CASE</td>";
+			  else if ( person->affected() == CONTROL )
+			    std::cout << "<td>CONTROL</td>";
+			  else
+			    std::cout << "<td>MISSING</td>";
+			}
+		      else if ( g.phmap.type() == PHE_QT ) 
+			{
+			  if ( ! person->missing() )			  
+			    std::cout << "<td>" << person->qt() << "</td>";			  
+			  else
+			    std::cout << "<td>MISSING</td>";			  
+			}
+		      else if ( g.phmap.type() == PHE_FACTOR ) 
+			{
+			  if ( ! person->missing() )			  
+			    std::cout << "<td>" << person->group_label() << "</td>";			  
+			  else
+			    std::cout << "<td>MISSING</td>";			  
+			}
+		    }		  
 		  else
 		    std::cout << "<td>n/a</td>";
 		}
@@ -1306,12 +1329,28 @@ int main()
 	    }
 	  
 	  std::cout << "Phenotype for variable <em>" << pheno << "</em> is [ " ;
-	  if ( person->affected() == CASE )
-	    std::cout << "CASE";
-	  else if ( person->affected() == CONTROL )
-	    std::cout << "CONTROL";
-	  else
-	    std::cout << "MISSING";
+	  if ( g.phmap.type() == PHE_DICHOT )
+	    {
+	      if ( person->affected() == CASE )
+		std::cout << "CASE";
+	      else if ( person->affected() == CONTROL )
+		std::cout << "CONTROL";
+	      else
+		std::cout << "MISSING";
+	    }
+	  else if ( g.phmap.type() == PHE_QT ) 
+	    {
+	      if ( ! person->missing() ) std::cout << person->qt() ;
+	      else std::cout << "MISSING";
+	    }
+	  else if ( g.phmap.type() == PHE_FACTOR )
+	    {
+	      if ( ! person->missing() ) std::cout << person->group_label() ;
+	      else std::cout << "MISSING";
+	    }
+	  else 
+	    std::cout << ".";
+
 	  std::cout << " ]</p>";
 	}
 
@@ -1319,7 +1358,7 @@ int main()
       // 2) Report all variants for gene for ths individual
       
       a.indiv_id = ind_value;
-      
+       
       m.include_loc( loc_set );
 
       if ( a.multi_transcripts )
@@ -1428,7 +1467,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 
   // Allele count?
   
-  if ( a->show_phenotype )
+  if ( a->show_phenotype && a->g->phmap.type() == PHE_DICHOT )
     {
       int case_n = 0 , control_n = 0;
       for (int j=0; j< var.size(); j++)
