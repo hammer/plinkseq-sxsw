@@ -78,7 +78,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "drop|project|drop a file from the project|ARG:file,type"
 	
-	  << "load-vcf|input|load all VCF files not already in VARDB|ARG:file,vcf,filter"
+	  << "load-vcf|input|load all VCF files not already in VARDB|ARG:file,vcf,filter,include-meta,exclude-meta"
 	
 	  << "index-vcf|input|add index to VARDB for a BGZF-compressed VCF|ARG:vcf"
 	
@@ -1113,6 +1113,20 @@ std::set<std::string> Pseq::Util::Options::get_set( const std::string & k ) cons
     return s;
 } 
 	    
+std::set<std::string> Pseq::Util::Options::get_set( const std::string & a , const std::string & b ) const
+{
+    std::set<std::string> s; 
+    std::map<std::string, std::map<std::string,std::vector<std::string> > >::const_iterator i = data_kw.find(a); 
+    if ( i == data_kw.end() ) return s; 
+    
+    std::map<std::string,std::vector< std::string > >::const_iterator ii = i->second.find( b );
+    if ( ii == i->second.end() ) return s; 
+    
+    for (int j=0; j < ii->second.size(); j++)
+	s.insert( ii->second[j] );
+    return s;
+}
+
 
 std::string Pseq::Util::Options::comma_string( const std::string & k ) const 
 {     

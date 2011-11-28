@@ -119,10 +119,12 @@ namespace Pseq
 	    // custom extraction functions 
 
 	    std::set<std::string> get_set( const std::string & k ) const;
+
+	    std::set<std::string> get_set( const std::string & a , const std::string & b ) const;
 	    	    
 	    std::string comma_string( const std::string & k ) const;
 	
-	
+	    
 	
 	private:
 	    

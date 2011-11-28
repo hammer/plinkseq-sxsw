@@ -56,6 +56,7 @@ namespace ExomeBrowser {
       show_phenotype = false;
       phenotype_name = "";
       multi_transcripts = false;
+      reg_list = reg_list_url = "";
     }
 
     GStore * g;
@@ -73,7 +74,8 @@ namespace ExomeBrowser {
     bool multi_transcripts;
     std::string loc_set;
     std::string genename;
-
+    std::string reg_list;
+    std::string reg_list_url;
     
     // Optional variant meta-fields
     

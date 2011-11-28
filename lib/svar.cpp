@@ -469,9 +469,8 @@ bool SampleVariant::decode_BLOB( Variant * parent ,
 
   // Extract genotypes, either into consensus or self
   // this also returns a variant-level bool, if a include expression w/ a gfunc is in the mask
-
+  
   if ( ! decode_BLOB_genotype( align , mask , parent , this , target , genotype_target ) ) return false;
-
 
   return true;
 }
@@ -687,9 +686,9 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 {
   
     
-//    std::cout << "this = " << fset << " " << vcf_direct << "\n";
-//    std::cout << "source = " << source->fset << " " << source->vcf_direct << "\n";
-//    std::cout << "target = " << target->fset << " " << target->vcf_direct << "\n";
+//     std::cout << "this = " << fset << " " << vcf_direct << "\n";
+//     std::cout << "source = " << source->fset << " " << source->vcf_direct << "\n";
+//     std::cout << "target = " << target->fset << " " << target->vcf_direct << "\n";
     
 
   // Possible that we do not require any individual/genotypic level
@@ -761,7 +760,6 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 		  
 		}
 
-	      
 	      // Basic genotype
 	      
 	      if ( slot != -1 )        	      

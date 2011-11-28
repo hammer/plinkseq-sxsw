@@ -987,34 +987,29 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
       
       VCFZ * vcfz = vcfzmap[ file_id ];
       
-//       std::cout << vcfzmap.size() << " is vcfzmap.size()\n";
-//       std::map<int,VCFZ*>::iterator ii = vcfzmap.begin();
-//       while ( ii != vcfzmap.end() )
-// 	{
-// 	  std::cout << ii->first << "\t" << ii->second->name() << "\n";
-// 	  ++ii;
-// 	}
-//       if ( vcfz == NULL ) std::cout << "null VCFZ for " << file_id << "\n";
-
       if ( vcfz ) 
 	{
 	  SampleVariant & target = ( ! align->multi_sample() ) ? var.consensus : sample ;      
+
 	  SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
 	  
 	  vcfz->read_record( var , sample , target , genotype_target, offset_idx ); 
       }
       else 
       {
-	  BCF * bcf = bcfmap[ file_id ];	  
 
-	  if ( bcf ) 
+	Helper::halt( "BCF not present in this release" );
+	
+	BCF * bcf = bcfmap[ file_id ];	  
+	
+	if ( bcf ) 
 	  {
-	      SampleVariant & target = ( ! align->multi_sample() ) ? var.consensus : sample ;      
-	      SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
-	      bcf->read_record( var , target , genotype_target, offset_idx ); 
+	    SampleVariant & target = ( ! align->multi_sample() ) ? var.consensus : sample ;      
+	    SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
+	    bcf->read_record( var , target , genotype_target, offset_idx ); 
 	  }
-	  else
-	      Helper::halt( "requested compressed-VCF or BCF not attached" );
+	else
+	  Helper::halt( "requested compressed-VCF or BCF not attached" );
       }
       
   }
@@ -1024,9 +1019,10 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
       // Attach BLOB from VARDB, which will be later expanded (if needed)
       
       sqlite3_stmt * s = stmt_fetch_variant_data_all;
-      if ( fetch_mode == NO_GMETA ) s = stmt_fetch_variant_data_vmeta_geno;
+
+      if      ( fetch_mode == NO_GMETA )   s = stmt_fetch_variant_data_vmeta_geno;
       else if ( fetch_mode == ONLY_VMETA ) s = stmt_fetch_variant_data_vmeta;
-      else if ( fetch_mode == ONLY_GENO ) s = stmt_fetch_variant_data_geno;
+      else if ( fetch_mode == ONLY_GENO )  s = stmt_fetch_variant_data_geno;
       
       sql.bind_int64( s , ":var_id" , sample.index() );
       sql.step( s );
@@ -1057,7 +1053,7 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
 	}
 
       // this extracts out a PB string, so we can remove BLOBs afterwards
-      
+
       sample.store_BLOBs( &var_blob , vmeta_blob , geno_blob , gmeta_blob );      
       
       if ( vmeta_blob ) delete vmeta_blob;
@@ -1339,6 +1335,10 @@ Variant VarDBase::fetch( uint64_t var_id )
   if ( ! attached() ) { var.valid( false ); return var; }
 
   sql.bind_int64( stmt_fetch_variant_key , ":var_id" , var_id );
+
+  fetch_mode_t old_fetch_mode = fetch_mode;
+  fetch_mode = ALL;
+
   if ( sql.step( stmt_fetch_variant_key ) )
     {      
       SampleVariant & sample = construct( var , stmt_fetch_variant_key , &indmap );
@@ -1349,12 +1349,17 @@ Variant VarDBase::fetch( uint64_t var_id )
 
       var.make_consensus( &indmap );  
     }
+
   sql.reset( stmt_fetch_variant_key );
+
+  fetch_mode = old_fetch_mode;
+
   return var;
 }
 
 Variant VarDBase::fetch( int chr , int bp1 )
 {
+
   // Return 1+ SampleVariants, based on physical position, 
   //  in the form of a single Variant
 
@@ -1364,15 +1369,21 @@ Variant VarDBase::fetch( int chr , int bp1 )
   sql.bind_int( stmt_fetch_variant_pos , ":chr" , chr );
   sql.bind_int( stmt_fetch_variant_pos , ":bp1" , bp1 );
   
+  fetch_mode_t old_fetch_mode = fetch_mode;
+  fetch_mode = ALL;
+  
   while ( sql.step( stmt_fetch_variant_pos ) )
     {      
       SampleVariant & sample = construct( var , stmt_fetch_variant_pos , &indmap );
-      sample.decode_BLOB( &var , &indmap , NULL );      
+      sample.decode_BLOB( &var , &indmap , NULL );
     }
   
   var.make_consensus( &indmap );      
 
   sql.reset( stmt_fetch_variant_pos );
+
+  fetch_mode = old_fetch_mode;
+
   return var;
 }
 
@@ -1390,6 +1401,9 @@ std::set<Variant> VarDBase::fetch( const Region & region )
     
   std::map<int,Variant> vmap;
 
+  fetch_mode_t old_fetch_mode = fetch_mode;
+  fetch_mode = ALL;
+
   while ( sql.step( stmt_fetch_variant_range ) )
     {
       // extract BP position on this chromosome
@@ -1406,6 +1420,8 @@ std::set<Variant> VarDBase::fetch( const Region & region )
       s.insert(i->second);
       ++i;
     }
+
+  fetch_mode = old_fetch_mode;
 
   return s;
 }

@@ -34,8 +34,7 @@ int main()
   int chr = 0, bp1 = 0, bp2 = 0;
   std::string pheno = "";
   bool from_top = false;
-  std::string reg_list = "";
-
+  
 
   // Auxilliary information to send to variant printing functions
 
@@ -49,9 +48,48 @@ int main()
   std::cout << "Content-type: text/html\n\n"
 	    << "<html><head><title>PLINK/SEQ Browser</title>"
 	    << "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />"
-	    << "<title>PLINK/SEQ genetics library</title>"
-	    << "<link href=\"default.css\" rel=\"stylesheet\" type=\"text/css\" />"
-	    << "</head><body>";
+	    << "<title>PLINK/SEQ genetics library</title>";
+  
+  // CSS
+
+  std::cout << "<style media=\"screen\" type=\"text/css\">"
+	    << "table { border-collapse: collapse; border: 1px solid #666666; font: normal 11px verdana, arial, helvetica, sans-serif;"
+	    << "color: #363636; background: #f6f6f6; text-align:left;}"
+	    << "caption {"
+	    << "text-align: center;"
+	    << "font: bold 16px arial, helvetica, sans-serif;"
+	    << "background: transparent;"
+	    << "padding:6px 4px 8px 0px;"
+	    << "color: #CC00FF;"
+	    << "   text-transform: uppercase;"
+	    << "}"
+	    << "thead, tfoot {"
+	    << "  text-align:left;"
+	    << "height:30px;"
+	    << "}"
+	    << "thead th, tfoot th {"
+	    << "padding:5px;"
+	    << "}"
+	    << "table a {"
+	    << "color: #333388;"
+	    << "  text-decoration:underline;"
+	    << "}"
+	    << "table a:hover {"
+	    << "  text-decoration:underline;"
+	    << "}"
+	    << "tr.odd {"
+    //	    << "background: #f1f1f1;"
+	    << "background: #f171f1;"
+	    << "}"
+	    << "tbody th, tbody td {"
+	    << "padding:5px;"
+	    << "}"
+	    << "</style>";
+  
+  // end of HEAD
+	    std::cout << "</head><body>";
+
+
   
   if ( cgi ) 
     {
@@ -85,11 +123,11 @@ int main()
 	  if ( str == "val" ) 
 	    var_value = cgivars[i+1];
 	  
-	  if ( str == "gene" ) 
-	    {
-	      genename = cgivars[i+1];
-	      Helper::str2upper( genename );
-	    }
+// 	  if ( str == "gene" ) 
+// 	    {
+// 	      genename = cgivars[i+1];
+// 	      Helper::str2upper( genename );
+// 	    }
 	  
 	  if ( str == "ind" ) 
 	    ind_value = cgivars[i+1];
@@ -103,8 +141,17 @@ int main()
 	  if ( str == "loc" ) loc_set = cgivars[i+1];
 	  
 	  if ( str == "regs" )
-	    reg_list = cgivars[i+1];
-	  
+	    {
+	      a.reg_list = a.reg_list_url = cgivars[i+1];
+	      while ( 1 ) 
+		{
+		  int p = a.reg_list.find( "," );
+		  if ( p == std::string::npos ) break;
+		  a.reg_list.replace( p , 1 , "\n" );
+		}
+	      std::replace( a.reg_list_url.begin(), a.reg_list_url.end() , '\n' , ',' );
+	    }
+
 	  if ( str == "masks" )
 	    a.msk = Helper::parse( cgivars[i+1] , " " );
 	  
@@ -133,19 +180,6 @@ int main()
       free(cgivars) ;
     }
 
-
-  if ( !cgi ) 
-    {
-      q = Q_PROJSUMMARY;
-      project_path = "/psych/genetics_data/projects/seq/exome/freeze-jan-2011/data/swedex-merged";
-
-//       q = Q_VARIANT;
-//       genename = "DISC1";
-//       project_path = "/psych/genetics_data/projects/seq/exome/freeze-jan-2011/data/swedex-merged";
-//       pheno= "scz";
-//       var_value = "chr1:231829983";
-         loc_set = "refseq";
-   }
   
   
   //
@@ -227,7 +261,7 @@ int main()
   //
 
 
-  std::cout << "<td width=20% valign=top>";
+  std::cout << "<td width=30% valign=top>";
 
 
   //
@@ -239,35 +273,41 @@ int main()
 	    << "&meta=" << a.mf_print()
 	    << "&masks=" << a.msk_print() 
 	    << "&pheno=" << pheno
-	    << "\">list</a>)";			  
+	    << "&regs=" << a.reg_list_url
+	    << "\">list</a>)";
   
-  std::cout << "<br><input type=\"text\" size=\"15\" name=\"gene\"";
-  if ( genename != "" )
-    std::cout << " value=\"" << genename << "\"";
-  std::cout << ">";
-  std::cout << "</p> ";
+//   std::cout << "<br><input type=\"text\" size=\"45\" name=\"gene\"";
+//   if ( genename != "" )
+//     std::cout << " value=\"" << genename << "\"";
+//   std::cout << ">";
+//   std::cout << "</p> ";
   
-  // Gene-set
-  std::cout << "<p>Gene set ";
-  std::cout << "(<a href=\"pbrowse.cgi?q=lslist&" << a.print_form_value("proj")
-       << "\">list</a>)";			  
 
-  std::cout << "<br><input type=\"text\" size=\"15\" ";  
-  if ( loc_set != "" ) 
-    std::cout << " value=\"" << loc_set << "\"";
-  std::cout << " name=\"loc\"></p>";
-    
+  //
+  // Region list
+  // 
+
+  //  std::cout << "<p>Additional regions and genes<br>";
+  std::cout << "<textarea ";
+  std::cout << "name=\"regs\" rows=\"7\" cols=\"30\">"
+	    << a.reg_list 
+	    << "</textarea></p>";
 
   //
   // Submit buttons
   //
   
   std::cout << " <br> <input type=\"submit\" name=\"getgene\" value=\"Fetch\"> "
-       << " <input type=\"reset\" value=\"Reset\"> ";
+	    << " <input type=\"reset\" value=\"Reset\"> ";
 
+  
+  //
+  // Second table column
+  //
 
   std::cout << "</td><td width=5% valign=top> &nbsp ";
   std::cout << "</td><td width=30% valign=top>";
+
 
 
   //
@@ -276,12 +316,13 @@ int main()
   
   std::cout << "<p>Optional variant meta-fields ";
   std::cout << " (<a href=\"pbrowse.cgi?q=mflist&" << a.print_form_value("proj")
-       << "&meta=" << a.mf_print()
-       << "&masks=" << a.msk_print()
-       << "&pheno=" << pheno
-       << "\">list</a>) ";			  
+	    << "&meta=" << a.mf_print()
+	    << "&masks=" << a.msk_print()
+	    << "&pheno=" << pheno
+	    << "&regs=" << a.reg_list_url
+	    << "\">list</a>) ";			  
 
-  std::cout << "<br><input type=\"text\" size=\"30\" name=\"meta\"";
+  std::cout << "<br><input type=\"text\" size=\"45\" name=\"meta\"";
   
   if ( a.mf.size() != 0 ) 
     {
@@ -304,12 +345,13 @@ int main()
   std::cout << "<p>Optional case/control phenotype";
 
   std::cout << " (<a href=\"pbrowse.cgi?q=plist&" << a.print_form_value("proj")
-       << "&meta=" << a.mf_print()
-       << "&masks=" << a.msk_print() 
-       << "&pheno=" << pheno
-       << "\">list</a>) ";			  
-
-  std::cout << "<br><input type=\"text\" size=\"30\" name=\"pheno\"";
+	    << "&meta=" << a.mf_print()
+	    << "&masks=" << a.msk_print() 
+	    << "&pheno=" << pheno
+	    << "&regs=" << a.reg_list_url
+	    << "\">list</a>) ";			  
+  
+  std::cout << "<br><input type=\"text\" size=\"45\" name=\"pheno\"";
   
   if ( pheno != "" ) 
     {
@@ -319,13 +361,33 @@ int main()
   
   std::cout << "</p>";
 
+  // Gene-set
+  std::cout << "<p>Gene set ";
+  std::cout << "(<a href=\"pbrowse.cgi?q=lslist&" << a.print_form_value("proj")
+       << "\">list</a>)";			  
+
+  std::cout << "<br><input type=\"text\" size=\"45\" ";  
+  if ( loc_set != "" ) 
+    std::cout << " value=\"" << loc_set << "\"";
+  std::cout << " name=\"loc\"></p>";
+    
+
+
+
+  //
+  // Third column
+  //
+
+  std::cout << "</td><td width=5% valign=top> &nbsp ";
+  std::cout << "</td><td width=30% valign=top>";
+  
 
   //
   // Mask specification
   //
   
   std::cout << "<p>Optional mask specification";
-  std::cout << "<br><input type=\"text\" size=\"30\" name=\"masks\"";
+  std::cout << "<br><input type=\"text\" size=\"45\" name=\"masks\"";
   
   if ( a.msk.size() != 0 ) 
     {
@@ -342,22 +404,20 @@ int main()
   
 
   //
-  // Third column
+  // include mask
   //
 
-  std::cout << "</td><td width=5% valign=top> &nbsp ";
-  std::cout << "</td><td width=30% valign=top>";
+
+  //
+  // V-include mask
+  //
+
+
+
   
-
   //
-  // Region list
-  // 
-
-  std::cout << "<p>Additional regions and genes<br>";
-  std::cout << "<textarea ";
-  std::cout << "name=\"regs\" rows=\"6\" cols=\"30\">"
-       << "</textarea></p>";
-
+  // End of table
+  //
 
   std::cout << "</td></tr></table>";
 
@@ -370,28 +430,29 @@ int main()
   // Draw query 
   //
 
-  if ( q == Q_ERROR )
+  std::vector<std::string> toks = Helper::parse( a.reg_list , " \n" );
+  if ( toks.size() == 1 ) genename = toks[0];
+  else genename = "";
+
+  if ( a.reg_list == "" )
+    {
+      std::cout << "No genes or regions specified...</BODY></HTML>";
+      exit(0);
+    } 
+  
+  if ( ! Helper::fileExists( project_path ) )
+    {
+      std::cout << "File [ " << project_path << " ] could not be found "
+		<< "</BODY></HTML>";
+      exit(0);
+    }
+  
+    if ( q == Q_ERROR )
     {
       std::cout << "Problem processing input...";
       std::cout << "</body></html>";
       exit(0);
     }
- 
-  
-  if ( ! Helper::fileExists( project_path ) )
-    {
-      std::cout << "File [ " << project_path << " ] could not be found "
-           << "</BODY></HTML>";
-      exit(0);
-    }
-  
-  
-  if ( q == Q_GENE && genename == "" && reg_list == "" )
-    {
-      std::cout << "No gene specified...</BODY></HTML>";
-      exit(0);
-    }
-
   
 
 
@@ -432,8 +493,8 @@ int main()
       else
 	mstr = "limit=5000 " + mstr;      
     }
-
-//  std::cout << "m = ["<<mstr<<"]\n";
+  
+  //  std::cout << "m = ["<<mstr<<"]\n";
 
   Mask m( mstr );
   
@@ -443,6 +504,7 @@ int main()
   //
   // Expand wildcard?
   //
+
   std::set<std::string> onecopy;
   for (int m=0; m<a.mf.size(); m++)
     {
@@ -560,10 +622,10 @@ int main()
   a.regions.clear();
   a.extended_search = false;
 
-  if ( reg_list != "" )
+  if ( a.reg_list != "" )
     {
 
-      std::vector<std::string> tok = Helper::whitespace( reg_list );
+      std::vector<std::string> tok = Helper::whitespace( a.reg_list );
       
       for (int i=0; i<tok.size(); i++)
 	{
@@ -623,6 +685,7 @@ int main()
 		      << "&meta=" << a.mf_print()
 		      << "&masks=" << a.msk_print() 
 		      << "&pheno=" << pheno
+		      << "&regs=" << a.reg_list_url
 		      << "\">" << trans[r].name <<"</a>  "
 		      << Helper::chrCode(trans[r].start.chromosome()) << ":" 
 		      << trans[r].start.position() << ".."
@@ -664,10 +727,18 @@ int main()
 	  
 	  std::cout << "<b>" << genename << "</b> location : " 
 		    << g_chr_code << ":" << g_bp1 << ".." << g_bp2 
-		    << "  (view in the "
-		    << "<a href=\"http://genome.ucsc.edu/cgi-bin/hgTracks?org=Human&db=hg18&position=" 
+		    << "  (view in the UCSC genome browser: ";
+
+	  std::cout << "<a href=\"http://genome.ucsc.edu/cgi-bin/hgTracks?org=Human&db=hg18&position=" 
 		    << g_chr_code << ":" << g_bp1 << ".." << g_bp2     
-		    << "\" target=\"_blank\">UCSC genome browser</a>)</p>";
+		    << "\" target=\"_blank\">hg18</a> ";
+
+	    
+	  std::cout << "<a href=\"http://genome.ucsc.edu/cgi-bin/hgTracks?org=Human&db=hg19&position=" 
+		    << g_chr_code << ":" << g_bp1 << ".." << g_bp2     
+		    << "\" target=\"_blank\">hg19</a>)";
+
+	  std::cout << "</p>";
 	  
 	  
 	  std::cout << "<pre><font size=-1>";
@@ -706,11 +777,12 @@ int main()
 			if ( reg.subregion[s].overlaps( t->subregion[u] ) )
 			  {
 			    std::cout << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
-				 << "&gene="<< t->name
-				 << "&meta=" << a.mf_print()
-				 << "&masks=" << a.msk_print() 			
-				 << "&pheno=" << pheno
-				 << "\">"<<t->name<<"("<<t->altname<<")</a> ";			  
+				      << "&gene="<< t->name
+				      << "&meta=" << a.mf_print()
+				      << "&masks=" << a.msk_print() 			
+				      << "&pheno=" << pheno
+				      << "&regs=" << a.reg_list_url
+				      << "\">"<<t->name<<"("<<t->altname<<")</a> ";			  
 			  }
 		      }
 		  ++t;
@@ -901,22 +973,24 @@ int main()
 
 
   //
-  // Query for a single variant: no need to call any database iteraton functions
+  // Query for a single variant: no need to call any database iteraton functions; no masks applied here either
   //
   
   if ( q == Q_VARIANT )
     {
       
       std::cout << "Back to "
-	   << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
-	   << "&gene="<< genename  
-	   << "&meta=" << a.mf_print()
-	   << "&masks=" << a.msk_print() 
-	   << "&pheno=" << a.phenotype_name 
-	   << "\">gene report</a>"
-	   << " for <b>" << genename << "</b>";
- 
-       std::cout << "<hr>";
+		<< "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
+		<< "&gene="<< genename  
+		<< "&meta=" << a.mf_print()
+		<< "&masks=" << a.msk_print() 
+		<< "&pheno=" << a.phenotype_name 
+		<< "&regs=" << a.reg_list_url
+		<< "\">gene report</a>";
+      if ( genename != "" ) 
+	std::cout << " for <b>" << genename << "</b>";
+      
+      std::cout << "<hr>";
       
 
 
@@ -940,7 +1014,6 @@ int main()
        //
        
        Variant var = g.vardb.fetch( r.chromosome() , r.start.position() );
-
 
        
        //
@@ -1110,6 +1183,7 @@ int main()
 			<< "&masks=" << a.msk_print() 
 			<< "&ind=" << id_list[i] 
 			<< "&pheno=" << a.phenotype_name 
+			<< "&regs=" << a.reg_list_url
 			<< "\">"
 			<< id_list[i] 
 			<< "</a></td>";
@@ -1202,13 +1276,15 @@ int main()
       a.genename = genename;
 
       std::cout << "Back to "
-	   << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
-	   << "&gene="<< genename  
-	   << "&meta=" << a.mf_print()
-	   << "&masks=" << a.msk_print() 
-	   << "&pheno=" << a.phenotype_name 
-	   << "\">gene report</a>"
-	   << " for <b>" << genename << "</b>";
+		<< "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
+		<< "&gene="<< genename  
+		<< "&meta=" << a.mf_print()
+		<< "&masks=" << a.msk_print() 
+		<< "&pheno=" << a.phenotype_name 
+		<< "&regs=" << a.reg_list_url
+		<< "\">gene report</a>";
+      if ( genename != "" ) 
+	std::cout << " for <b>" << genename << "</b>";
       
       std::cout << "<hr>";
       
@@ -1218,15 +1294,15 @@ int main()
       if ( a.show_phenotype ) 
 	{
 
-	  // Expect here we have a individual ID
+	  // A single individual ID
 	  
 	  Individual * person = g.indmap.ind( ind_value );
 	  
-	  if ( ! person ) 
+	  if ( ! person )
 	    {
 	      std::cout << "Individual [ " << ind_value << " ] not found...</p>";
 	      std::cout << "</BODY></HTML>";
-	      exit(0);	  
+	      exit(0);
 	    }
 	  
 	  std::cout << "Phenotype for variable <em>" << pheno << "</em> is [ " ;
@@ -1243,16 +1319,7 @@ int main()
       // 2) Report all variants for gene for ths individual
       
       a.indiv_id = ind_value;
-
-
-      // Crate Mask, ( use existing mask, no?)
-
-//       std::string mstr;
-//       for (int i = 0 ; i < a.msk.size(); i++)
-// 	mstr += ( i ? " " : "" ) + a.msk[i];
-//       Mask m( mstr );
-
-
+      
       m.include_loc( loc_set );
 
       if ( a.multi_transcripts )
@@ -1271,10 +1338,9 @@ int main()
       
 
       // If any regions specified, add as a requirement
-      if ( a.regions.size() > 0 )
+      for (int r = 0 ; r < a.regions.size() ; r++) 
 	{
-	  for (int r = 0 ; r < a.regions.size() ; r++) 
-	    m.require_reg( a.regions[r] );
+	  m.include_reg( a.regions[r] );
 	}
       
             
@@ -1328,6 +1394,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
      << "&masks=" << a->msk_print() 
      << "&pheno=" << a->phenotype_name  
      << "&val=" << var.coordinate()
+     << "&regs=" << a->reg_list_url 
      << "\">view</a>";
 
   o1 << "</td>";
@@ -1441,7 +1508,9 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
   
   // Overall group details
   
-  std::cout << "Individual report for individual <b>" << a->indiv_id << "</b> for gene " << vars.name() << "</b></p>";
+  std::cout << "Individual report for individual <b>" << a->indiv_id << "</b>";
+  if ( vars.name() != "" ) std::cout << "for gene " << vars.name() << "</b>";
+  std::cout << "</p>";
   
   std::cout << vars.size() << " variants in total<br>";
   
@@ -1512,12 +1581,13 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
       // call pbrowse.cgi, but with all arguments explicitly formed.      
 
       std::cout << "<a href=\"pbrowse.cgi?q=v&" << a->print_form_value("proj")
-	   << "&gene=" << a->genename
-	   << "&meta=" << a->mf_print()
-	   << "&masks=" << a->msk_print() 
-	   << "&pheno=" << a->phenotype_name 
-       	   << "&val=" << vars.var(i).coordinate()	
-	   << "\">view</a>";
+		<< "&gene=" << a->genename
+		<< "&meta=" << a->mf_print()
+		<< "&masks=" << a->msk_print() 
+		<< "&pheno=" << a->phenotype_name 
+		<< "&val=" << vars.var(i).coordinate()	
+		<< "&regs=" << a->reg_list_url
+		<< "\">view</a>";
 
       std::cout << "</td>";
 
@@ -1617,11 +1687,12 @@ void ExomeBrowser::make_gene_list(Aux * a)
       if ( genes[g] != lastgene )
 	{
 	  std::cout << "<a href=\"pbrowse.cgi?q=g&" << a->print_form_value("proj")
-	       << "&gene="<< genes[g]
-	       << "&meta=" << a->mf_print()
-	       << "&masks=" << a->msk_print() 
-	       << "&pheno=" << a->phenotype_name 
-	       << "\">" << genes[g] << "</a><br>";
+		    << "&gene="<< genes[g]
+		    << "&meta=" << a->mf_print()
+		    << "&masks=" << a->msk_print() 
+		    << "&pheno=" << a->phenotype_name 
+		    << "&regs=" << a->reg_list_url	 
+		    << "\">" << genes[g] << "</a><br>";
 	  lastgene = genes[g];
 	}
     }

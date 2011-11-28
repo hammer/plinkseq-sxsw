@@ -20,9 +20,9 @@ bool Pseq::VarDB::load_VCF( Mask & mask )
     // filters on meta-fields?
 
     std::set<std::string> includes, excludes;
-    if ( args.has( "include-meta" ) ) includes = args.get_set( "include-meta" );
-    if ( args.has( "exclude-meta" ) ) excludes = args.get_set( "exclude-meta" );
-    
+    if ( args.has( "format" , "include-meta" ) ) includes = args.get_set( "format" , "include-meta" );
+    if ( args.has( "format" , "exclude-meta" ) ) excludes = args.get_set( "format" , "exclude-meta" );
+
     if ( ! args.has("check-reference") ) g.seqdb.dettach();
     
     return g.vardb_load_vcf( mask , includes , excludes , region_mask ? & rmask : NULL );
@@ -39,8 +39,8 @@ bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & g
   
   // filters on meta-fields?
   std::set<std::string> includes, excludes;
-  if ( args.has( "include-meta" ) ) includes = args.get_set( "include-meta" );
-  if ( args.has( "exclude-meta" ) ) excludes = args.get_set( "exclude-meta" );
+  if ( args.has( "format" , "include-meta" ) ) includes = args.get_set( "format" , "include-meta" );
+  if ( args.has( "format" , "exclude-meta" ) ) excludes = args.get_set( "format" , "exclude-meta" );
   
   std::string comment;
   if ( args.has( "description" ) ) comment = args.as_string( "description" );
