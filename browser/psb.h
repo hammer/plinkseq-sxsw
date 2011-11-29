@@ -157,4 +157,50 @@ namespace ExomeBrowser {
   
 };
 
+namespace Helper {
+	
+	std::string html_encode(std::string & data) {
+	    std::string buffer;
+	    buffer.reserve(data.size());
+	    for(size_t pos = 0; pos != data.size(); ++pos) {
+	        switch(data[pos]) {
+	            case '&':  buffer.append("&amp;");       break;
+	            case '\"': buffer.append("&quot;");      break;
+	            case '\'': buffer.append("&apos;");      break;
+	            case '<':  buffer.append("&lt;");        break;
+	            case '>':  buffer.append("&gt;");        break;
+	            default:   buffer.append(1, data[pos]); break;
+	        }
+	    }
+		return buffer;
+	}
+	
+	std::string url_encode(std::string data) {
+
+	    std::string buffer="";
+		buffer.reserve(data.size());
+	    for(size_t pos = 0; pos != data.size(); ++pos)
+	    {
+	        if ( (48 <= data[pos] && data[pos] <= 57) ||//0-9
+	             (65 <= data[pos] && data[pos] <= 90) ||//abc...xyz
+	             (97 <= data[pos] && data[pos] <= 122) || //ABC...XYZ
+	             (data[pos]=='~' || data[pos]=='!' || data[pos]=='*' || 
+					data[pos]=='(' || data[pos]==')' || data[pos]=='\'')
+	        )
+	        {
+	            buffer.append( &data[pos], 1);
+	        }
+	        else
+	        {
+	            buffer.append("%");
+				char s[2];
+				sprintf(s, "%x", data[pos]);
+	            buffer.append( s, 2 );//converts char 255 to string "ff"
+	        }
+	    }
+	    return buffer;
+	}
+	
+};
+
 #endif

@@ -396,7 +396,7 @@ int main()
       for (int m=0; m< a.msk.size(); m++) 
 	{
 	  if ( m>0 ) std::cout << " ";
-	  std::cout << a.msk[m];
+	  std::cout << Helper::html_encode(a.msk[m]);
 	}
       std::cout << "\"";
     }
