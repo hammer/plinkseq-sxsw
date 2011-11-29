@@ -1177,7 +1177,7 @@ int main()
 	      
 	     
 	      if ( gt == 3 && ! var(i).null() ) continue;
-	      else if ( var(i).allele_count( ) != 2-gt ) continue;
+	      else if ( gt != 3 && var(i).allele_count( ) != 2-gt ) continue;
 	      
 	
 	      // Include link to individual-report
@@ -1643,8 +1643,10 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
       // Optional meta-information?
       
       for (int m=0; m< a->mf.size(); m++)
-	std::cout << "<td>" << vars.var(i).print_meta( a->mf[m] , "<br>" ) << "</td>";
-      
+	{
+	  std::string ms = vars.var(i).print_meta( a->mf[m] , "<br>" );
+	  std::cout << "<td>" << ( ms == "" ? "." : ms ) << "</td>";
+	}
 
       // Genotype; genotype meta-fields;
 
@@ -1671,6 +1673,8 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
 	      meta_name_t t = *k;
 	      std::cout << "<td>" << (vars.var(i))(ni).meta.print( t ) << "</td>";
 	    }
+	  else
+	    std::cout << "<td>.</td>";
 	  ++k;
 	}
       std::cout << "</tr>";	  
