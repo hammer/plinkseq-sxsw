@@ -136,6 +136,8 @@ namespace Pseq
       bool load_pathway( std::string file1 , std::string file2 , std::string group , bool , bool use_altname = false );
 
       bool loc_view( const std::string & , const std::vector<std::string> & , const bool meta = true , const bool subregions = false );
+
+      //      bool loc_overlap( );
     }
 
 

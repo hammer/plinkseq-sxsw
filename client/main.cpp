@@ -1511,9 +1511,9 @@ int main(int argc, char ** argv)
     // Lookup DB information for a list of positions
     //
 
-    if ( command == "annotate" )
+    if ( command == "lookup" )
       {
-
+	
 	if ( args.has( "file" ) )
 	  {
 	    std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
@@ -2022,6 +2022,14 @@ int main(int argc, char ** argv)
       {
 	std::string grp = Pseq::Util::single_argument<std::string>( args , "group" );
 	Pseq::VarDB::annotate_loc(grp,m);
+	Pseq::finished();
+      }
+
+    if ( command == "loc-overlap" )
+      {
+	std::vector<std::string> grps = Pseq::Util::n_arguments<std::string>( args , "group" );	
+	if ( grps.size() != 2 ) Helper::halt( "exactly two groups need to be specified" );
+	Pseq::LocDB::overlap_analysis( grps[0] , grps[1] );
 	Pseq::finished();
       }
 
