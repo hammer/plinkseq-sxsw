@@ -200,6 +200,8 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "loc-annotate|locop,annot|annotate loci|ARG:group"
 	
+	  << "loc-overlap|locop|show loci in groups Y, Z that overlap each locus in X|ARG:group"
+
 
 // 	 << "seg-load|input,segop|input segment data to SEGDB" 
 //      << "seg-merge|segop|merge intervals in SEGDB" 
@@ -224,7 +226,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:file"
 	
-	  << "annotate|misc|annotate a list of positions with various fields"
+	  << "lookup|misc|lookup various annotatations for a list of positions"
 	
 	  << "ref-view|views|view a group from a REFDB"
 	
@@ -432,9 +434,10 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "indiv", STRING_VECTOR , "specify individual(s)");
     reg( "require", INT , "require N individuals with variant" );
     reg( "allow", INT , "allow N individuals without variant" );
-
     
     reg( "annotate" , STRING , "transcript group for annotation" );
+    reg( "loc" , STRING_VECTOR , "transcript group for annotation" );
+    reg( "ref" , STRING_VECTOR , "transcript group for annotation" );
     
 
     // Genotype/phenotype inputs

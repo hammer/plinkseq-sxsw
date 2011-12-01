@@ -6,16 +6,22 @@ using namespace Helper;
 
 void OverlapResults::load_regions(set<Region> r)
 {
-  set<Region>::iterator i = r.begin();
+  
+  std::set<Region>::iterator i = r.begin();
+  
   while ( i != r.end() )
     {
+
       OverlapResult olap;
+
       olap.totalLength = i->stop.position() - i->start.position() + 1;
       olap.nExons = i->subregion.size();
-      plog << "added " << olap.nExons << "\n";
+      
       for (int s=0; s<i->subregion.size(); s++)
 	olap.exonLength += i->subregion[s].stop.position() - i->subregion[s].start.position() + 1;
+      
       result.insert(make_pair( *i , olap ) );
+      
       ++i;
     }
 }
@@ -27,23 +33,23 @@ void func_locdb_process_overlap(Region & r1, Region & r2, int v_int, int v_union
   OverlapResults * data = (OverlapResults*)d;
   
   // Ignore if tested gene overlaps tested gene
-
-  if ( r1.group == r2.group ) 
-    return;
+  
+  if ( r1.group == r2.group ) return;
   
   
   // We now have 1 tested gene (with exons) and 1 other region
   
   Region & tested   = r1.group == data->target_id ? r1 : r2; 
   
-  Region & target = r1.group == data->target_id ? r2 : r1; 
+  Region & target   = r1.group == data->target_id ? r2 : r1; 
   
   // Have we seen this tested gene before? 
   
-  map<Region,OverlapResult>::iterator i = data->result.find( tested );
+  std::map<Region,OverlapResult>::iterator i = data->result.find( tested );
   
   if ( i != data->result.end() )
     {
+
       OverlapResult & r = i->second;
 
       // Which subregions does this region overlap with? 
@@ -60,7 +66,7 @@ void func_locdb_process_overlap(Region & r1, Region & r2, int v_int, int v_union
 		  r.nTargets++;
 		  
 		  
-		  map<int,set<int2> >::iterator i = r.cover.find(s);		  
+		  std::map<int,set<int2> >::iterator i = r.cover.find(s);		  
 		  if ( i == r.cover.end() )
 		    {
 		      set<int2> t;
@@ -172,107 +178,115 @@ void GStore::locdb_make_overlap_table()
 
 void GStore::locdb_overlap_analysis(string target, string preload )
 {
-  
+
+  plog << "TARGET" << "\t"
+       << "ALIAS" << "\t"
+       << "POS1" << "\t"
+       << "POS2" << "\t"
+    
+       << "N_SUB" << "\t" 
+       << "LEN" << "\t" 
+       << "LEN_SUB" << "\t"
+       << "N" << "\t"
+       << "OLAP1" << "\t"
+       << "OLAP2" << "\n";
+
+
   ID_t target_id = locdb.lookup_group_id( target );
   
   ID_t preload_id = locdb.lookup_group_id( preload );
     
-    if ( target_id == 0 || preload_id == 0 ) 
-      return;
+  if ( target_id == 0 || preload_id == 0 ) return;
+  
+  locdb.get_subregions( true );
+  
+  // locdb.add_overlap_table( target_id , preload_id );
+  
+  std::set<Region> regions = locdb.get_regions( preload_id );
+  
+  OverlapResults res( target_id );
+  res.load_regions( regions );
 
-    locdb.get_subregions(true);
-
-    // locdb.add_overlap_table( target_id , preload_id );
-
-    set<Region> regions = locdb.get_regions( preload_id );
-    
-    OverlapResults res( target_id );
-    res.load_regions( regions );
-
-    locdb.get_regions_and_overlap( &func_locdb_process_overlap , &res );
-
-    map<Region,OverlapResult>::iterator j = res.result.begin();
-    
-    while( j != res.result.end() )
-      {
+  locdb.get_regions_and_overlap( &func_locdb_process_overlap , &res );
+  
+  std::map<Region,OverlapResult>::iterator j = res.result.begin();
+  
+  while( j != res.result.end() )
+    {
+      
+      // Name of target gene
+      
+      const Region & target = j->first; 
+      
+      // Exon-based overlap results
+      
+      OverlapResult & olap = j->second;
+      
+      std::map<std::string,std::string> aliases = locdb.lookup_alias( target.name ); 
+      
+      std::string a = stringizeKeyPairList( aliases );
+      
+      plog << target.name << "\t"
+	   << a << "\t"
+	   << target.start.position() << "\t"
+	   << target.stop.position() << "\t";
 	
-	// Name of target gene
-	 
-	const Region & target = j->first; 
-	
-	// Exon-based overlap results
-	
-	OverlapResult & olap = j->second;
-	
-	std::map<std::string,std::string> aliases = locdb.lookup_alias( target.name ); 
-	
-	std::string a = stringizeKeyPairList( aliases );
-	
-	plog << sw( target.name , 18 )
-	     << sw( a , 18 ) 
-	     << sw( target.start.position() , 12 )
-	     << sw( target.stop.position() , 12 );
-	
-	plog << sw( j->second.nExons , 8 )
-	     << sw( (double)(j->second.totalLength)/1000.0 , 8 )
-	     << sw( j->second.exonLength , 8 ) 
-	     << sw( j->second.nTargets , 8 ) 
-	     << "\t";
-	
-    
-        // Calculate overlap metrics
-	
-        int tc = 0;
-	
-        for ( int s = 0 ; s < target.subregion.size(); s++ )
-	  {
-	    
-	    map<int,set<int2> >::iterator i = olap.cover.find( s ); 
-	    
-	    int exonStart = target.subregion[s].start.position();
-	    int exonStop = target.subregion[s].stop.position();
-	    
-	    
-	    // No overlap?
-
-	    if ( i == olap.cover.end() ) 
-	      {
-		tc += exonStop-exonStart+1;
-		continue;
+      plog << j->second.nExons << "\t"
+	   << (double)(j->second.totalLength)/1000.0 << "\t"
+	   << j->second.exonLength << "\t"
+	   << j->second.nTargets << "\t"
+      
+      // Calculate overlap metrics
+      
+      int tc = 0;
+      
+      for ( int s = 0 ; s < target.subregion.size(); s++ )
+	{
+	  
+	  std::map<int,std::set<int2> >::iterator i = olap.cover.find( s ); 
+	  
+	  int exonStart = target.subregion[s].start.position();
+	  int exonStop = target.subregion[s].stop.position();	    
+	  
+	  // No overlap?
+	  
+	  if ( i == olap.cover.end() ) 
+	    {
+	      tc += exonStop-exonStart+1;
+	      continue;
+	    }
+	  
+	  // Overlap
+	  
+	  std::set<int2> & segments = i->second;
+	  
+	  std::set<int2>::iterator si = segments.begin();
+	  
+	  int c = 0;
+	  int p = exonStart;
+	  
+	  while ( si != segments.end() )
+	    {
+	      if ( si->p1 > p )
+		c += si->p1 - p;
+	      if ( si->p2 > p )
+		p = si->p2;
+	      ++si;
 	      }
-	    
-	    // Overlap
-	    
-	    set<int2> & segments = i->second;
-	    	    
-	    set<int2>::iterator si = segments.begin();
-	    
-	    int c = 0;
-	    int p = exonStart;
-
-	    while ( si != segments.end() )
-	      {
-		if ( si->p1 > p )
-		  c += si->p1 - p;
-		if ( si->p2 > p )
-		  p = si->p2;
-		++si;
-	      }
-	    tc += c;
-	  }
-	
-        plog << sw( olap.exonLength - tc , 10 ) 
-	     << sw( 1 - ( (double)tc / olap.exonLength ) , 10 )
-	     << "\n";
-	
+	  tc += c;
+	}
+      
+      plog << olap.exonLength - tc << "\t"
+	   << 1 - ( (double)tc / olap.exonLength ) << "\n";
+      
         // Next target gene
         ++j;
 	
       }
-    
-
+  
+  
     // Clear up the overlap table
-
+  
     //locdb.clear_overlap();
     
 }
