@@ -3,8 +3,12 @@
 
 #include "pseq.h"
 
+namespace Helper {
+  std::string url_encode(std::string);
+}
+
 namespace ExomeBrowser {
-  
+
   //
   // Query types
   //
@@ -48,6 +52,68 @@ namespace ExomeBrowser {
 
   std::string pp( const std::string & str , const int len = 15 );
   
+  struct BrowserURL {
+
+    BrowserURL(
+        std::string project="",
+        std::string q="",
+        std::string gene="",
+        std::string masks="",
+        std::string meta="",
+        std::string pheno="",
+        std::string regs=""
+    )
+    {
+      fields["proj"] = project;
+      fields["q"] = q;
+      fields["gene"] = gene;
+      fields["masks"] = masks;
+      fields["meta"] = meta;
+      fields["pheno"] = pheno;
+      fields["regs"] = regs;
+
+    }
+
+    // todo: why doesn't this work?
+//    BrowserURL(Aux * a)
+//    {
+//      fields["project"] = a->print_form_value("proj");
+//      fields["meta"] = a->mf_print();
+//      fields["masks"] = a->msk_print();
+//      fields["pheno"] = a->phenotype_name;
+//      fields["project"] = a->reg_list_url;
+//    }
+
+    std::map<std::string, std::string> fields;
+
+    BrowserURL * addField(std::string key, std::string val) {
+      fields[key] = val;
+      return this;
+    }
+
+    BrowserURL * removeField(std::string key) {
+      fields[key] = "";
+      return this;
+    }
+
+    std::string printURL()
+    {
+      std::string s = "/pbrowse.cgi?";
+      for (std::map<std::string, std::string>::iterator i = fields.begin(); i != fields.end(); i++)
+        {
+          if (i->second != "")
+            s += i->first + "=" + Helper::url_encode(i->second) + "&";
+        }
+      return s;
+    }
+
+    std::string printLink(std::string text)
+    {
+      return "<a href=\"" + printURL() + "\">" + text + "</a>";
+    }
+
+  };
+
   struct Aux {
     Aux() 
     {
@@ -57,6 +123,11 @@ namespace ExomeBrowser {
       phenotype_name = "";
       multi_transcripts = false;
       reg_list = reg_list_url = "";
+      url = NULL;
+    }
+
+    ~Aux() {
+      delete url;
     }
 
     GStore * g;
@@ -137,6 +208,24 @@ namespace ExomeBrowser {
     std::map<int,std::string> table_row;
     std::string headers;
     int vcnt;
+
+    BrowserURL * url;
+    BrowserURL * getURL()
+    {
+      if ( url == NULL)
+        {
+          url = new BrowserURL(
+              has_form_value("proj") ? form["proj"] : "",
+              "",
+              "",
+              msk_print(),
+              mf_print(),
+              phenotype_name,
+              reg_list_url
+              );
+        }
+      return url;
+    }
   };
 
 

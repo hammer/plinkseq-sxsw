@@ -46,6 +46,7 @@ int main()
   // Start HTML form and any output
   //
 
+  // todo: which title?
   std::cout << "Content-type: text/html\n\n"
 	    << "<html><head><title>PLINK/SEQ Browser</title>"
 	    << "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />"
@@ -189,12 +190,11 @@ int main()
   
   std::cout << "<table width=100% CELLPADDING=0 CELLSPACING=0>"
 	    << "<tr><td width=50% valign=top align=left>"
-	    << "<h1>PLINK<font color=\"darkred\">SEQ</font> exome browser</h1>"
+	    << "<h1><a style=\"color:black;text-decoration:none;\" href=\"" + a.getURL()->addField("q", "g")->printURL() + "\">PLINK<font color=\"darkred\">SEQ</font> exome browser</h1>"
 	    << "</td><td width=50% valign=top align=right>"
 	    << "<font size=-1>"
 	    << "Project: <em>" << project_path << "</em></font>"
-	    << "<br>(<a href=\"pbrowse.cgi?q=psummary&" << a.print_form_value("proj")
-	    << "\">show summary</a>)"
+	    << "<br>(" << a.getURL()->addField("q", "psummary")->printLink("show summary") << ")"
 	    << "</td></tr></table>"
 	    << "<hr>";
   
@@ -270,12 +270,8 @@ int main()
   //
 
   std::cout << "<p><b>Gene ID</b> (symbol or NM_012345) ";
-  std::cout << "(<a href=\"pbrowse.cgi?q=glist&" << a.print_form_value("proj")
-	    << "&meta=" << a.mf_print()
-	    << "&masks=" << a.msk_print() 
-	    << "&pheno=" << pheno
-	    << "&regs=" << a.reg_list_url
-	    << "\">list</a>)";
+  std::cout << "(" << a.getURL()->addField("q", "glist")->addField("pheno", pheno)->printLink("list") << ")";
+
   
 //   std::cout << "<br><input type=\"text\" size=\"45\" name=\"gene\"";
 //   if ( genename != "" )
@@ -291,7 +287,7 @@ int main()
   //  std::cout << "<p>Additional regions and genes<br>";
   std::cout << "<textarea ";
   std::cout << "name=\"regs\" rows=\"7\" cols=\"30\">"
-	    << a.reg_list 
+	    << Helper::html_encode(a.reg_list) 
 	    << "</textarea></p>";
 
   //
@@ -316,12 +312,7 @@ int main()
   //
   
   std::cout << "<p>Optional variant meta-fields ";
-  std::cout << " (<a href=\"pbrowse.cgi?q=mflist&" << a.print_form_value("proj")
-	    << "&meta=" << a.mf_print()
-	    << "&masks=" << a.msk_print()
-	    << "&pheno=" << pheno
-	    << "&regs=" << a.reg_list_url
-	    << "\">list</a>) ";			  
+  std::cout << "(" << a.getURL()->addField("q", "mflist")->addField("pheno", pheno)->printLink("list") << ")";
 
   std::cout << "<br><input type=\"text\" size=\"45\" name=\"meta\"";
   
@@ -331,7 +322,7 @@ int main()
       for (int m=0; m< a.mf.size(); m++) 
 	{
 	  if ( m>0 ) std::cout << " ";
-	  std::cout << a.mf[m];
+	  std::cout << Helper::html_encode(a.mf[m]);
 	}
       std::cout << "\"";
     }
@@ -345,31 +336,27 @@ int main()
 
   std::cout << "<p>Optional case/control phenotype";
 
-  std::cout << " (<a href=\"pbrowse.cgi?q=plist&" << a.print_form_value("proj")
-	    << "&meta=" << a.mf_print()
-	    << "&masks=" << a.msk_print() 
-	    << "&pheno=" << pheno
-	    << "&regs=" << a.reg_list_url
-	    << "\">list</a>) ";			  
+  std::cout << "(" << a.getURL()->addField("q", "plist")->addField("pheno", pheno)->printLink("list") << ")";
+
   
   std::cout << "<br><input type=\"text\" size=\"45\" name=\"pheno\"";
   
   if ( pheno != "" ) 
     {
       std::cout << " value=\"";
-      std::cout << pheno << "\"";
+      std::cout << Helper::html_encode(pheno) << "\"";
     }
   
   std::cout << "</p>";
 
   // Gene-set
   std::cout << "<p>Gene set ";
-  std::cout << "(<a href=\"pbrowse.cgi?q=lslist&" << a.print_form_value("proj")
-       << "\">list</a>)";			  
+  std::cout << "(" << a.getURL()->addField("q", "lslist")->printLink("list") << ")";
+
 
   std::cout << "<br><input type=\"text\" size=\"45\" ";  
   if ( loc_set != "" ) 
-    std::cout << " value=\"" << loc_set << "\"";
+    std::cout << " value=\"" << Helper::html_encode(loc_set) << "\"";
   std::cout << " name=\"loc\"></p>";
     
 
@@ -685,13 +672,7 @@ int main()
 	{
 	    
 	    std::cout << trans[r].altname << "   " ;
-	    std::cout << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
-		      << "&gene="<< trans[r].name	       
-		      << "&meta=" << a.mf_print()
-		      << "&masks=" << a.msk_print() 
-		      << "&pheno=" << pheno
-		      << "&regs=" << a.reg_list_url
-		      << "\">" << trans[r].name <<"</a>  "
+	    std::cout << a.getURL()->addField("q", "g")->addField("gene", trans[r].name)->removeField("regs")->printLink(trans[r].name)
 		      << Helper::chrCode(trans[r].start.chromosome()) << ":" 
 		      << trans[r].start.position() << ".."
 		      << trans[r].stop.position() ;
@@ -781,13 +762,7 @@ int main()
 		      {
 			if ( reg.subregion[s].overlaps( t->subregion[u] ) )
 			  {
-			    std::cout << "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
-				      << "&gene="<< t->name
-				      << "&meta=" << a.mf_print()
-				      << "&masks=" << a.msk_print() 			
-				      << "&pheno=" << pheno
-				      << "&regs=" << a.reg_list_url
-				      << "\">"<<t->name<<"("<<t->altname<<")</a> ";			  
+			    std::cout << a.getURL()->addField("q", "g")->addField("gene", t->name)->removeField("regs")->printLink(t->name + "(" + t->altname + ")");
 			  }
 		      }
 		  ++t;
@@ -985,13 +960,7 @@ int main()
     {
       
       std::cout << "Back to "
-		<< "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
-		<< "&gene="<< genename  
-		<< "&meta=" << a.mf_print()
-		<< "&masks=" << a.msk_print() 
-		<< "&pheno=" << a.phenotype_name 
-		<< "&regs=" << a.reg_list_url
-		<< "\">gene report</a>";
+                << a.getURL()->addField("gene", genename)->printLink("gene report");
       if ( genename != "" ) 
 	std::cout << " for <b>" << genename << "</b>";
       
@@ -1182,16 +1151,8 @@ int main()
 	      // Include link to individual-report
 
 	      std::cout << "<tr><td>" 
-			<< "<a href=\"pbrowse.cgi?q=i&" << a.print_form_value("proj")
-			<< "&gene="<< genename  
-			<< "&meta=" << a.mf_print()
-			<< "&masks=" << a.msk_print() 
-			<< "&ind=" << id_list[i] 
-			<< "&pheno=" << a.phenotype_name 
-			<< "&regs=" << a.reg_list_url
-			<< "\">"
-			<< id_list[i] 
-			<< "</a></td>";
+	                << a.getURL()->addField("q", "i")->addField("gene", genename)->addField("ind", id_list[i])->printLink(id_list[i])
+	                << "</td>";
 	      
 	      
 	      // File-set for this sample variant
@@ -1299,13 +1260,8 @@ int main()
       a.genename = genename;
 
       std::cout << "Back to "
-		<< "<a href=\"pbrowse.cgi?q=g&" << a.print_form_value("proj")
-		<< "&gene="<< genename  
-		<< "&meta=" << a.mf_print()
-		<< "&masks=" << a.msk_print() 
-		<< "&pheno=" << a.phenotype_name 
-		<< "&regs=" << a.reg_list_url
-		<< "\">gene report</a>";
+                << a.getURL()->addField("q", "g")->addField("gene", genename)->printLink("gene report");
+
       if ( genename != "" ) 
 	std::cout << " for <b>" << genename << "</b>";
       
@@ -1427,14 +1383,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 
   // call pbrowse.cgi, but with all arguments explicitly formed.      
 
-  o1 << "<a href=\"pbrowse.cgi?q=v&" << a->print_form_value("proj")
-     << "&gene=" << a->genename
-     << "&meta=" << a->mf_print()
-     << "&masks=" << a->msk_print() 
-     << "&pheno=" << a->phenotype_name  
-     << "&val=" << var.coordinate()
-     << "&regs=" << a->reg_list_url 
-     << "\">view</a>";
+  o1 << a->getURL()->addField("q", "g")->addField("gene", a->genename)->addField("val", var.coordinate())->printLink("view");
 
   o1 << "</td>";
   
@@ -1619,14 +1568,7 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
 
       // call pbrowse.cgi, but with all arguments explicitly formed.      
 
-      std::cout << "<a href=\"pbrowse.cgi?q=v&" << a->print_form_value("proj")
-		<< "&gene=" << a->genename
-		<< "&meta=" << a->mf_print()
-		<< "&masks=" << a->msk_print() 
-		<< "&pheno=" << a->phenotype_name 
-		<< "&val=" << vars.var(i).coordinate()	
-		<< "&regs=" << a->reg_list_url
-		<< "\">view</a>";
+      std::cout << a->getURL()->addField("q", "v")->addField("val", vars.var(i).coordinate())->addField("gene", a->genename)->printLink("view");
 
       std::cout << "</td>";
 
@@ -1729,13 +1671,7 @@ void ExomeBrowser::make_gene_list(Aux * a)
     {      
       if ( genes[g] != lastgene )
 	{
-	  std::cout << "<a href=\"pbrowse.cgi?q=g&" << a->print_form_value("proj")
-		    << "&gene="<< genes[g]
-		    << "&meta=" << a->mf_print()
-		    << "&masks=" << a->msk_print() 
-		    << "&pheno=" << a->phenotype_name 
-		    << "&regs=" << a->reg_list_url	 
-		    << "\">" << genes[g] << "</a><br>";
+	  std::cout << a->getURL()->addField("q", "g")->addField("gene", genes[g])->printLink(genes[g]) << "br/>";
 	  lastgene = genes[g];
 	}
     }
