@@ -1462,16 +1462,20 @@ int2 VarDBase::make_summary( int file_id )
 }
 
 
-std::string VarDBase::summary( Mask * mask )
+std::string VarDBase::summary( Mask * mask , bool ugly )
 {
   
   std::stringstream ss;
   
   std::map<int,std::string> f = fetch_files( mask );
   
-  ss << "VARDB\t"
-     << "N_UNIQ_VAR=" << variant_count() << "\n";
-  
+  if ( ! ugly ) ss << "---Variant DB summary---\n";
+
+  if ( ugly ) 
+    ss << "VARDB\t"
+       << "N_UNIQ_VAR=" << variant_count() << "\n";
+  else
+    ss << variant_count() << " unique variants\n";
   
   std::map<int,std::string>::iterator i = f.begin();
   while ( i != f.end() )
@@ -1485,38 +1489,56 @@ std::string VarDBase::summary( Mask * mask )
 	  nv = sql.get_int( stmt_fetch_file_summary , 1 );
 	}
       sql.reset( stmt_fetch_file_summary );
-      
-      ss << "VARDB\t"
-	 << "FILE_N=" << i->first << "\t" 
-	 << "TAG=" << file_tag( i->first ) << "\t"
-	 << "N_INDIV=" << ni << "\t"
-	 << "N_VAR=" << nv << "\t"
-	 << "FILE_NAME=" << i->second << "\n";
+
+      if ( ugly ) 
+	ss << "VARDB\t"
+	   << "FILE_N=" << i->first << "\t" 
+	   << "TAG=" << file_tag( i->first ) << "\t"
+	   << "N_INDIV=" << ni << "\t"
+	   << "N_VAR=" << nv << "\t"
+	   << "FILE_NAME=" << i->second << "\n";
+      else
+	ss << "File tag : " << file_tag( i->first ) << " (" << nv << " variants, " << ni << " individuals)\n";
+
       ++i;
     }
     
     // Sets
-    
+  
+
+
   std::map<int,std::string> s = fetch_sets();
+  if ( s.size() && ! ugly ) ss << "\n";
   std::map<int,std::string>::iterator j = s.begin();
   while ( j != s.end() )
     {
-      ss << "VARDB\t"
-	 << "SET_N=" << j->first << "\t" 
-	 << "N_VAR=" << set_count( j->first ) << "\t"
-	 << "SET_NAME=" << j->second << "\n";
+      if ( ugly ) 
+	ss << "VARDB\t"
+	   << "SET_N=" << j->first << "\t" 
+	   << "N_VAR=" << set_count( j->first ) << "\t"
+	   << "SET_NAME=" << j->second << "\n";
+      else
+	ss << "Set " << j->second << " containing " << set_count( j->first ) << " variants\n";
+
       ++j;
     }
+ 
   
   // Indep meta-information
-  
+
+  if ( indep_metamap.size() && ! ugly ) ss << "\n";
+
   std::map<std::string,int>::iterator k = indep_metamap.begin();
   while ( k != indep_metamap.end() )
     {
-      ss << "VARDB\t"
-	 << "ADD_META\t"
-	 << "NAME=" << k->first 
-	 << "\n";
+      if ( ugly ) 
+	ss << "VARDB\t"
+	   << "ADD_META\t"
+	   << "NAME=" << k->first 
+	   << "\n";
+      else
+	ss << "Attached meta-information tag : " << k->first << "\n";
+      
       ++k;
     }
   

@@ -1795,7 +1795,7 @@ void ExomeBrowser::make_proj_summary(Aux * a)
 {
   std::cout << "<h3>Project Summary</h3>"
 	    << "<p><pre>"
-	    << a->g->summary() 
+	    << a->g->summary( false ) 
 	    << "</pre></p>";
   std::cout << "</table></body></html>";
   exit(0);

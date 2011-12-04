@@ -80,7 +80,7 @@ class VarDBase {
   bool index();
   bool drop_index();
 
-  std::string summary( Mask * mask = NULL );
+  std::string summary( Mask * mask = NULL , bool ugly = false );
   int2 make_summary(std::string);
   int2 make_summary(int);
 

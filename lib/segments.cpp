@@ -234,7 +234,7 @@ void GStore::locdb_overlap_analysis(string target, string preload )
       plog << j->second.nExons << "\t"
 	   << (double)(j->second.totalLength)/1000.0 << "\t"
 	   << j->second.exonLength << "\t"
-	   << j->second.nTargets << "\t"
+	   << j->second.nTargets << "\t";
       
       // Calculate overlap metrics
       

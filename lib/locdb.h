@@ -33,7 +33,7 @@ class LocDBase {
   
   bool attached() { return sql.is_open(); }
   
-  std::string summary();
+  std::string summary( bool );
 
   // Queries
 

@@ -1938,11 +1938,12 @@ std::set<Region> LocDBase::get_regions(uint64_t gid, int chr, int bp1, int bp2)
 int LocDBase::count(uint64_t grp)
 {
   std::vector<int> r;
+
   if ( grp == -1 )
     r = sql.intTable( "SELECT count(*) FROM loci;" , 1 );
   else
     r = sql.intTable( "SELECT count(*) FROM loci WHERE group_id == " + Helper::int2str(grp) +" ;" , 1 );
-  
+
   if ( r.size() == 1 ) 
     return r[0];
   return -1;
@@ -2479,23 +2480,31 @@ std::set<GroupInfo> LocDBase::set_information()
   return gset;      
 }
 
-std::string LocDBase::summary()
+std::string LocDBase::summary( bool ugly )
 {
+  
   std::stringstream ss;
+  
+  if ( ! ugly ) ss << "---Locus DB summary---\n\n";
+
   std::set<GroupInfo> g = group_information();
   std::set<GroupInfo>::iterator i = g.begin();
+
   while ( i != g.end() )
     {
-
-      ss << "LOCDB\t"
-      //	 << "GROUP_N=" << i->idx << "\t"
-	 << "NAME=" << i->name << "\t"
-	 << "N=" << count( i->idx ) << "\t"
-	 << "DESC=" << i->description
-	 << "\n";
+      if ( ugly ) 
+	ss << "LOCDB\t"
+	   << "NAME=" << i->name << "\t"
+	   << "N=" << count( i->idx ) << "\t"
+	   << "DESC=" << i->description
+	   << "\n";
+      else
+	ss << i->name << " (" << count( i->idx ) << ") entries : " << i->description << "\n";
+      
       ++i;
     }
   
+
   // Sets
   
   g = set_information();
@@ -2506,11 +2515,15 @@ std::string LocDBase::summary()
       
       std::vector<std::string> t = fetch_set_names( grp , i->name );
       
-      ss << "LOCDB_SET\t"
-	 << "GROUP=" << grp << "\t"
-	 << "NAME=" << i->name << "\t"
-	 << "N=" << t.size() << "\t"
-	 << "DESC=" << i->description << "\n";
+      if ( ugly ) 
+	ss << "LOCDB_SET\t"
+	   << "GROUP=" << grp << "\t"
+	   << "NAME=" << i->name << "\t"
+	   << "N=" << t.size() << "\t"
+	   << "DESC=" << i->description << "\n";
+      else
+	ss << "Locus set " << i->name << " (" << t.size() << " loci) " << i->description << "\n";
+      
       ++i;
     }
   

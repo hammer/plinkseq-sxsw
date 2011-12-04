@@ -159,7 +159,7 @@ class RefDBase {
 
     bool attached() { return sql.is_open(); }
     
-    std::string summary();
+    std::string summary(bool);
     
     std::vector<std::string> fetch_groups();
     

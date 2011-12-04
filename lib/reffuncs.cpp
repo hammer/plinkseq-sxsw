@@ -20,9 +20,10 @@ void GStore::refdb_attach(string s)
     refdb.attach( s );
 }
 
-void GStore::refdb_summary()
+void GStore::refdb_summary( )
 {
-    refdb.summary();
+  // obsolete function
+  refdb.summary( true );
 }
 
 RefVariant GStore::refdb_lookup(Variant & v, int g)

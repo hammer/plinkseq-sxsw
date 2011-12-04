@@ -157,10 +157,10 @@ bool Pseq::set_project( std::string project )
   return g.set_project( project );
 }
   
-bool Pseq::VarDB::summary( Mask & m )
+bool Pseq::VarDB::summary( Mask & m , bool ugly )
 {
   if ( ! g.vardb.attached() ) return false;
-  plog << g.vardb.summary(&m) << "\n";
+  plog << g.vardb.summary(&m,ugly ) << "\n";
   return true;
 }
 
@@ -626,11 +626,11 @@ bool Pseq::VarDB::write_vardb( const std::string & new_project ,
 
 }    
    
-bool Pseq::LocDB::summary( LocDBase * db )
+bool Pseq::LocDB::summary( LocDBase * db , bool ugly )
 {
   if ( ! db ) return false;
   if ( ! db->attached() ) return false;
-  plog << db->summary() << "\n";
+  plog << db->summary( ugly ) << "\n";
   return true;
 }
 
@@ -826,10 +826,10 @@ bool Pseq::LocDB::load_pathway( std::string file , std::string label , std::stri
 }
 
 
-bool Pseq::RefDB::summary()
+bool Pseq::RefDB::summary( bool ugly )
 {
   if ( ! g.refdb.attached() ) return false;
-  plog << g.refdb.summary() << "\n";
+  plog << g.refdb.summary( ugly ) << "\n";
   return true;
 }
 
@@ -850,10 +850,10 @@ bool Pseq::IndDB::attach( std::string db )
   return g.inddb.attach(db);
 }
 
-bool Pseq::IndDB::summary()
+bool Pseq::IndDB::summary( bool ugly )
 {
   if ( ! g.inddb.attached() ) return false;
-  plog << g.inddb.summary() << "\n";
+  plog << g.inddb.summary( ugly ) << "\n";
   return true;
 }
 
@@ -993,10 +993,10 @@ bool Pseq::IndDB::dump_table(Mask & m)
 }
 
 
-bool Pseq::SeqDB::summary()
+bool Pseq::SeqDB::summary( bool ugly )
 {
   if ( ! g.seqdb.attached() ) return false;
-  plog << g.seqdb.summary() << "\n";
+  plog << g.seqdb.summary( ugly ) << "\n";
   return true;
 }
 
@@ -1176,16 +1176,16 @@ void Pseq::Util::set_default( VStat & vstat )
 }
 
 
-bool Pseq::Util::file_summary()
+bool Pseq::Util::file_summary( bool ugly )
 {
-    plog << g.fIndex.summary() << "\n";
-    return true;
+  plog << g.fIndex.summary( ugly ) << "\n";
+  return true;
 }
 
-bool Pseq::Util::meta_summary()
+bool Pseq::Util::meta_summary( bool ugly )
 {
-    plog << Helper::metatype_summary( ! args.has( "ugly" ) ) << "\n";
-    return true;
+  plog << Helper::metatype_summary( ugly ) << "\n";
+  return true;
 }
 
 

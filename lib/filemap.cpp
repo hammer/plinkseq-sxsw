@@ -370,33 +370,59 @@ File * FileMap::add( const std::string & n,
 
 
 
-std::string FileMap::summary() const
+std::string FileMap::summary( bool ugly ) const
 {
+
   std::stringstream ss;
 
-  ss << "FILE_INDEX" << "\t"
-     << "TYPE=INDEX" << "\t"
-     << "NAME=" << special_files.find( FIDX )->second->name() << "\n";
-  
-  std::map< std::string, File* >::const_iterator f = fmap.begin();
-  while ( f != fmap.end() )
+  if ( ugly ) 
     {
       ss << "FILE_INDEX" << "\t"
-	 << "TYPE=" << FileMap::typeName( f->second->type() ) << "\t"
-	 << "NAME=" << f->second->name() << "\n";
-      ++f;
+	 << "TYPE=INDEX" << "\t"
+	 << "NAME=" << special_files.find( FIDX )->second->name() << "\n";
+      
+      std::map< std::string, File* >::const_iterator f = fmap.begin();
+      while ( f != fmap.end() )
+	{
+	  ss << "FILE_INDEX" << "\t"
+	     << "TYPE=" << FileMap::typeName( f->second->type() ) << "\t"
+	     << "NAME=" << f->second->name() << "\n";
+	  ++f;
+	}
+  
+      std::map<fType,File*>::const_iterator i = special_files.begin();
+      while ( i != special_files.end() )
+	{
+	  if ( i->first != FIDX ) // already listed this first
+	    ss << "FILE_INDEX" << "\t" 
+	       << "TYPE=" << FileMap::typeName( i->first ) << "\t"
+	       << "NAME=" << i->second->name() << "\n";
+	  ++i;
+	}
+    }
+  else
+    {
+      ss << "---File-index summary---\n\n";
+
+      ss << "Core project specification index : " << special_files.find( FIDX )->second->name()  << "\n"; 
+      
+      std::map<fType,File*>::const_iterator i = special_files.begin();
+      while ( i != special_files.end() )
+	{
+	  if ( i->first != FIDX ) // already listed this first
+	    ss << "Core " << FileMap::typeName( i->second->type() ) << " file : " << i->second->name() << "\n";
+	  ++i;
+	}
+      
+      std::map< std::string, File* >::const_iterator f = fmap.begin();
+      while ( f != fmap.end() )
+	{
+	  ss << "Added " << FileMap::typeName( f->second->type() ) << " : " << f->second->name() << "\n";
+	  ++f;
+	}
+        
     }
   
-  std::map<fType,File*>::const_iterator i = special_files.begin();
-  while ( i != special_files.end() )
-    {
-      if ( i->first != FIDX ) // already listed this first
-	ss << "FILE_INDEX" << "\t" 
-	   << "TYPE=" << FileMap::typeName( i->first ) << "\t"
-	   << "NAME=" << i->second->name() << "\n";
-      ++i;
-    }
-
   return ss.str();
 }
 

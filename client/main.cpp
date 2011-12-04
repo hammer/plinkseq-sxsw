@@ -1550,63 +1550,65 @@ int main(int argc, char ** argv)
 
     if ( command == "summary" )
       {
-	Pseq::VarDB::summary(m);
-	Pseq::IndDB::summary();
-	Pseq::LocDB::summary(&g.locdb);
-	Pseq::LocDB::summary(&g.segdb);
-	Pseq::RefDB::summary();
-	Pseq::SeqDB::summary();	
-	Pseq::Util::file_summary();
-	Pseq::Util::meta_summary();
+	bool ugly = args.has( "ugly" ); 
+	if ( ! ugly ) plog << "\n";
+	Pseq::VarDB::summary(m , ugly );
+	Pseq::IndDB::summary( ugly );
+	Pseq::LocDB::summary(&g.locdb , ugly );
+	Pseq::LocDB::summary(&g.segdb , ugly );
+	Pseq::RefDB::summary( ugly );
+	Pseq::SeqDB::summary( ugly );	
+	Pseq::Util::file_summary( ugly );
+	Pseq::Util::meta_summary( ugly );
 	Pseq::finished();
       }
 
     
     if ( command == "var-summary" )
       {
-	Pseq::VarDB::summary(m);
+	Pseq::VarDB::summary(m , args.has( "ugly" ) );
 	Pseq::finished();
       }
 
     if ( command == "ind-summary" )
       {
-	Pseq::IndDB::summary();
+	Pseq::IndDB::summary( args.has( "ugly" ) );
 	Pseq::finished();
       }
 
     if ( command == "loc-summary" )
       {
-	Pseq::LocDB::summary( &g.locdb );
+	Pseq::LocDB::summary( &g.locdb , args.has( "ugly" ) );
 	Pseq::finished();
       }
 
     if ( command == "seg-summary" )
       {
-	Pseq::LocDB::summary( &g.segdb );
+	Pseq::LocDB::summary( &g.segdb , args.has( "ugly" ) );
 	Pseq::finished();
       }
 
     if ( command == "ref-summary" )
       {
-	Pseq::RefDB::summary();
+	Pseq::RefDB::summary( args.has( "ugly" ));
 	Pseq::finished();
       }
 
     if ( command == "seq-summary" )
       {
-	Pseq::SeqDB::summary();
+	Pseq::SeqDB::summary( args.has( "ugly" ) );
 	Pseq::finished();
       }
 
     if ( command == "file-summary" )
       {
-	Pseq::Util::file_summary();
+	Pseq::Util::file_summary( args.has( "ugly" ) );
 	Pseq::finished();
       }
 
     if ( command == "meta-summary" )
       {
-	Pseq::Util::meta_summary();
+	Pseq::Util::meta_summary( args.has( "ugly" ) );
 	Pseq::finished();
       }
 

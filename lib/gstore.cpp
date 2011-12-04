@@ -90,7 +90,7 @@ bool GStore::set_project( const std::string & filename, bool verbose)
   refdb.attach( fIndex.file( REFDB )->name() );
   seqdb.attach( fIndex.file( SEQDB )->name() );
 
-  if ( verbose ) summary();
+  if ( verbose ) summary( false );
   
   return true;
 
@@ -107,51 +107,51 @@ bool GStore::register_mask( const Mask & m )
   return n > 0;
 }
 
-std::string GStore::summary()
+std::string GStore::summary( bool ugly  )
 {
   
   std::stringstream ss;
   
-  ss << fIndex.summary();
+  ss << fIndex.summary( ugly );
 
   ss << "\n";
 
   if ( vardb.attached() ) 
-    ss << vardb.summary() << "\n";
+    ss << vardb.summary( NULL , ugly ) << "\n";
   else 
     ss << "\n -- VARDB not attached -- \n";
 
   ss << "\n";
   
   if ( inddb.attached() ) 
-    ss << inddb.summary() << "\n";
+    ss << inddb.summary( ugly ) << "\n";
   else
     ss << "\n -- INDDB not attached -- \n";
 
   ss << "\n";
 
-  if ( locdb.attached() ) 
-    ss << locdb.summary() << "\n";
+  if ( locdb.attached(  ) ) 
+    ss << locdb.summary( ugly ) << "\n";
   else
     ss << "\n -- LOCDB not attached -- \n";
 
   ss << "\n";
   
-  if ( refdb.attached() ) 
-    ss << refdb.summary() << "\n";
+  if ( refdb.attached( ) ) 
+    ss << refdb.summary( ugly ) << "\n";
   else
     ss << "\n -- REFDB not attached -- \n";
 
   ss << "\n";
   
-  if ( seqdb.attached() ) 
-    ss << seqdb.summary() << "\n";
+  if ( seqdb.attached( ) ) 
+    ss << seqdb.summary( ugly ) << "\n";
   else
     ss << "\n -- SEQDB not attached -- \n";
   
   ss << "\n";
   
-  ss << Helper::metatype_summary();
+  ss << Helper::metatype_summary( ugly );
   
   ss << "\n";
   

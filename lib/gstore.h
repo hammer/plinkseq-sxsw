@@ -148,7 +148,7 @@ class GStore {
 
   void buildIndex();
   
-  std::string summary();
+  std::string summary( bool );
 
   void show_version() const;
 

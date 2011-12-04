@@ -732,13 +732,36 @@ int IndDBase::size()
   return -1;    
 }
 
-std::string IndDBase::summary()
+std::string IndDBase::summary( bool ugly )
 {
   std::stringstream ss;
-  ss << "INDDB\t"
-     << "N=" << size() << "\n";
+
+  if ( ugly ) 
+    ss << "INDDB\t"
+       << "N=" << size() << "\n";
+  else
+    {
+      ss << "---Individual DB summary---\n";
+
+      ss << size() << " unique individuals\n";
+      
+      std::map<std::string,std::vector<std::string> > t = fetch_phenotype_info();
+      
+      std::map<std::string,std::vector<std::string> >::iterator p = t.begin();
+
+      while ( p != t.end() )
+	{
+	  plog << "Phenotype " << p->first << " "
+	       << "(" << p->second[0]  << ") "
+	       << p->second[1] << "\n";
+	  ++p;
+	}      
+    }
+
   return ss.str();
 }
+  
+
 
 std::map<std::string,std::vector<std::string> > IndDBase::fetch_phenotype_info()
 {

@@ -261,7 +261,7 @@ class FileMap {
   File * file( const fType & ) const;
   File * file( const std::string &  ) const;
    
-  std::string summary() const;
+  std::string summary( bool ) const;
 
   //
   // Specific BCF, compressed VCFZ indexing

@@ -442,39 +442,53 @@ void SeqDBase::setMinMax()
 
 
 
-std::string SeqDBase::summary()
+std::string SeqDBase::summary( bool ugly )
 {
 
-    std::stringstream ss;
-        
-    std::map<int,int2>::iterator i = chrminmax.begin();
-    while ( i != chrminmax.end() )
-    {
-	int2 d = i->second;
+  std::stringstream ss;
 
-	if ( i->first > 0 ) 
-	  {
-	    ss << "SEQDB\t"
-	       << "REGION=" << chrCode( i->first ) << ":" 
+
+  if ( ! ugly ) ss << "---Sequence DB summary---\n\n";
+
+  std::map<int,int2>::iterator i = chrminmax.begin();
+  while ( i != chrminmax.end() )
+    {
+      int2 d = i->second;
+      
+      if ( i->first > 0 ) 
+	{
+	  if ( ugly ) ss << "SEQDB\t"
+			 << "REGION=" << chrCode( i->first ) << ":" 
+			 << d.p1 << ".." << d.p2 << "\t"
+			 << "MB=" << (d.p2-d.p1)/1000000 
+			 << "\n";
+	  else
+	    ss << chrCode( i->first ) << ":" 
 	       << d.p1 << ".." << d.p2 << "\t"
 	       << "MB=" << (d.p2-d.p1)/1000000 
 	       << "\n";
-	  }
+	}
 	
 	++i;
     }
 
-    ss << "\n";
-
-    std::map<string,std::string>::iterator j = meta.begin();
-    while ( j != meta.end() )
-      {
+  if ( ! ugly ) ss << "\n";
+  
+  std::map<string,std::string>::iterator j = meta.begin();
+  while ( j != meta.end() )
+    {
+      if ( ugly )
 	ss << "SEQDB\t" 
 	   << j->first << "\t"
 	   << j->second << "\n";
-	++j;
-      }
-    
+      else
+	ss << "SEQDB meta-information: " 
+	   << j->first << " = "
+	   << j->second << "\n";
+      
+      ++j;
+    }
+  
     return ss.str();
 }
 

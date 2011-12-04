@@ -154,11 +154,11 @@ void registerMetatype( const std::string & name, mType mt, int num , int grp , c
 }
 
 
-std::string Helper::metatype_summary( const bool pretty ) 
+std::string Helper::metatype_summary( const bool ugly )
 {
   std::stringstream ss;
 
-  if ( ! pretty ) 
+  if ( ugly ) 
       ss << MetaInformation<VarMeta>::list_fields("META_VARIANT")
 	 << MetaInformation<VarFilterMeta>::list_fields("META_FILTER")
 	 << MetaInformation<GenMeta>::list_fields("META_GENOTYPE")
@@ -168,6 +168,8 @@ std::string Helper::metatype_summary( const bool pretty )
 	 << MetaInformation<IndivMeta>::list_fields("META_INDIV")
 	 << MetaInformation<AlleleMeta>::list_fields("META_ALLELE");
   else
+    {
+      ss << "---Meta-information summary---\n\n";
       ss << MetaInformation<VarMeta>::pretty_list_fields("Variants")
 	 << MetaInformation<VarFilterMeta>::pretty_list_fields("Filters")
 	 << MetaInformation<GenMeta>::pretty_list_fields("Genotypes")
@@ -176,6 +178,7 @@ std::string Helper::metatype_summary( const bool pretty )
 	 << MetaInformation<FileMeta>::pretty_list_fields("Files")
 	 << MetaInformation<IndivMeta>::pretty_list_fields("Individuals")
 	 << MetaInformation<AlleleMeta>::pretty_list_fields("Alleles");
+    }
 
   return ss.str();
 

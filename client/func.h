@@ -28,7 +28,7 @@ namespace Pseq
   namespace VarDB
     {
       
-      bool summary( Mask & );
+      bool summary( Mask & , bool );
 
       bool attach( std::string db );
 
@@ -111,7 +111,7 @@ namespace Pseq
   namespace LocDB
     {
 
-      bool summary( LocDBase * );      
+      bool summary( LocDBase * , bool );      
 
       bool attach( std::string db );
 
@@ -144,7 +144,7 @@ namespace Pseq
   namespace RefDB
     {
       
-      bool summary();      
+      bool summary( bool );      
       
       bool attach( std::string );
       
@@ -158,7 +158,7 @@ namespace Pseq
       
       bool attach( std::string );
       
-      bool summary();
+      bool summary( bool );
       
       bool set_phenotype( std::string );
 
@@ -181,9 +181,9 @@ namespace Pseq
       
       void set_default( VStat & );
 
-      bool file_summary();
+      bool file_summary( bool );
       
-      bool meta_summary();
+      bool meta_summary( bool ) ;
       
     }
   
@@ -192,7 +192,7 @@ namespace Pseq
       
       bool load_FASTA( const std::string & );
       
-      bool summary();
+      bool summary( bool );
       
       bool lookup( Region & );
       

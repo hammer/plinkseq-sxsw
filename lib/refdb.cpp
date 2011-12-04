@@ -1031,13 +1031,15 @@ std::vector<std::string> RefDBase::fetch_groups()
   return results;
 }
 
-std::string RefDBase::summary()
+std::string RefDBase::summary( bool ugly )
 {
     std::stringstream ss;
     
     sqlite3_stmt * s = 
       sql.prepare( "SELECT group_id,name,description FROM groups; ");
     
+
+    if ( ! ugly ) ss << "---Reference DB summary---\n";
     
     while ( sql.step(s) )
       {
@@ -1051,11 +1053,14 @@ std::string RefDBase::summary()
  	int c = sql.get_int( stmt_fetch_group_count , 0 );
  	sql.reset(stmt_fetch_group_count);
 
- 	ss << "REFDB\t"
- 	   << "NAME=" << name << "\t"
- 	   << "N=" << c << "\t"
- 	   << "DESC=" << desc 
- 	   << "\n";
+	if ( ugly ) 
+	  ss << "REFDB\t"
+	     << "NAME=" << name << "\t"
+	     << "N=" << c << "\t"
+	     << "DESC=" << desc 
+	     << "\n";
+	else
+	  ss << "Group : " << name << " (" << c << " entries) : " << desc << "\n";
 
      }
      sql.finalise(s);

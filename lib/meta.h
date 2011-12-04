@@ -1565,7 +1565,8 @@ class MetaInformation {
 	    if ( MetaMeta::display( midx.name ) ) 
 	    {
 		
-		ss << midx.name << "\t(" 
+		ss << midx.name << " : "
+		   << midx.description << " (" 
 		   << t << ", ";
 		
 		switch ( midx.mt ) {
@@ -1593,7 +1594,7 @@ class MetaInformation {
 		else if ( midx.len == -1 ) 
 		    ss << " variable-length vector";
 		
-		ss << ")\t" << midx.description << "\n";
+		ss << ")\n"; 
 	    }
 	    
 	    ++i;
