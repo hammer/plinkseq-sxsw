@@ -80,7 +80,6 @@ int main()
 	    << "  text-decoration:underline;"
 	    << "}"
 	    << "tr.odd {"
-    //	    << "background: #f1f1f1;"
 	    << "background: #f171f1;"
 	    << "}"
 	    << "tbody th, tbody td {"
@@ -251,10 +250,11 @@ int main()
   // Hidden value to indicate query type (needed?)
 
   std::cout << "<input type=\"hidden\" name=\"q\" value=\"";
-  if ( q == Q_GENE || q == Q_ERROR ) std::cout << "g\">";
-  else if ( q == Q_VARIANT ) std::cout << "v\">";
-  else if ( q == Q_INDIV ) std::cout << "i\">";
-  
+  if ( q == Q_GENE || q == Q_ERROR ) std::cout << "g";
+  else if ( q == Q_VARIANT ) std::cout << "v";
+  else if ( q == Q_INDIV ) std::cout << "i";
+  else if ( q == Q_REGION ) std::cout << "r";
+  std::cout << "\">";
 
   
   //
@@ -419,12 +419,24 @@ int main()
   //
 
   std::vector<std::string> toks = Helper::parse( a.reg_list , " \n" );
+  genename = "";
+
+  // assume input is a gene if it is one line and cannot
+  // be parsed as a region
   if ( toks.size() == 1 ) 
     {
       genename = toks[0];
-      Helper::str2upper( genename );
+      bool valid_region = false;
+      Region test_R(genename, valid_region);
+      if (!valid_region)
+        {
+          Helper::str2upper( genename );
+        }
+      else
+        {
+          genename="";
+        }
     }
-  else genename = "";
 
   if ( a.reg_list == "" )
     {
@@ -672,8 +684,8 @@ int main()
 	{
 	    
 	    std::cout << trans[r].altname << "   " ;
-	    std::cout << a.getURL()->addField("q", "g")->addField("gene", trans[r].name)->removeField("regs")->printLink(trans[r].name)
-		      << Helper::chrCode(trans[r].start.chromosome()) << ":" 
+	    std::cout << a.getURL()->addField("q", "r")->addField("gene", trans[r].name)->removeField("regs")->printLink(trans[r].name)
+		      << "   " << Helper::chrCode(trans[r].start.chromosome()) << ":"
 		      << trans[r].start.position() << ".."
 		      << trans[r].stop.position() ;
 	    std::cout <<"<br>";
@@ -762,7 +774,7 @@ int main()
 		      {
 			if ( reg.subregion[s].overlaps( t->subregion[u] ) )
 			  {
-			    std::cout << a.getURL()->addField("q", "g")->addField("gene", t->name)->removeField("regs")->printLink(t->name + "(" + t->altname + ")");
+			    std::cout << a.getURL()->addField("q", "g")->addField("gene", t->name)->removeField("regs")->printLink(t->name + "(" + t->altname + ")") << " ";
 			  }
 		      }
 		  ++t;
@@ -1672,7 +1684,7 @@ void ExomeBrowser::make_gene_list(Aux * a)
     {      
       if ( genes[g] != lastgene )
 	{
-	  std::cout << a->getURL()->addField("q", "g")->addField("gene", genes[g])->printLink(genes[g]) << "br/>";
+	  std::cout << a->getURL()->addField("q", "g")->addField("gene", genes[g])->printLink(genes[g]) << "<br/>";
 	  lastgene = genes[g];
 	}
     }
