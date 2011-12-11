@@ -1857,7 +1857,7 @@ SEXP Rsummary()
 
   // split on line return, no empty lines
   
-  std::vector<std::string> s = Helper::char_split( gp->summary() , '\n' , false );
+  std::vector<std::string> s = Helper::char_split( gp->summary(false) , '\n' , false );
   
   SEXP summ;
   PROTECT( summ = allocVector( STRSXP, s.size() ));  
@@ -2228,7 +2228,7 @@ SEXP Rfetch_regions(SEXP g)
 
 SEXP Rlocdb_summary()
 {
-  plog << gp->locdb.summary();
+  plog << gp->locdb.summary(false);
   return(R_NilValue);
 }
 
@@ -2321,7 +2321,7 @@ SEXP Rrefdb_attach(SEXP x)
 
 SEXP Rrefdb_summary()
 {
-  plog << gp->refdb.summary();
+  plog << gp->refdb.summary(false);
   return(R_NilValue); 
 }
 

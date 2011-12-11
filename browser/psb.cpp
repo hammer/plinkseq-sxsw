@@ -82,7 +82,6 @@ int main()
 	    << "  text-decoration:underline;"
 	    << "}"
 	    << "tr.odd {"
-    //	    << "background: #f1f1f1;"
 	    << "background: #f171f1;"
 	    << "}"
 	    << "tbody th, tbody td {"
@@ -281,10 +280,11 @@ int main()
   // Hidden value to indicate query type (needed?)
 
   std::cout << "<input type=\"hidden\" name=\"q\" value=\"";
-  if ( q == Q_GENE || q == Q_ERROR ) std::cout << "g\">";
-  else if ( q == Q_VARIANT ) std::cout << "v\">";
-  else if ( q == Q_INDIV ) std::cout << "i\">";
-  
+  if ( q == Q_GENE || q == Q_ERROR ) std::cout << "g";
+  else if ( q == Q_VARIANT ) std::cout << "v";
+  else if ( q == Q_INDIV ) std::cout << "i";
+  else if ( q == Q_REGION ) std::cout << "r";
+  std::cout << "\">";
 
   
   //
@@ -479,15 +479,13 @@ int main()
   if ( cnt == 1 ) 
     {
       genename = toks[icnt];
-
+      
       // does this look like a region, or a genename? 
       bool ok_region = false;
       Region myreg( toks[0] , ok_region );
-      if ( ! ok_region ) 
-	Helper::str2upper( genename );
+      if ( ! ok_region ) Helper::str2upper( genename );
     }
-  else genename = "";
-
+  
   
   if ( a.reg_list == "" )
     {
@@ -736,30 +734,29 @@ int main()
   if ( q == Q_GENE ) 
     {
 
-	if ( a.multi_transcripts )
-	    std::cout << "Found " << trans.size() 
-		      << " transcript(s) matching gene name <b>" 
-		      << main_gene << "</b></p>";
-	
-	std::cout << "<pre><font size=-1>";
-	
-	for (int r=0; r<trans.size(); r++)
+      if ( a.multi_transcripts )
+	std::cout << "Found " << trans.size() 
+		  << " transcript(s) matching gene name <b>" 
+		  << main_gene << "</b></p>";
+      
+      std::cout << "<pre><font size=-1>";
+      
+      for (int r=0; r<trans.size(); r++)
 	{
-	    
+	  
 	  std::cout << trans[r].altname << "   " ;
-	  std::cout << a.getURL()->addField("q", "g")\
-	    ->addField("gene", trans[r].name)\
-	    ->removeField("regs")\
+	  std::cout << a.getURL()->addField("q", "g")	\
+	    ->addField("gene", trans[r].name)		\
+	    ->removeField("regs")			\
 	    ->printLink(trans[r].name)
 		    << Helper::chrCode(trans[r].start.chromosome()) << ":" 
 		    << trans[r].start.position() << ".."
 		    << trans[r].stop.position() ;
 	  std::cout <<"<br>";
-	    if ( !cgi ) std::cout << "\n";
 	}
-	
+      
       std::cout << "</font></pre>";
-            
+      
 
       //
       // Now, 'genename' will be original search term
@@ -840,7 +837,7 @@ int main()
 		      {
 			if ( reg.subregion[s].overlaps( t->subregion[u] ) )
 			  {
-			    std::cout << a.getURL()->addField("q", "g")->addField("gene", t->name)->removeField("regs")->printLink(t->name + "(" + t->altname + ")");
+			    std::cout << a.getURL()->addField("q", "g")->addField("gene", t->name)->removeField("regs")->printLink(t->name + "(" + t->altname + ")") << " ";
 			  }
 		      }
 		  ++t;
@@ -1750,7 +1747,7 @@ void ExomeBrowser::make_gene_list(Aux * a)
     {      
       if ( genes[g] != lastgene )
 	{
-	  std::cout << a->getURL()->addField("q", "g")->addField("gene", genes[g])->printLink(genes[g]) << "br/>";
+	  std::cout << a->getURL()->addField("q", "g")->addField("gene", genes[g])->printLink(genes[g]) << "<br/>";
 	  lastgene = genes[g];
 	}
     }
