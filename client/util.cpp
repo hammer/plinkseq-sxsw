@@ -36,7 +36,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     pcomm.new_group( "varop"       , "Variant database operations" );
     pcomm.new_group( "locop"       , "Locus database operations" );
     pcomm.new_group( "refop"       , "Reference database operations" );
-//    pcomm.new_group( "segop"       , "Segment database operations" );
+//  pcomm.new_group( "segop"       , "Segment database operations" );
     pcomm.new_group( "seqop"       , "Sequence database operations" );
     pcomm.new_group( "indop"       , "Individual database operations" );
     pcomm.new_group( "ibd"         , "IBD analysis" );
@@ -54,7 +54,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     pcomm.add_to_group( "root" , "annot" );
     pcomm.add_to_group( "root" , "varop" );
     pcomm.add_to_group( "root" , "locop" );
-//    pcomm.add_to_group( "root" , "segop" );
+//  pcomm.add_to_group( "root" , "segop" );
     pcomm.add_to_group( "root" , "seqop" );
     pcomm.add_to_group( "root" , "refop" );
     pcomm.add_to_group( "root" , "indop" );
@@ -200,7 +200,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "loc-annotate|locop,annot|annotate loci|ARG:group"
 	
-	  << "loc-overlap|locop|show loci in groups Y, Z that overlap each locus in X|ARG:group"
+	  << "loc-overlap|locop|show loci in groups Y, Z that overlap each locus in X|ARG:group,alias,comma,tab,row"
 
 
 // 	 << "seg-load|input,segop|input segment data to SEGDB" 
@@ -304,7 +304,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "s-assoc|tests,ibd|segment-based IBD test"
 
-
+	  << "mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv"
     
     //
     // Gene-network database
@@ -453,6 +453,13 @@ void Pseq::Util::Options::load( int n , char ** argv )
     // Input modifiers 
     
 
+    // Output modifiers
+    
+    reg( "output" , KEYWORD , "general output format modifiers" );
+    keyword( "output" , "row" , NONE , "new row per item" );
+    keyword( "output" , "tab" , NONE , "tab-delimited" );
+    keyword( "output" , "comma" , NONE , "comma-delimited" );
+
     // generic FORMAT for 
 
     reg( "format" , KEYWORD , "" );
@@ -461,7 +468,8 @@ void Pseq::Util::Options::load( int n , char ** argv )
     keyword( "format" , "repeat-mode" , STRING , "" );
     keyword( "format" , "description" , STRING , "" ); // SEQDB, REFDB
     keyword( "format" , "iupac" , NONE , "" );
-    
+    keyword( "format" , "BGZF" , NONE , "write VCF in BGZF-compressed form" );
+
     keyword( "format" , "chr" , STRING , "" ) ;
     keyword( "format" , "bp1" , STRING , "" );
     keyword( "format" , "bp2" , STRING , "" );

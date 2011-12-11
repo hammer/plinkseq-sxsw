@@ -104,8 +104,11 @@ class GStore {
 
   
   
+  // Password
   
-
+  void set_pwd( const std::string & p ) { _pwd = p; } 
+  bool pwd( const std::string & p) const { return _pwd == "" || _pwd == p; }
+  
 
   /////////////////////////////////////////////////
   // Initialise a genotype store
@@ -127,7 +130,7 @@ class GStore {
   {
       fIndex.reset();
       // and other stuff?
-    }
+  }
   
   
 //////////////////////////////////////////////////////
@@ -236,8 +239,11 @@ class GStore {
   void locdb_rename( std::string group , std::string alias, std::string new_label );
   void locdb_extract_intersection(std::string group1, std::string group2 , std::string newLabel);
   void locdb_display_regions( std::string name );
-  void locdb_make_overlap_table();
-  void locdb_overlap_analysis(std::string target, std::string preload );
+ 
+  void locdb_overlap_analysis( const std::string & target, 
+			       const std::string & preload,
+			       const std::string & alias , 
+			       const std::string & listmode );
   
 
   //
@@ -283,7 +289,7 @@ class GStore {
 
   bool has_projfile;
 
-
+  std::string _pwd;
 };
 
 

@@ -42,7 +42,7 @@ namespace Pseq
       
       bool vacuum();
 
-      bool write_VCF(Mask & m);
+      bool write_VCF(Mask & m , bool compressed );
 
       bool write_BCF(Mask & m, const std::string & );
 
@@ -129,7 +129,7 @@ namespace Pseq
 
       bool swap_alternate_names( const std::string & group , const std::string & filename );
 
-      bool overlap_analysis( std::string label1, std::string label2 );
+      bool overlap_analysis( );
 
       bool intersection( std::string filename , std::string group , LocDBase &  );
       

@@ -26,7 +26,6 @@ class VCFZ {
       vardb = v;
       filename = f;
       readmode = m;
-      if ( readmode == 1 ) Helper::halt("not implemented VCFZ writing yet");
     }
 
   ~VCFZ()

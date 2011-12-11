@@ -189,28 +189,61 @@ void f_vcf( Variant & v , void * p)
    plog << v.VCF();
 }
 
-bool Pseq::VarDB::write_VCF(Mask & m)
+void f_vcfz( Variant & v , void * p )
 {
+  VCFZ * vcfz = (VCFZ*)p;
+  vcfz->write_record( v );
+}
+
+bool Pseq::VarDB::write_VCF(Mask & m , bool compressed )
+{
+
+  // Either write a VCF to stream, or a compressed BGZF-zipped VCF to a file
+
+  if ( compressed ) 
+    {
+
+      std::string name = Pseq::Util::single_argument<std::string>( args, "file" );
+
+      VCFZ vcfz( name , &g.vardb);
+      vcfz.writing();
+      vcfz.open();
+      vcfz.write_header();
+
+      IterationReport report = g.vardb.iterate( f_vcfz , &vcfz , m );
+	
+      vcfz.close();
+
+      return true;
+    }
   
-    // VCF headers
-    
-    plog << "##fileformat=VCFv4.0\n"
-	 << "##source=pseq\n"
-	 << MetaInformation<VarMeta>::headers( )
-	 << MetaInformation<GenMeta>::headers( META_GROUP_GEN )
-	 << MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
-    
-    // Header line containing Individual IDs
-    
-    const int n = g.indmap.size();
-    plog << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";  
-    for ( int i=0; i<n; i++) plog << "\t" << g.indmap(i)->id();
-    plog << "\n";
-    
-    // Variants
-    
-    IterationReport report = g.vardb.iterate( f_vcf , NULL , m );
-    
+
+  //
+  // Otherwise, just return the VCF to STDOUT as a normal textual VCF file
+  //
+  
+  // VCF headers
+  
+  plog << "##fileformat=" << PLINKSeq::CURRENT_VCF_VERSION() << "\n"
+       << "##source=pseq\n"
+       << MetaInformation<VarMeta>::headers( )
+       << MetaInformation<GenMeta>::headers( META_GROUP_GEN )
+       << MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
+  
+  // Header line containing Individual IDs
+  
+  const int n = g.indmap.size();
+  plog << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";  
+  for ( int i=0; i<n; i++) plog << "\t" << g.indmap(i)->id();
+  plog << "\n";
+  
+  // Variants
+  
+  IterationReport report = g.vardb.iterate( f_vcf , NULL , m );
+  
+  
+
+  
 }
 
 
@@ -714,9 +747,25 @@ bool Pseq::LocDB::swap_alternate_names( const std::string & group , const std::s
   return true;
 }
 
-bool Pseq::LocDB::overlap_analysis( std::string label1, std::string label2 )
+bool Pseq::LocDB::overlap_analysis( )
 {
-  g.locdb_overlap_analysis( label1, label2);
+
+  std::vector<std::string> grps = Pseq::Util::n_arguments<std::string>( args , "group" );	
+  if ( grps.size() != 2 ) Helper::halt( "exactly two groups need to be specified" );
+  if ( grps[0] == grps[1] ) Helper::halt( "not going to calculate overlap of group with self" );
+
+  std::string a = "";
+  if ( args.has("alias") ) a = args.as_string( "alias" ); 
+  
+  std::string ol = "";
+  if ( args.has("output","tab")) ol="tab";
+  else if ( args.has("output","comma")) ol="comma";
+  else if ( args.has("output","row")) ol="row";
+
+  if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
+
+  g.locdb_overlap_analysis( grps[0] , grps[1] , a , ol );
+  return true;
 }
 
 

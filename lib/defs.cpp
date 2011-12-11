@@ -8,6 +8,8 @@ int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 4; return i; }
 
 std::string & PLINKSeq::SQLITE_SCRATCH_FOLDER() { static std::string s = ""; return s; }
 
+std::string & PLINKSeq::CURRENT_VCF_VERSION() { static std::string s = "VCFv4.1"; return s; } 
+
 // internals
 std::string & PLINKSeq::TRANSCRIPT_FRAME() { static std::string s = "_FRAME"; return s; }
 std::string & PLINKSeq::TRANSCRIPT_STRAND() { static std::string s = "_STRAND"; return s; }

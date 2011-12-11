@@ -32,11 +32,9 @@ void func_locdb_process_overlap(Region & r1, Region & r2, int v_int, int v_union
   
   OverlapResults * data = (OverlapResults*)d;
   
-  // Ignore if tested gene overlaps tested gene
-  
-  if ( r1.group == r2.group ) return;
-  
-  
+  // Ignore if tested gene overlaps tested gene  
+    if ( r1.group == r2.group ) return;
+    
   // We now have 1 tested gene (with exons) and 1 other region
   
   Region & tested   = r1.group == data->target_id ? r1 : r2; 
@@ -49,9 +47,11 @@ void func_locdb_process_overlap(Region & r1, Region & r2, int v_int, int v_union
   
   if ( i != data->result.end() )
     {
-
+      
       OverlapResult & r = i->second;
-
+      
+      r.overlapping_target_region_ids.insert( target.id );
+      
       // Which subregions does this region overlap with? 
       
 	for (int s=0; s< tested.subregion.size(); s++)
@@ -166,49 +166,55 @@ void GStore::locdb_display_regions( string name )
 }
 
 
-void GStore::locdb_make_overlap_table()
-{    
-    // Turn off subregion and meta-data reporting to speed things up
-    locdb.get_subregions( false );   
-    locdb.get_meta( false );
-    
-    // Create table of all overlaps
-    locdb.add_overlap_table();	    
-}
-
-void GStore::locdb_overlap_analysis(string target, string preload )
+void GStore::locdb_overlap_analysis( const std::string & target, 
+				     const std::string & preload , 
+				     const std::string & alias , 
+				     const std::string & listmode )
 {
+  
+  ID_t target_id = locdb.lookup_group_id( target );
+  ID_t preload_id = locdb.lookup_group_id( preload );
+  ID_t alias_id = locdb.alias_id( alias );
+
+  if ( target_id == 0 || preload_id == 0 ) return;
 
   plog << "TARGET" << "\t"
-       << "ALIAS" << "\t"
+       << ( alias != "" ? "ALIAS" : "" ) << "\t"
        << "POS1" << "\t"
        << "POS2" << "\t"
-    
-       << "N_SUB" << "\t" 
-       << "LEN" << "\t" 
+       << "N_SUB" << "\t"
+       << "LEN" << "\t"
        << "LEN_SUB" << "\t"
        << "N" << "\t"
        << "OLAP1" << "\t"
        << "OLAP2" << "\n";
 
+  bool osub = locdb.get_subregions();
+  bool ometa = locdb.get_meta();
+  
+  // Turn off subregion and meta-data reporting to speed things up
 
-  ID_t target_id = locdb.lookup_group_id( target );
+  locdb.get_subregions( false );   
+  locdb.get_meta( false );
   
-  ID_t preload_id = locdb.lookup_group_id( preload );
-    
-  if ( target_id == 0 || preload_id == 0 ) return;
-  
-  locdb.get_subregions( true );
-  
-  // locdb.add_overlap_table( target_id , preload_id );
+  locdb.add_overlap_table( target_id , preload_id );
+
+  locdb.get_subregions( osub );
+  locdb.get_meta( ometa );
+
+
+  // Pull the set of target regions into memory
   
   std::set<Region> regions = locdb.get_regions( preload_id );
+
+  // Helper class to store overlap results
   
   OverlapResults res( target_id );
+
   res.load_regions( regions );
 
   locdb.get_regions_and_overlap( &func_locdb_process_overlap , &res );
-  
+
   std::map<Region,OverlapResult>::iterator j = res.result.begin();
   
   while( j != res.result.end() )
@@ -221,21 +227,58 @@ void GStore::locdb_overlap_analysis(string target, string preload )
       // Exon-based overlap results
       
       OverlapResult & olap = j->second;
+
+      std::string aliases = locdb.alias( target.name , preload_id , alias_id ); 
+
+      std::set<uint64_t>::iterator ii = olap.overlapping_target_region_ids.begin();
       
-      std::map<std::string,std::string> aliases = locdb.lookup_alias( target.name ); 
+      if ( ii == olap.overlapping_target_region_ids.end() )
+	{
+	  plog << ".\n";
+	}
+      else
+	{
+	  while ( ii != olap.overlapping_target_region_ids.end() )
+	    {
+
+	      Region oregion = locdb.get_region( *ii );
+
+	      plog << target.id << "\t"
+		   << target.name << "\t"
+		   << aliases << "\t"
+		   << target.coordinate() << "\t"
+		   << oregion.id << "\t"
+		   << oregion.name << "\t"
+		   << oregion.coordinate() << "\n";
+
+	      ++ii;
+	    }
+
+	}
+
+      // skip actual olap calcs for now.
+
+
+      ++j;
+      continue;
+
+      // SKIP THE BELOW FOR NOW
       
-      std::string a = stringizeKeyPairList( aliases );
+
       
       plog << target.name << "\t"
-	   << a << "\t"
-	   << target.start.position() << "\t"
-	   << target.stop.position() << "\t";
-	
+	   << aliases << "\t"
+	   << target.coordinate() << "\t"
+	   << target.start.chromosome() << "\t"
+ 	   << target.start.position() << "\t"
+ 	   << target.stop.position() << "\t";
+      
       plog << j->second.nExons << "\t"
 	   << (double)(j->second.totalLength)/1000.0 << "\t"
 	   << j->second.exonLength << "\t"
 	   << j->second.nTargets << "\t";
       
+
       // Calculate overlap metrics
       
       int tc = 0;
@@ -246,7 +289,7 @@ void GStore::locdb_overlap_analysis(string target, string preload )
 	  std::map<int,std::set<int2> >::iterator i = olap.cover.find( s ); 
 	  
 	  int exonStart = target.subregion[s].start.position();
-	  int exonStop = target.subregion[s].stop.position();	    
+	  int exonStop = target.subregion[s].stop.position();
 	  
 	  // No overlap?
 	  
@@ -255,7 +298,7 @@ void GStore::locdb_overlap_analysis(string target, string preload )
 	      tc += exonStop-exonStart+1;
 	      continue;
 	    }
-	  
+
 	  // Overlap
 	  
 	  std::set<int2> & segments = i->second;
@@ -285,9 +328,9 @@ void GStore::locdb_overlap_analysis(string target, string preload )
       }
   
   
-    // Clear up the overlap table
+  // Clear up the overlap table
   
-    //locdb.clear_overlap();
+  locdb.clear_overlaps();
     
 }
 

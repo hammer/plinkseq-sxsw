@@ -793,7 +793,7 @@ bool Variant::simple_del() const
 }
 
 
-std::string Variant::VCF()
+std::string Variant::VCF() const
 {
     
     // Construct a string that is a VCF format entry

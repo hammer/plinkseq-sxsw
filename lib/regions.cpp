@@ -63,6 +63,7 @@ Region::Region(const std::string & s, bool & flag)
       if ( chr == 0 ) return;
       start.chromosome( chr );
       start.position( 1 );
+      stop.chromosome( chr );
       stop.position( 300000000 );      
       flag = true;
       return;
@@ -88,6 +89,7 @@ Region::Region(const std::string & s, bool & flag)
     {
       start.chromosome( chr );
       start.position( str2int( spos ) );
+      stop.chromosome( chr );
       stop.position( str2int( spos ) );
       flag = true;
       return;

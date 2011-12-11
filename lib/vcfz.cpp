@@ -15,18 +15,10 @@ int VCFZ::gt_field = 0;
 std::vector<meta_index_t*> VCFZ::formats;
 
 bool VCFZ::open()
-{
-  
-  if ( file ) close();
-  
-  if ( readmode ) file = bgzf_open( filename.c_str(), "r" );
-  
-  else 
-    { 
-      Helper::halt( "writing BGZF-VCFs not yet supported" );
-      file = bgzf_open( filename.c_str(), "w" );
-    }
-  
+{  
+  if ( file ) close();  
+  file = bgzf_open( filename.c_str(), readmode ? "r" : "w" );    
+  if ( ! file ) Helper::halt( "could not open " + filename ) ;
   return file == NULL;
 }
 
@@ -166,11 +158,6 @@ bool VCFZ::index_record( )
   int tab2 = tab1 + 1;
   while ( tab2 < line.size() ) { if ( line[tab2] == '\t' ) break; else ++tab2; }
   
-  // 012345679
-  // xx\xxxx\x
-  // tab1 = 2
-  // tab2 = 7
-  
   if ( tab1 == 0 || tab2 - tab1 == 1 ) Helper::halt( "problem with VCF chr/bp fields" );
   
   std::string c1( line.begin() , line.begin() + tab1 ) ;
@@ -299,12 +286,22 @@ bool VCFZ::read_record( Variant & var , SampleVariant & source , SampleVariant &
 bool VCFZ::write_header()
 {
   
-  std::string mtext = "##source=pseq\n" 
+  std::string mtext = "##fileformat=" + PLINKSeq::CURRENT_VCF_VERSION() + "\n"
+    "##source=pseq\n"    
     + MetaInformation<VarMeta>::headers( ) 
     + MetaInformation<GenMeta>::headers( META_GROUP_GEN ) 
     + MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
+  bgzf_write( file , &(mtext[0]) , mtext.size() );
+
+  // individuals
+  const int n = GP->indmap.size();
+  std::stringstream ss;
+  ss << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";  
+  for ( int i=0; i<n; i++) ss << "\t" << GP->indmap(i)->id();
+  ss << "\n";
+  std::string indhdr = ss.str();
+  bgzf_write( file , &(indhdr[0]) , indhdr.size() ); 
   
-  //  write( mtext );
   return true;
 }
  
@@ -312,6 +309,8 @@ bool VCFZ::write_header()
 bool VCFZ::write_record( const Variant & var )
 {    
   if ( ! file ) return false;  
+  std::string vcfline = var.VCF();
+  bgzf_write( file , &(vcfline[0]) , vcfline.size() );
   return false;
 }
 

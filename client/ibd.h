@@ -20,14 +20,24 @@ namespace Pseq {
     
     void sharing_wrapper( const std::string & database , Mask & m );
 
+    void mutation_wrapper( const std::string & database , const std::string & indiv , const std::string & indiv  , Mask & m );
+
 
     struct IBDPartner {
-      IBDPartner(std::string id, int affected ) 
-	: id(id) , affected(affected) { } 
+    IBDPartner( const std::string & id, int affected ) 
+    : id(id) , affected(affected) { } 
       std::string id;
       int affected;
     };
     
+
+    struct IBDPartnerRegion 
+    {
+      IBDPartnerRegion( const std::string & id , const Region & region )
+      : id(id) , region(region) { } 
+      std::string id;
+      Region region;
+    };
     
     class IBDDBase {
       
@@ -42,7 +52,8 @@ namespace Pseq {
       // For a proband, get IDs of all other individuals who 
       // share at least one segment at this position
       std::vector<IBDPartner> fetch( const std::string & id , const Region & r);
-      
+      std::vector<IBDPartnerRegion> fetch_regions( const std::string & id , const Region & r);
+
       int2 case_control_count( const std::string & id , const Region & r );
       int2 case_control_count( const std::string & id , const Region & r , 
 			       std::map<std::string,int> & imap, 

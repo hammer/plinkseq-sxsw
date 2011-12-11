@@ -1469,7 +1469,7 @@ std::string VarDBase::summary( Mask * mask , bool ugly )
   
   std::map<int,std::string> f = fetch_files( mask );
   
-  if ( ! ugly ) ss << "---Variant DB summary---\n";
+  if ( ! ugly ) ss << "---Variant DB summary---\n\n";
 
   if ( ugly ) 
     ss << "VARDB\t"

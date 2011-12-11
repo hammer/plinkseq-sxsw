@@ -741,7 +741,7 @@ std::string IndDBase::summary( bool ugly )
        << "N=" << size() << "\n";
   else
     {
-      ss << "---Individual DB summary---\n";
+      ss << "---Individual DB summary---\n\n";
 
       ss << size() << " unique individuals\n";
       
@@ -751,9 +751,9 @@ std::string IndDBase::summary( bool ugly )
 
       while ( p != t.end() )
 	{
-	  plog << "Phenotype " << p->first << " "
-	       << "(" << p->second[0]  << ") "
-	       << p->second[1] << "\n";
+	  ss << "Phenotype : " << p->first << " "
+	     << "(" << p->second[0]  << ") "
+	     << p->second[1] << "\n";
 	  ++p;
 	}      
     }

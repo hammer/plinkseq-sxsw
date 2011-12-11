@@ -4,6 +4,7 @@
 #include "defs.h"
 #include "bcf.h"
 #include "vcfz.h"
+#include "gstore.h"
 
 #include <iostream>
 #include <fstream>
@@ -13,7 +14,7 @@ using namespace std;
 using namespace Helper;
 
 extern Log plog;
-
+extern GStore * GP;
 
 std::map<string,fType> FileMap::fTypeMap;
 
@@ -54,7 +55,10 @@ void FileMap::setTypes()
   // misc. utility 'types'
   fTypeMap["INVALID"] = INVALID;
   fTypeMap["UNKNOWN"] = UNKNOWN;
-  
+
+  // project password
+  fTypeMap["PWD"] = PWD;
+
 }
 
 
@@ -171,6 +175,7 @@ void FileMap::setCoreFiles( const std::string & f )
       else if ( ft == WGTDB ) addSpecial( WGTDB , names[0] );
       else if ( ft == REFDB ) addSpecial( REFDB , names[0] );
       else if ( ft == SEQDB ) addSpecial( SEQDB , names[0] );
+      else if ( ft == PWD ) GP->set_pwd( names[0] );
       else if ( ft == BCF_FILE )   add_BCF( names[0] );
       else if ( ft == BGZF_VCF )   add_VCFZ( names[0] );
     }    

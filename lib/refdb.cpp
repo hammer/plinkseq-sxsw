@@ -1039,10 +1039,14 @@ std::string RefDBase::summary( bool ugly )
       sql.prepare( "SELECT group_id,name,description FROM groups; ");
     
 
-    if ( ! ugly ) ss << "---Reference DB summary---\n";
+    if ( ! ugly ) ss << "---Reference DB summary---\n\n";
     
+    bool empty = true;
+
     while ( sql.step(s) )
       {
+	empty = false;
+
  	int id = sql.get_int( s , 0 );
  	std::string name = sql.get_text( s , 1 );
  	std::string desc =  sql.get_text( s , 2 );
@@ -1064,8 +1068,10 @@ std::string RefDBase::summary( bool ugly )
 
      }
      sql.finalise(s);
+     
+     if ( empty ) ss << " (empty)\n";
 
-    return ss.str();
+     return ss.str();
 }
 
 void RefDBase::dump( const std::string & grp , bool with_meta )

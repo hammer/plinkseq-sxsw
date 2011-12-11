@@ -327,6 +327,9 @@ bool LocDBase::init()
     stmt_loc_iterate_group =
       sql.prepare("SELECT * FROM loci WHERE group_id == :group_id ORDER BY chr,bp1 ;");
     
+    stmt_loc_iterate_two_groups =
+      sql.prepare("SELECT * FROM loci WHERE group_id == :group_id1 OR group_id == :group_id2 ORDER BY chr,bp1 ;");
+
     stmt_loc_group_list = 
       sql.prepare("SELECT * FROM groups;");
     
@@ -752,51 +755,29 @@ Region LocDBase::construct_region( sqlite3_stmt * s  )
 }
 
 
-void LocDBase::add_overlap_table(uint64_t group1_id, uint64_t group2_id )
+void LocDBase::add_overlap_table( uint64_t group1_id, uint64_t group2_id )
 {
-
-    clear_overlaps();
-
-//     if ( group2_id != 0 ) 
-// 	clearOverlaps(group1_id,group2_id);
-//     else if ( group1_id == 0 )
-// 	clearOverlaps();
-//     else
-// 	clearOverlaps(group1_id);    
-	
-
+  
   // For each overlapping pair of regions, give intersection and union
   // distances From these, any subsequent definition of overlap can be
-  // computed Need to handle issue of subregions properly also
-  
-  // Iterate over all regions, sorted by position
+  // computed 
   
 
-    std::set<Region> current;
+  // Iterate over all regions, sorted by position
+  
+  std::set<Region> current;
 
   int cnt = 0;
 
+  sql.bind_int64( stmt_loc_iterate_two_groups , ":group_id1" , group1_id );
+  sql.bind_int64( stmt_loc_iterate_two_groups , ":group_id2" , group2_id );
+
   sql.begin();
 
-  while ( sql.step( stmt_loc_iterate ) )
+  while ( sql.step( stmt_loc_iterate_two_groups ) )
     {
       
-      Region r = construct_region( stmt_loc_iterate );
-
-      // Are we imposing constraints on which groups 
-      // to consider
-      
-      if ( group2_id == 0 ) 
-      {
-	  if ( group1_id != 0 && group1_id != r.group ) 
-	      continue;
-      }
-      else
-      {
-	  if ( group1_id != 0 && 
-	       ! ( group1_id == r.group || group2_id == r.group ) ) 
-	      continue;
-      }
+      Region r = construct_region( stmt_loc_iterate_two_groups );
       
       std::set<Region>::iterator i = current.begin();
       
@@ -840,25 +821,25 @@ void LocDBase::add_overlap_table(uint64_t group1_id, uint64_t group2_id )
 	    }
 	    else
 	    {
-		// otherwise, we no longer need to consider this 
-		// region
+	      // otherwise, we no longer need to consider this 
+	      // region
 		
 	      std::set<Region>::iterator t = i;
-		++i;
-		current.erase(t);
+	      ++i;
+	      current.erase(t);
 	    }
 	}
       
-
+      
       // Add this region to the pool
       
       current.insert(r);
       
     }
-
-
-  sql.reset( stmt_loc_iterate );
-
+  
+  
+  sql.reset( stmt_loc_iterate_two_groups );
+  
   sql.commit();
   
 }
@@ -1709,20 +1690,17 @@ bool LocDBase::get_regions_and_overlap( void (*f)( Region&,Region&, int, int, vo
       bool next1 = sql.step( stmt_loc_lookup_group_with_overlap_p1 );
       bool next2 = sql.step( stmt_loc_lookup_group_with_overlap_p2 );
       
-      
-      if ( ! ( next1 && next2 ) )
-	break;
+      if ( ! ( next1 && next2 ) ) break;
       
       Region r1 = construct_region( stmt_loc_lookup_group_with_overlap_p1 );
       Region r2 = construct_region( stmt_loc_lookup_group_with_overlap_p2 );
       
       int v_int = sql.get_int( stmt_loc_lookup_group_with_overlap_p1 , 8 );
       int v_union = sql.get_int( stmt_loc_lookup_group_with_overlap_p1 , 9 );
-
+      
       // Call user-defined function
       
       f( r1, r2, v_int, v_union , data );
-
       
     }
   
@@ -1731,6 +1709,7 @@ bool LocDBase::get_regions_and_overlap( void (*f)( Region&,Region&, int, int, vo
   
   return true;
 }
+
 
 Region LocDBase::get_region(const std::string & g, const std::string & genename )
 {
@@ -1743,13 +1722,30 @@ Region LocDBase::get_region(const int group_id , const std::string & genename )
   if ( group_id == 0 ) return r;
   sql.bind_int64( stmt_loc_lookup_group_and_name, ":group_id" , group_id );
   sql.bind_text( stmt_loc_lookup_group_and_name, ":name" , genename );
-
+  
   if ( sql.step( stmt_loc_lookup_group_and_name ) )
     r = construct_region( stmt_loc_lookup_group_and_name );
   sql.reset( stmt_loc_lookup_group_and_name );  
   return r;
 }
+ 
 
+Region LocDBase::get_region( const uint64_t loc_id ) 
+{
+  // lookup from a single ID
+  
+  sql.bind_int64( stmt_loc_lookup_id, ":loc_id" , loc_id );
+  
+  Region r;
+
+  if ( sql.step( stmt_loc_lookup_id ) )
+    r = construct_region( stmt_loc_lookup_id ) ;
+    
+  sql.reset( stmt_loc_lookup_id );
+
+  return r;
+  
+}
 
 std::set<Region> LocDBase::get_regions( const std::string & grp )
 {
@@ -2252,14 +2248,32 @@ void LocDBase::delete_aliases()
 
 }
 
-std::string LocDBase::alias( const std::string & query , bool show_keys ) 
+
+uint64_t LocDBase::alias_id( const std::string & g ) 
+{
+  return alias_group_table[ g ];
+}
+
+std::string LocDBase::alias( const std::string & query , uint64_t query_grp_id , uint64_t alias_grp_id )
+{
+  return Helper::stringize( targetted_lookup_alias( query , query_grp_id , alias_grp_id ) );
+}
+
+std::string LocDBase::alias( const std::string & query , bool show_keys )
 {
   return attached() ? Helper::stringizeKeyPairList( lookup_alias( query , 0 ) , show_keys ) : "." ;
 }
 
 std::map<std::string,std::string> LocDBase::lookup_alias( const std::string & query , const std::string & alias_group  )
 {
-  return lookup_alias( query , alias_group_table[ alias_group ] );
+  
+  if ( alias_group_table.find( alias_group ) == alias_group_table.end() ) 
+    {
+      std::map<std::string,std::string> s;
+      return s;
+    }
+  else
+    return lookup_alias( query , alias_group_table[ alias_group ] );
 }
 
 std::map<std::string,std::string> LocDBase::lookup_alias( const std::string & name , const uint64_t alias_group_id )
@@ -2287,11 +2301,15 @@ std::set<std::string> LocDBase::targetted_lookup_alias( const std::string & quer
 							const std::string & query_group , 
 							const std::string & alias_group )
 {
+  return targetted_lookup_alias( query , alias_group_table[ query_group ] , alias_group_table[ alias_group ]);
+}
 
+std::set<std::string> LocDBase::targetted_lookup_alias( const std::string & query , 
+							const uint64_t gquery , 
+							const uint64_t gtarget )
+{
   std::set<std::string> s;
   if ( ! attached() ) return s;
-  int gquery = alias_group_table[ query_group ] ;
-  int gtarget = alias_group_table[ alias_group ] ;
   if ( gquery == 0 || gtarget == 0 ) return s;
 
   sql.bind_text( stmt_loc_targetted_group_alias_lookup , ":name" , query );
@@ -2489,6 +2507,7 @@ std::string LocDBase::summary( bool ugly )
 
   std::set<GroupInfo> g = group_information();
   std::set<GroupInfo>::iterator i = g.begin();
+  
 
   while ( i != g.end() )
     {
@@ -2499,7 +2518,7 @@ std::string LocDBase::summary( bool ugly )
 	   << "DESC=" << i->description
 	   << "\n";
       else
-	ss << i->name << " (" << count( i->idx ) << ") entries : " << i->description << "\n";
+	ss << "Group : " << i->name << " (" << count( i->idx ) << " entries) " << i->description << "\n";
       
       ++i;
     }
@@ -2507,9 +2526,12 @@ std::string LocDBase::summary( bool ugly )
 
   // Sets
   
-  g = set_information();
-  i = g.begin();
-  while ( i != g.end() )
+  std::set<GroupInfo> h = set_information();
+
+  if ( g.size() == 0 && h.size() == 0 ) ss << "(empty)\n";
+
+  i = h.begin();
+  while ( i != h.end() )
     {
       std::string grp = lookup_group_id( i->idx );
       
@@ -2522,7 +2544,7 @@ std::string LocDBase::summary( bool ugly )
 	   << "N=" << t.size() << "\t"
 	   << "DESC=" << i->description << "\n";
       else
-	ss << "Locus set " << i->name << " (" << t.size() << " loci) " << i->description << "\n";
+	ss << "Locus set : " << i->name << " (" << t.size() << " entries) " << i->description << "\n";
       
       ++i;
     }

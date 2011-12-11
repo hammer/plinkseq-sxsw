@@ -553,7 +553,7 @@ class Variant {
     @return Single line in VCF representing variant and calls
   */
   
-  std::string VCF();
+  std::string VCF() const;
 
 
   std::string displaycore() const 

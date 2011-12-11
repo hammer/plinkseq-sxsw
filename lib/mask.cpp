@@ -389,9 +389,8 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
 
   // Pass command line ( key=val key key=val1,val2 )
-  m.parse(d2,
-	  ' ',
-	  true );   // automatically add meta-flags 
+
+  m.parse( d2, ' ', true ); // automatically add meta-flags 
   
  
   std::vector<std::string> keys = m.keys();

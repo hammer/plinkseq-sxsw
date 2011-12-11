@@ -18,7 +18,7 @@ GStore::GStore(bool r)
     vardb(indmap) , 
     perm( indmap, phmap )
 {       	
-  
+
   // Global pointer to primary class
   GP = this; 
 
@@ -43,6 +43,9 @@ GStore::GStore(bool r)
 
   // by default, not in R mode
   r_mode = false;
+
+  // by default, no password
+  _pwd = "";
   
 }
 

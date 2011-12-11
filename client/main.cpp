@@ -22,7 +22,7 @@ Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.08";
-std::string PSEQ_DATE    = "25-Nov-2011";
+std::string PSEQ_DATE    = "4-Dec-2011";
 
 int main(int argc, char ** argv)
 {
@@ -1250,7 +1250,12 @@ int main(int argc, char ** argv)
 	  }
 	plog.counter("\n");
 	
-	plog << "inserted " << inserted << " variants from compressed VCF; now finishing index...\n";
+	if ( inserted == 0 ) 
+	  {
+	    plog.warn( "could not insert any variants: is the VCF BGZF-gzipped?" );	    
+	  }
+	else
+	  plog << "inserted " << inserted << " variants from compressed VCF; now finishing index...\n";
 	
 	g.vardb.commit();
 	vcfz->close();
@@ -1881,6 +1886,19 @@ int main(int argc, char ** argv)
       }
 
     
+    if ( command == "mutation-screen" )
+      {
+	if ( ! args.has( "ibddb" ) ) Helper::halt( "need to specify --ibddb {filename}" );
+	if ( ! args.has( "indiv" ) ) Helper::halt( "need to specify --indiv {ID}" );
+	if ( ! args.has( "region" ) ) Helper::halt( "need to specify --region {chr1:1234567}" );
+	Pseq::IBD::mutation_wrapper( args.as_string( "ibddb" ) , 
+				     args.as_string( "indiv" ) , 
+				     args.as_string( "region" ) , 
+				     m );
+	Pseq::finished();
+      }
+    
+
     //
     // Single-site association statistics
     // 
@@ -1969,10 +1987,11 @@ int main(int argc, char ** argv)
     
     if ( command == "write-vcf" )
       {
-	Pseq::VarDB::write_VCF(m);
+	bool compressed = args.has( "format" , "BGZF" );
+	Pseq::VarDB::write_VCF( m , compressed );
 	Pseq::finished();
       }
-
+  
     
     if ( command == "write-bcf" )
       {	
@@ -2029,9 +2048,7 @@ int main(int argc, char ** argv)
 
     if ( command == "loc-overlap" )
       {
-	std::vector<std::string> grps = Pseq::Util::n_arguments<std::string>( args , "group" );	
-	if ( grps.size() != 2 ) Helper::halt( "exactly two groups need to be specified" );
-	Pseq::LocDB::overlap_analysis( grps[0] , grps[1] );
+	Pseq::LocDB::overlap_analysis();
 	Pseq::finished();
       }
 

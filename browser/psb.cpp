@@ -6,6 +6,7 @@
 
 using namespace ExomeBrowser;
 
+
 int main()
 {
   
@@ -26,6 +27,7 @@ int main()
   //
   
   std::string project_path = "";
+  std::string pwd = "(if required)";
   std::string loc_set = "refseq";
   std::string genename = "";
   QType q = Q_ERROR;
@@ -140,6 +142,11 @@ int main()
 	      a.add_form_value("proj", project_path );
 	    }
 	  
+	  if ( str == "password" )
+	    {
+	      pwd = cgivars[i+1];	      
+	    }
+
 	  if ( str == "loc" ) loc_set = cgivars[i+1];
 	  
 	  if ( str == "regs" )
@@ -157,6 +164,12 @@ int main()
 	  if ( str == "masks" )
 	    a.msk = Helper::parse( cgivars[i+1] , " " );
 	  
+	  if ( str == "inc_fltr" )
+	    a.inc_fltr = cgivars[i+1] ;
+
+	  if ( str == "vinc_fltr" )
+	    a.vinc_fltr = cgivars[i+1];
+
 	  if ( str == "meta" ) 
 	    a.mf = Helper::parse( cgivars[i+1] , " ," );
 	  
@@ -189,13 +202,23 @@ int main()
   //
   
   std::cout << "<table width=100% CELLPADDING=0 CELLSPACING=0>"
-	    << "<tr><td width=50% valign=top align=left>"
+	    << "<tr><td width=50% valign=center align=left>"
 	    << "<h1><a style=\"color:black;text-decoration:none;\" href=\"" + a.getURL()->addField("q", "g")->printURL() + "\">PLINK<font color=\"darkred\">SEQ</font> exome browser</h1>"
-	    << "</td><td width=50% valign=top align=right>"
-	    << "<font size=-1>"
-	    << "Project: <em>" << project_path << "</em></font>"
-	    << "<br>(" << a.getURL()->addField("q", "psummary")->printLink("show summary") << ")"
+	    << "</td><td width=50% valign=center align=right>"
+
+    // project/pwd specification
+	    << "(" << a.getURL()->addField("q", "psummary")->printLink("show project summary") << ")"
+	    << "<br>"
+	    << "Project: <input type=\"text\" size=\"50\" name=\"proj\" value=\"" 
+	    << Helper::html_encode( project_path ) << "\">"
+	    << "<br>"
+	    << "Password: <input type=\"text\" size=\"50\" name=\"pwd\" value=\"" 
+	    << Helper::html_encode( pwd ) << "\">"
+	    
+
+    // end of header
 	    << "</td></tr></table>"
+
 	    << "<hr>";
   
 
@@ -220,6 +243,12 @@ int main()
       a.g = &g;
       a.loc_set = loc_set;
       g.set_project( project_path ) ;
+      
+      if ( ! g.pwd( pwd ) ) 
+	{
+	  Helper::halt( "access denied: password does not match" );
+	  exit(0);
+	}
 
       if ( q == Q_GENELIST ) 
 	make_gene_list(&a);
@@ -231,6 +260,7 @@ int main()
 	make_locset_list(&a);
       else if ( q == Q_PROJSUMMARY )
 	make_proj_summary(&a);
+
       exit(0);
 
     }
@@ -266,7 +296,7 @@ int main()
 
 
   //
-  // Query 
+  // Query
   //
 
   std::cout << "<p><b>Gene ID</b> (symbol or NM_012345) ";
@@ -287,7 +317,8 @@ int main()
   //  std::cout << "<p>Additional regions and genes<br>";
   std::cout << "<textarea ";
   std::cout << "name=\"regs\" rows=\"7\" cols=\"30\">"
-	    << Helper::html_encode(a.reg_list) 
+	    << a.reg_list 
+    //	    << Helper::html_encode( a.reg_list )
 	    << "</textarea></p>";
 
   //
@@ -349,6 +380,7 @@ int main()
   
   std::cout << "</p>";
 
+
   // Gene-set
   std::cout << "<p>Gene set ";
   std::cout << "(" << a.getURL()->addField("q", "lslist")->printLink("list") << ")";
@@ -392,14 +424,25 @@ int main()
   
 
   //
-  // include mask
+  // Mask specification
   //
-
+  
+  std::cout << "<p>Include filter (<tt>include</tt> in mask)";
+  std::cout << "<br><input type=\"text\" size=\"45\" name=\"inc_fltr\"";
+  std::cout << " value=\""<< Helper::html_encode( a.inc_fltr ) << "\"";  
+  std::cout << ">";
+  std::cout << "</p>";
+  
 
   //
   // V-include mask
   //
 
+  std::cout << "<p>Variant include filter (<tt>v-include</tt> in mask)";
+  std::cout << "<br><input type=\"text\" size=\"45\" name=\"vinc_fltr\"";
+  std::cout << " value=\""<< Helper::html_encode( a.vinc_fltr ) << "\"";  
+  std::cout << ">";
+  std::cout << "</p>";
 
 
   
@@ -417,15 +460,35 @@ int main()
   //
   // Draw query 
   //
+  
+  std::vector<std::string> toks = Helper::parse( a.reg_list , " \n\r" , true );
 
-  std::vector<std::string> toks = Helper::parse( a.reg_list , " \n" );
-  if ( toks.size() == 1 ) 
+  int cnt = 0;
+  int icnt = 0;
+
+  for (int i = 0 ; i < toks.size(); i++) 
     {
-      genename = toks[0];
-      Helper::str2upper( genename );
+      // parse() returns '.' or '' for missing values
+      if ( toks[i] != "." && toks[i] != "" ) 
+	{
+	  ++cnt;
+	  icnt = i;
+	}
+    }
+
+  if ( cnt == 1 ) 
+    {
+      genename = toks[icnt];
+
+      // does this look like a region, or a genename? 
+      bool ok_region = false;
+      Region myreg( toks[0] , ok_region );
+      if ( ! ok_region ) 
+	Helper::str2upper( genename );
     }
   else genename = "";
 
+  
   if ( a.reg_list == "" )
     {
       std::cout << "No genes or regions specified...</BODY></HTML>";
@@ -463,7 +526,10 @@ int main()
   a.loc_set = loc_set;
 
   g.set_project( project_path );
-
+  
+  if ( ! g.pwd(pwd) ) 
+    Helper::halt("access denited: password does not match");
+  
   // Initial Mask objects
 
   std::string mstr;
@@ -486,9 +552,15 @@ int main()
 	mstr = "limit=5000 " + mstr;      
     }
   
-  //  std::cout << "m = ["<<mstr<<"]\n";
+  if ( a.vinc_fltr != "" ) 
+    { 
+      mstr += " v-include=\"" + a.vinc_fltr + "\"";
+    }
+  
+  std::cout << "m = ["<<mstr<<"] [" << a.inc_fltr << "]\n";
+  
 
-  Mask m( mstr );
+  Mask m( mstr , a.inc_fltr , a.inc_fltr != "" );
   
   g.indmap.populate( g.vardb, g.phmap, m );
 
@@ -533,9 +605,13 @@ int main()
   //
 
   // Translate symbol into 1+ transcripts, and pick the first
+  
+  std::cout << "genename [" << genename << "]<br>";
 
-  std::set<std::string> trans_names = g.locdb.targetted_lookup_alias( genename , "symbol" , "refseq" ) ;   
-
+  std::set<std::string> trans_names = g.locdb.targetted_lookup_alias( genename , 
+								      ExomeBrowser::symbol, 
+								      loc_set );
+  
   std::vector<std::string> tnames;
   std::set<std::string>::iterator ii = trans_names.begin();
   while ( ii != trans_names.end() ) 
@@ -544,7 +620,8 @@ int main()
       ++ii;
     }
   
-  
+  std::cout << "found " << tnames.size() << " matching transcripts\n";
+
 
   //
   // Get transcript information from database
@@ -613,34 +690,32 @@ int main()
   a.other_genes.clear();
   a.regions.clear();
   a.extended_search = false;
+  
 
-  if ( a.reg_list != "" )
-    {
-
-      std::vector<std::string> tok = Helper::whitespace( a.reg_list );
+  std::vector<std::string> tok = Helper::whitespace( a.reg_list );
       
-      for (int i=0; i<tok.size(); i++)
+  for (int i=0; i<tok.size(); i++)
+    {
+      
+      bool okay = true;
+      
+      Region r(tok[i],okay);
+      if ( okay ) 
 	{
-
-	  bool okay = true;
-
-	  Region r(tok[i],okay);
-	  if ( okay ) 
-	    {
-	      a.regions.push_back( r );
-	      a.extended_search = true;
-	    }
-	  else
-	    {
-	      // look for as a gene (assuming upper case for all IDs)
-	      std::string tmp = tok[i];
-	      Helper::str2upper( tmp );
-	      a.other_genes.push_back( tmp );
-	      a.extended_search = true;
-	    }
+	  a.regions.push_back( r );
+	  a.extended_search = true;
 	}
-     
+      else
+	{
+	  // look for as a gene (assuming upper case for all IDs)
+	  std::string tmp = tok[i];
+	  Helper::str2upper( tmp );
+	  a.other_genes.push_back( tmp );
+	  a.extended_search = true;
+	}
     }
+     
+    
 
   
   
@@ -671,12 +746,15 @@ int main()
 	for (int r=0; r<trans.size(); r++)
 	{
 	    
-	    std::cout << trans[r].altname << "   " ;
-	    std::cout << a.getURL()->addField("q", "g")->addField("gene", trans[r].name)->removeField("regs")->printLink(trans[r].name)
-		      << Helper::chrCode(trans[r].start.chromosome()) << ":" 
-		      << trans[r].start.position() << ".."
-		      << trans[r].stop.position() ;
-	    std::cout <<"<br>";
+	  std::cout << trans[r].altname << "   " ;
+	  std::cout << a.getURL()->addField("q", "g")\
+	    ->addField("gene", trans[r].name)\
+	    ->removeField("regs")\
+	    ->printLink(trans[r].name)
+		    << Helper::chrCode(trans[r].start.chromosome()) << ":" 
+		    << trans[r].start.position() << ".."
+		    << trans[r].stop.position() ;
+	  std::cout <<"<br>";
 	    if ( !cgi ) std::cout << "\n";
 	}
 	
@@ -805,7 +883,7 @@ int main()
 	    {
 	      
 	      std::set<std::string> trans = 
-		g.locdb.targetted_lookup_alias( cc[i] , "symbol" , "refseq" ) ;   
+		g.locdb.targetted_lookup_alias( cc[i] , ExomeBrowser::symbol , loc_set ) ;   
 	      
 	      // if no aliases match, assume this is a refseq transcript name
 	      if ( trans.size() == 0 ) 
@@ -1800,3 +1878,4 @@ void ExomeBrowser::make_proj_summary(Aux * a)
   std::cout << "</table></body></html>";
   exit(0);
 }
+

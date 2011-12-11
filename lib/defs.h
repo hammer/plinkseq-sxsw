@@ -18,6 +18,8 @@ struct PLINKSeq {
   static std::string & SQLITE_SCRATCH_FOLDER();  
   static std::string & PASS_FILTER();  
 
+  static std::string & CURRENT_VCF_VERSION();
+  
   static std::string & TRANSCRIPT_FRAME();
   static std::string & TRANSCRIPT_STRAND();
 
@@ -163,7 +165,8 @@ enum fType { INVALID,
 	     LOG ,     // Output log file
 	     FIDX ,    // Main file index (input)
 	     SEQDB,    // Human genome reference database
-	     REFDB } ;
+	     REFDB,
+	     PWD  } ;  // not a file, special code for project pasword
 
 	         
 

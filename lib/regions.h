@@ -136,8 +136,8 @@ class Subregion {
 
   friend std::ostream & operator<<( std::ostream & out, const Subregion & r)
     {
-      out << r.name << ":chr"
-	  << r.start.chromosome() << ":"  
+      out << r.name << ":"
+	  << Helper::chrCode( r.start.chromosome() ) << ":"  
 	  << r.start.position() << ".."  
        	  << r.stop.position();       
       return out;
@@ -328,7 +328,7 @@ class Region {
   std::string coordinate() const 
     {
       std::stringstream ss;
-      ss << "chr" << start.chromosome() << ":" 
+      ss << Helper::chrCode( start.chromosome() ) << ":" 
 	 << start.position() << ".."
 	 << stop.position();
       return ss.str();
@@ -336,8 +336,8 @@ class Region {
 
   friend std::ostream & operator<<( std::ostream & out, const Region & r) 
     { 
-      out << r.name << "(" << r.group << "):chr"
-	  << r.start.chromosome() << ":"  
+      out << r.name << "(" << r.group << "):"
+	  << Helper::chrCode( r.start.chromosome() ) << ":"  
 	  << r.start.position() << ".."  
        	  << r.stop.position();       
 

@@ -186,12 +186,20 @@ class LocDBase {
    //
 
    void load_alias( const std::string & filename );
+
    std::map<std::string,std::string> lookup_alias( const std::string & , const uint64_t alias_group_id );
    std::map<std::string,std::string> lookup_alias( const std::string & , const std::string & alias_group = "" );
 
+   std::string alias( const std::string & query , uint64_t query_grp_id , uint64_t alias_grp_id );
    std::set<std::string> targetted_lookup_alias( const std::string & query , 
 						 const std::string & query_group , 
 						 const std::string & alias_group );
+   std::set<std::string> targetted_lookup_alias( const std::string & query , 
+						 const uint64_t query_group , 
+						 const uint64_t alias_group );
+
+   uint64_t alias_id( const std::string & group );
+
    std::string alias( const std::string & , bool show_key = false );
    
 
@@ -232,6 +240,7 @@ class LocDBase {
 
    Region get_region( const std::string &, const std::string & );
    Region get_region( const int , const std::string & );
+   Region get_region( const uint64_t );
 
    std::set<Region> get_overlaps(uint64_t loc_id);
 
@@ -299,6 +308,9 @@ class LocDBase {
    
    void get_meta(bool b) { vget_meta = b; }
    void get_subregions(bool b) { vget_subregions = b; }
+
+   bool get_meta() const { return vget_meta; }
+   bool get_subregions() const { return vget_subregions; }
 
    std::set<GroupInfo> group_information();
    std::set<GroupInfo> set_information();
@@ -390,6 +402,7 @@ class LocDBase {
 
   sqlite3_stmt * stmt_loc_iterate;
   sqlite3_stmt * stmt_loc_iterate_group;
+  sqlite3_stmt * stmt_loc_iterate_two_groups;
   sqlite3_stmt * stmt_loc_iterate_overlap;
 
   sqlite3_stmt * stmt_loc_subregion_insert; 
