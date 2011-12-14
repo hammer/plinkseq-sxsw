@@ -5,9 +5,9 @@
 #                                                 #
 ###################################################
 
-.First.lib <- function(libname, pkgname) 
+.onLoad <- function(libname, pkgname) 
 {
-  library.dynam("Rplinkseq")
+  library.dynam("Rplinkseq", package="Rplinkseq", lib.loc=NULL)
 }
 
 .plinkseq_attached <<- F
