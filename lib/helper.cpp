@@ -1555,7 +1555,7 @@ Helper::char_tok::char_tok( const char_tok & rhs )
     }
 } 
 	  
-Helper::char_tok::char_tok& Helper::char_tok::operator= ( const Helper::char_tok &rhs ) 
+Helper::char_tok & Helper::char_tok::operator= ( const Helper::char_tok &rhs ) 
 {
     // clean up first any existing data
     if ( s ) delete [] s;
