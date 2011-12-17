@@ -106,7 +106,6 @@ int main()
 	      std::string s = cgivars[i+1];
 	      
 	      if ( s == "v" ) q = Q_VARIANT;
-	      else if ( s == "g" ) q = Q_GENE;
 	      else if ( s == "i" ) q = Q_INDIV;
 	      else if ( s == "r" ) q = Q_REGION;
 	      else if ( s == "glist" ) q = Q_GENELIST;
@@ -125,12 +124,6 @@ int main()
 	  
 	  if ( str == "val" ) 
 	    var_value = cgivars[i+1];
-	  
-// 	  if ( str == "gene" ) 
-// 	    {
-// 	      genename = cgivars[i+1];
-// 	      Helper::str2upper( genename );
-// 	    }
 	  
 	  if ( str == "ind" ) 
 	    ind_value = cgivars[i+1];
@@ -157,6 +150,7 @@ int main()
 		  if ( p == std::string::npos ) break;
 		  a.reg_list.replace( p , 1 , "\n" );
 		}
+	      std::replace( a.reg_list_url.begin(), a.reg_list_url.end() , '\r' , ' ' );
 	      std::replace( a.reg_list_url.begin(), a.reg_list_url.end() , '\n' , ',' );
 	    }
 
@@ -180,7 +174,7 @@ int main()
       
       if ( from_top ) 
 	{
-	  q = Q_GENE;
+	  q = Q_REGION;
 	}
 
     }
@@ -202,7 +196,8 @@ int main()
   
   std::cout << "<table width=100% CELLPADDING=0 CELLSPACING=0>"
 	    << "<tr><td width=50% valign=center align=left>"
-	    << "<h1><a style=\"color:black;text-decoration:none;\" href=\"" + a.getURL()->addField("q", "g")->printURL() + "\">PLINK<font color=\"darkred\">SEQ</font> exome browser</h1>"
+	    << "<h1><a style=\"color:black;text-decoration:none;\" href=\"" 
+    + a.getURL()->addField("q", "r")->printURL() + "\">PLINK<font color=\"darkred\">SEQ</font> exome browser</h1>"
 	    << "</td><td width=50% valign=center align=right>"
 
     // project/pwd specification
@@ -280,10 +275,9 @@ int main()
   // Hidden value to indicate query type (needed?)
 
   std::cout << "<input type=\"hidden\" name=\"q\" value=\"";
-  if ( q == Q_GENE || q == Q_ERROR ) std::cout << "g";
+  if ( q == Q_REGION || q == Q_ERROR ) std::cout << "r";
   else if ( q == Q_VARIANT ) std::cout << "v";
   else if ( q == Q_INDIV ) std::cout << "i";
-  else if ( q == Q_REGION ) std::cout << "r";
   std::cout << "\">";
 
   
@@ -303,13 +297,6 @@ int main()
   std::cout << "(" << a.getURL()->addField("q", "glist")->addField("pheno", pheno)->printLink("list") << ")";
 
   
-//   std::cout << "<br><input type=\"text\" size=\"45\" name=\"gene\"";
-//   if ( genename != "" )
-//     std::cout << " value=\"" << genename << "\"";
-//   std::cout << ">";
-//   std::cout << "</p> ";
-  
-
   //
   // Region list
   // 
@@ -461,30 +448,36 @@ int main()
   // Draw query 
   //
   
-  std::vector<std::string> toks = Helper::parse( a.reg_list , " \n\r" , true );
 
-  int cnt = 0;
-  int icnt = 0;
+//   std::vector<std::string> toks = Helper::parse( a.reg_list , " \n\r" , true );
 
-  for (int i = 0 ; i < toks.size(); i++) 
-    {
-      // parse() returns '.' or '' for missing values
-      if ( toks[i] != "." && toks[i] != "" ) 
-	{
-	  ++cnt;
-	  icnt = i;
-	}
-    }
+//   int cnt = 0;
+//   int icnt = 0;
 
-  if ( cnt == 1 ) 
-    {
-      genename = toks[icnt];
+//   for (int i = 0 ; i < toks.size(); i++) 
+//     {
+//       // parse() returns '.' or '' for missing values
+//       if ( toks[i] != "." && toks[i] != "" ) 
+// 	{
+// 	  ++cnt;
+// 	  icnt = i;
+// 	}
+//     }
+
+//   if ( cnt == 1 ) 
+//     {
+//       genename = toks[icnt];
       
-      // does this look like a region, or a genename? 
-      bool ok_region = false;
-      Region myreg( toks[0] , ok_region );
-      if ( ! ok_region ) Helper::str2upper( genename );
-    }
+//       // does this look like a region, or a genename? 
+//       bool ok_region = false;
+//       Region myreg( toks[0] , ok_region );
+      
+//       if ( ! ok_region ) 
+// 	{
+// 	  // okay -- we must be in single gene mode -- thus denote 
+// 	  Helper::str2upper( genename );	  
+// 	}
+//     }
   
   
   if ( a.reg_list == "" )
@@ -541,7 +534,7 @@ int main()
   // aren't applied, e.g. 
   // include=" g( DP >= 10 ) > 0.1 "
   
-  if ( q == Q_GENE || q == Q_REGION ) 
+  if ( q == Q_REGION ) 
     {
       // if no mask, safe to add 'no-geno', otherwise, we should keep in case
       if ( mstr == "" ) 
@@ -598,62 +591,7 @@ int main()
 
 
 
-  //
-  // If a gene-name has been specified, then find the actual transcript(s) that match
-  //
 
-  // Translate symbol into 1+ transcripts, and pick the first
-  
-  std::cout << "genename [" << genename << "]<br>";
-
-  std::set<std::string> trans_names = g.locdb.targetted_lookup_alias( genename , 
-								      ExomeBrowser::symbol, 
-								      loc_set );
-  
-  std::vector<std::string> tnames;
-  std::set<std::string>::iterator ii = trans_names.begin();
-  while ( ii != trans_names.end() ) 
-    {
-      tnames.push_back( *ii ) ; 
-      ++ii;
-    }
-  
-  std::cout << "found " << tnames.size() << " matching transcripts\n";
-
-
-  //
-  // Get transcript information from database
-  //
-  
-  std::vector<Region> trans = g.locdb.fetch( loc_set , tnames );
-
-
-  //
-  // If this name matches an alternate name, assume it is a gene
-  // symbol; find alias
-  //
-
-  a.multi_transcripts = trans.size() > 0;
-  
-  std::string main_gene = genename;
-
-  if ( ! a.multi_transcripts ) 
-    {
-      Region reg = g.locdb.get_region( loc_set , main_gene ) ;
-      if ( reg.name == main_gene ) 
-	{
-	  main_gene = reg.altname; 
-	}     
-    }
-  
-  // If only a single transcript, change to this now
-  
-  if ( trans.size() == 1 ) 
-    {
-      a.multi_transcripts = false;
-      genename = trans[0].name;
-    }
-  
 
   //
   // Has a phenotype been specified? If so, attach
@@ -681,74 +619,118 @@ int main()
     }
   
   
+
   // 
   // Process region list; this only works for initial gene-view
   //
-
-  a.other_genes.clear();
-  a.regions.clear();
-  a.extended_search = false;
   
+  a.genes.clear();
+  a.regions.clear();
 
+  // collect all transcript ID here
+
+  std::vector<std::string> tnames;
+  
+  
   std::vector<std::string> tok = Helper::whitespace( a.reg_list );
-      
+  
   for (int i=0; i<tok.size(); i++)
-    {
+    {      
       
-      bool okay = true;
-      
+      bool okay = true;      
       Region r(tok[i],okay);
       if ( okay ) 
 	{
 	  a.regions.push_back( r );
-	  a.extended_search = true;
+	  a.single_transcript = false;
 	}
       else
 	{
 	  // look for as a gene (assuming upper case for all IDs)
 	  std::string tmp = tok[i];
-	  Helper::str2upper( tmp );
-	  a.other_genes.push_back( tmp );
-	  a.extended_search = true;
+
+	
+
+	  // Does this look like a gene name? 
+	  std::string genename = tmp;
+	  Helper::str2upper( genename );
+	
+	  std::cout << "testing .. is [" << genename << "] a gene name";
+	  
+	  std::set<std::string> trans_names = g.locdb.targetted_lookup_alias( genename , 
+									      ExomeBrowser::symbol, 
+									      loc_set );
+	  
+	  
+	  // If no matches, assume the original input was in
+	  // transcript form, e.g. NA_12345
+
+	  if ( trans_names.size() == 0 ) 
+	    {
+	      std::cout << "assuming a transcript...<br>";
+	      tnames.push_back( tmp );
+	    }
+	  else 
+	    {
+
+	      std::cout << "assuming a gene-name<br>";
+	      
+	      // ... otherwise add what we've found from the lookup instead
+	      
+	      std::set<std::string>::iterator ii = trans_names.begin();
+	      while ( ii != trans_names.end() ) 
+		{
+		  std::cout << "adding [" << *ii << "]<br>";
+
+		  tnames.push_back( *ii ) ; 
+		  ++ii;
+		}
+	    }	  
 	}
     }
-     
-    
-
   
   
-  if ( q == Q_GENE 
-       && a.regions.size() > 0 
-       && genename == "" ) 
-    {      
-      q = Q_REGION;
-    }
-  
-
-
-
   //
-  // For a gene-based query, some versbose output regarding transcript info, etc
+  // Get genomic loci for transcripts
   //
+  
+  std::vector<Region> trans = g.locdb.fetch( loc_set , tnames );
+  
+  
+  //
+  // Will we be reporting on 1, or on multi transcripts (e.g. impacts display of exon #)
+  //
+  
+  a.multi_transcripts = trans.size() > 0;
+  
 
-  if ( q == Q_GENE ) 
+  if ( a.regions.size() == 0 && trans.size() == 0 ) 
     {
+      std::cout << "No matching records...</BODY></HTML>";
+      exit(0);
+    }
 
-      if ( a.multi_transcripts )
-	std::cout << "Found " << trans.size() 
-		  << " transcript(s) matching gene name <b>" 
-		  << main_gene << "</b></p>";
+  
+  //
+  // For a gene/region-based query, some versbose output regarding transcript info, etc
+  //
+  
+  if ( q == Q_REGION ) 
+    {
+      
+      std::cout << "Found " << trans.size() << " matching transcript(s)</b></p>";
       
       std::cout << "<pre><font size=-1>";
       
       for (int r=0; r<trans.size(); r++)
 	{
 	  
-	  std::cout << trans[r].altname << "   " ;
-	  std::cout << a.getURL()->addField("q", "g")	\
-	    ->addField("gene", trans[r].name)		\
-	    ->removeField("regs")			\
+	  std::cout << std::left << Helper::sw( trans[r].altname , 12 ) << "  ";
+
+	  std::cout << a.getURL()->addField("q", "r")	\
+	    ->addField("regs", trans[r].name)		\
 	    ->printLink(trans[r].name)
+		    << "   " 
 		    << Helper::chrCode(trans[r].start.chromosome()) << ":" 
 		    << trans[r].start.position() << ".."
 		    << trans[r].stop.position() ;
@@ -757,21 +739,23 @@ int main()
       
       std::cout << "</font></pre>";
       
-
+      
       //
       // Now, 'genename' will be original search term
       //
       
-      if ( ! a.multi_transcripts )
+      if ( a.single_transcript )
 	{
 	  
-	    Region reg = g.locdb.get_region( loc_set , genename ) ;
-	    
-	    if ( reg.start.chromosome() == 0 && ! a.extended_search )
+	  std::cout << "realise is single transcript<br>";
+
+	  Region reg = g.locdb.get_region( loc_set , genename ) ;
+	  
+	  if ( reg.start.chromosome() == 0 )
 	    {
-		std::cout << "Could not find gene <b> " << genename << "</b> in <b>" << loc_set << "</b> list "
-			  << "</BODY></HTML>";
-	      exit(0);      
+	      std::cout << "Could not find gene <b> " << genename << "</b> in <b>" << loc_set << "</b> list "
+			<< "</BODY></HTML>";
+	      exit(0);
 	    }
 	  
 	  a.region = reg;
@@ -837,7 +821,9 @@ int main()
 		      {
 			if ( reg.subregion[s].overlaps( t->subregion[u] ) )
 			  {
-			    std::cout << a.getURL()->addField("q", "g")->addField("gene", t->name)->removeField("regs")->printLink(t->name + "(" + t->altname + ")") << " ";
+			    std::cout << a.getURL()->addField("q", "r")
+			      ->addField("regs", t->name)
+			      ->printLink(t->name + "(" + t->altname + ")") << " ";
 			  }
 		      }
 		  ++t;
@@ -848,17 +834,10 @@ int main()
 	  std::cout << "</font></pre>";
       
 	}
-
+      
       std::cout << "<hr>";      
-    }
-
-
-  if ( a.extended_search ) 
-    {
-      std::cout << "<p>Additionally ";
-      if ( genename != "" ) std::cout << "requiring ";
-      else std::cout << "including ";
-      std::cout << "the following regions, and including the following genes</p>";
+      
+  
       
       if ( a.regions.size() > 0 ) 
 	{
@@ -870,12 +849,16 @@ int main()
 	  std::cout << "</pre>";
 	}
       
-      if ( a.other_genes.size() > 0 ) 
+
+
+      if ( a.genes.size() > 0 ) 
 	{
-	  std::vector<std::string> cc = a.other_genes;
-	  a.other_genes.clear();
+	  std::cout << "dealing w/ genes<br>";
+
+	  std::vector<std::string> cc = a.genes;
+	  a.genes.clear();
 	  
-	  std::cout << "<pre><b>Additional genes:</b><br>";
+	  std::cout << "<pre><b>Genes:</b><br>";
 	  for (int i=0; i< cc.size(); i++)
 	    {
 	      
@@ -885,7 +868,7 @@ int main()
 	      // if no aliases match, assume this is a refseq transcript name
 	      if ( trans.size() == 0 ) 
 		{
-		  a.other_genes.push_back( cc[i] );
+		  a.genes.push_back( cc[i] );
 		  std::cout << "   " << Helper::sw( cc[i] , 10 ) << "<br>";
 		}
 	      else // add all matching aliases
@@ -895,7 +878,7 @@ int main()
 		  std::set<std::string>::iterator ii = trans.begin();
 		  while ( ii != trans.end() ) 
 		    {
-		      a.other_genes.push_back( *ii );
+		      a.genes.push_back( *ii );
 		      std::cout << *ii << " ";
 		      ++ii;
 		    }		 
@@ -904,77 +887,66 @@ int main()
 	    }
 	  std::cout << "</pre>";
 	}
-
+      
       std::cout << "<hr>";
     }
-
-
+  
+  
   //
   // In gene, or regional mode
   //
   
-
-  if ( q == Q_GENE || q == Q_REGION ) 
+  
+  if ( q == Q_REGION ) 
     {
       
       
       a.table_row.clear();
       
       a.vcnt = 0;
-        
-      if ( q == Q_GENE ) 
+      
+
+      std::cout << "trans s = " << trans.size() << "<br>";
+
+      if ( trans.size() > 0 ) 
 	{
 	  
+	  std::cout << "added " << loc_set << "\n";
 	  m.include_loc( loc_set );
-      
-	  if ( a.multi_transcripts )
+	  for (int i=0; i<trans.size(); i++)
 	    {
-	      for (int i=0; i<trans.size(); i++)
-		m.subset_loc( loc_set , trans[i].name );
-	      a.genename = main_gene;
-	    }
-	  else
-	    {
-	      m.subset_loc( loc_set , genename );      
-	      a.genename = genename;
+	      std::cout << "a [" << trans[i].name << "]<br>";
+	      m.subset_loc( loc_set , trans[i].name );
 	    }
 	}
-      
+
 
       // If any regions specified, add as a requirement
       
       if ( a.regions.size() > 0 )
-	{
-	  
-	  if ( q == Q_GENE ) 
-	    {
-	      for (int r = 0 ; r < a.regions.size() ; r++) 
-		m.require_reg( a.regions[r] );
-	    }
-	  else
-	    {
-	      for (int r = 0 ; r < a.regions.size() ; r++) 
-		m.include_reg( a.regions[r] );	    
-	    }
+	{	  
+	  for (int r = 0 ; r < a.regions.size() ; r++) 
+	    m.include_reg( a.regions[r] ); 
 	}
 
 
       //
-      // Append gene names in extended search mode
+      // Append gene names if one or more region specified
       //
-
-      if ( a.extended_search )
+      
+      if ( a.region_search )
 	m.append_loc( loc_set );
-
+      
       // Other genes specified?
 
-      for (int r = 0 ; r < a.other_genes.size() ; r++) 
-	{
-	  m.subset_loc( loc_set , a.other_genes[r] );	    
-	}
-      
+      for (int r = 0 ; r < a.genes.size() ; r++) 
+	m.subset_loc( loc_set , a.genes[r] );	    
+	
 
+      // Get actual information from VARDB
+      
       g.vardb.iterate( f_display , &a, m );
+
 
       // Now table should be sorted in order, with duplicates removed, in aux structure;
 
@@ -987,7 +959,7 @@ int main()
       std::cout << "<table border=1>"
 	   << "<tr><th>#</th><th>Indiv</th><th>Chr</th><th>Pos</th>";
       
-      if (  ! ( a.extended_search || a.multi_transcripts ) )
+      if ( a.single_transcript )
 	std::cout << "<th>Exon</th>";
       
       std::cout << "<th>ID</th><th>Ref/Alt</th>"
@@ -1006,7 +978,7 @@ int main()
       for (int m=0; m< a.mf.size(); m++)
 	std::cout << "<th>" << a.mf[m] << "</th>";
 
-      if ( a.extended_search ) 
+      if ( a.region_search ) 
 	std::cout << "<th>Locus</th>";
       
      
@@ -1035,7 +1007,7 @@ int main()
     {
       
       std::cout << "Back to "
-                << a.getURL()->addField("gene", genename)->printLink("gene report");
+                << a.getURL()->addField("regs", genename)->printLink("gene report");
       if ( genename != "" ) 
 	std::cout << " for <b>" << genename << "</b>";
       
@@ -1219,15 +1191,19 @@ int main()
 	  for (int i=0; i<id_list.size(); i++)
 	    {
 	      
-	     
-	      if ( gt == 3 && ! var(i).null() ) continue;
+	      
+	      if      ( gt == 3 && ! var(i).null() )  continue;
+	      else if ( gt != 3 &&   var(i).null() )  continue;
 	      else if ( gt != 3 && var(i).allele_count( ) != 2-gt ) continue;
 	      
 	
 	      // Include link to individual-report
 
 	      std::cout << "<tr><td>" 
-	                << a.getURL()->addField("q", "i")->addField("gene", genename)->addField("ind", id_list[i])->printLink(id_list[i])
+	                << a.getURL()->addField("q", "i")
+		->addField("regs", a.reg_list_url )
+		->addField("ind", id_list[i])
+		->printLink(id_list[i])
 	                << "</td>";
 	      
 	      
@@ -1336,8 +1312,8 @@ int main()
       a.genename = genename;
 
       std::cout << "Back to "
-                << a.getURL()->addField("q", "g")->addField("gene", genename)->printLink("gene report");
-
+                << a.getURL()->addField("q", "r")->addField("regs", genename)->printLink("gene report");
+      
       if ( genename != "" ) 
 	std::cout << " for <b>" << genename << "</b>";
       
@@ -1391,36 +1367,34 @@ int main()
       
       a.indiv_id = ind_value;
        
-      m.include_loc( loc_set );
 
-      if ( a.multi_transcripts )
+      // Add any gene transcripts      
+
+      if ( trans.size() > 0 )
 	{
+	  m.include_loc( loc_set );      
 	  for (int i=0; i<trans.size(); i++)
-	    {
-	      m.subset_loc( loc_set , trans[i].name );	      
-	    }
-	  a.genename = main_gene;
+	    m.subset_loc( loc_set , trans[i].name );	      
 	}
-      else
-	{
-	  m.subset_loc( loc_set , genename );      
-	  a.genename = genename;	  
-	}
-      
 
-      // If any regions specified, add as a requirement
+      
+      // Add any included regions 
+
       for (int r = 0 ; r < a.regions.size() ; r++) 
-	{
-	  m.include_reg( a.regions[r] );
-	}
+	m.include_reg( a.regions[r] );
+
       
             
       VariantGroup vars(m);
 
+
       // Accumulate in group, but from a single function call
+
       g.vardb.iterate( f_display_indiv , &vars, m );
 
+
       // Apply existing group function
+
       g_display_indiv( vars , &a );
 
     }
@@ -1459,7 +1433,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 
   // call pbrowse.cgi, but with all arguments explicitly formed.      
 
-  o1 << a->getURL()->addField("q", "g")->addField("gene", a->genename)->addField("val", var.coordinate())->printLink("view");
+  o1 << a->getURL()->addField("q", "v")->addField("regs", a->reg_list_url )->addField("val", var.coordinate())->printLink("view");
 
   o1 << "</td>";
   
@@ -1467,7 +1441,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
      << "<td>" << var.position() << "</td>";
   
 
-  if ( ! ( a->extended_search || a->multi_transcripts ) )
+  if ( a->single_transcript )
     {
       
       int exon = exon_overlap( a->region , var.position() );
@@ -1524,7 +1498,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
      
   // Appends? 
   
-  if ( a->extended_search ) 
+  if ( a->region_search )
     {
       if ( var.meta.has_field( PLINKSeq::META_LSET() ) )
 	{
@@ -1572,7 +1546,7 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
   
   // Overall group details
   
-  std::cout << "Individual report for individual <b>" << a->indiv_id << "</b>";
+  std::cout << "Individual report for <b>" << a->indiv_id << "</b>";
   if ( vars.name() != "" ) std::cout << "for gene " << vars.name() << "</b>";
   std::cout << "</p>";
   
@@ -1644,7 +1618,10 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
 
       // call pbrowse.cgi, but with all arguments explicitly formed.      
 
-      std::cout << a->getURL()->addField("q", "v")->addField("val", vars.var(i).coordinate())->addField("gene", a->genename)->printLink("view");
+      std::cout << a->getURL()->addField("q", "v")
+	->addField("val", vars.var(i).coordinate())
+	->addField("regs", a->reg_list_url)
+	->printLink("view");
 
       std::cout << "</td>";
 
@@ -1747,7 +1724,7 @@ void ExomeBrowser::make_gene_list(Aux * a)
     {      
       if ( genes[g] != lastgene )
 	{
-	  std::cout << a->getURL()->addField("q", "g")->addField("gene", genes[g])->printLink(genes[g]) << "<br/>";
+	  std::cout << a->getURL()->addField("q", "r")->addField("regs", genes[g])->printLink(genes[g]) << "<br/>";
 	  lastgene = genes[g];
 	}
     }

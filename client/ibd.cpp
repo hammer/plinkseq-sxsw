@@ -199,8 +199,6 @@ void Pseq::IBD::IBDDBase::load( const std::string & filename )
       if ( l == "" ) continue;      
       std::vector<std::string> buffer = Helper::char_split( l , '\t' );
 
-      std::cout << "proc " << buffer.size() << " " << l << "\n";
-
       if ( buffer.size() == 6 ) 
 	{
 	  
@@ -304,14 +302,8 @@ std::vector<Pseq::IBD::IBDPartnerRegion> Pseq::IBD::IBDDBase::fetch_regions( con
       
       if ( r.overlaps(r2) ) 
 	{
-
-	  std::cout << " does overlap\n";
 	  std::string id1 = sql.get_text( stmt_fetch , 0 );
-	  std::cout << " got id does overlap " << id1 << "\n";
-
 	  shared.push_back( Pseq::IBD::IBDPartnerRegion( id1 , r2 ) );
-	  std::cout << "added..\n";
-
 	}
     } 
   sql.reset( stmt_fetch );
@@ -739,7 +731,6 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   // 3) Figure out the maximum shared region here, of the remaining pairs.
   
   std::vector<bool> incl( olap.size() , true );
-
 
   std::cout << olap.size() << " is olap size\n";
 

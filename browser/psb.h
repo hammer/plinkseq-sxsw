@@ -128,6 +128,7 @@ namespace ExomeBrowser {
       show_phenotype = false;
       phenotype_name = "";
       multi_transcripts = false;
+      region_search = false;
       reg_list = reg_list_url = "";
       url = NULL;
     }
@@ -190,11 +191,11 @@ namespace ExomeBrowser {
     bool add_annot;
 
     // Regions, and other genes to add
-
+    
     std::vector<Region> regions;
-    std::vector<std::string> other_genes;
-    bool extended_search;
-
+    std::vector<std::string> genes;
+    bool single_transcript;
+    bool region_search;
 
     // Form information
 

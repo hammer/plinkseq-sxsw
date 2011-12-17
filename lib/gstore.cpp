@@ -122,35 +122,35 @@ std::string GStore::summary( bool ugly  )
   if ( vardb.attached() ) 
     ss << vardb.summary( NULL , ugly ) << "\n";
   else 
-    ss << "\n -- VARDB not attached -- \n";
+    ss << "\n--- Variant DB not attached ---\n";
 
   ss << "\n";
   
   if ( inddb.attached() ) 
     ss << inddb.summary( ugly ) << "\n";
   else
-    ss << "\n -- INDDB not attached -- \n";
+    ss << "\n--- Individual DB not attached ---\n";
 
   ss << "\n";
 
   if ( locdb.attached(  ) ) 
     ss << locdb.summary( ugly ) << "\n";
   else
-    ss << "\n -- LOCDB not attached -- \n";
+    ss << "\n--- Locus DB not attached ---\n";
 
   ss << "\n";
   
   if ( refdb.attached( ) ) 
     ss << refdb.summary( ugly ) << "\n";
   else
-    ss << "\n -- REFDB not attached -- \n";
+    ss << "\n--- Reference DB not attached -- \n";
 
   ss << "\n";
   
   if ( seqdb.attached( ) ) 
     ss << seqdb.summary( ugly ) << "\n";
   else
-    ss << "\n -- SEQDB not attached -- \n";
+    ss << "\n--- Sequence DB not attached ---\n";
   
   ss << "\n";
   
