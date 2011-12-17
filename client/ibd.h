@@ -20,7 +20,7 @@ namespace Pseq {
     
     void sharing_wrapper( const std::string & database , Mask & m );
 
-    void mutation_wrapper( const std::string & database , const std::string & indiv , const std::string & indiv  , Mask & m );
+    void mutation_wrapper( const std::string & database , const std::string & proband_id_str , const std::string & region_str  , Mask & m );
 
 
     struct IBDPartner {
