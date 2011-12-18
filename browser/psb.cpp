@@ -134,7 +134,7 @@ int main()
 	      a.add_form_value("proj", project_path );
 	    }
 	  
-	  if ( str == "password" )
+	  if ( str == "passwd" )
 	    {
 	      pwd = cgivars[i+1];	      
 	    }
@@ -188,25 +188,45 @@ int main()
       free(cgivars) ;
     }
 
+
+  //
+  // Set up project
+  //
+
+
+  GStore g;
+  
+  a.g = &g;
+  a.loc_set = loc_set;
+  g.set_project( project_path ) ;
+  
   
   
   //
   // Start page 
   //
+
+  std::cout << "<form name=\"myform\" action=\"pbrowse.cgi\" method=\"GET\"> ";
   
   std::cout << "<table width=100% CELLPADDING=0 CELLSPACING=0>"
 	    << "<tr><td width=50% valign=center align=left>"
 	    << "<h1><a style=\"color:black;text-decoration:none;\" href=\"" 
-    + a.getURL()->addField("q", "r")->printURL() + "\">PLINK<font color=\"darkred\">SEQ</font> exome browser</h1>"
-	    << "</td><td width=50% valign=center align=right>"
+    + a.getURL()->addField("q", "r")
+    ->addField("passwd",pwd)
+    ->printURL() + "\">PLINK<font color=\"darkred\">SEQ</font> exome browser</h1>"
+	    << "</td><td width=50% valign=center align=right>";
+  
 
-    // project/pwd specification
-	    << "(" << a.getURL()->addField("q", "psummary")->printLink("show project summary") << ")"
-	    << "<br>"
-	    << "Project: <input type=\"text\" size=\"50\" name=\"proj\" value=\"" 
+  // project/pwd specification
+  if ( g.pwd( pwd ) )
+    std::cout << "(" << a.getURL()->addField("q", "psummary")
+      ->addField("passwd",pwd)
+      ->printLink("show project summary") << ")"
+	      << "<br>";
+  std::cout << "Project: <input type=\"text\" size=\"50\" name=\"proj\" value=\"" 
 	    << Helper::html_encode( project_path ) << "\">"
 	    << "<br>"
-	    << "Password: <input type=\"text\" size=\"50\" name=\"pwd\" value=\"" 
+	    << "Password: <input type=\"text\" size=\"50\" name=\"passwd\" value=\"" 
 	    << Helper::html_encode( pwd ) << "\">"
 	    
 
@@ -232,15 +252,10 @@ int main()
 	  exit(0);
 	}
 
-      GStore g;
-
-      a.g = &g;
-      a.loc_set = loc_set;
-      g.set_project( project_path ) ;
       
       if ( ! g.pwd( pwd ) ) 
 	{
-	  Helper::halt( "access denied: password does not match" );
+	  Helper::halt( "<b>access denied: password does not match</b>" );
 	  exit(0);
 	}
 
@@ -265,7 +280,7 @@ int main()
   // Draw main query box, with saved defaults
   //
   
-  std::cout << "<form name=\"myform\" action=\"pbrowse.cgi\" method=\"GET\"> ";
+  //  std::cout << "<form name=\"myform\" action=\"pbrowse.cgi\" method=\"GET\"> ";
   
   std::cout << "<input type=\"hidden\" NAME=\"proj\" "
 	    << " value=\"" << project_path << "\"> ";
@@ -294,7 +309,7 @@ int main()
   //
 
   std::cout << "<p><b>Gene ID</b> (symbol or NM_012345) ";
-  std::cout << "(" << a.getURL()->addField("q", "glist")->addField("pheno", pheno)->printLink("list") << ")";
+  std::cout << "(" << a.getURL()->addField("q", "glist")->addField("pheno", pheno)->printLink("list") << ")<br>";
 
   
   //
@@ -480,11 +495,12 @@ int main()
 //     }
   
   
-  if ( a.reg_list == "" )
-    {
-      std::cout << "No genes or regions specified...</BODY></HTML>";
-      exit(0);
-    } 
+//   if ( a.reg_list == "" )
+//     {
+//       std::cout << "No genes or regions specified...</BODY></HTML>";
+//       exit(0);
+//     } 
+
   
   if ( ! Helper::fileExists( project_path ) )
     {
@@ -495,7 +511,11 @@ int main()
   
     if ( q == Q_ERROR )
     {
-      std::cout << "Problem processing input...";
+      //      std::cout << "Problem processing input...";
+      
+      if ( ! g.pwd(pwd) ) 
+	std::cout << "Please enter a password to access this project<br>";
+
       std::cout << "</body></html>";
       exit(0);
     }
@@ -510,16 +530,14 @@ int main()
   //
 
 
-  GStore g;
-
-  a.g = &g;
-
-  a.loc_set = loc_set;
-
-  g.set_project( project_path );
+//   GStore g;
+//   a.g = &g;
+//   a.loc_set = loc_set;
+//   g.set_project( project_path );
   
+
   if ( ! g.pwd(pwd) ) 
-    Helper::halt("access denited: password does not match");
+    Helper::halt("<b>access denied: password does not match</b>");
   
   // Initial Mask objects
 
@@ -537,7 +555,9 @@ int main()
   if ( q == Q_REGION ) 
     {
       // if no mask, safe to add 'no-geno', otherwise, we should keep in case
-      if ( mstr == "" ) 
+      // and no dichot phenotype (i.e. for C/C counts)
+      
+      if ( mstr == "" && pheno == "" && a.inc_fltr == "" && a.vinc_fltr == "" ) 
 	mstr = "limit=5000 no-geno " + mstr;
       else
 	mstr = "limit=5000 " + mstr;      
@@ -547,8 +567,6 @@ int main()
     { 
       mstr += " v-include=\"" + a.vinc_fltr + "\"";
     }
-  
-  std::cout << "m = ["<<mstr<<"] [" << a.inc_fltr << "]\n";
   
 
   Mask m( mstr , a.inc_fltr , a.inc_fltr != "" );
@@ -614,10 +632,9 @@ int main()
 	{
 	  a.show_phenotype = true;
 	  a.phenotype_name = pheno;
-	  g.phmap.set_phenotype( pheno );	  
+	  g.phmap.set_phenotype( pheno );
 	}
     }
-  
   
 
   // 
@@ -641,8 +658,7 @@ int main()
       Region r(tok[i],okay);
       if ( okay ) 
 	{
-	  a.regions.push_back( r );
-	  a.single_transcript = false;
+	  a.regions.push_back( r );	  
 	}
       else
 	{
@@ -655,7 +671,6 @@ int main()
 	  std::string genename = tmp;
 	  Helper::str2upper( genename );
 	
-	  std::cout << "testing .. is [" << genename << "] a gene name";
 	  
 	  std::set<std::string> trans_names = g.locdb.targetted_lookup_alias( genename , 
 									      ExomeBrowser::symbol, 
@@ -667,21 +682,16 @@ int main()
 
 	  if ( trans_names.size() == 0 ) 
 	    {
-	      std::cout << "assuming a transcript...<br>";
 	      tnames.push_back( tmp );
 	    }
 	  else 
 	    {
-
-	      std::cout << "assuming a gene-name<br>";
 	      
 	      // ... otherwise add what we've found from the lookup instead
 	      
 	      std::set<std::string>::iterator ii = trans_names.begin();
 	      while ( ii != trans_names.end() ) 
 		{
-		  std::cout << "adding [" << *ii << "]<br>";
-
 		  tnames.push_back( *ii ) ; 
 		  ++ii;
 		}
@@ -701,14 +711,17 @@ int main()
   // Will we be reporting on 1, or on multi transcripts (e.g. impacts display of exon #)
   //
   
-  a.multi_transcripts = trans.size() > 0;
+  if ( a.regions.size() == 0 && trans.size() == 1 ) 
+    a.single_transcript = true;
   
 
-  if ( a.regions.size() == 0 && trans.size() == 0 ) 
-    {
-      std::cout << "No matching records...</BODY></HTML>";
-      exit(0);
-    }
+//   if ( a.regions.size() == 0 && trans.size() == 0 ) 
+//     {
+//       std::cout << "No matching records...</BODY></HTML>";
+//       exit(0);
+//     }
+  
+
 
   
   //
@@ -718,23 +731,36 @@ int main()
   if ( q == Q_REGION ) 
     {
       
-      std::cout << "Found " << trans.size() << " matching transcript(s)</b></p>";
+      if ( trans.size() > 0 ) 
+	std::cout << "Found " << trans.size() << " matching transcript(s)</b></p>";
       
       std::cout << "<pre><font size=-1>";
       
       for (int r=0; r<trans.size(); r++)
 	{
 	  
-	  std::cout << std::left << Helper::sw( trans[r].altname , 12 ) << "  ";
+	  //	  std::cout << Helper::sw( trans[r].altname , 15 ) << "  ";
+	  
+	  std::cout << Helper::sw( a.getURL()->addField("q", "r")
+				   ->addField("regs", trans[r].name)
+				   ->printLink(trans[r].name) , 15 ) << " ";
+	  
+	  // attempt to get symbol given gene-name
 
-	  std::cout << a.getURL()->addField("q", "r")	\
-	    ->addField("regs", trans[r].name)		\
-	    ->printLink(trans[r].name)
-		    << "   " 
-		    << Helper::chrCode(trans[r].start.chromosome()) << ":" 
+	  std::set<std::string> gname = g.locdb.targetted_lookup_alias( trans[r].altname , loc_set, ExomeBrowser::symbol );
+	  
+	  std::set<std::string>::iterator ii = gname.begin();
+	  while ( ii != gname.end() )
+	    {
+	      if ( ii != gname.begin() ) std::cout << ",";
+	      std::cout << *ii;	      
+	      ++ii;
+	    }
+
+	  std::cout << "  ( " << Helper::chrCode(trans[r].start.chromosome()) << ":" 
 		    << trans[r].start.position() << ".."
 		    << trans[r].stop.position() ;
-	  std::cout <<"<br>";
+	  std::cout <<" )<br>";
 	}
       
       std::cout << "</font></pre>";
@@ -747,7 +773,7 @@ int main()
       if ( a.single_transcript )
 	{
 	  
-	  std::cout << "realise is single transcript<br>";
+	  genename = tnames[0];
 
 	  Region reg = g.locdb.get_region( loc_set , genename ) ;
 	  
@@ -834,13 +860,17 @@ int main()
 	  std::cout << "</font></pre>";
       
 	}
-      
-      std::cout << "<hr>";      
-      
+
+      if ( trans.size() > 0 ) 
+	std::cout << "<hr>";      
+
+
+      // report regions
   
       
       if ( a.regions.size() > 0 ) 
 	{
+
 	  std::cout << "<pre><b>Regions:</b><br>";
 	  for (int i=0; i<a.regions.size(); i++)
 	    std::cout << "   " << Helper::chrCode( a.regions[i].chromosome()) << ":"
@@ -852,8 +882,7 @@ int main()
 
 
       if ( a.genes.size() > 0 ) 
-	{
-	  std::cout << "dealing w/ genes<br>";
+	{	  
 
 	  std::vector<std::string> cc = a.genes;
 	  a.genes.clear();
@@ -888,7 +917,8 @@ int main()
 	  std::cout << "</pre>";
 	}
       
-      std::cout << "<hr>";
+      if ( a.regions.size() + a.genes.size() > 0 ) 
+	std::cout << "<hr>";
     }
   
   
@@ -905,17 +935,12 @@ int main()
       
       a.vcnt = 0;
       
-
-      std::cout << "trans s = " << trans.size() << "<br>";
-
       if ( trans.size() > 0 ) 
 	{
 	  
-	  std::cout << "added " << loc_set << "\n";
 	  m.include_loc( loc_set );
 	  for (int i=0; i<trans.size(); i++)
 	    {
-	      std::cout << "a [" << trans[i].name << "]<br>";
 	      m.subset_loc( loc_set , trans[i].name );
 	    }
 	}
@@ -925,8 +950,12 @@ int main()
       
       if ( a.regions.size() > 0 )
 	{	  
+
+	  a.region_search = true;
+
 	  for (int r = 0 ; r < a.regions.size() ; r++) 
 	    m.include_reg( a.regions[r] ); 
+
 	}
 
 
@@ -945,8 +974,12 @@ int main()
 
       // Get actual information from VARDB
       
-      g.vardb.iterate( f_display , &a, m );
+      IterationReport irep = g.vardb.iterate( f_display , &a, m );
 
+      if ( irep.reached_limit() ) 
+	std::cout << "<b>Reached limit on number of variants that can be returned, " << irep.processed() << "</b><br>";
+      else
+	std::cout << "Found " << irep.processed() << " variants that match query<br>";
 
       // Now table should be sorted in order, with duplicates removed, in aux structure;
 
@@ -1007,13 +1040,8 @@ int main()
     {
       
       std::cout << "Back to "
-                << a.getURL()->addField("regs", genename)->printLink("gene report");
-      if ( genename != "" ) 
-	std::cout << " for <b>" << genename << "</b>";
-      
-      std::cout << "<hr>";
-      
-
+                << a.getURL()->addField("q", "r")->addField("regs", a.reg_list_url )->printLink("regional variant report");
+      std::cout << "<br><hr>";      
 
        // Expect here we have variant ID
        
@@ -1276,8 +1304,11 @@ int main()
 		      if ( var(i).meta.has_field( *k ) )
 			{
 			  meta_name_t t = *k;
-			  std::cout << "<td>" << var(i).meta.print( t ) << "</td>";
+			  std::string value = var(i).meta.print( t );
+			  std::cout << "<td>" << ( ( value == "" || value == " " ) ? "&nbsp;" : value ) << "</td>";
 			}
+		      else
+			std::cout << "<td>.</td>";			
 		      ++k;
 		    }
 		}
@@ -1312,10 +1343,7 @@ int main()
       a.genename = genename;
 
       std::cout << "Back to "
-                << a.getURL()->addField("q", "r")->addField("regs", genename)->printLink("gene report");
-      
-      if ( genename != "" ) 
-	std::cout << " for <b>" << genename << "</b>";
+                << a.getURL()->addField("q", "r")->addField("regs", a.reg_list_url )->printLink("regional variant report");
       
       std::cout << "<hr>";
       
@@ -1472,6 +1500,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
       for (int j=0; j< var.size(); j++)
 	{
 	  affType aff = var.ind( j )->affected();
+
 	  if ( var(j).nonreference() )
 	    {
 	      if ( aff == CASE ) ++case_n;
@@ -1486,7 +1515,8 @@ void ExomeBrowser::f_display(Variant & var, void *p)
   for (int m=0; m < a->mf.size(); m++)
     {
       std::string s = var.print_meta( a->mf[m] , "\t" );
-      std::vector<std::string> sv = Helper::char_split( s , '\t' , true );      
+      if ( s == "" ) s = ".";
+      std::vector<std::string> sv = Helper::char_split( s , '\t' , true );
       o1 << "<td nowrap>"; 
       for (int i=0;i<sv.size(); i++)
 	{ 

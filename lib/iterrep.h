@@ -50,6 +50,11 @@ struct IterationReport {
     ++g_count; 
   }
 
+  int processed() 
+  {
+    return v_accept;
+  }
+
   private:
   
   bool valid;

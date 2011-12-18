@@ -67,6 +67,7 @@ bool Variant::make_consensus( IndividualMap * a )
   // Record the alignment used
   //
   
+
   align = a;
 
   

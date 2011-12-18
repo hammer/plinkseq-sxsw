@@ -1069,7 +1069,7 @@ std::string RefDBase::summary( bool ugly )
      }
      sql.finalise(s);
      
-     if ( empty ) ss << " (empty)\n";
+     if ( empty ) ss << "(empty)\n";
 
      return ss.str();
 }
