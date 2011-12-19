@@ -75,6 +75,7 @@ lib/Makefile
 client/Makefile 
 browser/Makefile 
 browser/pbrowse
+util/Makefile
 ])
 
 # Checks for programs.
