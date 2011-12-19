@@ -1075,8 +1075,10 @@ bool Helper::is_float(const std::string & s )
 bool Helper::is_string(const std::string & s )
 {
   if ( s == "String" ) return true;
+  if ( s == "Text" ) return true;
   std::string t = s;
   Helper::str2upper(t);
+  if ( t == "TEXT" ) return true;
   return t.substr(0,3) == "STR";
 }
 

@@ -571,7 +571,7 @@ class Variant {
     { 
       out << Helper::chrCode( v.chr ) << ":" << v.bp;
       if ( v.bp2 != 0 && v.bp2 != v.bp ) out << ".." << v.bp2;
-      out << ":" << v.vname;
+      //      out << ":" << v.vname;
       return out;
     }
   

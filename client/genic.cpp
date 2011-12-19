@@ -154,16 +154,17 @@ double Pseq::Assoc::stat_calpha( const VariantGroup & vars ,
 
   if ( original ) 
     {
-      (*output)["CALPHA"] = "Z=" + Helper::dbl2str( score / sqrt( aux->variance ) )  ;
+      //(*output)["CALPHA"] = "Z=" + Helper::dbl2str( score / sqrt( aux->variance ) )  ;
+      (*output)["CALPHA"] = "";
       std::map<std::string,int>::iterator i = pre->mc_a.begin();
       while ( i != pre->mc_a.end() )
 	{
-	  (*output)["CALPHA"] += ";" + i->first  
-	    + "=" + Helper::int2str( i->second ) ;
+	  if ( i != pre->mc_a.begin() ) (*output)["CALPHA"] += ";";
+	  (*output)["CALPHA"] += i->first + "(" + Helper::int2str( i->second ) + ")";
 	  ++i;
 	}	  
     }
-  
+
   
   // C-alpha statistic
   return score / sqrt( aux->variance ) ;      

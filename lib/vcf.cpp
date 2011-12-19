@@ -574,6 +574,7 @@ Variant VCFReader::getVariant(const std::string & s)
  
   std::string  chr;  
   int          pos;     
+  int          stop = 0;
   std::string  id;   
   std::string  ref;  
   std::string  alt;  
@@ -603,8 +604,19 @@ Variant VCFReader::getVariant(const std::string & s)
   
   // requires a valid chr and position to be accepted as a variant
   if ( ! processVCF( tok(0) , &chr   ) ) return var; 
-  if ( ! processVCF( tok(1) , &pos   ) ) return var; 
-  
+  if ( ! processVCF( tok(1) , &pos   ) ) 
+    {
+      bool okay;
+      std::string s = tok(0);
+      s += ":";
+      s += tok(1);
+      Region test( s , okay );
+      if ( ! okay ) return var; 
+      pos = test.start.position();
+      stop = test.stop.position();
+      
+    }
+
   // these return false is non-valid value
   processVCF( tok(2) , &id     );
   processVCF( tok(3) , &ref    );
@@ -633,7 +645,7 @@ Variant VCFReader::getVariant(const std::string & s)
   var.name( id );
   var.chromosome( Helper::chrCode(chr) );
   var.position( pos );
-  var.stop( pos + ref.size() - 1 );
+  var.stop( stop ? stop : pos + ref.size() - 1 );
 
   
   // SampleVariant (consensus) fields
