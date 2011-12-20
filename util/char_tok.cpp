@@ -1,6 +1,6 @@
 
 #include "char_tok.h"
-#include <string>
+#include <cstring>
 
 char_tok::char_tok() 
 { 

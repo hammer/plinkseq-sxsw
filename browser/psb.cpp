@@ -9,8 +9,10 @@ using namespace ExomeBrowser;
 
 int main()
 {
+
   
   const bool cgi = true;
+
   
   //
   // Get CGI variables from POST
@@ -189,6 +191,7 @@ int main()
     }
 
 
+
   //
   // Set up project
   //
@@ -210,19 +213,21 @@ int main()
   
   std::cout << "<table width=100% CELLPADDING=0 CELLSPACING=0>"
 	    << "<tr><td width=50% valign=center align=left>"
-	    << "<h1><a style=\"color:black;text-decoration:none;\" href=\"" 
-    + a.getURL()->addField("q", "r")
-    ->addField("passwd",pwd)
-    ->printURL() + "\">PLINK<font color=\"darkred\">SEQ</font> exome browser</h1>"
+	    << "<h1><a style=\"color:black;text-decoration:none;\" href=\""; 
+
+  // std::cout << a.getURL()->addField("q", "r")
+  //   ->addField("passwd",pwd)
+  //   ->printURL();
+
+  std::cout << "\">PLINK<font color=\"darkred\">SEQ</font> exome browser</h1>"
 	    << "</td><td width=50% valign=center align=right>";
   
-
+ 
   // project/pwd specification
+  
   if ( g.pwd( pwd ) )
-    std::cout << "(" << a.getURL()->addField("q", "psummary")
-      ->addField("passwd",pwd)
-      ->printLink("show project summary") << ")"
-	      << "<br>";
+    std::cout << "(" << a.getURL()->addField("q", "psummary")->addField("passwd",pwd)->printLink("show project summary") << ")" << "<br>";
+
   std::cout << "Project: <input type=\"text\" size=\"50\" name=\"proj\" value=\"" 
 	    << Helper::html_encode( project_path ) << "\">"
 	    << "<br>"

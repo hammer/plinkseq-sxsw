@@ -2,6 +2,7 @@
 #define __CHAR_TOK_H__
 
 #include <vector>
+#include <string>
 
 class char_tok
 {

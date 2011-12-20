@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <unistd.h>
 #include <getopt.h>
