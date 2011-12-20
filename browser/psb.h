@@ -158,6 +158,7 @@ namespace ExomeBrowser {
     // Optional variant meta-fields
     
     std::vector<std::string> mf;
+    std::map<std::string,bool> mfpp; // skip pretty-print
     std::string mf_print() 
     { 
       std::string s; 

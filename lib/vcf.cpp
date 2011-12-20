@@ -703,11 +703,26 @@ Variant VCFReader::getVariant(const std::string & s)
   // that tells us what to expect
   //
 
-  if ( toksize <= 8 ) return var;
-  
+  if ( toksize <= 8 ) 
+    {
+        //
+      // If reading from a single VCF, then create a single SVAR and attach the unparsed 
+      // VCF line to that. If needed, it will later be expanded into the consensus.
+      //
+      
+      if ( return_var ) 
+	{
+	  // Add a sibdummy, single SampleVariant, just to keep everything happy downstream      
+	  var.add(1);
+	  var.set_vcf_buffer( tok );	
+	}
+      
+      return var;
+      
+    }
+
   processVCF( tok(8) , &format );
   
-
 
   //
   // Set genotype format 
