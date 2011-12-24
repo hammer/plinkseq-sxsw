@@ -240,7 +240,7 @@ std::set<mask_command_t> populate_known_commands()
 
       
   // Misc.
-  ++g; c = 0 ; gl="misc";
+  ++g; c = 0 ; gl="misc-masks";
   mask_add( s , g , c++ , gl , "em" , "float" , "apply GL/PL-based EM; keep genotypes with prob > n" );
   mask_add( s , g , c++ , gl , "empty.group" , "flag" , "in group-iteration, include groups with no variants" );
   mask_add( s , g , c++ , gl , "limit" , "int" , "limit iteration to first n results" );
@@ -274,8 +274,8 @@ std::set<mask_group_t> populate_known_groups()
   mask_group( s , "phenotype" , "Individual masks based on phenotypes from INDDB" );
   mask_group( s , "case-control" , "Individual masks based on a disease phenotype from INDDB" );
   mask_group( s , "annotation"  , "Masks based on LOCDB transcript annotation (under revision)" );
-  mask_group( s , "skip"      , "Options to skip reading certain things (improves speed)" );
-  mask_group( s , "misc"      , "Various other masks" );
+  mask_group( s , "skip"        , "Options to skip reading certain things (improves speed)" );
+  mask_group( s , "misc-masks"  , "Various other masks" );
   return s;
 }
 

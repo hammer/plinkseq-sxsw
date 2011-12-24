@@ -166,8 +166,11 @@ int main()
 	    a.vinc_fltr = cgivars[i+1];
 
 	  if ( str == "meta" ) 
-	    a.mf = Helper::parse( cgivars[i+1] , " ," );
-	  
+	    {
+	      a.mf = Helper::parse( cgivars[i+1] , " ," );
+
+	    }
+
 	  if ( str == "pheno" )
 	    pheno = cgivars[i+1];
 	  
@@ -469,44 +472,6 @@ int main()
   //
   
 
-//   std::vector<std::string> toks = Helper::parse( a.reg_list , " \n\r" , true );
-
-//   int cnt = 0;
-//   int icnt = 0;
-
-//   for (int i = 0 ; i < toks.size(); i++) 
-//     {
-//       // parse() returns '.' or '' for missing values
-//       if ( toks[i] != "." && toks[i] != "" ) 
-// 	{
-// 	  ++cnt;
-// 	  icnt = i;
-// 	}
-//     }
-
-//   if ( cnt == 1 ) 
-//     {
-//       genename = toks[icnt];
-      
-//       // does this look like a region, or a genename? 
-//       bool ok_region = false;
-//       Region myreg( toks[0] , ok_region );
-      
-//       if ( ! ok_region ) 
-// 	{
-// 	  // okay -- we must be in single gene mode -- thus denote 
-// 	  Helper::str2upper( genename );	  
-// 	}
-//     }
-  
-  
-//   if ( a.reg_list == "" )
-//     {
-//       std::cout << "No genes or regions specified...</BODY></HTML>";
-//       exit(0);
-//     } 
-
-  
   if ( ! Helper::fileExists( project_path ) )
     {
       std::cout << "File [ " << project_path << " ] could not be found "
@@ -602,6 +567,7 @@ int main()
 		      if ( onecopy.find( mval ) == onecopy.end() )
 			{
 			  onecopy.insert(mval);
+			  
 			  a.mf.push_back(mval);
 			}
 		    }
@@ -611,7 +577,19 @@ int main()
 	  break;
 	}
     }
-
+  
+  
+  // check for any non-pp fields
+  // i.e. that have '+' suffix
+  
+  for (int i=0; i<a.mf.size();i++)
+    {
+      if ( a.mf[i][a.mf[i].size()-1] == '+' )
+	{
+	  a.mf[i] = a.mf[i].substr(0,a.mf[i].size()-1);
+	  a.mfpp[ a.mf[i] ] = 1;
+	}
+    }
 
 
 
@@ -719,14 +697,6 @@ int main()
   if ( a.regions.size() == 0 && trans.size() == 1 ) 
     a.single_transcript = true;
   
-
-//   if ( a.regions.size() == 0 && trans.size() == 0 ) 
-//     {
-//       std::cout << "No matching records...</BODY></HTML>";
-//       exit(0);
-//     }
-  
-
 
   
   //
@@ -1470,9 +1440,12 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 
   o1 << "</td>";
   
-  o1 << "<td>" << var.chromosome() << "</td>" 
-     << "<td>" << var.position() << "</td>";
-  
+  o1 << "<td>" << var.chromosome() << "</td>";
+
+  if ( var.stop() == 0 || var.stop() == var.position() )
+    o1 << "<td>" << var.position() << "</td>";
+  else
+    o1 << "<td>" << var.position() << ".." << var.stop() << "</td>";
 
   if ( a->single_transcript )
     {
@@ -1526,7 +1499,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
       for (int i=0;i<sv.size(); i++)
 	{ 
 	  if (i) o1 << "<br>"; 
-	  o1 << pp( sv[i] );	  
+	  o1 << ( a->mfpp[ a->mf[m] ] ? sv[i] : pp( sv[i] ) ) ;	  
 	}
       o1 << "</td>";
     } 
@@ -1544,14 +1517,6 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 	o1 << "<td>" << "n/a" << "</td>";
     }
 
-
-//   // Get normal appends from meta-fields
-//   for ( int i = 0; i < a->app.size() ; i++)
-//     {
-//       RefVariant rv = a->g->refdb.lookup( var , a->app[i] );
-//       o1 << "<td nowrap>" << rv << "</td>";
-//     }
-  
   o1 << "</tr>";
 
 

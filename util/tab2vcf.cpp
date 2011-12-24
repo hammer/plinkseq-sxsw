@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <set>
 #include <cstdlib>
 
 #include "char_tok.h"
@@ -32,6 +33,8 @@ int main( int argc , char ** argv )
 {
   
   std::map<std::string,std::string> args;
+  std::set<std::string> skip;
+
   args["ID"] = "ID";
   args["REF"] = "REF";
   args["ALT"] = "ALT";
@@ -46,15 +49,22 @@ int main( int argc , char ** argv )
     {
       int t;
       char_tok tok( argv[i] , &t , '=' );
-      if ( t == 2 ) args[ tok(0) ] = tok(1);
+
+      if ( t == 2 ) 
+	{
+	  if ( strcmp( tok(0) , "SKIP" ) == 0 
+	       || strcmp( tok(0) , "skip" ) == 0 ) skip.insert(tok(1));
+	  else 
+	    args[ tok(0) ] = tok(1);
+	}
       else if ( t == 1 ) 
 	{
 	  int t2;
 	  char_tok tok2( argv[i] , &t2 , ':' );
 	  if ( t2 == 4 ) 
 	    {
-	      types[ tok2(0) ] = tok2(1);
-	      number[ tok2(0) ] = tok2(2);
+	      number[ tok2(0) ] = tok2(1);
+	      types[ tok2(0) ] = tok2(2);
 	      desc[ tok2(0) ] = tok2(3);
 	    }
 	}
@@ -114,6 +124,7 @@ int main( int argc , char ** argv )
       std::map<std::string,std::string>::iterator ii = args.begin();
       while ( ii != args.end() )
 	{
+	  
 	  if ( ii->second == field[i] ) 
 	    {
 	      if ( ii->first == "QUAL" || ii->first == "qual" )
@@ -126,11 +137,15 @@ int main( int argc , char ** argv )
 		{ special_field = true; ref = i; }
 	      else if ( ii->first == "ALT" || ii->first == "alt" ) 
 		{ special_field = true; alt = i; }
-	      else if ( ii->first == "SKIP" || ii->first == "skip" )
-		special_field = true;		
 	    }
 	  ++ii;
+	  
 	}
+
+      // skip this field?
+      
+      if ( skip.find( field[i] ) != skip.end() ) 
+	  special_field = true;
 
       // normal INFO field?
       
@@ -165,6 +180,24 @@ int main( int argc , char ** argv )
       else 
 	std::cout << "##INFO=<ID=" << field[info[i]] << ",Number=1,Type=Float,Description=\"n/a\">\n";
     }
+
+  // also display any additional headers from the command line but not seen in the file (i.e. 
+  // to describe Flags in the body of the text that are not in the headers
+  
+  std::set<std::string> fset;
+  for (int i=0;i<s;i++)
+    fset.insert( field[info[i]] );
+  
+  std::map<std::string,std::string>::iterator ii = types.begin();
+  while ( ii != types.end() )
+    {
+      if ( fset.find( ii->first ) == fset.end() )
+	std::cout << "##INFO=<ID=" << ii->first << ",Number=" << number[ii->first]
+		  << ",Type=" << types[ii->first] << ",Description=\"" << desc[ii->first] 
+		  << "\">\n";
+      ++ii;
+    }
+  
 
   // second header
   std::cout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";

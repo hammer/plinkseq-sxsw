@@ -141,6 +141,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
     {      
       
       // File-level screen
+
       if ( ! m.use_file( f->first ) ) 
 	{
 	  ++f;
@@ -150,7 +151,14 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
       int actual_j = 0;
 
       std::vector<std::string> ind = vardb.fetch_individuals( f->first );
+
+      // Always include N=0 files (i.e. summary info), unless explicitly filtered
+      // out via the mas (use_file() above)
       
+      if ( ind.size() == 0 ) obs_files.insert( f->first );
+      
+      // otherwise, if this file actually contains individuals, let's see if any are used:
+
       for (int j = 0 ; j < ind.size(); j++ ) 
 	{
 	  
@@ -160,7 +168,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 	  
   	  if ( ! m.use_indiv( id ) ) 
  	    continue;
-
+	  
 	  
 	  // Pull individual into the phenotype-map
 
@@ -205,17 +213,6 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 
 	}
 
-      // REMOVED -- this is a bad idea; and means that we don' see missing 
-      // genotypes etc for people, e.g. from g-view
-
-      // If no individuals were entered from this file, remove it from the Mask
-      // NOTE: need to see how this interacts with other uses of VARDB, eg. from ACDB
-      // in which there are no individual-level data...  or, downstream, if we have 
-      // some optimisations which only consider variant level data
-
-//       if ( obs_files.find( f->first ) == obs_files.end() )
-// 	const_cast<Mask&>(m).exclude_file( vardb.file_tag( f->first ) );
-
       
       // Move on to next file.
 
@@ -237,6 +234,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
   
   is_multi_sample = obs_files.size() > 1;
 
+
   //
   // Number of unique individuals to be extracted
   //
@@ -247,7 +245,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
   // Handle n==0 cases specially
   //
 
-  //  if ( n == 0 ) { is_multi_sample = true; }
+  if ( n == 0 ) { is_multi_sample = true; }
 
   //
   // (-1,-1) in uniq implies this person seen more than once, and so
@@ -281,7 +279,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
   // make life easier with ACDB
   //
 
-  //  if ( n == 0 ) is_flat = false;
+  if ( n == 0 ) is_flat = false;
 
 
   //

@@ -564,6 +564,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "subregions" , NONE , "show subregions from LOCDB"); //loc-view
     
     reg( "show-phase" , NONE , "" );
+    reg( "acdb" , NONE , "write summary VCF in ACDB-format" );
     
     // counts and g-counts
 

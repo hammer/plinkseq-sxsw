@@ -1532,6 +1532,7 @@ struct AuxCountReport
   std::string label;
   bool by_case_control;
   bool unphased;
+  bool acdb_format;
 };
   
 
@@ -1551,9 +1552,7 @@ void f_counts_report( Variant & v , void * p )
       // Attach sample, along with storage, etc
       
       SampleVariant &             svar          =  v.sample( s );
-
-      SampleVariant &             svar_meta     =  v.sample_metainformation( svar );
-      
+      SampleVariant &             svar_meta     =  v.sample_metainformation( svar );      
       std::string                 sample_label  =  g.vardb.file_tag( svar.fileset() );
       
 
@@ -1567,46 +1566,110 @@ void f_counts_report( Variant & v , void * p )
       std::stringstream cinfo;
       std::stringstream pinfo;      
 
-      ginfo << "_GENO=";
-      cinfo << "_GCNT=";
-      pinfo << "_PGRP=";
-      
-      bool first = true;
+      // ACDB format      
 
-      while ( 1 ) 
+      if ( aux->acdb_format ) 
 	{
 
-	  // all/case/control  (0/2/1)
-	  std::string phe_label = pi == 0 ? "0" : pi == 1 ? "2" : "1" ;
-	  affType aff = pi == 0 ? UNKNOWN_PHE : pi == 1 ? CASE : CONTROL ;
+	  ginfo << "_GENO=";
+	  cinfo << "_GCNT=";
+	  pinfo << "_PGRP=";
 	  
-	  //	  std::map<std::string,int> c = svar_genotypes.genotype_counts( aff , &v , aux->unphased );  
+	  bool first = true;
 	  
-	  std::map<std::string,int> c = v.genotype_counts( svar , aff , aux->unphased );
-	  
-	  std::map<std::string,int>::iterator i = c.begin();
-	  while ( i != c.end() )
+	  while ( 1 ) 
 	    {
-	      if ( ! first ) 
+	      
+	      // all/case/control  (0/2/1)
+	      std::string phe_label = pi == 0 ? "0" : pi == 1 ? "2" : "1" ;
+	      affType aff = pi == 0 ? UNKNOWN_PHE : pi == 1 ? CASE : CONTROL ;
+	      
+	      std::map<std::string,int> c = v.genotype_counts( svar , aff , aux->unphased );
+	      
+	      std::map<std::string,int>::iterator i = c.begin();
+	      while ( i != c.end() )
 		{
-		  ginfo << ",";
-		  cinfo << ",";
-		  pinfo << ",";
+		  if ( ! first ) 
+		    {
+		      ginfo << ",";
+		      cinfo << ",";
+		      pinfo << ",";
+		    }
+		  first = false;
+		  
+		  ginfo << i->first;
+		  cinfo << i->second;
+		  pinfo << phe_label;
+		  ++i;
 		}
-	      first = false;
+	      
+	      if ( pi == 0 ) break;
+	      ++pi;
+	      if ( pi == 3 ) break;
+	      
+	    } // next phenotype group
+	}
+      else // pretty-print VCF format 
+	{
+	  ginfo << "GENO=";
+	  
+	  std::map<std::string,int> gtyp;
+	  std::map<std::string,std::map<std::string,int> > cnts;	  
+	  
+	  while ( 1 ) 
+	    {
+	      
+	      // all/case/control  (0/2/1)
+	      std::string phe_label = pi == 0 ? "0" : pi == 1 ? "2" : "1" ;
+	      affType aff = pi == 0 ? UNKNOWN_PHE : pi == 1 ? CASE : CONTROL ;
+	      
+	      std::map<std::string,int> c = v.genotype_counts( svar , aff , aux->unphased );
+	      
+	      
+	      std::map<std::string,int>::iterator i = c.begin();
+	      while ( i != c.end() )
+		{
+		  gtyp[ i->first ] += i->second;
+		  cnts[ i->first ][phe_label] = i->second;
+		  ++i;
+		}
+	      
+	      // next 'phenotype'
+	      if ( pi == 0 ) break;
+	      ++pi;
+	      if ( pi == 3 ) break;
 
-	      ginfo << i->first;
-	      cinfo << i->second;
-	      pinfo << phe_label;
-	      ++i;
 	    }
 	  
-	  if ( pi == 0 ) break;
-	  ++pi;
-	  if ( pi == 3 ) break;
+	  // display
 	  
-	} // next phenotype group
-      
+	  if ( pi == 0 ) 
+	    {
+	      bool first = true;    
+	      std::map<std::string,int>::iterator ii = gtyp.begin();
+	      while ( ii != gtyp.end() )
+		{		  
+		  if ( ! first ) ginfo << ",";
+		  else first = false;		  
+		  ginfo << ii->second << "(" << ii->first << ")";
+		  ++ii;
+		}
+	    }
+	  else // implies a split by a dichotomous phenotype
+	    {
+	      bool first = true;    
+	      std::map<std::string,std::map<std::string,int> >::iterator ii = cnts.begin();	  
+	      while ( ii != cnts.end() )
+		{		  
+		  if ( ! first ) ginfo << ",";
+		  else first = false;		  
+		  ginfo << ii->second["2"] << ":" << ii->second["1"] << "(" << ii->first << ")";
+		  ++ii;
+		}
+	  
+	    }
+	}
+
       // write to VCF
       
       plog << v.chromosome() << "\t"
@@ -1622,11 +1685,15 @@ void f_counts_report( Variant & v , void * p )
       
       plog << svar_meta.filter() << "\t";
       
-      plog << "_S=" << g.vardb.file_tag( svar.fileset() ) << ";" 
-	   << ginfo.str() << ";" 
-	   << cinfo.str() << ";"
-	   << pinfo.str() << ";"
-	   << svar_meta.meta << "\n";
+      if ( aux->acdb_format ) plog << "_S=" << g.vardb.file_tag( svar.fileset() ) << ";" ;
+      else plog << "SAMPLE=" << g.vardb.file_tag( svar.fileset() ) << ";" ;
+ 
+      plog << ginfo.str() << ";";
+
+      if ( aux->acdb_format ) plog << cinfo.str() << ";"
+				   << pinfo.str() << ";";
+
+      plog << svar_meta.meta << "\n";
       
       // next sample
     }
@@ -1642,13 +1709,14 @@ bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
   aux.label = name;
   aux.by_case_control = g.phmap.type() == PHE_DICHOT;
   aux.unphased = ! args.has( "show-phase" );
+  aux.acdb_format = args.has( "acdb" );
 
   // VCF header
   
   plog << "##fileformat=VCFv4.0\n"
-	    << "##source=pseq\n"
-	    << "##_PROJ=" << name << "\n";
-
+       << "##source=pseq\n"
+       << "##_PROJ=" << name << "\n";
+  
   std::set<int> w = g.indmap.samples();
   std::set<int>::iterator i = w.begin();
   while ( i != w.end() )
@@ -1656,13 +1724,19 @@ bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
       plog << "##_N=" << *i << "," << g.indmap.size( *i ) << "\n";
       ++i;
     }
+  
+  
+  if ( aux.acdb_format ) 
+    plog << "##INFO=<ID=_S,Number=1,Type=String,Description=\"Sample tag\">\n"
+	 << "##INFO=<ID=_GENO,Number=.,Type=String,Description=\"Genotypes\">\n"
+	 << "##INFO=<ID=_GCNT,Number=.,Type=Integer,Description=\"Genotype counts\">\n"
+	 << "##INFO=<ID=_PGRP,Number=.,Type=Integer,Description=\"Phenotypic groups (0=all;1=control;2=case)\">\n";
+  else
+    plog << "##INFO=<ID=SAMPLE,Number=1,Type=String,Description=\"Sample tag\">\n"
+	 << "##INFO=<ID=GENO,Number=.,Type=String,Description=\"Genotype counts\">\n";
 
-  plog << "##INFO=<ID=_S,Number=1,Type=String,Description=\"Sample tag\">\n"
-       << "##INFO=<ID=_GENO,Number=-1,Type=String,Description=\"Genotypes\">\n"
-       << "##INFO=<ID=_GCNT,Number=-1,Type=Integer,Description=\"Genotype counts\">\n"
-       << "##INFO=<ID=_PGRP,Number=-1,Type=Integer,Description=\"Phenotypic groups (0=all;1=control;2=case)\">\n"
-       << MetaInformation<VarMeta>::headers( )
-       << MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
+      plog   << MetaInformation<VarMeta>::headers( )
+	 << MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
   
   plog << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
 

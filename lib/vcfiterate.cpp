@@ -181,17 +181,12 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 	      continue;
 	    }
 
-
+	  
 	  // So that the Variant functions know not to look for data
 	  // in a BLOB; also, they they know how to parse it downstream
-	  
+
 	  pv->set_vcf_buffer( v.gt_field , &v.formats );
 	  
-
-
-	  // 	  pv->consensus.vcf_direct = true;
-	  // 	  pv->consensus.gt_field = v.gt_field;
-	  // 	  pv->consensus.formats = &v.formats;
 	  
 	  // Apply all mask filters, and decide whether to call function
 	  

@@ -1399,20 +1399,20 @@ void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id
   
   if ( s == "." ) return;
   
-  // parse semi-colon delimited list
+  // parse semi-colon delimited list; true means escape quotes
   int ntok;
-  Helper::char_tok f( s , &ntok , ';' );
+  Helper::char_tok f( s , &ntok , ';' , true );
 
   std::vector<Helper::char_tok*> ptoks;
 
   for (int i=0; i<f.size(); i++)
   {      
       
-      int ntok2;
-      Helper::char_tok * k = new Helper::char_tok( f(i) , &ntok2 , '=' );      
-      ptoks.push_back( k );
-      
-      mType mt = MetaInformation<VarMeta>::type( (*k)(0) );
+    int ntok2;
+    Helper::char_tok * k = new Helper::char_tok( f(i) , &ntok2 , '=' , true );
+    ptoks.push_back( k );
+    
+    mType mt = MetaInformation<VarMeta>::type( (*k)(0) );
       
       if ( mt == META_UNDEFINED ) 
       {	  
@@ -1432,9 +1432,9 @@ void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id
   //     be necessary
   
   if ( MetaMeta::force_consensus() )
-      parent->consensus.meta.parse( s , ';' , true);
+      parent->consensus.meta.parse( s , ';' , true );
   else
-      meta.parse( s , ';' , true); 
+      meta.parse( s , ';' , true ); 
   
   // Now we've added to svar, if the parent pointer is non-null, check whether
   // or not any tags are static, in which case we also want to add this value
@@ -1452,12 +1452,14 @@ void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id
 	      const char * str = (*ptoks[i])(0);
 	      
 	      mType mt = MetaInformation<VarMeta>::type( str );
-	      if ( mt == META_UNDEFINED ) Helper::halt( "internal error in SampleVariant::info()" );
-	      if ( mt == META_FLAG ) parent->meta.set( str );
-	      else if ( mt == META_INT ) parent->meta.set( str , meta.get_int( str ) );
-	      else if ( mt == META_FLOAT ) parent->meta.set( str , meta.get_double( str ) );
-	      else if ( mt == META_TEXT ) parent->meta.set( str , meta.get_string( str ) );
-	      else if ( mt == META_BOOL ) parent->meta.set( str , meta.get_bool( str ) );
+
+	      if      ( mt == META_UNDEFINED ) Helper::halt( "internal error in SampleVariant::info()" );
+
+	      if      ( mt == META_FLAG )      parent->meta.set( str );
+	      else if ( mt == META_INT )       parent->meta.set( str , meta.get_int( str ) );
+	      else if ( mt == META_FLOAT )     parent->meta.set( str , meta.get_double( str ) );
+	      else if ( mt == META_TEXT )      parent->meta.set( str , meta.get_string( str ) );
+	      else if ( mt == META_BOOL )      parent->meta.set( str , meta.get_bool( str ) );
 	  }
 	  
 	  delete ptoks[i];
