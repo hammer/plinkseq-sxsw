@@ -49,6 +49,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 					   Mask & mask ) 
 {
 
+
     
   //
   // Does everything look set up correctly?
@@ -418,7 +419,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
     
     query += " ORDER BY v.chr , v.bp1, v.bp2 , v.var_id ";
     
-
+    
     //
     // END OF QUERY 
     //
@@ -432,6 +433,8 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
     // meta-information from other tables). Thus keep looping until we
     // are sure this is the variant.
     //
+    
+    //    std::cout << "Q = [" << query << "]\n";
 
  
 
@@ -1210,7 +1213,7 @@ void add_requires_excludes( std::string & query , const Mask & mask )
 void VarDBase::build_temporary_db( Mask & mask )
 {      
 
-  if ( tmpdb_attached) 
+  if ( tmpdb_attached ) 
     sql.query(" DETACH DATABASE tmp ; " );
   sql.query(" ATTACH \":memory:\" AS tmp ; " );
   tmpdb_attached = true;
@@ -1361,6 +1364,8 @@ void VarDBase::build_temporary_db( Mask & mask )
 	      sql.bind_int( stmt_tmp_insert, ":grp" , *i );
 	      sql.bind_text( stmt_tmp_insert, ":name" , n ); 
 	    
+	      // std::cout << "entering " << chr << " " << bp1 << " " << bp2 << " " << *i << " " << n << "\n";
+
 	      sql.step( stmt_tmp_insert );
 	      sql.reset( stmt_tmp_insert );
 	      
@@ -1373,8 +1378,9 @@ void VarDBase::build_temporary_db( Mask & mask )
       
       sql.finalise( stmt_tmp_insert );
       sql.finalise( stmt_tmp_locus_iterate );
-      sql.query("CREATE INDEX tmp.ind1 ON loc(chr,bp1,bp2); ");
-      sql.query("CREATE INDEX tmp.ind2 ON loc(name); ");
+
+      // sql.query("CREATE INDEX tmp.ind1 ON loc(chr,bp1,bp2); ");
+      // sql.query("CREATE INDEX tmp.ind2 ON loc(name); ");
       
     }
   
@@ -1534,8 +1540,9 @@ void VarDBase::build_temporary_db( Mask & mask )
       
       sql.finalise( stmt_tmp_insert );
       sql.finalise( stmt_tmp_extract_pathway );
-      sql.query("CREATE INDEX tmp.ind1set ON locset(chr,bp1,bp2); ");
-      sql.query("CREATE INDEX tmp.ind2set ON locset(group_id,name); ");
+
+      // sql.query("CREATE INDEX tmp.ind1set ON locset(chr,bp1,bp2); ");
+      // sql.query("CREATE INDEX tmp.ind2set ON locset(group_id,name); ");
     }
   
   
@@ -1549,7 +1556,8 @@ void VarDBase::build_temporary_db( Mask & mask )
   
   if ( mask.requires() ) 
     {
-      
+
+
       // Requirements: you must meet *all* requirements
       
       sql.query("CREATE TABLE tmp.require ( var_id INTEGER PRIMARY KEY );");
@@ -1608,6 +1616,7 @@ void VarDBase::build_temporary_db( Mask & mask )
 	  
 	}
       
+
       
       // TODO: ?? (check: is it that it can be done more
       // efficiently in the main SELECT?): remove 'files' from
