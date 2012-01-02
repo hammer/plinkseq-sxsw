@@ -553,7 +553,8 @@ void Pseq::Util::Options::load( int n , char ** argv )
     keyword( "stats" , "gmean" , STRING_VECTOR , "genotype tag means" );
     keyword( "stats" , "gcount" , STRING_VECTOR , "genotype tag range counts" );
 
-
+    // modifies i-stats , etc 
+    reg( "alternate" , NONE , "stats for alternate, not minor, alleles" );
 
 
     // summaries
@@ -709,7 +710,6 @@ void Pseq::Util::Options::load( int n , char ** argv )
 			  std::vector<std::string> vals = Helper::quoted_char_split( val , ',' );
 			  for (int i=0;i<vals.size();i++)
 			  {
-			      std::cout << "adding " << s << " | " << root << " | " << vals[i] << " |\n";
 			      data_kw[s][root].push_back( vals[i] );
 			  }
 		      }
@@ -906,9 +906,6 @@ std::string Pseq::Util::Options::desc( const std::string & c ) const
   // --help         { list all commands } 
   // --help v-view  { list all arguments for v-view }
   // --help masks   { list all mask options }
-  
-
- 
   
   if ( c == "." )
     {
