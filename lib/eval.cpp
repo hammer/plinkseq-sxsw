@@ -13,29 +13,44 @@ std::map<std::string,Token::tok_type> Token::tok_map;
 std::map<Token::tok_type,std::string> Token::tok_unmap; 
 std::map<std::string,int> Token::fn_map; 
 
+
 void Eval::init()
 {
   is_valid = false;
   
   errs = "";
 
+  genmeta_mode = false;
+
+
   // G-functions (# of args, including expr) 
-  
-  // counts:
-  gdef["g"] = 1;    // proportion
-  gdef["gn"] = 1;   // number
-  
-  // functions of (x) 
-  gdef["gmean"] = 2;    
-  gdef["gmax"] = 2;     
-  gdef["gmin"] = 2;     
-  gdef["gmedian"] = 2;  
+
+  // return vector evaluated on genotypes
+  gdef[ "g" ] = 1;      // expression
+
+  // set genotype to null of expression evaluates to false
+  gdef[ "gf" ]   = 1;
+
+  // set genotype to VCF-formatted value (or # of alternate alleles)
+  gdef[ "gs" ]   = 1;
+
+  // phenotype extraction/assignment
+  gdef[ "p" ] = 1;      // expression
+
+  // vector creation functions
+  gdef[ "int" ] = 1;
+  gdef[ "bool" ] = 1;
+  gdef[ "vec" ] = 1;
+  gdef[ "str" ] = 1;
+
+
 }
 
 bool Eval::get_token( std::string & input ,  Token & tok )
 {
 
   // no more input 
+
   if ( input.size() == 0 ) return false;
 
   std::string c = input.substr(0,1);
@@ -73,10 +88,11 @@ bool Eval::get_token( std::string & input ,  Token & tok )
     {
       int p = 1;
 
-      if ( c == "." ) { c = "0."; }
-
+      bool need_leading_zero = c == ".";
+      
       while ( 1 ) 
 	{
+	  
 	  if ( p == input.size() ) break;
 	  char d = input[p];
 	  if ( d >= '0' && d <= '9' ) c += input.substr(p,1);
@@ -96,8 +112,9 @@ bool Eval::get_token( std::string & input ,  Token & tok )
       int i;
       double d;
       bool err = false;
-      if ( ! Helper::from_string<int>( i , c , std::dec ) ) err = true;
-      if ( ! Helper::from_string<double>( d , c , std::dec ) ) err = true;
+
+      if ( ! Helper::from_string<int>( i , need_leading_zero ? "0"+c : c , std::dec ) ) err = true;
+      if ( ! Helper::from_string<double>( d , need_leading_zero ? "0"+c : c , std::dec ) ) err = true;
 
       if ( ! err ) 
 	{
@@ -105,6 +122,7 @@ bool Eval::get_token( std::string & input ,  Token & tok )
 	  else tok.set(d);
 	  previous_value = true;
 	}
+      
     }
     
   else if ( i != Token::tok_map.end() )
@@ -174,6 +192,36 @@ bool Eval::get_token( std::string & input ,  Token & tok )
       previous_value = true;
     }
   
+  // a literal string with specific start/stop quotes, allowing nesting
+  else if ( c == "{" )
+    {
+      int cnt = 1;
+      int p = 1;
+      bool found = false;
+      while ( 1 ) 
+	{
+	  
+	  if      ( p == input.size() ) break;
+	  else if ( input.substr(p,1) == "{" ) ++cnt;
+	  else if ( input.substr(p,1) == "}" ) 
+	    { 
+	      --cnt;
+	      if ( cnt == 0 ) 
+		{
+		  c+= "}"; 
+		  found = true; break; 
+		}
+	    }
+	  
+	  c += input.substr(p,1);
+	  ++p;
+	}      
+
+      tok.set( c.substr(1,c.size()-2) ); 
+
+      previous_value = true;
+    }
+
   // otherwise, assume a variable that start: a-z, A-Z or _
   // or a variable name is ends in "("
   
@@ -238,6 +286,7 @@ bool Eval::get_token( std::string & input ,  Token & tok )
     }
   
   // remove this input
+
   input = input.substr( c.size() );
 
   return true;
@@ -341,7 +390,7 @@ bool Eval::shunting_yard( const std::string & oinput,
 {
   
   std::string input = oinput;
-  
+
   // collect output tokens here
   output.resize( input.size() );
   output.clear();
@@ -414,7 +463,7 @@ bool Eval::shunting_yard( const std::string & oinput,
 	  
 	  if( !pe )   
 	    {
-	      errs += "Error: separator or parentheses mismatched\n";
+	      errmsg( "separator or parentheses mismatched" );
 	      return false;
 	    }
 	}
@@ -501,7 +550,7 @@ bool Eval::shunting_yard( const std::string & oinput,
 	    
 	    if( ! pe )  
 	      {
-		errs += "Error: parentheses mismatched\n";
+		errmsg( "parentheses mismatched" );
 		return false;
 	      }
 	    
@@ -530,7 +579,7 @@ bool Eval::shunting_yard( const std::string & oinput,
 	  }
 	else  
 	  {	    
-	    errs += "Unknown token\n";
+	    errmsg( "unknown token" ) ;
 	    return false; 
 	  }
       
@@ -547,7 +596,7 @@ bool Eval::shunting_yard( const std::string & oinput,
       
       if ( sc.is_left_paren() || sc.is_right_paren() )
 	{
-	  errs += "Error: parentheses mismatched\n";
+	  errmsg( "parentheses mismatched" );
 	  return false;
         }
       
@@ -605,7 +654,7 @@ bool Eval::execute( const std::vector<Token> & input )
 	  
 	  if ( sl < nargs ) 
 	    {
-	      errs += "Badly formed expression -- not enough args for " + c.name() + "\n"; 
+	      errmsg( "not enough arguments for " + c.name() ) ;
 	      return false;
 	    }
 	  
@@ -638,14 +687,14 @@ bool Eval::execute( const std::vector<Token> & input )
 
 	      if ( args.size() != Token::fn_map[ c.name() ] ) 
 		{
-		  errs += "wrong number of arguments for " + c.name() + "()\n";
+		  errmsg( "wrong number of arguments for " + c.name() );
 		  return false;
 		}
 
 	      // note: args are in reverse order here
 	      
 	      if ( c.name() == "set" )  res = func.fn_set( args[0] );
-	      if ( c.name() == "n" )    res = func.fn_n();
+	      
 	      if ( c.name() == "sqrt" ) res = func.fn_sqrt( args[0] );
 	      if ( c.name() == "sqr" )  res = func.fn_sqr( args[0] );
 	      if ( c.name() == "pow" )  res = func.fn_pow( args[1] , args[0] );
@@ -656,27 +705,34 @@ bool Eval::execute( const std::vector<Token> & input )
 	      // vector functions
 	      if ( c.name() == "element" ) res = func.fn_vec_extract( args[1] , args[0] );
 	      
-	      if ( c.name() == "length" ) res = func.fn_vec_length( args[0] );	      
+	      if ( c.name() == "length" )  res = func.fn_vec_length( args[0] );	      
 	      
-	      if ( c.name() == "min" ) res = func.fn_vec_min( args[0] );	      
-	      if ( c.name() == "max" ) res = func.fn_vec_maj( args[0] );	      
+	      if ( c.name() == "min" )     res = func.fn_vec_min( args[0] );	      
+	      if ( c.name() == "max" )     res = func.fn_vec_maj( args[0] );
 	      
-	      if ( c.name() == "sum" ) res = func.fn_vec_sum( args[0] );	      
-	      if ( c.name() == "mean" ) res = func.fn_vec_mean( args[0] );	      
-	      if ( c.name() == "sort" ) res = func.fn_vec_sort( args[0] );
+	      if ( c.name() == "sum" )     res = func.fn_vec_sum( args[0] );	      
+	      if ( c.name() == "mean" )    res = func.fn_vec_mean( args[0] );	      
+	      if ( c.name() == "sort" )    res = func.fn_vec_sort( args[0] );
 
-	      if ( c.name() == "vec" ) res = func.fn_vec_new_float( args[0] );	      
-	      if ( c.name() == "int" ) res = func.fn_vec_new_int( args[0] );	      
-	      if ( c.name() == "str" ) res = func.fn_vec_new_str( args[0] );	      
-	      if ( c.name() == "bool" ) res = func.fn_vec_new_bool( args[0] );	      
+	      if ( c.name() == "vec_func" )   res = func.fn_vec_new_float( args[0] );	      
+	      if ( c.name() == "int_func" )   res = func.fn_vec_new_int( args[0] );	      
+	      if ( c.name() == "str_func" )   res = func.fn_vec_new_str( args[0] );	      
+	      if ( c.name() == "bool_func" )  res = func.fn_vec_new_bool( args[0] );	      
 	      
-	      if ( c.name() == "any" ) res = func.fn_vec_any( args[1] , args[0] );	      
-	      if ( c.name() == "count" ) res = func.fn_vec_count( args[1] , args[0] );	      
+	      if ( c.name() == "any" )     res = func.fn_vec_any( args[1] , args[0] );	      
+	      if ( c.name() == "count" )   res = func.fn_vec_count( args[1] , args[0] );	      
+
+	      if ( c.name() == "g_func" )   res = func.fn_vec_g( args[0] , this );
+	      if ( c.name() == "gf_func" )  res = func.fn_vec_gnull( args[0] , this );
+	      if ( c.name() == "gs_func" )  res = func.fn_vec_gset( args[0] , this );
+	      if ( c.name() == "n" )        res = Token( gvar ? gvar->calls.size() : 0 );
+
+	      if ( c.name() == "p_func" )   res = genmeta_mode ? func.fn_vec_1pheno( args[0] , indiv ) : func.fn_vec_pheno( args[0] );
 	    }
 	  else
 	    {
 	      
-	      if( nargs == 1 )  // unary operator
+	      if ( nargs == 1 )  // unary operator
 		{
 		  sc = stack.back();
 		  stack.pop_back(); sl--;		                        
@@ -695,9 +751,16 @@ bool Eval::execute( const std::vector<Token> & input )
 
 		  if ( c.is_assignment() ) 
 		    {
-		      res = func.fn_assign( sc, t0 );  // res==T		      
+		      if ( sc.name() == "p_func" )
+			res = func.fn_assign_pheno( sc , t0 ); 
+		      else if ( genmeta_mode )
+			res = func.fn_assign_gen( sc, t0 );  // res==T
+		      else
+			res = func.fn_assign_var( sc, t0 );  // res==T
+		      
 		      // and bind new value if needed
 		      bind( &sc );
+		      
 		    }		  
 		  else
 		    res = c.operands( t0 , sc );		    
@@ -719,11 +782,11 @@ bool Eval::execute( const std::vector<Token> & input )
   
   if ( sl != 1 || stack.size() != 1 ) 
     {
-      errs += "Badly formed expression\n";
+      errmsg( "badly formed expression" );
       return false;
     }
   
-  if( sl == 1 ) 
+  if ( sl == 1 ) 
     {
       sc = stack.back(); 
       stack.pop_back();
@@ -731,20 +794,22 @@ bool Eval::execute( const std::vector<Token> & input )
       
       // store result in primary slot, e
       e = sc;
-
+      
       return true;
     }
-
+  
   
   // If there are more values in the stack
   // (Error) The user input has too many values.
   
-  errs += "Badly formed expression: too many values\n";
+  errmsg( "badly formed expression: too many values" );
   return false;
 }
 
 bool Eval::parse( const std::string & input )
 {
+  
+  gvar = NULL; 
 
   delete_symbols();    
   
@@ -757,7 +822,6 @@ bool Eval::parse( const std::string & input )
   // meta data, but only the last will be reflected in the 'e' 
   // endpoint
 
-  //  std::cout << "input = " << input2 << "\n";
   
   std::vector<std::string> etok = Helper::parse( input2, ";" );
 
@@ -769,12 +833,13 @@ bool Eval::parse( const std::string & input )
   
   is_valid = true;
 
+
   for (int i=0; i<etok.size(); i++)
     {      
       output[i].clear();    
 
       errs = "";
-            
+      
       if ( ! extract_gfunc( &(etok[i]) ) )
 	is_valid = false;
       
@@ -794,45 +859,45 @@ bool Eval::parse( const std::string & input )
 bool Eval::extract_gfunc( std::string * s )
 {
 
-  // if we have   " AB > 0.75 || gprop( DP < 10 || GQ < 0.95 ) > 0.8 "
+  // replace g( DP > 10 && PL[1] < 0.2 ) with 
+  //  with,  g( 'DP > 10 && PL[1] < 0.2' ) 
   
-  //  -->         " AB > 0.75 || _G1 > 0.8 "
+  // NOTE -- not allowed to have nested g() functions
   
-  // and we note that _G1 is a variable that will be calculated on the
-  // fly from the expression " DP < 10 || GQ < 0.95 " applied to all
-  // genotypes and returned as a proportion
+  // Also set p(X) -> p('X')
   
   while ( 1 ) 
     {
 
       bool found = false;
-
+      
       std::map<std::string,int>::iterator i = gdef.begin();
-
+      
       while ( i != gdef.end() )
 	{
+	  
 	  int p = s->find( i->first + "(" );
 	  
 	  if ( p != std::string::npos ) 
-	    {
+	    {	      
 	      
 	      found = true;
-
+	      
 	      std::vector<std::string> arglist;
-	      arglist.push_back( i->first ); // track fn name
+	      arglist.push_back( i->first ); // track fn name: g() or gnull()
 
 	      // look for closing brace
 	      
 	      int bc = 0;
 	      int q = p;
 	      int pp = p;
-
+	      
 	      while ( ++q )
 		{
 		  
 		  // gone past end of string?
 		  if ( q == s->size() ) return false;
-
+		  
 		  char c = s->substr(q,1)[0];
 		  
 		  if ( c == '(' ) 
@@ -840,44 +905,44 @@ bool Eval::extract_gfunc( std::string * s )
 		      ++bc;  //includes first paran
 		      if ( bc == 1 ) pp = q+1; // track position of first argument
 		    }
-		  else if ( c == ',' )
-		    {
-		      if ( bc == 1 ) // i.e. not within different function
-			{
-			  arglist.push_back( s->substr(pp,q-pp) );
-			  pp = q + 1; // reset 
-			}
-		    }
 		  else if ( c == ')' )
 		    {
 		      --bc;
 		      if ( bc == 0 ) 
 			{
-			  arglist.push_back( s->substr(pp,q-pp) );
+			  std::string str = s->substr(pp,q-pp);
+			  str.erase(remove_if(str.begin(), str.end(), isspace), str.end());
+			  arglist.push_back( str );
 			  break;
 			}
 		    }		  
 		}
 	      	      
+
 	      // gfunc() spans positions p to q
 
 	      // correct number of arguments? (typically 1 or 2)
 	      // allow that first 'arglist' is function name
 	      // if one short, assume we skipped the filter -- make to include all
 
-	      if ( (arglist.size()-1) == i->second - 1 ) arglist.push_back("true");
-	      if ( (arglist.size()-1) != i->second ) return false;
+	      std::string label = arglist[0] + "_func({" + arglist[1] + "})";
 	      
-	      std::string label = "__GFUNC" + Helper::int2str( gfunc.size() );
-	      
-	      // store
-	      gfunc[ label ] = arglist;
-	      
+	      // store internally too, if a genotype-function
+	      if ( arglist[0] == "g" || arglist[0] == "gf" )
+		gfunc[ label ] = arglist;
+	
+      
 	      // swap out entire expression
 	      // replace gfunc() with a variable
 
 	      s->replace( p , (q-p+1) , label );
 	      
+	      // also replace any ';' with ':' so that we do not confuse the parser; these will be swapped back
+	      // when this expression is parsed
+	      
+	      for (int i=0;i<s->size();i++)
+		if ( (*s)[i] == ';' ) (*s)[i] = ':';
+
 	    }
 	  
 	  ++i;  // next possible gfunc()
@@ -886,58 +951,63 @@ bool Eval::extract_gfunc( std::string * s )
       // are we sure there are no more gfunc()s in input?
       if ( ! found ) break;
       
-    }   
+    }
   
   return true;
 
 }
 
-void Eval::bind( SampleVariant & svar , SampleVariant & gvar , bool reset )   
+void Eval::bind( SampleVariant & ref_svar , SampleVariant & ref_gvar , bool reset )   
 {    
+  
 
   // We have svar and gvar, as the gvar might be the consensus SampleVariant (e.g. 
   // from a flat alignment) whereas the variant meta-information will still be 
   // in the original SampleVariant.
 
   if ( reset ) reset_symbols();
-
+  
   // Bind any gfunc()s  
-  eval_gfunc( gvar );
 
+  gvar = &ref_gvar;
+  
   // Standard meta-information  
-  bind( svar.meta , false );
-
+  bind( ref_svar.meta , false );
+  
   // For assignment ( --> to meta )  
-  func.attach( gvar.meta );
-
+  func.attach( ref_gvar.meta );
 }
 
-void Eval::bind( SampleVariant & svar , bool reset )   
+void Eval::bind( SampleVariant & ref_svar , bool reset )   
 {     
+
   if ( reset ) reset_symbols();
 
+  gvar = &ref_svar;
+
   // For lookup ( --> from meta )
-  bind( svar.meta , false );
+  bind( ref_svar.meta , false );
 
   // For assignment ( --> to meta )  
-  func.attach( svar.meta );
+  func.attach( ref_svar.meta );
 
 }
 
 
 void Eval::bind( Variant & var , bool reset )   
 {     
+
   if ( reset ) reset_symbols();
   
   // genotypes in consensus SampleVariant
-  eval_gfunc( var.consensus );
+  gvar = &var.consensus;
   
   // Standard meta-information  
   bind( var.meta , false );
 
   // For assignment ( --> to meta )  
   func.attach( var.meta );
-
+  
 }
 
 
@@ -955,177 +1025,248 @@ template<class T> void Eval::bind( MetaInformation<T> & m , bool reset )
   // expecting to populate the meta-field with a created token (i.e. assignment). At 
   // this stage we do not know the type of to-be-assiged meta-fields
   //
+  
+  // 
+  // In GenMeta mode, we also have some special values: 
+  //
 
+  // GT    means genotype as VCF-style string  (0/1)
+  // GT_A  means genotype as allele count (# non-ref alleles)
+  
   std::map<std::string,std::set<Token*> >::iterator i = vartb.begin();
   while ( i != vartb.end() )
     { 
-
+      
       std::set<Token*>::iterator tok = i->second.begin();
-
+      
       while ( tok != i->second.end() )
 	{
 	  
-	  mType mt = MetaInformation<T>::type( i->first );
+	  // In GenMeta mode, we allow direct reading of the GT in a few ways
+	  // GT GT_A GT_NR GT_NULL
+
+	  bool set_genotype = false;
 	  
-	  if ( mt != META_UNDEFINED ) 
+	  if ( genmeta_mode ) 
 	    {
 	      
-	      meta_index_t midx = MetaInformation<VarMeta>::field( i->first );
+	      set_genotype = true;
 	      
-	      if ( midx.mt == META_FLAG ) 
-		{
-		  (*tok)->set( m.has_field( i->first ) ) ; 
-		}
-	      else if ( m.has_field( i->first ) )
-		{
-		  if ( midx.len == 0 || midx.len == 1 ) // scalars -- flags len == 0 (?check)
-		    {
-		      if      ( midx.mt == META_INT   )   { (*tok)->set( m.get1_int( i->first ) );    }
-		      else if ( midx.mt == META_FLOAT ) { (*tok)->set( m.get1_double( i->first ) ); }
-		      else if ( midx.mt == META_TEXT  )  { (*tok)->set( m.get1_string( i->first ) ); }
-		      else if ( midx.mt == META_BOOL  )  { (*tok)->set( m.get1_bool( i->first ) );   }	      
-		    }
-		  else //vectors
-		    {		      
-		      if      ( midx.mt == META_INT   )  { (*tok)->set( m.get_int( i->first ) );    }
-		      else if ( midx.mt == META_FLOAT )  { (*tok)->set( m.get_double( i->first ) ); }
-		      else if ( midx.mt == META_TEXT  )  { (*tok)->set( m.get_string( i->first ) ); }
-		      else if ( midx.mt == META_BOOL  )  { (*tok)->set( m.get_bool( i->first ) );   }	      
-		    }
-		}
+	      if ( i->first == PLINKSeq::VCF_GENOTYPE() )
+		(*tok)->set( gvar->num_label( gvar->calls.genotype( indiv ) ) );
+	      else if ( i->first == PLINKSeq::VCF_GENOTYPE_AC() )
+		(*tok)->set( gvar->calls.genotype( indiv ).allele_count() );
+	      else if ( i->first == PLINKSeq::VCF_GENOTYPE_NONREF() )
+		(*tok)->set( gvar->calls.genotype( indiv ).allele_count() != 0 );
+	      else if ( i->first == PLINKSeq::VCF_GENOTYPE_NULL() )
+		(*tok)->set( gvar->calls.genotype( indiv ).null() );
 	      else
-		(*tok)->set(); // UNDEFINED
+		{
+		  set_genotype = false;
+		}	      
 	    }
-	  else 
-	    { 	      
-	      (*tok)->set(); // UNDEFINED
-	    }
-	  
+
+	  if ( ! set_genotype ) // variable will be represnted as a standard VarMeta
+	    {
+
+	      mType mt = MetaInformation<T>::type( i->first );
+
+	      if ( mt != META_UNDEFINED ) 
+		{
+		  
+		  meta_index_t midx = MetaInformation<T>::field( i->first );
+		  
+		  if ( midx.mt == META_FLAG ) 
+		    {
+		      (*tok)->set( m.has_field( i->first ) ) ; 
+		    }
+		  else if ( m.has_field( i->first ) )
+		    {
+		      
+		      if ( midx.len == 0 || midx.len == 1 ) // scalars -- flags len == 0 (?check)
+			{
+			  if      ( midx.mt == META_INT   )  { (*tok)->set( m.get1_int( i->first ) );  }
+			  else if ( midx.mt == META_FLOAT )  { (*tok)->set( m.get1_double( i->first ) ); }
+			  else if ( midx.mt == META_TEXT  )  { (*tok)->set( m.get1_string( i->first ) ); }
+			  else if ( midx.mt == META_BOOL  )  { (*tok)->set( m.get1_bool( i->first ) );   }	      
+			}
+		      else //vectors
+			{		      
+			  if      ( midx.mt == META_INT   )  { (*tok)->set( m.get_int( i->first ) );    }
+			  else if ( midx.mt == META_FLOAT )  { (*tok)->set( m.get_double( i->first ) ); }
+			  else if ( midx.mt == META_TEXT  )  { (*tok)->set( m.get_string( i->first ) ); }
+			  else if ( midx.mt == META_BOOL  )  { (*tok)->set( m.get_bool( i->first ) );   }	      
+			}
+		    }
+		  else
+		    (*tok)->set(); // UNDEFINED
+		}
+	      else 
+		{ 	      
+		  (*tok)->set(); // UNDEFINED
+		}
+	    }	
 	  ++tok;
 	}
       ++i;
-    }  
-  
+    }    
 }
 
 
-void Eval::eval_gfunc( SampleVariant & svar )
+
+Token Eval::eval_gfunc( const std::string & expr , int gmode )
 {
   
-  std::map<std::string,std::vector<std::string> >::iterator i = gfunc.begin();
- 
-  while ( i != gfunc.end() )
+  //               gmode
+  // gnull() --->  0
+  // g()     --->  1 
+  // gset()  --->  2
+
+
+  // 'gnull' function modifies actual data
+  
+  bool gnull_mode = gmode == 0;
+  bool gset_mode  = gmode == 2;
+      
+  //
+  // Parse genotype-specific expression
+  //
+
+  if ( gvar == NULL ) return Token();
+
+  Eval e;
+
+  // replace any delimiter fields that were previously set to ':' instead of ';'
+
+  std::string e2 = expr;
+
+  for (int i=0;i<e2.size();i++)
+    if ( e2[i] == ':' ) e2[i] = ';';
+
+  if ( ! e.parse( e2 ) ) return Token();
+
+
+  // set gen-meta mode
+
+  e.genmeta( true );
+  e.gvar = gvar;      
+  
+  //
+  // For each individual, evaluate e and store resulting token
+  //
+  
+  const int n = gvar->calls.size();
+  
+  std::vector<Token::Token> rval(n);
+
+  std::set<Token::tok_type> types;
+
+  for (int j=0; j < n; j++)
     {
 
-      std::string expr = i->second.back();
+      // attach genotype meta-information
+      
+      e.indiv_pointer( j );
+      e.bind( gvar->calls.genotype(j).meta );
+      e.assign_to( gvar->calls.genotype(j).meta );
 
-      std::string genmf = i->second[0];  // (if used )
+      // evaluate g(expr)
 
-      Eval e;
+      e.evaluate();	  
       
-      if ( ! e.parse( expr ) ) { ++i; continue; } 
+      // gnull mode -- set genotype to null if does not pass
       
-      // All functions return either a single 'int' or 'float'
-      
-      int ival = 0;
-      double fval = 0;
-
-      std::string gfunc_name = i->second[0];
-      
-      bool gmean  = gfunc_name == "gmean";
-      bool gcount = gfunc_name == "g" || gfunc_name == "gn";
-      bool gprop  = gfunc_name == "g";
-
-      // If we have to look at a GenMeta field, get the type now
-      
-      mType mt = META_UNDEFINED;
-      
-      if ( gmean ) 
+      if ( gnull_mode )
 	{
-	  mt = MetaInformation<GenMeta>::type( i->second[1] );
+	  bool passed = false;	  
+	  bool valid = e.value( passed );	  
+	  if ( (!valid) || (!passed) )
+	    gvar->calls.genotype(j).null( true );
 	}
-      
-      const int n = svar.calls.size();
-      
-      for (int j=0; j < n; j++)
+      else if ( gset_mode ) 
 	{
+	  std::cout << "setting geno...\n";
+	  Helper::halt( "gset() not yet implemented" );
+	}
+      else // mode to return a vector of expressions
+	{
+	  // needs to eval to a scalar value for each individual
 	  
-	  // attach genotype meta-information
-	  
- 	  e.bind( svar.calls.genotype(j).meta );
-	  
-	  e.evaluate();	  
-	  
-	  bool passed = false;
-	  
-	  bool valid = e.value(passed);
-	  
-	  if ( valid && passed )
-	    {	      
+	  Token::Token tok = e.value();
+	  Token::tok_type t = tok.type();
+	  if ( ! tok.is_scalar() ) t = Token::UNDEF;	      
 
-	      // Apply appropriate function
-	      
-	      if ( gcount ) ++ival; 
-	      else if ( ( gmean ) ) 
-		{
-		  if ( svar.calls.genotype(j).meta.has_field( genmf ) )
-		    {
-		      ++ival;  // use as denominator
-		      if ( mt == META_INT ) 
-			fval += (double)svar.calls.genotype(j).meta.get1_int( genmf );		      
-		      else if ( mt == META_FLOAT ) 
-			fval += svar.calls.genotype(j).meta.get1_double( genmf );		      
-		      else if ( mt == META_BOOL ) 
-			fval += (int)(svar.calls.genotype(j).meta.get1_bool( genmf ) );
-		    }
-		}
+	  if ( t != Token::UNDEF ) 
+	    {
+	      types.insert( t );		  
+	      rval[j] = tok;
 	    }
-	}
-
-
-      //
-      // attach value to parent
-      //
-
-      std::map<std::string,std::set<Token*> >::iterator k = vartb.find( i->first );
-      if ( k != vartb.end() )
-	{
-	  std::set<Token*>::iterator tok = k->second.begin();
-	  while ( tok != k->second.end() )
-	    {	      
-
-	      if ( gcount ) 		
-		{
-		  if ( gprop ) 
-		    {
-		      (*tok)->set( (double)ival/(double)n );
-		    }
-		  else
-		    (*tok)->set( ival );
-		}
-	      else if ( gmean ) (*tok)->set( fval/(double)ival );
-
-	      // and attach elsewhere 
-	      bind( *tok );
-
-	      ++tok;
-	    }
+	  else
+	    rval[j] = Token();
 	}
       
-      ++i;
+      // next individual
     }
   
+  
+  // 
+  // Return something
+  //
+  
+  if ( gnull_mode ) return Token( true );
+
+  
+  // Determine appropriate type of return vector
+  // bool < int < float < string
+  
+  Token::tok_type t = Token::UNDEF;
+  
+  if      ( types.find( Token::STRING ) != types.end() ) t = Token::STRING_VECTOR;
+  else if ( types.find( Token::FLOAT  ) != types.end() ) t = Token::FLOAT_VECTOR;
+  else if ( types.find( Token::INT    ) != types.end() ) t = Token::INT_VECTOR;
+  else if ( types.find( Token::BOOL   ) != types.end() ) t = Token::BOOL_VECTOR;
+      
+  Token::Token tok;	  
+  
+  if ( t == Token::BOOL_VECTOR )	    
+    {	      
+      std::vector<bool> x( n );
+      for (int i=0;i<n;i++) x[i] = rval[i].as_bool();
+      tok.set( x );
+    }
+  else if ( t == Token::FLOAT_VECTOR ) 
+    {
+      std::vector<double> x( n );
+      for (int i=0;i<n;i++) x[i] = rval[i].as_float();
+      tok.set( x );
+    }
+  else if ( t == Token::INT_VECTOR ) 
+    {	    
+      std::vector<int> x( n );
+      for (int i=0;i<n;i++) x[i] = rval[i].as_int();	      
+      tok.set( x );
+    }
+  else if ( t == Token::STRING_VECTOR )
+    {
+      std::vector<std::string> x( n );
+      for (int i=0;i<n;i++) x[i] = rval[i].as_string();	      
+      tok.set( x );
+    }
+
+  return tok;
+
 }
+  
+
 
 void Eval::bind( const Token * ntok )
 {
-  
+
   // we have have just created a meta-field from an assignment --
   // check whether this value now needs to be bound to any other
   // variable tokens (i.e. in next expression). ie. this function is
   // only called after an assignment is made and a meta-variable newly
   // created
-  
   
   std::map<std::string,std::set<Token*> >::iterator i = vartb.find( ntok->name() );
   if ( i != vartb.end() )
@@ -1134,11 +1275,12 @@ void Eval::bind( const Token * ntok )
       
       while ( tok != i->second.end() )
 	{	  
+
 	  if ( ntok == *tok ) { ++tok; continue; } 
 	  
 	  // we assume this new token has a well-defined type
 	  // copy it over
-
+	  
 	  *(*tok) = *ntok;
 	  
 	  ++tok;	  
@@ -1163,8 +1305,20 @@ std::string Eval::errmsg() const
   return errs;
 }
 
+void Eval::errmsg( const std::string & e )
+{
+  errs += e + "\n";
+}
+
+
+Token::tok_type Eval::rtype() const
+{
+  return e.type();
+}
+
 bool Eval::value(bool & b)
 {
+
   if ( e.is_bool(&b) ) return true;
 
   int i;
@@ -1191,6 +1345,11 @@ bool Eval::value(bool & b)
     }
 
   return false;
+}
+
+Token::Token Eval::value() const
+{
+  return e;
 }
 
 bool Eval::value(int & i)
@@ -1264,7 +1423,7 @@ bool Eval::expand_indices( std::string * s )
       //  backtrack to get 'x'
       //  then forwards to get 'y'
       //  then make extract(x,y)
-      // valid delimiters backwards are ' ' , % < > & | ! = * + - / ;
+      // valid delimiters backwards are ' ' \n \t , % < > & | ! ~ = * + - / ; { } (
 
       // but if we hit ")" before anything else (except whitespace) then we need to jump to the next 
       // "(" and then look for an identifier 
@@ -1294,14 +1453,14 @@ bool Eval::expand_indices( std::string * s )
 		}
 	    }
 
-	  if ( c == ',' || c == '&' || c == '%' 
-	       || c == '>' || c == '<' || c == '|' || c== '!' || 
-	       c == '=' || c == '*' || c == '+' || c == '-' || c == '/' || c == ';'  )
+	  if ( c == ',' || c == '&' || c == '%' || c == '>' || c == '<' || c == '|' || c == '(' ||
+	       c == '!' || c == '~' || c == '^' || c == '=' || c == '*' || c == '+' || c == '-' || 
+	       c == '/' || c == ';' || c == ':'  )
 	    { ++q; break; }	  
 	  
 	  // whitespace is a delimiter (outside of parens) 
 	  
-	  if ( c == ' ' )
+	  if ( c == ' ' || c == '\n' || c == '\t' )
 	    {
 	      if ( anything ) { ++q; break; } 
 	    }
@@ -1345,8 +1504,9 @@ void Eval::locate_symbols( std::vector<Token> & tok )
   
   for (int i=0; i<tok.size(); i++)
     if ( tok[i].is_variable() )
-      vartb[ tok[i].name() ].insert( &(tok[i]) );
-	
+      {
+	vartb[ tok[i].name() ].insert( &(tok[i]) );
+      }
   reset_symbols(); // symbol table
 }
 

@@ -3450,7 +3450,7 @@ bool Mask::case_control_filter( const int a, const int u) const
 }
 
 
-void Mask::set_filter_expression(const std::string & e )
+void Mask::set_filter_expression( const std::string & e )
 {
   if ( ! eval_expr.parse(e) ) Helper::halt("could not parse expression: " + e + "\n" + eval_expr.errmsg() );
   eval_expr_set = true;
@@ -3461,7 +3461,7 @@ bool Mask::filter_expression_requires_genotypes() const
   return eval_expr.requires_genotypes();
 }
 
-bool Mask::calc_filter_expression( SampleVariant & svar )
+bool Mask::calc_filter_expression( Variant & var , SampleVariant & svar )
 {
   eval_expr.bind( svar );
   eval_expr.evaluate();
@@ -3469,14 +3469,14 @@ bool Mask::calc_filter_expression( SampleVariant & svar )
   bool valid = eval_expr.value( passed );
   if ( ! valid ) 
     {
-      plog.warn( "could not evaluate filter expression: " , eval_expr.errmsg() );
+      plog.warn( "could not evaluate filter: " , var.coordinate() + ", " + eval_expr.errmsg() );
       return false; //invalid expressions always evaluate as false
     }
   if ( ! eval_filter_includes ) passed = ! passed;
   return passed;
 }
 
-bool Mask::calc_filter_expression( SampleVariant & svar , SampleVariant & gvar )
+bool Mask::calc_filter_expression( Variant & var , SampleVariant & svar , SampleVariant & gvar )
 {
   eval_expr.bind( svar , gvar );
   eval_expr.evaluate();
@@ -3484,7 +3484,7 @@ bool Mask::calc_filter_expression( SampleVariant & svar , SampleVariant & gvar )
   bool valid = eval_expr.value( passed );
   if ( ! valid ) 
     {
-      plog.warn( "could not evaluate filter expression: " , eval_expr.errmsg() );
+      plog.warn( "could not evaluate filter: " , var.coordinate() + ", " + eval_expr.errmsg() );
       return false; //invalid expressions always evaluate as false
     }
   if ( ! eval_filter_includes ) passed = ! passed;
@@ -3511,7 +3511,7 @@ bool Mask::var_calc_filter_expression( Variant & var )
   var_eval_expr.evaluate();
   bool passed = false;
   bool valid = var_eval_expr.value(passed);
-  if ( ! valid ) Helper::halt( "could not evaluate filter expression: " + var_eval_expr.errmsg() );
+  if ( ! valid ) Helper::halt( "could not evaluate filter: " + var_eval_expr.errmsg() );
   if ( ! var_eval_filter_includes ) passed = ! passed;
   return passed;
 }

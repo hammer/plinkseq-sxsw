@@ -1,13 +1,32 @@
 
 #include "token.h"
+#include "eval.h"
+#include "matrix.h"
+#include "gstore.h"
 
 #include <sstream>
 #include <cmath>
 #include <algorithm>
 
-// TODO
+#include <iostream>
 
+extern GStore * GP;
+
+// TODO
 // for now, vector x scalar comparisons do not allow for type conversion
+
+
+void TokenFunctions::attach( MetaInformation<VarMeta> & m ) 
+{ 
+  meta = &m; 
+  genmeta = NULL;
+}
+
+void TokenFunctions::attach( MetaInformation<GenMeta> & m ) 
+{ 
+  meta = NULL;
+  genmeta = &m; 
+}
 
 void Token::set()
 {
@@ -119,6 +138,7 @@ void Token::init()
     tok_map[ "==" ] = EQUAL_OPERATOR;
     tok_map[ "!=" ] = UNEQUAL_OPERATOR;
     tok_map[ "!" ]  = NOT_OPERATOR;
+    tok_map[ "~" ]  = NOT_OPERATOR;
     tok_map[ ">" ]  = GREATER_THAN_OPERATOR;
     tok_map[ ">=" ] = GREATER_THAN_OR_EQUAL_OPERATOR;
     tok_map[ "<" ]  = LESS_THAN_OPERATOR;
@@ -147,7 +167,8 @@ void Token::init()
     fn_map[ "pow"  ]   = 2;  // X^N    
     fn_map[ "ifelse" ] = 3;  // ifelse( cond , T , F )
     fn_map[ "n" ]      = 0;  // number of people in file
-    
+    fn_map[ "g" ]      = 1;  // extract genotype meta-field
+
     // vector functions
 
     fn_map[ "element" ] = 2;  // element(Y,i)      extract element 'i' from vector 'Y'
@@ -159,11 +180,20 @@ void Token::init()
     fn_map[ "sort" ]    = 1;  // sort(Y)     returns sorted vector Y (asc.)
 
     // vector creation 
-    fn_map[ "vec" ]    = 1;  // vec( '1,0,1' ) -- floating point vector
-    fn_map[ "int" ]    = 1;  // vec( '1,0,1' )  ints
-    fn_map[ "str" ]    = 1;  // vec( '1,0,1' )  strings
-    fn_map[ "bool" ]   = 1;  // vec( '1,0,1' )  bools
 
+    fn_map[ "vec_func" ]    = 1;  // vec( 1,0,1 ) -- floating point vector
+    fn_map[ "int_func" ]    = 1;  // int( 1,0,1 )  ints
+    fn_map[ "str_func" ]    = 1;  // str( 1,0,1 )  strings
+    fn_map[ "bool_func" ]   = 1;  // bool( 1,0,1 )  bools
+
+    // genotype-vector extraction
+    fn_map[ "g_func" ]      = 1;  // g( DP < 10 ) -- internally --> g( 'DP < 10' )
+    fn_map[ "gf_func"]      = 1;  // as above
+    fn_map[ "gs_func"]      = 1;  // as above
+    fn_map[ "n" ]           = 0;
+    
+    // phenotype extraction
+    fn_map[ "p_func" ]      = 1; // p(X) returns (or assigns to) phenotype X
     
     // here 'x' can be a complex expression, where has( Y < 2 ) 
     fn_map[ "any" ]    = 2;   // any( expr )    T/F if Y contains 1+ element matching 'x'
@@ -435,7 +465,47 @@ Token Token::operator!=(const Token & rhs ) const
 {
   // vector x vector comparison not defined
 
-  if ( is_vector() && rhs.is_vector() ) return Token();
+  if ( is_vector() && rhs.is_vector() ) 
+    {
+      
+      if ( size() != rhs.size() ) return Token();
+      const int sz = size();
+      std::vector<bool> ans( sz );      
+
+      if ( rhs.is_int_vector() ) 
+	{	  
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] != rhs.ivec[i];
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] != rhs.ivec[i]; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] != rhs.ivec[i]; 
+	  return Token( ans );
+	}
+      else if ( rhs.is_float_vector() )
+	{
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] != rhs.fvec[i];
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] != rhs.fvec[i]; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] != rhs.fvec[i]; 
+	  return Token( ans );	 
+	}
+      else if ( rhs.is_bool_vector() )
+	{
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] != rhs.bvec[i];
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] != rhs.bvec[i]; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] != rhs.bvec[i]; 
+	  return Token( ans );
+	}	  
+      else if ( rhs.is_string_vector() )
+	{
+	  if ( is_string_vector() )  for (int i=0; i<sz; i++) ans[i] = svec[i] != rhs.svec[i]; 
+	  else return Token();
+	  return Token( ans );
+	}	  
+      else
+	return Token();
+    }
+
 
   // vector != scalar 
 
@@ -443,14 +513,43 @@ Token Token::operator!=(const Token & rhs ) const
     {
       const int sz = size();
       if ( sz == 0 ) return Token();
+
       std::vector<bool> ans( sz );      
-      if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] != rhs.ival;
-      else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] != rhs.fval; 
-      else if ( is_string_vector() ) for (int i=0; i<sz; i++) ans[i] = svec[i] != rhs.sval;  
-      else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] != rhs.bval; 
-      return Token( ans );
+
+      if ( rhs.is_int() ) 
+	{
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] != rhs.ival;
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] != rhs.ival; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] != rhs.ival; 	  
+	  return Token( ans );
+	}
+      else if ( rhs.is_float() )
+	{
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] != rhs.fval;
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] != rhs.fval; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] != rhs.fval; 	  
+	  return Token( ans );
+	}
+      else if ( rhs.is_bool() ) 
+	{
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] != rhs.bval;
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] != rhs.bval; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] != rhs.bval; 	  
+	  return Token( ans );
+	}
+      else if ( rhs.is_string() ) 
+	{
+	  if ( is_string_vector() ) for (int i=0; i<sz; i++) ans[i] = svec[i] != rhs.sval;  
+	  else return Token(); 
+	  return Token( ans );
+	}
+      else return Token();
     }
   
+
   // scalar != vector
 
   if ( rhs.is_vector() )
@@ -458,15 +557,43 @@ Token Token::operator!=(const Token & rhs ) const
       const int sz = rhs.size();
       if ( sz == 0 ) return Token();
       std::vector<bool> ans( sz );      
-      if      ( rhs.is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = rhs.ivec[i] != ival;
-      else if ( rhs.is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = rhs.fvec[i] != fval;
-      else if ( rhs.is_string_vector() ) for (int i=0; i<sz; i++) ans[i] = rhs.svec[i] != sval;
-      else if ( rhs.is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = rhs.bvec[i] != bval;
-      return Token( ans );      
+      
+      if ( is_int() )
+	{
+	  if      ( rhs.is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = rhs.ivec[i] != ival;
+	  else if ( rhs.is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = rhs.fvec[i] != ival;
+	  else if ( rhs.is_string_vector() ) return Token();
+	  else if ( rhs.is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = rhs.bvec[i] != ival;
+	  return Token( ans );      
+	}
+      else if ( is_float() )
+	{
+	  if      ( rhs.is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = rhs.ivec[i] != fval;
+	  else if ( rhs.is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = rhs.fvec[i] != fval;
+	  else if ( rhs.is_string_vector() ) return Token();
+	  else if ( rhs.is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = rhs.bvec[i] != fval;
+	  return Token( ans );     
+	}
+      else if ( is_bool() )
+	{
+	  if      ( rhs.is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = rhs.ivec[i] != bval;
+	  else if ( rhs.is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = rhs.fvec[i] != bval;
+	  else if ( rhs.is_string_vector() ) return Token();
+	  else if ( rhs.is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = rhs.bvec[i] != bval;
+	  return Token( ans );     
+	}
+      else if ( is_string() )
+	{
+	  if ( rhs.is_string_vector() ) for (int i=0; i<sz; i++) ans[i] = rhs.svec[i] != sval;
+	  else return Token();
+	  return Token( ans );     
+	}
+      else return Token();
     }
 
       
   // scalar x scalar
+
   if ( is_bool()   && rhs.is_bool()   )  return Token( bval != rhs.bval ); 
   if ( is_int()    && rhs.is_int()    )  return Token( ival != rhs.ival ); 
   if ( is_float()  && rhs.is_float()  )  return Token( fval != rhs.fval ); 
@@ -475,6 +602,9 @@ Token Token::operator!=(const Token & rhs ) const
   // also allow int / bool and  int / float comparisons
   if ( is_int()   && rhs.is_bool()    )  return Token( ival != rhs.bval );
   if ( is_bool()  && rhs.is_int()     )  return Token( bval != rhs.ival );
+
+  if ( is_float() && rhs.is_bool()    )  return Token( fval != rhs.bval );
+  if ( is_bool()  && rhs.is_float()   )  return Token( bval != rhs.fval );
 
   if ( is_float() && rhs.is_int()     )  return Token( fval != rhs.ival );
   if ( is_int()   && rhs.is_float()   )  return Token( ival != rhs.fval );
@@ -486,38 +616,136 @@ Token Token::operator!=(const Token & rhs ) const
 Token Token::operator==(const Token & rhs) const
 {
 
-  // vector x vector comparison not defined
-  if ( is_vector() && rhs.is_vector() ) return Token();
+  // vector x vector comparison defined for same-length vectors (element-wise comparison)
 
-  // vector != scalar 
+  if ( is_vector() && rhs.is_vector() ) 
+    {
+      if ( size() != rhs.size() ) return Token();
+
+      const int sz = size();
+      std::vector<bool> ans( sz );      
+
+      if ( rhs.is_int_vector() ) 
+	{	  
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] == rhs.ivec[i];
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] == rhs.ivec[i]; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] == rhs.ivec[i]; 
+	  return Token( ans );
+	}
+      else if ( rhs.is_float_vector() )
+	{
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] == rhs.fvec[i];
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] == rhs.fvec[i]; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] == rhs.fvec[i]; 
+	  return Token( ans );	 
+	}
+      else if ( rhs.is_bool_vector() )
+	{
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] == rhs.bvec[i];
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] == rhs.bvec[i]; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] == rhs.bvec[i]; 
+	  return Token( ans );
+	}	  
+      else if ( rhs.is_string_vector() )
+	{
+	  if ( is_string_vector() )  for (int i=0; i<sz; i++) ans[i] = svec[i] == rhs.svec[i]; 
+	  else return Token();
+	  return Token( ans );
+	}	  
+      else
+	return Token();
+
+    }
+
+
+  // vector == scalar 
 
   if ( is_vector() )
     {
       const int sz = size();
       if ( sz == 0 ) return Token();
+
       std::vector<bool> ans( sz );      
-      if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] == rhs.ival;
-      else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] == rhs.fval; 
-      else if ( is_string_vector() ) for (int i=0; i<sz; i++) ans[i] = svec[i] == rhs.sval;  
-      else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] == rhs.bval; 
-      return Token( ans );
+
+      if ( rhs.is_int() ) 
+	{
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] == rhs.ival;
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] == rhs.ival; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] == rhs.ival; 	  
+	  return Token( ans );
+	}
+      else if ( rhs.is_float() )
+	{
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] == rhs.fval;
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] == rhs.fval; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] == rhs.fval; 	  
+	  return Token( ans );
+	}
+      else if ( rhs.is_bool() ) 
+	{
+	  if      ( is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = ivec[i] == rhs.bval;
+	  else if ( is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] == rhs.bval; 
+	  else if ( is_string_vector() ) return Token();
+	  else if ( is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] == rhs.bval; 	  
+	  return Token( ans );
+	}
+      else if ( rhs.is_string() ) 
+	{
+	  if ( is_string_vector() ) for (int i=0; i<sz; i++) ans[i] = svec[i] == rhs.sval;  
+	  else return Token(); 
+	  return Token( ans );
+	}
+      else return Token();
     }
   
-  // scalar != vector
+
+  // scalar == vector
 
   if ( rhs.is_vector() )
     {
       const int sz = rhs.size();
       if ( sz == 0 ) return Token();
       std::vector<bool> ans( sz );      
-      if      ( rhs.is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = rhs.ivec[i] == ival;
-      else if ( rhs.is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = rhs.fvec[i] == fval;
-      else if ( rhs.is_string_vector() ) for (int i=0; i<sz; i++) ans[i] = rhs.svec[i] == sval;
-      else if ( rhs.is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = rhs.bvec[i] == bval;
-      return Token( ans );      
+      
+      if ( is_int() )
+	{
+	  if      ( rhs.is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = rhs.ivec[i] == ival;
+	  else if ( rhs.is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = rhs.fvec[i] == ival;
+	  else if ( rhs.is_string_vector() ) return Token();
+	  else if ( rhs.is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = rhs.bvec[i] == ival;
+	  return Token( ans );      
+	}
+      else if ( is_float() )
+	{
+	  if      ( rhs.is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = rhs.ivec[i] == fval;
+	  else if ( rhs.is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = rhs.fvec[i] == fval;
+	  else if ( rhs.is_string_vector() ) return Token();
+	  else if ( rhs.is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = rhs.bvec[i] == fval;
+	  return Token( ans );     
+	}
+      else if ( is_bool() )
+	{
+	  if      ( rhs.is_int_vector() )    for (int i=0; i<sz; i++) ans[i] = rhs.ivec[i] == bval;
+	  else if ( rhs.is_float_vector() )  for (int i=0; i<sz; i++) ans[i] = rhs.fvec[i] == bval;
+	  else if ( rhs.is_string_vector() ) return Token();
+	  else if ( rhs.is_bool_vector() )   for (int i=0; i<sz; i++) ans[i] = rhs.bvec[i] == bval;
+	  return Token( ans );     
+	}
+      else if ( is_string() )
+	{
+	  if ( rhs.is_string_vector() ) for (int i=0; i<sz; i++) ans[i] = rhs.svec[i] == sval;
+	  else return Token();
+	  return Token( ans );     
+	}
+      else return Token();
     }
 
-      
+            
   // scalar x scalar
   if ( is_bool()   && rhs.is_bool()   )  return Token( bval == rhs.bval ); 
   if ( is_int()    && rhs.is_int()    )  return Token( ival == rhs.ival ); 
@@ -527,6 +755,9 @@ Token Token::operator==(const Token & rhs) const
   // also allow int / bool and  int / float comparisons
   if ( is_int()   && rhs.is_bool()    )  return Token( ival == rhs.bval );
   if ( is_bool()  && rhs.is_int()     )  return Token( bval == rhs.ival );
+
+  if ( is_float() && rhs.is_bool()    )  return Token( fval == rhs.bval );
+  if ( is_bool()  && rhs.is_float()   )  return Token( bval == rhs.fval );
 
   if ( is_float() && rhs.is_int()     )  return Token( fval == rhs.ival );
   if ( is_int()   && rhs.is_float()   )  return Token( ival == rhs.fval );
@@ -538,8 +769,53 @@ Token Token::operator==(const Token & rhs) const
 Token Token::operator+(const Token & rhs) const
 {
 
-  // vector x vector comparison not defined
-  if ( is_vector() && rhs.is_vector() ) return Token();
+  // vector x vector comparison defined for same-length vectors
+
+  if ( is_vector() && rhs.is_vector() ) 
+    {
+
+      if ( size() != rhs.size() ) return Token();
+      const int sz = size();      
+      
+      // concatenate strings
+      if ( is_string_vector() && rhs.is_string_vector() )
+	{
+	  std::vector<std::string> ans( sz );      
+	  for (int i=0; i<sz; i++) ans[i] = svec[i] + rhs.svec[i];
+	  return Token( ans );            
+	}
+      
+      if ( is_int_vector() ) 
+	{
+	  std::vector<int> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] + rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = ivec[i] + (int)rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] + (int)rhs.bvec[i];
+	  else return Token();
+	  return Token( ans );            
+	}
+      
+      if ( is_float_vector() )
+	{
+	  std::vector<double> ans( sz );      
+	  if      ( rhs.is_int() )   for (int i=0; i<sz; i++) ans[i] = fvec[i] + rhs.ivec[i];
+	  else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = fvec[i] + rhs.fvec[i];
+	  else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] + (double)rhs.bvec[i];
+	  return Token( ans );                  
+	}
+      
+      else if ( is_bool_vector() )
+	{
+	  std::vector<double> ans( sz );      
+	  if ( rhs.is_int() )        for (int i=0; i<sz; i++) ans[i] = bvec[i] + rhs.ivec[i];
+	  else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = bvec[i] + rhs.fvec[i];
+	  else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = bvec[i] + (double)rhs.bvec[i];
+	  return Token( ans );                  
+	}
+
+      return Token();
+    }
+
 
   // concatenate strings ( in which case, A+B != B+A, so do before next step)
   if ( is_string_vector() && rhs.is_string() ) 
@@ -907,7 +1183,7 @@ Token Token::operator/(const Token & rhs) const
       else if ( is_bool() )  for (int i=0; i<sz; i++) ans[i] = (double)bval / rhs.fvec[i];
       return Token( ans );            
     }
-
+  
 
   // scalar / scalar  (always return a double)
 
@@ -941,7 +1217,7 @@ Token Token::operator%(const Token & rhs) const
       const int sz = size();
       if ( sz == 0 ) return Token();
       std::vector<int> ans( sz );      
-      for (int i=0; i<sz; i++) ans[i] = (int)(ival % rhs.ival );
+      for (int i=0; i<sz; i++) ans[i] = (int)(ivec[i] % rhs.ival );
       return Token(ans);
     }
   
@@ -1469,95 +1745,6 @@ std::vector<bool> Token::as_bool_vector() const
 // Token functions
 //
 
-Token TokenFunctions::fn_assign( Token & lhs , const Token & rhs )
-{
-  
-  // Currently, this does not allow ASSIGNs to GenMeta, or any other
-  // kind of meta.  This is fine -- just a bit messy as we use the
-  // Eval class for gfuncs also... okay to keep this as is, VarMeta
-  // specific, but try to clean up at some point.
-
-  if ( ! meta ) return Token();
-  
-  bool b;
-  if ( rhs.is_bool(&b) )
-    {
-      
-      MetaInformation<VarMeta>::field( lhs.name() , META_BOOL , 1 , "" );      
-      meta->set( lhs.name() , b );
-      lhs.set( b );
-      return Token( true );
-    }
-
-  int i;
-  if ( rhs.is_int(&i) )
-    {      
-      MetaInformation<VarMeta>::field( lhs.name() , META_INT , 1 , "" );
-      meta->set( lhs.name() , i );
-      lhs.set( i );
-      return Token( true );
-    }
-
-  double f;
-  if ( rhs.is_float(&f) ) 
-    {
-      MetaInformation<VarMeta>::field( lhs.name() , META_FLOAT , 1 , "" );
-      meta->set( lhs.name() , f );
-      lhs.set( f );
-      return Token( true );
-    }
-
-  std::string s;
-  if ( rhs.is_string(&s) )
-    {
-      MetaInformation<VarMeta>::field( lhs.name() , META_TEXT , 1 , "" );
-      meta->set( lhs.name() , s );
-      lhs.set( s );
-      return Token( true );
-    }
-
-
-  // now the same for vectors
-
-  std::vector<double> fv;
-  if ( rhs.is_float_vector(&fv) ) 
-    {
-      MetaInformation<VarMeta>::field( lhs.name() , META_FLOAT , -1 , "" );
-      meta->set( lhs.name() , fv );
-      lhs.set( fv );
-      return Token( true );
-    }
-
-  std::vector<bool> bv;
-  if ( rhs.is_bool_vector(&bv) )
-    {      
-      MetaInformation<VarMeta>::field( lhs.name() , META_BOOL , -1 , "" );      
-      meta->set( lhs.name() , bv );
-      lhs.set( bv );
-      return Token( true );
-    }
-
-  std::vector<int> iv;
-  if ( rhs.is_int_vector(&iv) )
-    {                  
-      MetaInformation<VarMeta>::field( lhs.name() , META_INT , -1 , "" );
-      meta->set( lhs.name() , iv );
-      lhs.set( iv );
-      return Token( true );
-    }
-
-
-  std::vector<std::string> sv;
-  if ( rhs.is_string_vector(&sv) )
-    {
-      MetaInformation<VarMeta>::field( lhs.name() , META_TEXT , -1 , "" );
-      meta->set( lhs.name() , sv );
-      lhs.set( sv );
-      return Token( true );
-    }
-    
-  return Token( true );  
-} 
 
 Token TokenFunctions::fn_set( const Token & tok ) const
 {
@@ -1607,32 +1794,7 @@ Token TokenFunctions::fn_pow( const Token & tok , const Token & tok2 ) const
 }
 
 
-// CHECK -- *** We can remove the 3 functions below *** 
 
-Token TokenFunctions::fn_n() 
-{
-  return 0;//Token( var->size() );
-}
-
-
-Token TokenFunctions::fn_g( const Token & cond )
-{
-
-  // hmm -- these will be harder, if we are to allow arbitrary
-  // expressions that apply per-genotype...  leave for now..
-  return Token();
-
-}
-
-
-Token TokenFunctions::fn_gmean( const Token & field , const Token & cond )
-{
-  // which genotype meta-field do we want to loot at?
-  std::string key;
-  if ( ! field.is_string( &key ) ) return Token();
-
-  return Token();  
-}
 
 
 Token TokenFunctions::fn_ifelse( const Token & cond , const Token & opt1 , const Token & opt2 ) const
@@ -1704,7 +1866,7 @@ Token TokenFunctions::fn_vec_any( const Token & tok1 , const Token & tok2 ) cons
 
 Token TokenFunctions::fn_vec_count( const Token & tok1 , const Token & tok2 ) const
 {
-  plog.warn( "fn_vec_count() not yet implemented" );
+  return fn_vec_sum( tok1 == tok2 );
   return Token();  
 }
 
@@ -1965,3 +2127,284 @@ Token TokenFunctions::fn_vec_new_bool( const Token & tok ) const
    return Token( d );
 }
 
+
+Token TokenFunctions::fn_vec_g( const Token & tok , Eval * e ) const
+{
+  if ( ! tok.is_string() ) return Token();
+  return e->eval_gfunc( tok.as_string() , 1 );
+}
+
+Token TokenFunctions::fn_vec_gnull( const Token & tok , Eval * e ) const
+{
+  if ( ! tok.is_string() ) return Token();
+  return e->eval_gfunc( tok.as_string() , 0 );
+}
+
+Token TokenFunctions::fn_vec_gset( const Token & tok , Eval * e ) const
+{
+  if ( ! tok.is_string() ) return Token();
+  return e->eval_gfunc( tok.as_string() , 2 );
+}
+
+Token TokenFunctions::fn_assign_var( Token & lhs , const Token & rhs )
+{
+  if ( ! meta ) return Token();
+  
+  bool b;
+  if ( rhs.is_bool(&b) )
+    {      
+      MetaInformation<VarMeta>::field( lhs.name() , META_BOOL , 1 , "" );      
+      meta->set( lhs.name() , b );
+      lhs.set( b );
+      return Token( true );
+    }
+
+  int i;
+  if ( rhs.is_int(&i) )
+    {      
+      MetaInformation<VarMeta>::field( lhs.name() , META_INT , 1 , "" );
+      meta->set( lhs.name() , i );
+      lhs.set( i );
+      return Token( true );
+    }
+  
+  
+  double f;
+  if ( rhs.is_float(&f) ) 
+    {
+      MetaInformation<VarMeta>::field( lhs.name() , META_FLOAT , 1 , "" );
+      meta->set( lhs.name() , f );
+      lhs.set( f );
+      return Token( true );
+    }
+  
+  std::string s;
+  if ( rhs.is_string(&s) )
+    {
+      MetaInformation<VarMeta>::field( lhs.name() , META_TEXT , 1 , "" );
+      meta->set( lhs.name() , s );
+      lhs.set( s );
+      return Token( true );
+    }
+  
+  std::vector<double> fv;
+  if ( rhs.is_float_vector(&fv) ) 
+    {
+      MetaInformation<VarMeta>::field( lhs.name() , META_FLOAT , -1 , "" );
+      meta->set( lhs.name() , fv );
+      lhs.set( fv );
+      return Token( true );
+    }
+  
+  std::vector<bool> bv;
+  if ( rhs.is_bool_vector(&bv) )
+    {      
+      MetaInformation<VarMeta>::field( lhs.name() , META_BOOL , -1 , "" );      
+      meta->set( lhs.name() , bv );
+      lhs.set( bv );
+      return Token( true );
+    }
+  
+  std::vector<int> iv;
+  if ( rhs.is_int_vector(&iv) )
+    {                  
+      MetaInformation<VarMeta>::field( lhs.name() , META_INT , -1 , "" );
+      meta->set( lhs.name() , iv );
+      lhs.set( iv );
+      return Token( true );
+    }
+  
+      
+  std::vector<std::string> sv;
+  if ( rhs.is_string_vector(&sv) )
+    {
+      MetaInformation<VarMeta>::field( lhs.name() , META_TEXT , -1 , "" );
+      meta->set( lhs.name() , sv );
+      lhs.set( sv );
+      return Token( true );
+    }
+  
+  return Token( true );  
+} 
+  
+
+Token TokenFunctions::fn_assign_gen( Token & lhs , const Token & rhs )
+{
+
+  if ( ! genmeta ) return Token();
+
+  bool b;
+  if ( rhs.is_bool(&b) )
+    {      
+      MetaInformation<GenMeta>::field( lhs.name() , META_BOOL , 1 , "" );      
+      genmeta->set( lhs.name() , b );
+      lhs.set( b );
+      return Token( true );
+    }
+
+  int i;
+  if ( rhs.is_int(&i) )
+    {      
+      MetaInformation<GenMeta>::field( lhs.name() , META_INT , 1 , "" );
+      genmeta->set( lhs.name() , i );
+      lhs.set( i );
+      return Token( true );
+    }
+  
+  
+  double f;
+  if ( rhs.is_float(&f) ) 
+    {
+      MetaInformation<GenMeta>::field( lhs.name() , META_FLOAT , 1 , "" );
+      genmeta->set( lhs.name() , f );
+      lhs.set( f );
+      return Token( true );
+    }
+  
+  std::string s;
+  if ( rhs.is_string(&s) )
+    {
+      MetaInformation<GenMeta>::field( lhs.name() , META_TEXT , 1 , "" );
+      genmeta->set( lhs.name() , s );
+      lhs.set( s );
+      return Token( true );
+    }
+  
+  std::vector<double> fv;
+  if ( rhs.is_float_vector(&fv) ) 
+    {
+      MetaInformation<GenMeta>::field( lhs.name() , META_FLOAT , -1 , "" );
+      genmeta->set( lhs.name() , fv );
+      lhs.set( fv );
+      return Token( true );
+    }
+  
+  std::vector<bool> bv;
+  if ( rhs.is_bool_vector(&bv) )
+    {      
+      MetaInformation<GenMeta>::field( lhs.name() , META_BOOL , -1 , "" );      
+      genmeta->set( lhs.name() , bv );
+      lhs.set( bv );
+      return Token( true );
+    }
+  
+  std::vector<int> iv;
+  if ( rhs.is_int_vector(&iv) )
+    {                  
+      MetaInformation<GenMeta>::field( lhs.name() , META_INT , -1 , "" );
+      genmeta->set( lhs.name() , iv );
+      lhs.set( iv );
+      return Token( true );
+    }
+  
+      
+  std::vector<std::string> sv;
+  if ( rhs.is_string_vector(&sv) )
+    {
+      MetaInformation<GenMeta>::field( lhs.name() , META_TEXT , -1 , "" );
+      genmeta->set( lhs.name() , sv );
+      lhs.set( sv );
+      return Token( true );
+    }
+  
+  return Token( true );  
+} 
+
+Token TokenFunctions::fn_vec_pheno( const Token & tok ) const
+{
+  std::string name;
+  if ( ! tok.is_string( &name ) ) return Token();
+  
+  if ( GP->phmap.phenotype_exists( name ) )
+    {
+      Data::Vector<double> phe = GP->phmap.get_pheno( name , GP->indmap );
+      const std::vector<double> * p = phe.data_pointer();
+      Token rtok( *p );
+      return rtok;
+    }
+  else
+    {
+
+      // If we do not recognise this phenotype name, means that 
+      // Return as a function ( so can be an lvalue in a subsequent assignment )	
+
+      std::cout << "setting here..\n";
+
+      Token ftok;
+      ftok.function( "p_func" );
+      return ftok;
+
+    }
+  
+}
+
+Token TokenFunctions::fn_vec_1pheno( const Token & tok , int indiv ) const
+{
+  std::string name;
+  if ( ! tok.is_string( &name ) ) return Token();
+  
+  Individual * person = GP->indmap.ind( indiv );
+  if ( person == NULL ) return Token();  
+  if ( ! person->meta.has_field( name ) ) return Token();
+  
+  double pheno;
+
+  mType mt = MetaInformation<IndivMeta>::type( name );
+  
+  if ( mt == META_INT ) 
+    pheno = person->meta.get1_int( name );
+  else if ( mt == META_BOOL ) 
+    pheno = person->meta.get1_bool( name );
+  else if ( mt == META_FLOAT ) 
+    pheno = person->meta.get1_double( name );
+  else
+    return Token();
+  
+  return Token( pheno );
+  
+}
+
+
+Token TokenFunctions::fn_assign_pheno( Token & lhs , const Token & rhs )
+{
+
+
+  // as an lvalue, it is no longer defined
+  lhs = Token();
+
+  // expecting rvalue to be a vector of length 'n'
+  if ( rhs.size() != GP->indmap.size() ) return Token();
+
+  const int sz = rhs.size();
+
+  std::string name = lhs.name();
+
+  //  if ( ! lhs.is_string( &name ) ) return Token();
+  lhs.is_string( &name );
+  rhs.is_string( &name );
+    
+  std::cout << "N = " << name << "\n";
+  std::cout << "N = " << lhs.name() << "\n";
+  std::cout << "N = " << rhs.name() << "\n";
+
+  if ( name == "" ) return Token();
+
+  std::vector<int> p( sz );
+  
+  // bool -> case/control
+  // int  -> 2/1/0  case/control/missing
+  
+  if ( rhs.is_bool_vector() ) 
+    for (int i=0;i<sz;i++) p[i] = rhs.bool_element( i ) + 1;
+  else if ( rhs.is_int_vector() )
+    for (int i=0;i<sz;i++) p[i] = rhs.int_element( i );
+  else if ( rhs.is_float_vector() )
+    for (int i=0;i<sz;i++) p[i] = rhs.float_element( i );
+
+  std::cout << "about to set..\n";
+
+  GP->phmap.attach_dichot_phenotype( name , p , GP->indmap );
+  
+  // assignments always return T
+  return Token( true );
+}

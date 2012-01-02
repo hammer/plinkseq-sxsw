@@ -55,6 +55,8 @@ namespace Data {
       return v;
     }
     
+    const std::vector<T> * data_pointer() const { return data.size() ? &data : NULL ; }
+
     private:
     
     std::vector<T> data;

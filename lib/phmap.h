@@ -80,7 +80,11 @@ class PhenotypeMap {
   // Phenotype related functions
   //
 
+  bool phenotype_exists( const std::string & phenotype ) const;
+
   int set_phenotype( const std::string & phenotype );
+
+  int attach_dichot_phenotype( const std::string & pname , const std::vector<int> & phe , const IndividualMap & );
 
   int make_phenotype( const std::string & make_phenotype );
 
@@ -132,7 +136,12 @@ class PhenotypeMap {
       return out;
     }
   
+  //
+  // Direct query functions
+  //
 
+  Data::Vector<double> get_pheno( const std::string & p , const IndividualMap & indmap ) const;
+  
  private:
 
 

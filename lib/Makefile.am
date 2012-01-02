@@ -5,6 +5,7 @@
 lib_LTLIBRARIES = libplinkseq.la
 
 libplinkseq_la_SOURCES = \
+eval.h \
 allele.h \
 annot.h \
 bcf.h \
@@ -17,7 +18,6 @@ crandom.h \
 dcdflib.h \
 defs.h \
 em.h \
-eval.h \
 filemap.h \
 fisher.h \
 genotype.h \
@@ -58,6 +58,8 @@ variant.pb.h \
 vcf.h \
 vgroup.h \
 zfstream.h \
+eval.cpp \
+token.cpp \
 vcfz.cpp \
 gstore.cpp \
 globals.cpp \
@@ -96,8 +98,6 @@ bed.cpp \
 varmeta.cpp \
 pp.cpp \
 pp.pb.cpp \
-eval.cpp \
-token.cpp \
 statistics.cpp \
 dcdflib.cpp \
 bgzf.cpp \

@@ -668,7 +668,7 @@ bool SampleVariant::decode_BLOB_vmeta( Mask * mask, Variant * parent , SampleVar
   
   if ( mask && mask->filter_expression() && ! mask->filter_expression_requires_genotypes() )
     {
-      if ( ! mask->calc_filter_expression( *sample ) ) return false; 
+      if ( ! mask->calc_filter_expression( *parent , *sample ) ) return false; 
     }
 
   return true;
@@ -686,11 +686,6 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 {
   
     
-//     std::cout << "this = " << fset << " " << vcf_direct << "\n";
-//     std::cout << "source = " << source->fset << " " << source->vcf_direct << "\n";
-//     std::cout << "target = " << target->fset << " " << target->vcf_direct << "\n";
-    
-
   // Possible that we do not require any individual/genotypic level
   // information at all, in which case, return now.
     
@@ -1106,14 +1101,8 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	      for ( int i=0; i < n_buffer ; i++ )
 		{
 		  if ( s2t[i] != -1 )
-		    {
-			
-		      //			std::cout << "mapping genotype " << i << " " << s2t[i] << " " << "\n";
-			
-			target->calls.genotype( s2t[i] ).bcf( target->bcf_genotype_buf[ p ] );		      
-			
-			//  std::cout << "geno = " << target->calls.genotype( s2t[i] ) << "\n";
-
+		    {			
+		      target->calls.genotype( s2t[i] ).bcf( target->bcf_genotype_buf[ p ] );		      
 		    }
 		  ++p;
 		}
@@ -1227,11 +1216,6 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   else if ( vcf_direct )    
     {
       
-//       std::cout << "f = " << fset << " " << target->fset << "\n";
-//       std::cout << target->reference() << " and " << target->alternate() << "\n";
-//       std::cout << "in here..\n";      
-//       std::cout << "vcf_direct_buffer. = " << vcf_direct_buffer.size() << "\n";
-      
       // If not a valid variant, do not try to expand genotypes
       if ( ! parent->valid() ) return false;
       
@@ -1240,10 +1224,6 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
       
 
       unsigned int n_variant = align ? align->size() : vcf_direct_buffer.size()-9 ;
-
-//        std::cout << "align ? " << ( align ? "T" : "F" ) << "\n";
-//        std::cout << " vcf bif size = " << vcf_direct_buffer.size() << "\n";
-//        std::cout << "n_var = " << n_variant << "\n";
 
       // Target will always be consensus when reading a single VCF from the command line
       //  -- but not necessarily if reading BGZF-compressed VCFs that are indexed in thre VARDB
@@ -1366,7 +1346,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	    }
 	  else
 	    {
-	      std::cout << "*** keeping " << i << " " << *parent << " " << GP->indmap(i)->id() << "\n";
+	      std::cout << "DEBUG: keeping " << i << " " << *parent << " " << GP->indmap(i)->id() << "\n";
 	    }
 	}
     }
@@ -1519,14 +1499,6 @@ void SampleVariant::set_allelic_encoding()
 
 std::string SampleVariant::label( const Genotype & g , bool phased ) const
 {
-
-//    std::cout << "f = " << fset << "\n";
-//    std::cout << "phased = " << phased << "\n";
-//    std::cout << "calls size = " << calls.size() << "\n";
-//    std::cout << "codes = " << g.acode1() << " " << g.acode2() << "\n";
-//    std::cout << "a size = " << alleles.size() << "\n";
-//    std::cout << "ref = " << alleles[0].name() << "\n";
-//    std::cout << "null = " << g.null() << "\n";
 
   std::stringstream s; 
   

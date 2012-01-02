@@ -1802,8 +1802,8 @@ class Mask {
  public:
     bool filter_expression() const { return eval_expr_set; } 
     bool filter_expression_requires_genotypes() const;
-    bool calc_filter_expression( SampleVariant & );
-    bool calc_filter_expression( SampleVariant & , SampleVariant & );    
+    bool calc_filter_expression( Variant & , SampleVariant & );
+    bool calc_filter_expression( Variant & , SampleVariant & , SampleVariant & );    
 
     bool var_filter_expression() const { return var_eval_expr_set; } 
     bool var_filter_expression_requires_genotypes() const;

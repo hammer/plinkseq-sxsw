@@ -445,6 +445,8 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "phenotype" , STRING_VECTOR, "phenotype specification");
     reg( "make-phenotype" , STRING, "dichotomise factor");
 
+    reg( "from-vardb" , NONE , "list individuals from VARDB, not INDDB" );
+
     reg( "strata" , STRING,"stratifier variable");
     reg( "covar" , STRING_VECTOR , "covariate(s)");
     reg( "weights" , STRING , "name of variant weights tag");

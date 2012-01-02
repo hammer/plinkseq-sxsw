@@ -27,6 +27,12 @@ std::string & PLINKSeq::PASS_FILTER() { static std::string s = "PASS"; return s;
 std::string & PLINKSeq::DELIM() { static std::string s = "\t"; return s; }
 std::string & PLINKSeq::VCF_MISSING_CHAR() { static std::string s = "."; return s; }
 
+std::string & PLINKSeq::VCF_GENOTYPE() { static std::string s = "GT"; return s; }
+std::string & PLINKSeq::VCF_GENOTYPE_ACGT() { static std::string s = "GT_S"; return s; }
+std::string & PLINKSeq::VCF_GENOTYPE_AC() { static std::string s = "GT_A"; return s; }
+std::string & PLINKSeq::VCF_GENOTYPE_NONREF() { static std::string s = "GT_NR"; return s; }
+std::string & PLINKSeq::VCF_GENOTYPE_NULL() { static std::string s = "GT_NULL"; return s; }
+
 std::string & PLINKSeq::DEFAULT_LOC_GROUP() { static std::string s = "refseq"; return s; }
 std::string & PLINKSeq::DEFAULT_PHENOTYPE() { static std::string s = ""; return s; } 
 

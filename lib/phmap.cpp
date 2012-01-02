@@ -161,6 +161,11 @@ void PhenotypeMap::align( const std::set<std::string> & ids )
     }
 }
 
+bool PhenotypeMap::phenotype_exists( const std::string & phenotype ) const
+{
+  mType mt = MetaInformation<IndivMeta>::type( phenotype ) ;
+  return mt != META_UNDEFINED;  
+}
 
 
 int PhenotypeMap::set_phenotype( const std::string & phenotype )
@@ -245,6 +250,39 @@ int PhenotypeMap::set_phenotype( const std::string & phenotype )
   phenotype_name = phenotype;
 
   return nonmissing;
+}
+
+int PhenotypeMap::attach_dichot_phenotype( const std::string & pname , const std::vector<int> & phe , const IndividualMap & imap )
+{
+
+  int nonmissing = 0;
+  phenotype_name = pname;
+  phenotype_type = PHE_DICHOT;
+  
+  const int n = imap.size();
+    for (int i = 0 ; i < n ; i++ ) 
+    {
+      
+      Individual * person = imap(i);
+      
+      // Is this person a case? 
+      if ( phe[i] == 2 ) 
+	{
+	  person->affected( CASE );
+	  ++nonmissing;
+	}
+      else if ( phe[i] == 1 ) 
+	{
+	  // A control
+	  person->affected( CONTROL );
+	  ++nonmissing;
+	}
+      else
+	{
+	  person->affected( UNKNOWN_PHE );		  
+	}
+    }
+  return nonmissing;  
 }
 
 
@@ -471,12 +509,42 @@ Individual * PhenotypeMap::new_individual( const std::string & id )
     
 }
 
+Data::Vector<double> PhenotypeMap::get_pheno( const std::string & p , const IndividualMap & indmap ) const
+{
+
+  // this assumes that the phenotype will already been attached as meta-information
+
+  // --> this is indeed current practice, although likely to change when INDDB's are
+  //     used to store very large amounts of phenotype data. In this case, these functions
+  //     should secondarily perform a direct lookup from the INDDB.
+
+  const int n = indmap.size();
+
+  Data::Vector<double> d( n );
+  
+  for (int r=0; r<n; r++)
+    {
+      Individual * person = indmap(r);      
+      if ( person->meta.has_field( p ) )
+	{
+	  mType mt = MetaInformation<IndivMeta>::type( p );
+	  if      ( mt == META_INT ) d(r) = person->meta.get1_int( p );
+	  else if ( mt == META_FLOAT ) d(r) = person->meta.get1_double( p );
+	  else if ( mt == META_BOOL ) d(r) = person->meta.get1_bool( p );
+	  else d.set_elem_mask( r );
+	}
+      else 
+	d.set_elem_mask( r );      
+    }
+  return d;
+}
+
 
 Data::Matrix<double> PhenotypeMap::covariates( const std::vector<std::string> & c , const IndividualMap & indmap )
 {
 
   // Create a matrix of covariate values
-  // The order of rows of this matrix corresponds to 
+  // The order of rows of this matrix corresponds to the indmap given
 
   // To add -- function to automatically downcode factors?
   // Return a matrix of covariate values

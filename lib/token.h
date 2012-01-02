@@ -7,11 +7,35 @@
 #include <ostream>
 #include <map>
 
+class Eval;
+
 class Token {
   
   friend std::ostream & operator<<( std::ostream & out , const Token & tok )
   {
-    if ( tok.is_bool() ) out << ( tok.bval ? "T" : "F" );
+    if ( tok.is_vector() )
+      {
+	int l = tok.size() > 5 ? 5 : tok.size() ;
+
+	out << "[";
+	
+	for ( int i=0; i<l; i++ ) 
+	  {
+	    if ( i ) out << "," ; 
+	    if      ( tok.is_bool_vector() ) out << ( tok.bvec[i] ? "T" : "F" );
+	    else if ( tok.is_int_vector() ) out << tok.ivec[i];
+	    else if ( tok.is_float_vector() ) out << tok.fvec[i];
+	    else if ( tok.is_string_vector() ) out << tok.svec[i];
+	  }
+
+	if ( tok.size() > l ) out << "... ("<< tok.size()<< " elements) ";
+	
+	if      ( tok.is_bool_vector() ) out << "]b";
+	else if ( tok.is_int_vector() ) out << "]i";
+	else if ( tok.is_float_vector() ) out << "]f";
+	else if ( tok.is_string_vector() ) out << "]s";
+      }    
+    else if ( tok.is_bool() ) out << ( tok.bval ? "T" : "F" );     
     else if ( tok.is_int() ) out << tok.ival << "i";
     else if ( tok.is_float() ) out << tok.fval << "f";
     else if ( tok.is_string() ) out << tok.sval;
@@ -36,7 +60,7 @@ class Token {
 		  INT_VECTOR , 
 		  FLOAT_VECTOR , 
 		  STRING_VECTOR , 
-		  BOOL_VECTOR ,
+		  BOOL_VECTOR ,		  
 		  ARG_SEPARATOR , 
 		  FUNCTION , 
 		  VARIABLE , 
@@ -64,7 +88,7 @@ class Token {
   // Constructors
   
   Token() { ttype = UNDEF; init(); }
-
+  
   Token( const std::string & s );
   Token( const double d );
   Token( const int i );
@@ -186,15 +210,15 @@ class Token {
   std::string tname;  
   
   // actual storage slots
-  int ival;
-  double fval;
-  std::string sval;
-  bool bval;
+  int           ival;
+  double        fval;
+  std::string   sval;
+  bool          bval;
 
-  std::vector<int> ivec;
-  std::vector<double> fvec;
-  std::vector<std::string> svec;
-  std::vector<bool> bvec;
+  std::vector<int>          ivec;
+  std::vector<double>       fvec;
+  std::vector<std::string>  svec;
+  std::vector<bool>         bvec;
   
 };
 
@@ -203,10 +227,7 @@ class TokenFunctions{
   
  public:
   
-  void attach( MetaInformation<VarMeta> & m ) { meta = &m; }
-  void attach( MetaInformation<GenMeta> & m ) { genmeta = &m; }
-  
-  Token fn_assign( Token & lhs , const Token & rhs );
+
   Token fn_set( const Token & tok ) const;    
   Token fn_sqrt( const Token & tok ) const;    
   Token fn_pow( const Token & tok , const Token & tok2 ) const;
@@ -222,6 +243,17 @@ class TokenFunctions{
   Token fn_vec_mean( const Token & tok ) const;
   Token fn_vec_sort( const Token & tok ) const;
 
+  // genotype extraction
+  Token fn_vec_g( const Token & tok , Eval * e ) const;
+  Token fn_vec_gnull( const Token & tok , Eval * e ) const;
+  Token fn_vec_gset( const Token & tok , Eval * e ) const;
+  
+  // phenotype extraction/assignment
+  Token fn_vec_pheno( const Token & tok ) const;
+  Token fn_vec_1pheno( const Token & rhs , int ) const;
+  Token fn_assign_pheno( Token & lhs , const Token & rhs );
+
+
   Token fn_vec_new_float( const Token & tok ) const;
   Token fn_vec_new_int( const Token & tok ) const;
   Token fn_vec_new_str( const Token & tok ) const;
@@ -230,16 +262,16 @@ class TokenFunctions{
   Token fn_vec_any( const Token & tok1 , const Token & tok2 ) const;
   Token fn_vec_count( const Token & tok1 , const Token & tok2 ) const;
 
-
-  // genotype functions
-  Token fn_n();
-  Token fn_g( const Token & cond );
-  Token fn_gmean( const Token & field , const Token & cond );
-
+  void attach( MetaInformation<VarMeta> & m );
+  void attach( MetaInformation<GenMeta> & m );
+  
+  Token fn_assign_var( Token & lhs , const Token & rhs );
+  Token fn_assign_gen( Token & lhs , const Token & rhs );
+  
  private:  
   
   MetaInformation<VarMeta> * meta;
-  MetaInformation<GenMeta> * genmeta;  // ignore this basically for now...
+  MetaInformation<GenMeta> * genmeta;
   
 };
 

@@ -50,6 +50,12 @@ struct PLINKSeq {
   static std::string & VCF_MISSING_CHAR();
   static std::string & DEFAULT_LOC_GROUP();
 
+  static std::string & VCF_GENOTYPE();
+  static std::string & VCF_GENOTYPE_ACGT();
+  static std::string & VCF_GENOTYPE_AC();
+  static std::string & VCF_GENOTYPE_NONREF();
+  static std::string & VCF_GENOTYPE_NULL();
+
   static std::string & ANNOT();
   static std::string & ANNOT_TYPE();
   static std::string & ANNOT_GENE();

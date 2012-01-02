@@ -553,22 +553,21 @@ int main()
     {
       if ( a.mf[m] == "*" )
 	{
-	  a.mf.clear();
+	  a.mf.erase( a.mf.begin() + m );
 	  std::map<int,std::string> f = g.vardb.fetch_files();
 	  std::map<int,std::string>::iterator i = f.begin();
 	  while ( i != f.end() )
 	    {
-	      std::vector<std::map<std::string,std::string> > m = g.vardb.fetch_metatypes( i->first );
-	      for (int j=0; j<m.size(); j++)
+	      std::vector<std::map<std::string,std::string> > m0 = g.vardb.fetch_metatypes( i->first );
+	      for (int j=0; j<m0.size(); j++)
 		{
-		  if ( m[j]["GRP"] == "Variant" )
+		  if ( m0[j]["GRP"] == "Variant" )
 		    {
-		      std::string mval = m[j]["NAME"];
+		      std::string mval = m0[j]["NAME"];
 		      if ( onecopy.find( mval ) == onecopy.end() )
 			{
-			  onecopy.insert(mval);
-			  
-			  a.mf.push_back(mval);
+			  onecopy.insert( mval );
+			  a.mf.push_back( mval );
 			}
 		    }
 		}
