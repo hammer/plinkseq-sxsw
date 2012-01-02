@@ -1,11 +1,9 @@
 bin_PROGRAMS = pseq
 
 pseq_SOURCES = \
-args.h \
 assoc.h \
 clusters.h \
 compare.h \
-config.h \
 extra.h \
 func.h \
 genic.h \
