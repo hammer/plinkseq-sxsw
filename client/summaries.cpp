@@ -799,7 +799,7 @@ Pseq::IStat::IStat( GStore * g )
   Pseq::Util::set_default( vstat );
   Pseq::IStat * p = this;
   vstat.set_istat( p );
-
+  
   alt_not_min = args.has("alternate");
   
   //copy all all headers etc over
