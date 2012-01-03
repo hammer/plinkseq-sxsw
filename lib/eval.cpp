@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <algorithm>
 
 #include "eval.h"
 #include "token.h"
@@ -1157,7 +1158,7 @@ Token Eval::eval_gfunc( const std::string & expr , int gmode )
   
   const int n = gvar->calls.size();
   
-  std::vector<Token::Token> rval(n);
+  std::vector<Token> rval(n);
 
   std::set<Token::tok_type> types;
 
@@ -1192,7 +1193,7 @@ Token Eval::eval_gfunc( const std::string & expr , int gmode )
 	{
 	  // needs to eval to a scalar value for each individual
 	  
-	  Token::Token tok = e.value();
+	  Token tok = e.value();
 	  Token::tok_type t = tok.type();
 	  if ( ! tok.is_scalar() ) t = Token::UNDEF;	      
 
@@ -1226,7 +1227,7 @@ Token Eval::eval_gfunc( const std::string & expr , int gmode )
   else if ( types.find( Token::INT    ) != types.end() ) t = Token::INT_VECTOR;
   else if ( types.find( Token::BOOL   ) != types.end() ) t = Token::BOOL_VECTOR;
       
-  Token::Token tok;	  
+  Token tok;	  
   
   if ( t == Token::BOOL_VECTOR )	    
     {	      
@@ -1347,7 +1348,7 @@ bool Eval::value(bool & b)
   return false;
 }
 
-Token::Token Eval::value() const
+Token Eval::value() const
 {
   return e;
 }

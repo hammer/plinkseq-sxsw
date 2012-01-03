@@ -2399,10 +2399,8 @@ Token TokenFunctions::fn_assign_pheno( Token & lhs , const Token & rhs )
   else if ( rhs.is_int_vector() )
     for (int i=0;i<sz;i++) p[i] = rhs.int_element( i );
   else if ( rhs.is_float_vector() )
-    for (int i=0;i<sz;i++) p[i] = rhs.float_element( i );
-
-  std::cout << "about to set..\n";
-
+    for (int i=0;i<sz;i++) p[i] = (int)rhs.float_element( i );
+  
   GP->phmap.attach_dichot_phenotype( name , p , GP->indmap );
   
   // assignments always return T

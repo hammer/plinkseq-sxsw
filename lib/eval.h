@@ -69,7 +69,7 @@ class Eval {
   
   // what does this return?
   Token::tok_type rtype() const;
-  Token::Token value() const;
+  Token value() const;
 
   // individual pointer
   void indiv_pointer(const int j ) { indiv = j; }
