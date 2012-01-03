@@ -13,7 +13,6 @@ vcfz.h \
 bed.h \
 bgzf.h \
 cdflib.h \
-config.h \
 crandom.h \
 dcdflib.h \
 defs.h \
@@ -30,7 +29,6 @@ indmap.h \
 ipmpar.h \
 iterrep.h \
 khash.h \
-knetfile.h \
 locdb.h \
 mask.h \
 matrix.h \
