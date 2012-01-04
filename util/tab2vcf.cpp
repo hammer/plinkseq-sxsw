@@ -3,6 +3,7 @@
 #include <map>
 #include <set>
 #include <cstdlib>
+#include <cstring>
 
 #include "char_tok.h"
 

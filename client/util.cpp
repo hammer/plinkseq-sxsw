@@ -351,7 +351,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 void Pseq::Util::Options::load( int n , char ** argv )
 {
-    
+
     reg( "help" , NONE , "produce help message" );
     reg( "vcf" , STRING_VECTOR , "VCF file locations" );
     reg( "bcf" , STRING_VECTOR , "BCF file locations" );
