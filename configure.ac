@@ -12,7 +12,7 @@ AC_INIT([plinkseq], [0.08], [bthomas@atgu.mgh.harvard.edu])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 LT_PREREQ([2.2])
-LT_INIT([])
+LT_INIT([pic-only disable-static])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([lib/pseq.h])
