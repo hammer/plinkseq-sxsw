@@ -1285,7 +1285,6 @@ bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
   
   for (int r = 0 ; r < nrep ; r++ ) 
     {
-      std::cerr << "rep " << r+1 << "\n";
 
       Pseq::AuxVDist & auxp       =  aux_perm[r];      
       auxp.match_on_strata        =  aux.match_on_strata;

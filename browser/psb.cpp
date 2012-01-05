@@ -1435,7 +1435,11 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 
   // call pbrowse.cgi, but with all arguments explicitly formed.      
 
-  o1 << a->getURL()->addField("q", "v")->addField("regs", a->reg_list_url )->addField("val", var.coordinate())->printLink("view");
+  o1 << a->getURL()->addField("q", "v")
+    ->addField("regs", a->reg_list_url )
+    ->addField("inc_fltr", a->inc_fltr )
+    ->addField("vinc_fltr", a->vinc_fltr )
+    ->addField("val", var.coordinate())->printLink("view");
 
   o1 << "</td>";
   
