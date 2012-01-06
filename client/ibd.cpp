@@ -694,8 +694,9 @@ void g_STEST_association( VariantGroup & vars , void * p )
 }
 
 
+
 //
-// mutation-screen implementation
+// Mutation-screen implementation
 //
 
 void f_ibd_mutation_screen_accumulator(Variant & v, void *p)
@@ -723,13 +724,18 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   if ( id == -1 ) Helper::halt( "could not find individual " + proband_id_str );
 
 
+  //
   // 1) Lookup all segments of people in IBDDB who share with this proband at this position
-  
+  //
+
   std::vector<Pseq::IBD::IBDPartnerRegion> olap = ibddb.fetch_regions( proband_id_str , region );
   
+
+  //
   // 2) Remove any people who do not exist in the VARDB (given a Mask even)
   // 3) Figure out the maximum shared region here, of the remaining pairs.
-  
+  //
+
   std::vector<bool> incl( olap.size() , true );
 
   std::cout << olap.size() << " is olap size\n";
@@ -760,13 +766,14 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 
 
       // implies that another individual should only have a single
-      // olaping segment here with any other individual, that is
-      // sensible, but need to firm up
+      // olaping segment here with any other individual, which should 
+      // in general be okay
 
       xolap[ olap[i].id ] = olap[i].region ;
 
+      
       // also add to mask -- NOTE -- changing the mask
-      // like this will cause problems if we then 
+      // like this will cause problems if we then
       // want to repeatedly call this -- will have to (partially)
       // reset the mask to the user's original string
 
@@ -774,12 +781,13 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 
     }
 
+
   Region total( chr , lower_bound , upper_bound );
 
   plog << "found " << xolap.size() << " matches spanning " << total << "\n";
 
   // Add this as a 'reg' Mask
-  //  -- note -- we hope / expect that no other 'reg' has been given... 
+  //  -- note -- we hope / expect that no other 'reg' mask has been given... 
   //             add a check at some point
 
   m.include_reg( total );
@@ -787,13 +795,18 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 
   VariantGroup vars(m);
 
-  // 4) Pull the regions variants into vars (this will be for all samples;
-
+  
+  //
+  // 4) Pull the regions variants into vars
+  //
+  
   g.vardb.iterate( f_ibd_mutation_screen_accumulator , &vars , m ); 
   
-  
+
+  //
   // 5) Get the variant; now given the region
-  
+  //
+
   int nv = vars.size();
   int nind = g.indmap.size();
   
@@ -801,9 +814,9 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   id = g.indmap.ind_n( proband_id_str );
 
   // track for proband:
-  std::vector<int>  n_invalid(nv,0);   // # of inconsistent matches
-  std::vector<int>  n_ibd(nv,0);       // total number of individuals who apparent are IBD at this point
-  std::vector<bool> is_het(nv,false);  // indicator if proband if heterozygote here
+  std::vector<int>  n_invalid(nv,0);     // # of inconsistent matches
+  std::vector<int>  n_ibd(nv,0);         // total number of individuals who apparent are IBD at this point
+  std::vector<bool> is_het(nv,false);    // indicator if proband if heterozygote here
   std::vector<int>  n_support_a1(nv,0);  // number of matches for a1 for proband hets
   std::vector<int>  n_support_a2(nv,0);  // number of matches for a2 for proband hets
   
@@ -815,21 +828,26 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
       if ( vars(v,id).heterozygote() ) is_het[v] = true;
     }
 
-  // for each paired individual, figure out the shared allele, if possible
+
+  //
+  // For each paired individual, figure out the shared allele, if possible
+  //
   
   std::map<std::string,Region>::iterator xi = xolap.begin();
+
   while ( xi != xolap.end() )
     {
-
+      
       int i = g.indmap.ind_n( xi->first );
+      
       std::cout << " xi->first = " << xi->first << " " << i << "\n";
-
+      
       Region & reg = xi->second;
 
       if ( i == id ) { ++xi; continue; } // do not count self
-
+      
       plog << vars.ind( i )->id() << " shares " << reg << "\n";
-
+      
       for (int v = 0 ; v < nv ; v++ ) 
 	{
 
@@ -838,18 +856,18 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	  
 	  // track overall number of people who share at this position
 	  n_ibd[ v ]++;
-
+	  
 	  Genotype & gproband = var( id );
 	  Genotype & gpartner = var( i );
 	  
 	  if ( gproband.null() || gpartner.null() ) { ++xi; continue; }
 	  if ( gproband.heterozygote() && gpartner.heterozygote() ) { ++xi; continue; }
-
-	  // NOTE: for now assume biallelic SNP 
-
+	  
+	  // NOTE: assumes a biallelic SNP 
+	  
 	  int acproband = gproband.allele_count();
 	  int acpartner = gpartner.allele_count();
-
+	  
 	  // inconsistent match?
 	  
 	  if ( ( acproband == 0 && acpartner == 2 ) || 
@@ -875,24 +893,48 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
       ++xi;
     }
 
-  // ultimately we are looking for that we see conclusive evidence of both alleles of the proband in others
-  // this kind of definition should be quite robust to errors, misplaced margins, etc
-  // we are not trying to match whole haplotypes, just to determine support for having seen 
 
-  // we now need to make some kind of decision -- do we see support for
-  
-  // (note -- we are explicitly assuming here that the proband variant is a singleton in the same
-  //   that wasn't used in the calculation of the IBD interval)
+  //  Proband    IBD1                Summary
 
-  // we could also check for higher level consistency, when >1 individual shares (i.e they should share the 
-  // same haplotype across all)
+  //
+  //    A/A      A/A  -> A    
+  //    A/C  *   A/A  -> A           A/C/?/x
+  //    C/C      A/C  -> C           
+  //    A/C  *   A/C  -> *
+  //    M/m      m/m  -> n/a
+  //    A/A      A/C  -> A
+  //    C/C      A/C  -> C
+  //    A/C  *   C/C  -> C   
+  //    A/A      
+  //
 
-  // (note --we assume the GWAS data *and* the exome data will be in VARDB (to give enough hets to reconile haplotypes)
+
+  // Notes.  Ultimately we are looking to see conclusive evidence of
+  // both alleles of the proband in others. This kind of definition
+  // should be quite robust to errors, misplaced margins, etc, as we
+  // are not trying to match whole haplotypes, but rather just 
+  // determine support for having seen
   
-  // the a1 and a2 counts do not need to be equal (i.e. it could just happen that one haplotype is more common in the pop.
+  // We now need to make some kind of decision -- do we see support for
   
-  // better approach -- use HMM for 
-  //  
+  // We are assuming that the singleton (i.e. exome) calls wasn't used
+  // in the IBD estimation (i.e. from GWAS) -- although probably would
+  // not matter much (althogh if v. rare could decrease P(IBD) for
+  // that pair.
+
+  // We could also check for a higher level of consistency when >1
+  // individual shares -- i.e they should share the same haplotype
+  // across all, or do the data suggest >2 haplotypes are present in 
+  // the proband.
+
+  // We assume that both the GWAS and the exome data will be in
+  // VARDB. We need the GWAS data to have enough hets from common SNPs
+  // to resolve haplotype identity.
+  
+  // The a1 and a2 counts do not need to be equal (i.e. it could just
+  // happen that one haplotype is more common in the pop -- we just need to 
+  // see that both are >0.
+
   
   for (int v = 0 ; v < nv ; v++ ) 
     {
