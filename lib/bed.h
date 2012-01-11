@@ -28,6 +28,8 @@ class BEDReader {
       inddb = NULL;
       seqdb = NULL;
       file_id = 0;
+      force_fid = force_iid = false;
+      force_fix_strand = false;
     }
   
 
@@ -36,6 +38,11 @@ class BEDReader {
     bed_filename = n + ".bed";
     bim_filename = n + ".bim";
     fam_filename = n + ".fam";
+  }
+  
+  void fix_strand() 
+  {
+    force_fix_strand = true;
   }
   
   void use_seqdb( SeqDBase * s ) 
@@ -54,6 +61,16 @@ class BEDReader {
     phenotype_name = p;
   }
 
+  void use_fid() 
+  {
+    force_fid = true; force_iid = false;
+  }
+
+  void use_iid() 
+  {
+    force_iid = true; force_fid = false;
+  }
+
   bool read_bed();
   
 
@@ -69,7 +86,10 @@ class BEDReader {
   // ID handling: default is to use FID only unless not unique, in which case, use 
   // look to IID, otherwise, use FID_IID
 
-  int id_mode;
+  bool force_fid;
+  bool force_iid;
+
+  bool force_fix_strand;
 
   std::string fam_filename;
   std::string bim_filename;

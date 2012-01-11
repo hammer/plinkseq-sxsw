@@ -66,8 +66,13 @@ bool Pseq::VarDB::load_PLINK( const std::vector<std::string> & name , const Pseq
   std::string fileroot = name[0];
   
   BEDReader b( &g.vardb );
+  if ( args.has("iid") ) b.use_iid();
+  else if ( args.has("fid") ) b.use_fid();
   b.set_root( fileroot );
-  if ( ! args.has("check-reference") ) g.seqdb.dettach();
+
+  if ( args.has("fix-strand") && g.seqdb.attached() ) b.fix_strand();  
+  else if ( ! args.has("check-reference") ) g.seqdb.dettach();
+  
   if ( g.seqdb.attached() ) b.use_seqdb( &g.seqdb );
   b.store_phenotypes( &g.inddb, args.has("phenotype") ? args.as_string("phenotype") : "phe1" );
   if ( tag != "" ) b.set_tag( tag );
@@ -175,11 +180,11 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
   
   // allow command-line swap-ins
 
-  if ( args.has("chr") ) f_chr   = args.as_string("chr");
-  if ( args.has("bp1") ) f_bp1   = args.as_string("bp2");
-  if ( args.has("bp2") ) f_bp2   = args.as_string("bp2");
-  if ( args.has("id") )  f_id    = args.as_string("id");
-  
+  if ( args.has( "format" , "chr" ) ) f_chr = args.as_string( "format" , "chr" );
+  if ( args.has( "format" , "bp1" ) ) f_bp1 = args.as_string( "format" , "bp1" );
+  if ( args.has( "format" , "bp2" ) ) f_bp2 = args.as_string( "format" , "bp2" );
+  if ( args.has( "format" , "id" ) )  f_id  = args.as_string( "format" , "id" );
+
   for (int i=0; i<h.size(); i++)
     {
 
@@ -191,38 +196,41 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
       else // a user-defined type
 	{
 	    
-	    // Should we skip this field?
-	    // --skip col
-	    if ( args.has( "skip" , h[i] ) )
+	  // Should we skip this field?
+	  // --skip col
+	  
+	  std::set<std::string> s = args.get_set( "format" , "skip" );
+	  if ( s.find( h[i] ) != s.end() )
 	    {
 	      skip.insert(i);
 	      continue;
 	    }
-
+	  
 	  
 	  // If this is a "Flag" field, it means that values
 	  // themselves will be the key, so we do not register the
 	  // column name with the meta-information class.
 
 	    // --flags col2
-	    
-	    if ( args.has( "flag" , h[i] ) ) flags.insert(i);
-	    else
+	  
+	  std::set<std::string> fs = args.get_set( "format" , "flag" );
+	  if ( fs.find( h[i] ) != fs.end() ) flags.insert(i);
+	  else
 	    {
-		mType mt = META_TEXT;	  
-		if      ( args.has( "integer" , h[i] ) ) mt = META_INT;
-		else if ( args.has( "float"   , h[i] ) ) mt = META_FLOAT;
-		else if ( args.has( "bool"    , h[i] ) ) mt = META_BOOL;
-		else if ( args.has( "text"    , h[i] ) ) mt = META_TEXT;
-		else if ( args.has( "string"  , h[i] ) ) mt = META_TEXT;
-		
-		// ignore description for now
-		std::string desc = "";
-		
-		mf[ h[i] ] = i;
-		registerMetatype( h[i] , mt , 1 , META_GROUP_REF , desc );
+	      mType mt = META_TEXT;	  
+	      if      ( args.has( "format" , "integer" , h[i] ) ) mt = META_INT;
+	      else if ( args.has( "format" , "float"   , h[i] ) ) mt = META_FLOAT;
+	      else if ( args.has( "format" , "bool"    , h[i] ) ) mt = META_BOOL;
+	      else if ( args.has( "format" , "text"    , h[i] ) ) mt = META_TEXT;
+	      else if ( args.has( "format" , "string"  , h[i] ) ) mt = META_TEXT;
+	      
+	      // ignore description for now
+	      std::string desc = "";
+	      
+	      mf[ h[i] ] = i;
+	      registerMetatype( h[i] , mt , 1 , META_GROUP_REF , desc );
 	    }  
-	    
+	  
 	}
 
     }
@@ -232,8 +240,8 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
   // Misc. options
   //
 
-  bool zero1 = args.has("0-start") || args.has("0-based");
-  bool zero2 = args.has("0-stop") || args.has("0-based");
+  bool zero1 = args.has( "format" , "0-start") || args.has( "format" , "0-based");
+  bool zero2 = args.has( "format" , "0-stop")  || args.has( "format" , "0-based");
   
 
   //

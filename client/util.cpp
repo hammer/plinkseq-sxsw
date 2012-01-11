@@ -84,7 +84,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "reload-vcf|input|clear VARDB, then reload all VCF (not implemented yet)"
 	
-	  << "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id" 
+	  << "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id,iid,fid,check-reference,fix-strand" 
 	
 	  << "load-meta|input|load meta-information for existing VARDB variants" 
 	
@@ -358,7 +358,9 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "resources" , STRING , "central resource folder" );
     reg( "scratch" , STRING , "scratch folder" );
     reg( "metameta" , STRING , "meta-information meta-information" );
-    
+
+    reg( "description", STRING , "file description" );
+
     reg( "history" , STRING_VECTOR , "use a .history file with GSEQ" );
     
     reg( "vardb", STRING, "variant database location" );
@@ -480,6 +482,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     
     keyword( "format" , "integer" ,STRING_VECTOR , "");
     keyword( "format" , "string" ,STRING_VECTOR , "");
+    keyword( "format" , "text" ,STRING_VECTOR , "");
     keyword( "format" , "float" ,STRING_VECTOR , "");
     keyword( "format" , "flag" ,STRING_VECTOR , "");
     keyword( "format" , "bool" ,STRING_VECTOR , "");
@@ -493,11 +496,14 @@ void Pseq::Util::Options::load( int n , char ** argv )
 
 
     reg( "check-reference" , NONE , "loading/indexing VCFs, report if REF != SEQDB" );    
-    
+    reg( "fix-strand" , NONE , "fix strand given a SEQDB when loading a PLINK GWAS file" ); 
     
     // Output modifiers
 
     reg( "family-id" , NONE , "use {FID,IID} instead of ID" );
+
+    reg( "fid" , NONE , "use FID as ID when reading PLINK files" );
+    reg( "iid" , NONE , "use IID as ID when reading PLINK files" );
 
 
     // Association models
@@ -865,6 +871,29 @@ std::string Pseq::Util::Options::as_string( const std::string & a , const std::s
     
     return r;
 }
+
+
+bool Pseq::Util::Options::has( const std::string & a , const std::string & b , const std::string & k ) const
+{
+    std::string r;
+
+    if ( ! known(a,b) ) Helper::halt("argument/keyword --" + a + " " + b + " not found" );
+    
+    if( data_kw.find(a) == data_kw.end() ) return false;
+
+    std::map<std::string,std::map<std::string,std::vector<std::string> > >::const_iterator i = data_kw.find( a );
+    if ( i == data_kw.end() ) return false;
+    
+    std::map<std::string,std::vector<std::string> >::const_iterator ii = i->second.find( b );
+    if ( ii == i->second.end() ) return false;
+    
+    for (int j = 0 ; j < ii->second.size() ; j++ ) 
+      if ( ii->second[j] == k ) return true;
+    
+    return false;
+}
+
+
 
 int Pseq::Util::Options::as_int( const std::string & a , const std::string & b ) const
 {

@@ -61,6 +61,9 @@ namespace Pseq
 	    // for KEYWORD  style args
 	    
 	    bool has( const std::string & , const std::string & ) const;
+
+	    bool has( const std::string & , const std::string & , const std::string & ) const;
+
 	    
 	    bool known( const std::string & , const std::string & ) const;
 	    

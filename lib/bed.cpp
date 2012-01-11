@@ -8,7 +8,7 @@
 #include <fstream>
 #include <bitset>
 
-int BEDReader::read_fam() 
+int BEDReader::read_fam( ) 
 {
 
   // Read through once to get IDs and phenotype type.
@@ -38,11 +38,23 @@ int BEDReader::read_fam()
     }
 
 
-
   bool use_fid = ni == sfid.size();
   bool use_iid = ni == siid.size();
   bool use_joint = ni == sjoint.size();
+
+  if ( force_fid ) 
+    {
+      if ( ! use_fid ) Helper::halt("FID are not unique for each individual");
+      use_fid = true; use_iid = use_joint = false;
+    }
+
+  if ( force_iid ) 
+    {
+      if ( ! use_iid ) Helper::halt("IID are not unique for each individual");
+      use_iid = true; use_fid = use_joint = false;
+    }
   
+
   if ( ! ( use_fid || use_iid || use_joint ) ) 
     {
       FAM.close();
@@ -268,8 +280,31 @@ bool BEDReader::read_bed()
 	    {
 	      if ( ref == locus[s].allele2 ) ref1 = false;
 	      else if ( ref != locus[s].allele1 ) 
-		plog.warn( "mismatching reference allele in BED versus SEQDB" , 
-			   v.displaycore() + " " + locus[s].allele1+"/"+locus[s].allele2 + " vs " + ref );
+		{
+		  // either attempt to fix strand, or give error
+		  if ( force_fix_strand )
+		    {
+
+		      if      ( locus[s].allele1 == "A" ) locus[s].allele1 = "T";
+		      else if ( locus[s].allele1 == "C" ) locus[s].allele1 = "G";
+		      else if ( locus[s].allele1 == "G" ) locus[s].allele1 = "C";
+		      else if ( locus[s].allele1 == "T" ) locus[s].allele1 = "A";
+		      
+		      if      ( locus[s].allele2 == "A" ) locus[s].allele2 = "T";
+		      else if ( locus[s].allele2 == "C" ) locus[s].allele2 = "G";
+		      else if ( locus[s].allele2 == "G" ) locus[s].allele2 = "C";
+		      else if ( locus[s].allele2 == "T" ) locus[s].allele2 = "A";
+
+		      if      ( ref == locus[s].allele1 ) ref1 = true;
+		      else if ( ref == locus[s].allele2 ) ref1 = false;
+		      else plog.warn( "attempted to fix, but mismatching reference allele in BED versus SEQDB" , 
+				      v.displaycore() + " " + locus[s].allele1+"/"+locus[s].allele2 + " vs " + ref );
+
+		    }
+		  else
+		    plog.warn( "mismatching reference allele in BED versus SEQDB" , 
+			       v.displaycore() + " " + locus[s].allele1+"/"+locus[s].allele2 + " vs " + ref );
+		}
 	    }
 	}
       

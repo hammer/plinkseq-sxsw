@@ -818,7 +818,6 @@ bool RefDBase::init_iterate( const std::string & grp )
   if ( ! attached() ) return false;
   int g = lookup_group_id( grp );
   if ( g == 0 ) return false;
-  std::cout << " binding = " << g << "\n";
   sql.bind_int( stmt_dump , ":group_id" , g );
   return true;
 }

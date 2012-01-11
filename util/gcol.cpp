@@ -220,7 +220,7 @@ int main(int argc , char ** argv )
 		  first = false;
 		  std::cout << ordhdr[i] ;
 		  cols.push_back( hset[ ordhdr[i] ] );
-		  std::cout << "adding col " << ordhdr[i] << "\n";
+		  //std::cout << "adding col " << ordhdr[i] << "\n";
 		}
 	      else  // insert string literal
 		{
@@ -228,7 +228,7 @@ int main(int argc , char ** argv )
 		  first = false;
 		  std::cout << ordhdr[i] ;
 		  cols.push_back( -1 );
-		  std::cout << "added str lit " << ordhdr[i] << "\n";
+		  //std::cout << "added str lit " << ordhdr[i] << "\n";
 		}
 	    }
 	  
