@@ -942,13 +942,17 @@ void Pseq::IStat::report()
   
   // All keys will be 0 or 1, i.e. seen or not seen
   
-  plog << "ID" << "\t"
-       << "NALT" << "\t"
-       << "NMIN" << "\t"
-       << "NHET" << "\t";
+  plog << "ID" << "\t";
+  
+  if ( g->phmap.type() != PHE_NONE ) 
+      plog << "PHE" << "\t";
+
+  plog  << "NALT" << "\t"
+	<< "NMIN" << "\t"
+	<< "NHET" << "\t";
   
   // display all other VStat headers
-
+  
   vstat.row_headers();
   
   plog << "\n";
@@ -962,6 +966,31 @@ void Pseq::IStat::report()
       
       plog << i->first;
       
+
+      Individual * person = g->indmap.ind( i->first );
+
+      if ( g->phmap.type() == PHE_DICHOT )
+      {
+	  if ( ! person ) plog << "\t.";
+	  else
+	  {
+	      if ( person->affected() == CASE ) plog << "\tCASE";
+	      else if ( person->affected() == CONTROL ) plog << "\tCONTROL";
+	      else plog << "\t.";
+	  }
+      }
+      else if ( g->phmap.type() == PHE_QT )
+      {
+	  if ( ! person ) plog << "\t.";
+	  else plog << "\t" << person->qt() ;
+      }
+      else if ( g->phmap.type() == PHE_FACTOR )
+	  {
+	      if ( ! person ) plog << "\t.";
+	      else plog << "\t" << person->group_label() ;
+	  }
+
+    
       Pseq::VStat & s = i->second;
       
       int actnvar = nmin[i->first]; 
