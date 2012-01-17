@@ -2,6 +2,8 @@
 #include "pseq.h"
 #include "func.h"
 
+#include <iomanip>
+
 using namespace std;
 
 extern GStore g;
@@ -25,8 +27,6 @@ void Pseq::IBD::load_wrapper( const std::string & segment_list , const std::stri
   
   // which gets double entered in the DB (with phenotype as 'missing') 
  
-
-
   // Load data   
   IBDDBase ibd( ibddb ); 
   ibd.load( segment_list );
@@ -52,12 +52,13 @@ void f_ibd_sharing( Variant & v , void * p )
   const int n = v.size();
   
   // which is the minor allele?
-//   int c     = 0; // minor allele
-//   int c_tot = 0; // total counts	  
+  //   int c     = 0; // minor allele
+  //   int c_tot = 0; // total counts	  
+  
   bool altmin = v.n_minor_allele( );      
   
   std::vector<int> carrier;
-
+  
   for (int i=0; i<n; i++)
     {
       if ( v(i).null() ) continue;
@@ -75,7 +76,7 @@ void f_ibd_sharing( Variant & v , void * p )
   for (int i=0; i<carrier.size()-1; i++)
     for (int j=i+1; j<carrier.size(); j++)
       {
-
+	
 	// get segments shared by this pair that span the region.
 	std::set<Region> regions = aux->ibddb->shared_for_pair( v.ind( carrier[i] )->id() , v.ind( carrier[j] )->id() );
 	
@@ -282,14 +283,10 @@ std::vector<Pseq::IBD::IBDPartner> Pseq::IBD::IBDDBase::fetch( const std::string
 
 std::vector<Pseq::IBD::IBDPartnerRegion> Pseq::IBD::IBDDBase::fetch_regions( const std::string & id , const Region & r )
 {  
-
+  //
   sql.bind_text( stmt_fetch , ":proband_id" , id );
   sql.bind_int( stmt_fetch , ":chr" , r.chromosome() );
   int chr = r.chromosome();
-  
-//   stmt_fetch = sql.prepare(" SELECT partner_id,partner_phe,bp1,bp2 "
-//  			   " FROM segs WHERE proband_id == :proband_id AND chr == :chr; ");
-
 
   std::vector<Pseq::IBD::IBDPartnerRegion> shared;
   while( sql.step( stmt_fetch ) )
@@ -302,6 +299,7 @@ std::vector<Pseq::IBD::IBDPartnerRegion> Pseq::IBD::IBDDBase::fetch_regions( con
       
       if ( r.overlaps(r2) ) 
 	{
+
 	  std::string id1 = sql.get_text( stmt_fetch , 0 );
 	  shared.push_back( Pseq::IBD::IBDPartnerRegion( id1 , r2 ) );
 	}
@@ -707,6 +705,40 @@ void f_ibd_mutation_screen_accumulator(Variant & v, void *p)
 
 
 
+struct ImpliedHaplotype {
+  
+  std::string h;
+
+  bool operator<( const ImpliedHaplotype & lhs , const ImpliedHaplotpe & rhs ) const
+  {
+
+    // only compare two variants on the basis of non-missing data points
+    // assumes they are the same length
+
+    if ( lhs.size() != rhs.size() ) 
+      Helper::halt( "haplotypes of unequal size being compared" );    
+
+    const int l = lhs.size();
+    
+    for (int i=0; i<l; i++)
+      if ( ( lhs[i] == 'A' || lhs[i] == 'B' ) 
+	   && ( rhs[i] == 'A' || rhs[i] == 'B' ) ) 
+	return lhs[i] < rhs[i];
+    
+    return false;
+    
+  };
+  
+};
+
+
+ImpliedHaplotype merge( const ImpliedHaplotype & one , const ImpliedHaplotpe & two )
+{
+
+}
+
+
+
 void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename , 
 				  const std::string & proband_id_str , 
 				  const std::string & region_str , 
@@ -732,13 +764,11 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   
 
   //
-  // 2) Remove any people who do not exist in the VARDB (given a Mask even)
+  // 2) Remove any people who do not exist in the VARDB (given a Mask event)
   // 3) Figure out the maximum shared region here, of the remaining pairs.
   //
 
   std::vector<bool> incl( olap.size() , true );
-
-  std::cout << olap.size() << " is olap size\n";
 
   int lower_bound = region.start.position();
   int upper_bound = region.stop.position();
@@ -753,6 +783,7 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
       else if ( olap[i].id == proband_id_str ) incl[i] = false;      
       
       // should not happen, but check anyway
+
       if ( olap[i].region.chromosome() != chr ) incl[i] = false; 
 
       
@@ -776,32 +807,34 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
       // like this will cause problems if we then
       // want to repeatedly call this -- will have to (partially)
       // reset the mask to the user's original string
-
+      
       m.include_indiv( olap[i].id );
-
+      
     }
-
-
+  
+  
   Region total( chr , lower_bound , upper_bound );
-
-  plog << "found " << xolap.size() << " matches spanning " << total << "\n";
-
+  
   // Add this as a 'reg' Mask
+  
   //  -- note -- we hope / expect that no other 'reg' mask has been given... 
   //             add a check at some point
+  
+  int tot_len = total.length();
 
   m.include_reg( total );
+
   
-
-  VariantGroup vars(m);
-
   
   //
   // 4) Pull the regions variants into vars
   //
+
+
+  VariantGroup vars(m);
   
   g.vardb.iterate( f_ibd_mutation_screen_accumulator , &vars , m ); 
-  
+
 
   //
   // 5) Get the variant; now given the region
@@ -809,7 +842,10 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 
   int nv = vars.size();
   int nind = g.indmap.size();
-  
+
+  // no data... quit
+  if ( nv == 0 || nind < 2 ) return ;
+
   // recast 'id'
   id = g.indmap.ind_n( proband_id_str );
 
@@ -820,48 +856,57 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   std::vector<int>  n_support_a1(nv,0);  // number of matches for a1 for proband hets
   std::vector<int>  n_support_a2(nv,0);  // number of matches for a2 for proband hets
   
-  std::cout << "\n\n" << nv << " is nv\n\n";
-
+  int phet = 0;
   for (int v = 0 ; v < nv ; v++ ) 
     {
-      plog << vars(v) << "\t" << vars(v).label( id ) << "\n";
-      if ( vars(v,id).heterozygote() ) is_het[v] = true;
+      //      plog << vars(v) << "\t" << vars(v).label( id ) << "\n";
+      if ( vars(v,id).heterozygote() ) { ++phet; is_het[v] = true; } 
     }
 
 
   //
-  // For each paired individual, figure out the shared allele, if possible
+  // For each paired individual, figure out the shared haplotype, if possible
   //
   
   std::map<std::string,Region>::iterator xi = xolap.begin();
+  
+  std::map<std::string,int> implied_haps;
 
   while ( xi != xolap.end() )
     {
       
-      int i = g.indmap.ind_n( xi->first );
-      
-      std::cout << " xi->first = " << xi->first << " " << i << "\n";
-      
+      int i = g.indmap.ind_n( xi->first );      
+
       Region & reg = xi->second;
 
       if ( i == id ) { ++xi; continue; } // do not count self
       
-      plog << vars.ind( i )->id() << " shares " << reg << "\n";
-      
+      // implied shared haplotype (only show proband hets)
+      std::string ihap(phet,'-');
+
+      int phet_cnt = 0;
+
       for (int v = 0 ; v < nv ; v++ ) 
 	{
 
+	  std::cout << "phet = " << phet_cnt << " " << phet << " " << v << " " << nv << "\n";
+
+
 	  Variant & var = vars(v);
-	  if ( ! reg.contains( var ) ) { ++xi; continue; }
-	  
+	  if ( ! reg.contains( var ) ) 
+	    {
+	      if ( is_het[v] ) { ihap[phet_cnt++] = '.'; } 
+	      continue;
+	    }
+
 	  // track overall number of people who share at this position
 	  n_ibd[ v ]++;
 	  
 	  Genotype & gproband = var( id );
 	  Genotype & gpartner = var( i );
 	  
-	  if ( gproband.null() || gpartner.null() ) { ++xi; continue; }
-	  if ( gproband.heterozygote() && gpartner.heterozygote() ) { ++xi; continue; }
+	  if ( gproband.null() || gpartner.null() ) { if ( is_het[v] ) { ihap[phet_cnt++] = '?' ; } continue; }
+	  if ( gproband.heterozygote() && gpartner.heterozygote() ) { ihap[phet_cnt++]='|'; continue; }
 	  
 	  // NOTE: assumes a biallelic SNP 
 	  
@@ -873,8 +918,8 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	  if ( ( acproband == 0 && acpartner == 2 ) || 
 	       ( acproband == 2 && acpartner == 0 ) ) 
 	    {
+	      if ( is_het[v]) ihap[phet_cnt++]='#';
 	      n_invalid[v]++;
-	      ++xi;
 	      continue;
 	    }
 	  
@@ -882,16 +927,24 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	  
 	  if ( is_het[v] )
 	    {
-	      if ( acpartner == 1 ) { ++xi; continue; } // ambiguous double het scenario
-	      if ( acpartner == 0 ) n_support_a1[v]++;
-	      if ( acpartner == 2 ) n_support_a2[v]++;
+	      if      ( acpartner == 1 ) { ihap[phet_cnt++]='|'; continue; }  // ambiguous double het scenario
+	      else if ( acpartner == 0 ) { n_support_a1[v]++; ihap[phet_cnt++]='A'; }
+	      else if ( acpartner == 2 ) { n_support_a2[v]++; ihap[phet_cnt++]='B'; }
+	      else Helper::halt("internal error -- not handling multi-allelic markers here");
 	    }
 	  
 	}
+      
+      // keep track of the impied hap
+      implied_haps[ ihap ]++;
 
       // next partner
       ++xi;
+      
     }
+
+  std::cout << "Done1 \n";
+  
 
 
   //  Proband    IBD1                Summary
@@ -907,21 +960,7 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   //    A/C  *   C/C  -> C   
   //    A/A      
   //
-
-
-  // Notes.  Ultimately we are looking to see conclusive evidence of
-  // both alleles of the proband in others. This kind of definition
-  // should be quite robust to errors, misplaced margins, etc, as we
-  // are not trying to match whole haplotypes, but rather just 
-  // determine support for having seen
   
-  // We now need to make some kind of decision -- do we see support for
-  
-  // We are assuming that the singleton (i.e. exome) calls wasn't used
-  // in the IBD estimation (i.e. from GWAS) -- although probably would
-  // not matter much (althogh if v. rare could decrease P(IBD) for
-  // that pair.
-
   // We could also check for a higher level of consistency when >1
   // individual shares -- i.e they should share the same haplotype
   // across all, or do the data suggest >2 haplotypes are present in 
@@ -936,18 +975,50 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   // see that both are >0.
 
   
+  int nhet = 0; // number of hets in proband
+  int both_supported = 0; // number of hets in which at least one other indiv supports A1, and at least one supports A2
+  int one_supported = 0;  // number of times only one allele is supported (by one or more individuals)
+  int neither_supported = 0; // number of times in which neither allele is supported
+  
+  int phet_cnt = 0;
   for (int v = 0 ; v < nv ; v++ ) 
     {
+
+      if ( ! is_het[v] ) continue;
+      
+      ++nhet; 
+      if      ( n_support_a1[v] > 0 && n_support_a2[v] > 0 ) ++both_supported;
+      else if ( n_support_a1[v] > 0 || n_support_a2[v] > 0 ) ++one_supported;
+      else      ++neither_supported;
+      
       plog << vars(v) << "\t" 
 	   << vars(v).label( id ) << "\t"
-	   << n_ibd[v] << "\t"
-	   << is_het[v] << "\t"
-	   << n_support_a1[v] << "\t"
-	   << n_support_a2[v] << "\n";
+	   << n_ibd[v] << "\t"            // number of other individuals who are IBD with proband here
+	   << is_het[v] << "\t"           // flag for whether proband is a HET or not
+	   << n_support_a1[v] << "\t"     // # number of IBD segs supporting 'allele 1'
+	   << n_support_a2[v] << "\t";    // # number of IBD segs supporting 'allele 2'
+      
+      std::map<std::string,int>::iterator ii = implied_haps.begin();
+      while ( ii != implied_haps.end() )
+	{
+	  plog << ii->first[phet_cnt]; 
+	  ++ii;
+	}
+      ++phet_cnt;
+
+      plog << "\n";
 
     }
-
   
+  plog << "2HET" << "\t" 
+       << proband_id_str << "\t" 
+       << region_str << "\t"
+       << nv << "\t" 
+       << nhet << "\t"
+       << xolap.size() << "\t"
+       << neither_supported << "\t"
+       << one_supported << "\t"        
+       << both_supported << "\n";
   
 }
 

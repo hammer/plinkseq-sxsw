@@ -1907,13 +1907,13 @@ int main(int argc, char ** argv)
       {
 
 	Pseq::Assoc::Aux_vassoc_options aux;
-	if ( args.has("info") ) aux.show_istat = true;
-	if ( args.has("separate-chr-bp") ) aux.separate_chr_bp = true;
-	if ( args.has("vmeta") ) aux.show_meta = true;
+	if ( args.has( "info" ) ) aux.show_istat = true;
+	if ( args.has( "separate-chr-bp" ) ) aux.separate_chr_bp = true;
+	if ( args.has( "vmeta" ) ) aux.show_meta = true;
 	aux.nrep = args.has( "perm" ) ? args.as_int( "perm" ) : 0 ;
 
 	if ( g.phmap.type() != PHE_DICHOT ) 
-	  Helper::halt("no dichotomous phenotype specified");	
+	  Helper::halt( "no dichotomous phenotype specified" );	
 
 	Pseq::Assoc::variant_assoc_test( m , aux , args );
 
