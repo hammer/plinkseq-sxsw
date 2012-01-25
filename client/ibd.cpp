@@ -78,7 +78,8 @@ void f_ibd_sharing( Variant & v , void * p )
       {
 	
 	// get segments shared by this pair that span the region.
-	std::set<Region> regions = aux->ibddb->shared_for_pair( v.ind( carrier[i] )->id() , v.ind( carrier[j] )->id() );
+	std::set<Region> regions = 
+	  aux->ibddb->shared_for_pair( v.ind( carrier[i] )->id() , v.ind( carrier[j] )->id() );
 	
 	// does a region overlap this position? 
 	bool overlap = vregion.within( regions );
@@ -103,9 +104,10 @@ void f_ibd_sharing( Variant & v , void * p )
 	     << ( v.ind( carrier[j] )->affected() == CASE ) << "\t"	  
 	     << overlap << "\t";
 	if ( overlap ) 
-	  plog << olap << "\n";
+	  plog << olap.coordinate() << "\t"
+	       << olap.length() << "\n";
 	else 
-	  plog << "NA" << "\n";       
+	  plog << "NA\tNA" << "\n";       
 	
 	++pcnt;
 	if ( overlap ) ++scnt;
@@ -705,37 +707,37 @@ void f_ibd_mutation_screen_accumulator(Variant & v, void *p)
 
 
 
-struct ImpliedHaplotype {
+// struct ImpliedHaplotype {
   
-  std::string h;
+//   std::string h;
 
-  bool operator<( const ImpliedHaplotype & lhs , const ImpliedHaplotpe & rhs ) const
-  {
+//   bool operator<( const ImpliedHaplotype & lhs , const ImpliedHaplotpe & rhs ) const
+//   {
 
-    // only compare two variants on the basis of non-missing data points
-    // assumes they are the same length
+//     // only compare two variants on the basis of non-missing data points
+//     // assumes they are the same length
 
-    if ( lhs.size() != rhs.size() ) 
-      Helper::halt( "haplotypes of unequal size being compared" );    
+//     if ( lhs.size() != rhs.size() ) 
+//       Helper::halt( "haplotypes of unequal size being compared" );    
 
-    const int l = lhs.size();
+//     const int l = lhs.size();
     
-    for (int i=0; i<l; i++)
-      if ( ( lhs[i] == 'A' || lhs[i] == 'B' ) 
-	   && ( rhs[i] == 'A' || rhs[i] == 'B' ) ) 
-	return lhs[i] < rhs[i];
+//     for (int i=0; i<l; i++)
+//       if ( ( lhs[i] == 'A' || lhs[i] == 'B' ) 
+// 	   && ( rhs[i] == 'A' || rhs[i] == 'B' ) ) 
+// 	return lhs[i] < rhs[i];
     
-    return false;
+//     return false;
     
-  };
+//   };
   
-};
+// };
 
 
-ImpliedHaplotype merge( const ImpliedHaplotype & one , const ImpliedHaplotpe & two )
-{
+// ImpliedHaplotype merge( const ImpliedHaplotype & one , const ImpliedHaplotpe & two )
+// {
 
-}
+//}
 
 
 
@@ -868,9 +870,15 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   // For each paired individual, figure out the shared haplotype, if possible
   //
   
+  
   std::map<std::string,Region>::iterator xi = xolap.begin();
   
-  std::map<std::string,int> implied_haps;
+  std::map<std::string,int> implied_haps_cnt;
+  std::vector<std::string> implied_haps; // (keep in ID order)
+
+  std::vector<std::vector<bool> > hap_inform;
+  std::vector<std::vector<bool> > hap_state;
+  std::vector<std::string> hap_id;
 
   while ( xi != xolap.end() )
     {
@@ -882,15 +890,28 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
       if ( i == id ) { ++xi; continue; } // do not count self
       
       // implied shared haplotype (only show proband hets)
-      std::string ihap(phet,'-');
-
+      std::string ihap( phet , '-' );
+      
       int phet_cnt = 0;
+      
+      int pair_total            = 0; // total number of markers shared in region
+      int pair_inform           = 0; // number of non-missing pairs shared
+      
+      int pair_invalid          = 0; // number of invalid pairs shared 
+      int pair_homhom           = 0; // # of hom/hom matches
+      int pair_hethet           = 0; // # ambiguous het/het pairs
+      int pair_hethom           = 0; // number of het/hom
+      
+      std::vector<bool> tmp(nv,false);
+      hap_inform.push_back( tmp );
+      hap_state.push_back( tmp );
+      hap_id.push_back( xi->first );
+      
+      std::vector<bool> & this_hap_inform = hap_inform[ hap_inform.size() - 1 ];
+      std::vector<bool> & this_hap_state = hap_state[ hap_state.size() - 1 ];
 
       for (int v = 0 ; v < nv ; v++ ) 
 	{
-
-	  std::cout << "phet = " << phet_cnt << " " << phet << " " << v << " " << nv << "\n";
-
 
 	  Variant & var = vars(v);
 	  if ( ! reg.contains( var ) ) 
@@ -898,6 +919,8 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	      if ( is_het[v] ) { ihap[phet_cnt++] = '.'; } 
 	      continue;
 	    }
+	  
+	  ++pair_total;
 
 	  // track overall number of people who share at this position
 	  n_ibd[ v ]++;
@@ -906,7 +929,11 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	  Genotype & gpartner = var( i );
 	  
 	  if ( gproband.null() || gpartner.null() ) { if ( is_het[v] ) { ihap[phet_cnt++] = '?' ; } continue; }
-	  if ( gproband.heterozygote() && gpartner.heterozygote() ) { ihap[phet_cnt++]='|'; continue; }
+	  
+	  // is informative (both non-missing)
+	  ++pair_inform;
+
+	  if ( gproband.heterozygote() && gpartner.heterozygote() ) { ihap[phet_cnt++]='|'; ++pair_hethet; continue; }
 	  
 	  // NOTE: assumes a biallelic SNP 
 	  
@@ -920,6 +947,7 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	    {
 	      if ( is_het[v]) ihap[phet_cnt++]='#';
 	      n_invalid[v]++;
+	      ++pair_invalid;
 	      continue;
 	    }
 	  
@@ -927,39 +955,57 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	  
 	  if ( is_het[v] )
 	    {
-	      if      ( acpartner == 1 ) { ihap[phet_cnt++]='|'; continue; }  // ambiguous double het scenario
-	      else if ( acpartner == 0 ) { n_support_a1[v]++; ihap[phet_cnt++]='A'; }
-	      else if ( acpartner == 2 ) { n_support_a2[v]++; ihap[phet_cnt++]='B'; }
+	      if      ( acpartner == 1 ) { ihap[phet_cnt++]='|'; ++pair_hethet; continue; }  // ambiguous double het scenario
+	      else if ( acpartner == 0 ) 
+		{ 
+		  n_support_a1[v]++; 
+		  ihap[phet_cnt++]='A'; 
+		  this_hap_inform[v]=true; 
+		  this_hap_state[v]=false; 
+		  ++pair_hethom; 
+		}
+	      else if ( acpartner == 2 ) 
+		{ 
+		  n_support_a2[v]++; 
+		  ihap[phet_cnt++]='B'; 
+		  this_hap_inform[v]=true; 
+		  this_hap_state[v]=true; 
+		  ++pair_hethom; 
+		}
 	      else Helper::halt("internal error -- not handling multi-allelic markers here");
+	    }	  
+	  else
+	    {
+	      // must be a consistent, non-missing hom-hom if we've got to this point
+	      ++pair_homhom;
 	    }
-	  
 	}
       
-      // keep track of the impied hap
-      implied_haps[ ihap ]++;
+      // keep track of the implied hap
+      implied_haps_cnt[ ihap ]++;
+      implied_haps.push_back( ihap );
+
+      // display some information on this particular pair
+      double pcnt = ( region.start.position() - reg.start.position() ) / (double)( reg.length() ) ;
+      
+      plog << "IBD" << "\t"
+	   << proband_id_str << " - " 
+	   << xi->first << "\t"                     // parnter ID
+	   << reg.coordinate() << "\t"              // shared region
+	   << reg.length() / (double)1000 << "\t"   // length of shared segment in kb
+	   << pcnt << "\t"                          // relative position in shared segment of variant
+	   << pair_total << "\t"
+	   << pair_inform << "\t"
+	   << pair_homhom << "\t"
+	   << pair_hethom << "\t"
+	   << pair_hethet << "\t"
+	   << pair_invalid << "\n";
 
       // next partner
       ++xi;
       
     }
 
-  std::cout << "Done1 \n";
-  
-
-
-  //  Proband    IBD1                Summary
-
-  //
-  //    A/A      A/A  -> A    
-  //    A/C  *   A/A  -> A           A/C/?/x
-  //    C/C      A/C  -> C           
-  //    A/C  *   A/C  -> *
-  //    M/m      m/m  -> n/a
-  //    A/A      A/C  -> A
-  //    C/C      A/C  -> C
-  //    A/C  *   C/C  -> C   
-  //    A/A      
-  //
   
   // We could also check for a higher level of consistency when >1
   // individual shares -- i.e they should share the same haplotype
@@ -998,17 +1044,78 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	   << n_support_a1[v] << "\t"     // # number of IBD segs supporting 'allele 1'
 	   << n_support_a2[v] << "\t";    // # number of IBD segs supporting 'allele 2'
       
-      std::map<std::string,int>::iterator ii = implied_haps.begin();
+
+      std::vector<std::string>::iterator ii = implied_haps.begin();
       while ( ii != implied_haps.end() )
 	{
-	  plog << ii->first[phet_cnt]; 
+	  plog <<  (*ii)[phet_cnt]; 
 	  ++ii;
 	}
       ++phet_cnt;
-
+      
       plog << "\n";
+          
 
     }
+
+
+      //
+      // Make a guess at the two underlying haplotypes
+      //
+      
+      const int np = hap_inform.size();
+      
+      Data::Matrix<double> hamming( np , np );
+      for (int pi=0;pi<np-1;pi++)
+	for(int pj=1;pj<np;pj++)
+	  {
+	    double numer = 0;
+	    double denom = 0;
+	    
+	    for (int v=0; v<nv; v++)
+	      if ( hap_inform[pi][v] && hap_inform[pj][v] ) 
+		{
+		  ++denom;
+		  if ( hap_state[pi][v] == hap_state[pj][v] ) 
+		    hamming[pi][pj] = hamming[pj][pi] = numer / denom;
+		}
+	  }
+      
+      // pick the two haps with the max. difference
+      double mxdiff = 0;
+      int h1 = 0 , h2 = 1;
+      for (int pi=0;pi<np-1;pi++)
+	for(int pj=1;pj<np;pj++)
+	  if ( hamming[pi][pj] > mxdiff ) 
+	    { mxdiff = hamming[pi][pj]; h1=pi; h2=pj; }
+      
+      // go through each haplotype and assign as either similar to h1 or h2, giving HD from closest match.
+      
+      for (int pi=0;pi<np;pi++)
+	{
+	  if ( pi == h1 ) 
+	    { 
+	      plog << "MATCH" << "\t"
+		   << hap_id[pi] << "\t";
+
+
+	    }
+	  else if ( pi == h2 ) 
+	    {
+
+	    }
+	  else if ( hamming[pi][h1] <= hamming[pi][h2] ) 
+	    {
+	      // closest is h1
+	      
+	    }
+	  else // closest is h2
+	    {
+	      
+	    }
+
+	}
+
   
   plog << "2HET" << "\t" 
        << proband_id_str << "\t" 

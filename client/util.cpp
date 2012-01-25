@@ -305,6 +305,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "s-assoc|tests,ibd|segment-based IBD test"
 
 	  << "mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv"
+      
     
     //
     // Gene-network database

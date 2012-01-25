@@ -32,12 +32,12 @@ void f_view( Variant & v , void * p )
       return;
     }
   
-  plog << v << "\t";
-  
-  plog << "." << "\t" 
-       << v.consensus << "\t"    
+  plog << v << "\t"
+       << v.name() << "\t"
+       << v.consensus << "\t"      
+       << "." << "\t" 
        << v.n_samples() << "\t";
-
+  
   plog << v.print_meta_filter();
 
   if ( opt->vmeta )
@@ -66,8 +66,9 @@ void f_view( Variant & v , void * p )
 	  const SampleVariant & sample = v.sample(s);
 	  
 	  plog << v << "\t"
-	       << sample.file_name() << "\t"
+	       << v.name() << "\t"
 	       << sample << "\t"
+	       << sample.file_name() << "\t"	    
 	       << sample.filter();
 	  
 	  if ( opt->vmeta ) 

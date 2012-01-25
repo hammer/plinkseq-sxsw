@@ -942,6 +942,7 @@ bool VarDBase::eval_and_call( Mask & mask,
 
       if ( mask.filter_expression() && mask.filter_expression_requires_genotypes() ) 
 	{
+	  std::cout << "calcing expre\n";
 	  if ( ! mask.calc_filter_expression( var , *vmeta_target, *genotype_target ) ) 
 	    {
 	      if ( mask.fail_on_sample_variant() ) return false;
