@@ -74,9 +74,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "version|project|display version information"
 	
-	  << "append|project,input|add a file to the project|ARG:file,type"
+	  << "append|project,input|add a file to the project|ARG:name,file,type"
 	
-	  << "drop|project|drop a file from the project|ARG:file,type"
+	  << "drop|project|drop a file from the project|ARG:name,file,type"
 	
 	  << "load-vcf|input|load all VCF files not already in VARDB|ARG:file,vcf,filter,include-meta,exclude-meta"
 	
@@ -86,7 +86,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id,iid,fid,check-reference,fix-strand" 
 	
-	  << "load-meta|input|load meta-information for existing VARDB variants" 
+	  << "load-meta|input|load meta-information for existing VARDB variants|ARG:file,id,group"
 	
 	  << "load-pheno|input,indop|load phenotypes into INDB|ARG:file"
 	
@@ -107,7 +107,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "write-vardb|output,varop|write a new VARDB|ARG:new-vardb,new-project"
 	
-	  << "write-vcf|output|write a new VCF file|VCF|"
+	  << "write-vcf|output|write a new VCF file|VCF|file"
 
 	  << "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name,use-family-id" 
 	
@@ -136,9 +136,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "v-matrix|output|write a matrix of allele counts|VCF"
 	
-	  << "g-matrix|output|write a matix of gene-based allele counts|GRP"
+	  << "g-matrix|output|write a matix of gene-based allele counts|GRP|ARG:hide-invariant,collapse"
 	
-	  << "g-meta-matrix|output|matix of gene-based per-individual meta-information|GRP"
+	  << "g-meta-matrix|output|matix of gene-based per-individual meta-information|GRP|ARG:name"
 	
 	  << "meta-matrix|output|write a matrix of variant meta-information|VCF|NOGENO"
 	
@@ -163,9 +163,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	// Locus-operations
 	// 
 	
-	  << "loc-load|input,locop|load from a .GTF or .REG file into LOCDB|ARG:file,group" 
+	  << "loc-load|input,locop|load from a .GTF or .REG file into LOCDB|ARG:file,group,keep-unmerged"
 	
-	  << "locset-load|input,locop|load a locus-set|ARG:file,name,group" 
+	  << "locset-load|input,locop|load a locus-set|ARG:file,name,group,alternate-name"
 	
 	  << "loc-load-alias|input,locop|load a gene-alias table|ARG:file" 
 	
@@ -218,13 +218,13 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 	
 	
-	  << "ref-load|input,refop|load data (VCF or flat-file) into REFDB|ARG:file,group"
+	  << "ref-load|input,refop|load data (VCF or flat-file) into REFDB|ARG:file,group,vcf"
 	
 	  << "load-weights|input,refop|load weight table|ARG:name,file" 
 	
 	  << "score-weights|annot|score variants for weights|VCF|ARG:name"
 	
-	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:file"
+	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:file,name,description"
 	
 	  << "lookup|misc|lookup various annotatations for a list of positions"
 	
@@ -239,23 +239,23 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 	
 
-	  << "summary|project|summary of all databases"
+	  << "summary|project|summary of all databases|ARG:ugly"
 
-	  << "var-summary|project|summary of VARDB" 
+	  << "var-summary|project|summary of VARDB|ARG:ugly"
 
-	  << "loc-summary|project|summary of LOCDB" 
+	  << "loc-summary|project|summary of LOCDB|ARG:ugly"
 
-	  << "seg-summary|project|summary of SEQDB" 
+	  << "seg-summary|project|summary of SEQDB|ARG:ugly"
 
-	  << "ind-summary|project|summary of INDDB" 
+	  << "ind-summary|project|summary of INDDB|ARG:ugly"
 
-	  << "ref-summary|project|summary of REFDB" 
+	  << "ref-summary|project|summary of REFDB|ARG:ugly"
 
-	  << "seq-summary|project|summary of SEQDB" 
+	  << "seq-summary|project|summary of SEQDB|ARG:ugly"
 
-	  << "file-summary|project|summary of project files"
+	  << "file-summary|project|summary of project files|ARG:ugly"
 
-	  << "meta-summary|project|summary of variant meta-information|VCF"  
+	  << "meta-summary|project|summary of variant meta-information|VCF|ARG:ugly"
 
     
     //
@@ -298,7 +298,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 
 
-	  << "ibd-load|input,ibd|load IBD segment data|ARG:ibddb"
+	  << "ibd-load|input,ibd|load IBD segment data|ARG:ibddb,file"
 	
 	  << "ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb"
 	

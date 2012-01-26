@@ -121,9 +121,15 @@ bool Pseq::SeqDB::load_FASTA( const std::string & filename )
     meta[ PLINKSeq::SEQDB_IUPAC_KEY() ] = "0";
   
   g.seqdb.create( filename );
+
+  if (!args.has( "seqdb" ))
+     Helper::halt("Need to specify SEQDB path with --seqdb");
+  std::string seqdb_filename = args.as_string( "seqdb" );
+
   plog << "loading from FASTA..\n";
-  g.seqdb.loadFASTA( filename , meta );
   
+  g.seqdb.loadFASTA( seqdb_filename , meta );
+
   return true;
 }
 
