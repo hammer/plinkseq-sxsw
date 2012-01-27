@@ -224,7 +224,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "score-weights|annot|score variants for weights|VCF|ARG:name"
 	
-	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:file,name,description"
+	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:format$build$repeat-mode$iupac,file,name,description,"
 	
 	  << "lookup|misc|lookup various annotatations for a list of positions"
 	
