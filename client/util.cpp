@@ -92,7 +92,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "load-pedigree|input,indop|load pedigree information into INDDB|ARG:file"
 
-	  << "delete-meta|varop|remove meta-information"    
+	  << "delete-meta|varop|remove meta-information|ARG:group"
 	
 	  << "index-bcf|input|add index to VARDB for a BCF|ARG:bcf"
 	
@@ -128,7 +128,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     
 	  << "mrv-view|views|view multiple rare variants|VCF" 
     
-	  << "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta,rarelist" 
+	  << "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta,rarelist,phenotype,verbose"
     
 	  << "gs-view|views|view gene variants in sequence|GRP|ARG:ref-variants"
 	
@@ -151,7 +151,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	//
 	
 
-	  << "tag-file|varop|add file-tags to VARDB|ARG:file,id" 
+	  << "tag-file|varop|add file-tags to VARDB|ARG:name,id"
 	  
 	  << "var-delete|varop|remove file from VARDB|ARG:id" 
 	
@@ -194,11 +194,11 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "loc-view|views,locop|show all loci in a LOCDB group"
 	
-	  << "loc-stats|views,locop|locus-based stats|ARG:no-subregions,show-subregions"
+	  << "loc-stats|views,locop|locus-based stats|ARG:no-subregions,show-subregions,loc-group,ref-group"
 	
 	  << "loc-translate|locop|AA sequence of loci"
 
-	  << "loc-annotate|locop,annot|annotate loci|ARG:group"
+	  << "loc-annotate|locop,annot|annotate loci|ARG:group,show-subregions"
 	
 	  << "loc-overlap|locop|show loci in groups Y, Z that overlap each locus in X|ARG:group,alias,comma,tab,row"
 
@@ -228,9 +228,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "lookup|misc|lookup various annotatations for a list of positions"
 	
-	  << "ref-view|views|view a group from a REFDB"
+	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta"
 	
-	  << "seq-view|views|view regions of sequence from SEQDB"
+	  << "seq-view|views|view regions of sequence from SEQDB|ARG:compact,region"
 
 
 
@@ -269,7 +269,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "i-stats|stats|per-individual statistics|VCF|ARG:stats"
 	
-	  << "v-dist|stats,tests|comparison of rare-variant group distributions|VCF|ARG:whole-sample-counts"
+	  << "v-dist|stats,tests|comparison of rare-variant group distributions|VCF|ARG:whole-sample-counts,perm"
 	
 	  << "v-freq|stats,qc|variant frequency data|VCF|ARG:em"
 
@@ -280,15 +280,15 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 
 
-	  << "counts|views,tests|summary/count statistics|VCF|ARG:output-vcf"
+	  << "counts|views,tests|summary/count statistics|VCF|ARG:output-vcf,name"
 	
-	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf"
+	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name"
 	
-	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests,info,fix-null,perm" 
+	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests,info,fix-null,perm,midpoint"
     
-	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm"
+	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta"
 	
-	  << "glm|tests|general linear models|VCF|ARG:phenotype,perm"
+	  << "glm|tests|general linear models|VCF|ARG:phenotype,perm,vmeta,use-postprobs,use-dosages,covar,show-covar"
 
 	  << "unique|views,tests|view variants specific to individual groups|VCF|ARG:indiv,require,allow"
 
@@ -302,9 +302,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb"
 	
-	  << "s-assoc|tests,ibd|segment-based IBD test"
+	  << "s-assoc|tests,ibd|segment-based IBD test|ARG:perm,file"
 
-	  << "mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv"
+	  << "mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv,region"
       
     
     //
@@ -315,7 +315,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
 	
-	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,pheno"
+	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,pheno,file,output"
 
 
 
@@ -326,13 +326,13 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "clusters|qc|."
 	
-	  << "proximity-scan|qc|VCF"
+	  << "proximity-scan|qc|VCF|ARG:distance"
 	
-	  << "concordance|qc|genotypic concordance checks"
+	  << "concordance|qc|genotypic concordance checks|ARG:report-all"
 	
 	  << "group-comparison|qc,tests|"
 	
-	  << "ibs-matrix|qc|IBS matrix calculation|VCF"
+	  << "ibs-matrix|qc|IBS matrix calculation|VCF|ARG:long-format,two-counts"
 	
 	  << "intersect|locop|intersect locus groups"
 
