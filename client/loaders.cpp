@@ -91,15 +91,15 @@ bool Pseq::SeqDB::load_FASTA( const std::string & filename )
   std::map<std::string,std::string> meta;
 	
   if ( args.has("name") ) meta[ PLINKSeq::SEQDB_NAME_KEY() ] = Pseq::Util::single_argument<std::string>( args , "name" ); 
-  else Helper::halt("no name specified in options");
+  else Helper::halt("no name specified");
 
-  if ( args.has("build") ) meta[ PLINKSeq::SEQDB_GENOME_BUILD_KEY() ] = Pseq::Util::single_argument<std::string>( args , "build" ); 
-  else Helper::halt("no build specified in options");
+  if ( args.has("format", "build") ) meta[ PLINKSeq::SEQDB_GENOME_BUILD_KEY() ] = args.as_string( "format" , "build" );
+  else Helper::halt("need to specify --format build=[build]");
   
-  if ( args.has("repeat-mode") ) 
+  if ( args.has("format", "repeat-mode") )
     {
 
-	std::string m = args.as_string( "repeat-mode" );
+	std::string m = args.as_string( "format", "repeat-mode" );
       
 	// should be none  = none
 	//           N     = N-masked
@@ -115,15 +115,20 @@ bool Pseq::SeqDB::load_FASTA( const std::string & filename )
   if ( args.has( "description" ) ) meta[ PLINKSeq::SEQDB_DESCRIPTION_KEY() ] = args.as_string( "description" );
   else Helper::halt("no description specified in options");
   
-  if ( args.has("iupac") || args.has("IUPAC") ) 
+  if ( args.has( "format", "iupac" ))
     meta[ PLINKSeq::SEQDB_IUPAC_KEY() ] = "1";
   else
     meta[ PLINKSeq::SEQDB_IUPAC_KEY() ] = "0";
   
-  g.seqdb.create( filename );
+  if (!args.has( "seqdb" ))
+     Helper::halt("Need to specify SEQDB path with --seqdb");
+  std::string seqdb_filename = args.as_string( "seqdb" );
+  g.seqdb.create( seqdb_filename );
+
   plog << "loading from FASTA..\n";
-  g.seqdb.loadFASTA( filename , meta );
   
+  g.seqdb.loadFASTA( filename , meta );
+
   return true;
 }
 

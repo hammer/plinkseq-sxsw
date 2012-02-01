@@ -74,9 +74,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "version|project|display version information"
 	
-	  << "append|project,input|add a file to the project|ARG:file,type"
+	  << "append|project,input|add a file to the project|ARG:name,file,type"
 	
-	  << "drop|project|drop a file from the project|ARG:file,type"
+	  << "drop|project|drop a file from the project|ARG:name,file,type"
 	
 	  << "load-vcf|input|load all VCF files not already in VARDB|ARG:file,vcf,filter,include-meta,exclude-meta"
 	
@@ -86,13 +86,13 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id,iid,fid,check-reference,fix-strand" 
 	
-	  << "load-meta|input|load meta-information for existing VARDB variants" 
+	  << "load-meta|input|load meta-information for existing VARDB variants|ARG:file,id,group"
 	
 	  << "load-pheno|input,indop|load phenotypes into INDB|ARG:file"
 	
 	  << "load-pedigree|input,indop|load pedigree information into INDDB|ARG:file"
 
-	  << "delete-meta|varop|remove meta-information"    
+	  << "delete-meta|varop|remove meta-information|ARG:group"
 	
 	  << "index-bcf|input|add index to VARDB for a BCF|ARG:bcf"
 	
@@ -107,7 +107,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "write-vardb|output,varop|write a new VARDB|ARG:new-vardb,new-project"
 	
-	  << "write-vcf|output|write a new VCF file|VCF|"
+	  << "write-vcf|output|write a new VCF file|VCF|file"
 
 	  << "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name,use-family-id" 
 	
@@ -128,7 +128,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     
 	  << "mrv-view|views|view multiple rare variants|VCF" 
     
-	  << "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta,rarelist" 
+	  << "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta,rarelist,phenotype,verbose"
     
 	  << "gs-view|views|view gene variants in sequence|GRP|ARG:ref-variants"
 	
@@ -136,9 +136,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "v-matrix|output|write a matrix of allele counts|VCF"
 	
-	  << "g-matrix|output|write a matix of gene-based allele counts|GRP"
+	  << "g-matrix|output|write a matix of gene-based allele counts|GRP|ARG:hide-invariant,collapse"
 	
-	  << "g-meta-matrix|output|matix of gene-based per-individual meta-information|GRP"
+	  << "g-meta-matrix|output|matix of gene-based per-individual meta-information|GRP|ARG:name"
 	
 	  << "meta-matrix|output|write a matrix of variant meta-information|VCF|NOGENO"
 	
@@ -151,7 +151,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	//
 	
 
-	  << "tag-file|varop|add file-tags to VARDB|ARG:file,id" 
+	  << "tag-file|varop|add file-tags to VARDB|ARG:name,id"
 	  
 	  << "var-delete|varop|remove file from VARDB|ARG:id" 
 	
@@ -163,9 +163,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	// Locus-operations
 	// 
 	
-	  << "loc-load|input,locop|load from a .GTF or .REG file into LOCDB|ARG:file,group" 
+	  << "loc-load|input,locop|load from a .GTF or .REG file into LOCDB|ARG:file,group,keep-unmerged"
 	
-	  << "locset-load|input,locop|load a locus-set|ARG:file,name,group" 
+	  << "locset-load|input,locop|load a locus-set|ARG:file,name,group,alternate-name"
 	
 	  << "loc-load-alias|input,locop|load a gene-alias table|ARG:file" 
 	
@@ -194,11 +194,11 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "loc-view|views,locop|show all loci in a LOCDB group"
 	
-	  << "loc-stats|views,locop|locus-based stats|ARG:no-subregions,show-subregions"
+	  << "loc-stats|views,locop|locus-based stats|ARG:no-subregions,show-subregions,loc-group,ref-group"
 	
 	  << "loc-translate|locop|AA sequence of loci"
 
-	  << "loc-annotate|locop,annot|annotate loci|ARG:group"
+	  << "loc-annotate|locop,annot|annotate loci|ARG:group,show-subregions"
 	
 	  << "loc-overlap|locop|show loci in groups Y, Z that overlap each locus in X|ARG:group,alias,comma,tab,row"
 
@@ -218,19 +218,19 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 	
 	
-	  << "ref-load|input,refop|load data (VCF or flat-file) into REFDB|ARG:file,group"
+	  << "ref-load|input,refop|load data (VCF or flat-file) into REFDB|ARG:file,group,vcf"
 	
 	  << "load-weights|input,refop|load weight table|ARG:name,file" 
 	
 	  << "score-weights|annot|score variants for weights|VCF|ARG:name"
 	
-	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:file"
+	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:format$build$repeat-mode$iupac,file,name,description,"
 	
 	  << "lookup|misc|lookup various annotatations for a list of positions"
 	
-	  << "ref-view|views|view a group from a REFDB"
+	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta"
 	
-	  << "seq-view|views|view regions of sequence from SEQDB"
+	  << "seq-view|views|view regions of sequence from SEQDB|ARG:compact,region"
 
 
 
@@ -239,23 +239,23 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 	
 
-	  << "summary|project|summary of all databases"
+	  << "summary|project|summary of all databases|ARG:ugly"
 
-	  << "var-summary|project|summary of VARDB" 
+	  << "var-summary|project|summary of VARDB|ARG:ugly"
 
-	  << "loc-summary|project|summary of LOCDB" 
+	  << "loc-summary|project|summary of LOCDB|ARG:ugly"
 
-	  << "seg-summary|project|summary of SEQDB" 
+	  << "seg-summary|project|summary of SEQDB|ARG:ugly"
 
-	  << "ind-summary|project|summary of INDDB" 
+	  << "ind-summary|project|summary of INDDB|ARG:ugly"
 
-	  << "ref-summary|project|summary of REFDB" 
+	  << "ref-summary|project|summary of REFDB|ARG:ugly"
 
-	  << "seq-summary|project|summary of SEQDB" 
+	  << "seq-summary|project|summary of SEQDB|ARG:ugly"
 
-	  << "file-summary|project|summary of project files"
+	  << "file-summary|project|summary of project files|ARG:ugly"
 
-	  << "meta-summary|project|summary of variant meta-information|VCF"  
+	  << "meta-summary|project|summary of variant meta-information|VCF|ARG:ugly"
 
     
     //
@@ -269,7 +269,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "i-stats|stats|per-individual statistics|VCF|ARG:stats"
 	
-	  << "v-dist|stats,tests|comparison of rare-variant group distributions|VCF|ARG:whole-sample-counts"
+	  << "v-dist|stats,tests|comparison of rare-variant group distributions|VCF|ARG:whole-sample-counts,perm"
 	
 	  << "v-freq|stats,qc|variant frequency data|VCF|ARG:em"
 
@@ -280,15 +280,15 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 
 
-	  << "counts|views,tests|summary/count statistics|VCF|ARG:output-vcf"
+	  << "counts|views,tests|summary/count statistics|VCF|ARG:output-vcf,name"
 	
-	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf"
+	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name"
 	
-	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests,info,fix-null,perm" 
+	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests,info,fix-null,perm,midpoint"
     
-	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm"
+	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta"
 	
-	  << "glm|tests|general linear models|VCF|ARG:phenotype,perm"
+	  << "glm|tests|general linear models|VCF|ARG:phenotype,perm,vmeta,use-postprobs,use-dosages,covar,show-covar"
 
 	  << "unique|views,tests|view variants specific to individual groups|VCF|ARG:indiv,require,allow"
 
@@ -298,13 +298,13 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 
 
-	  << "ibd-load|input,ibd|load IBD segment data|ARG:ibddb"
+	  << "ibd-load|input,ibd|load IBD segment data|ARG:ibddb,file"
 	
 	  << "ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb"
 	
-	  << "s-assoc|tests,ibd|segment-based IBD test"
+	  << "s-assoc|tests,ibd|segment-based IBD test|ARG:perm,file"
 
-	  << "mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv"
+	  << "mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv,region"
       
     
     //
@@ -315,7 +315,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
 	
-	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,pheno"
+	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,pheno,file,output"
 
 
 
@@ -326,13 +326,13 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "clusters|qc|."
 	
-	  << "proximity-scan|qc|VCF"
+	  << "proximity-scan|qc|VCF|ARG:distance"
 	
-	  << "concordance|qc|genotypic concordance checks"
+	  << "concordance|qc|genotypic concordance checks|ARG:report-all"
 	
 	  << "group-comparison|qc,tests|"
 	
-	  << "ibs-matrix|qc|IBS matrix calculation|VCF"
+	  << "ibs-matrix|qc|IBS matrix calculation|VCF|ARG:long-format,two-counts"
 	
 	  << "intersect|locop|intersect locus groups"
 

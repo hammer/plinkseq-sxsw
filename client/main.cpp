@@ -713,7 +713,7 @@ int main(int argc, char ** argv)
   // Flush 1 or more files from VARDB, based on ID numbers
   //
   
-  if ( command == "delete-var" )
+  if ( command == "var-delete" )
     {
       if ( ! args.has("id") )
 	Helper::halt("no --id specified");	      
