@@ -879,7 +879,11 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   std::vector<std::vector<bool> > hap_inform;
   std::vector<std::vector<bool> > hap_state;
   std::vector<std::string> hap_id;
-
+  
+  // track the closest to the edge
+  double closest = -1;
+  int n_pct05_close = 0;
+  
   while ( xi != xolap.end() )
     {
       
@@ -988,6 +992,19 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
       // display some information on this particular pair
       double pcnt = ( region.start.position() - reg.start.position() ) / (double)( reg.length() ) ;
       
+      if ( closest < 0 ) 
+	{
+	  double pcnt2 = pcnt > 0.5 ? 1 - pcnt : pcnt; 
+	  closest = pcnt2;
+	  if ( pcnt2 < 0.05 ) n_pct05_close++;
+	}
+      else 
+	{
+	  double pcnt2 = pcnt > 0.5 ? 1 - pcnt : pcnt; 
+	  if ( pcnt2 < closest ) closest = pcnt2;
+	  if ( pcnt2 < 0.05 ) n_pct05_close++;
+	}
+
       plog << "IBD" << "\t"
 	   << proband_id_str << " - " 
 	   << xi->first << "\t"                     // parnter ID
@@ -1023,9 +1040,10 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   
   int nhet = 0; // number of hets in proband
   int both_supported = 0; // number of hets in which at least one other indiv supports A1, and at least one supports A2
-  int one_supported = 0;  // number of times only one allele is supported (by one or more individuals)
+  int one_supported = 0;     // number of times only one allele is supported (by one or more individuals)
   int neither_supported = 0; // number of times in which neither allele is supported
-  
+  int total_invalid = 0;     // count of sites w/ atleast one invalid set of calls.
+
   int phet_cnt = 0;
   for (int v = 0 ; v < nv ; v++ ) 
     {
@@ -1037,13 +1055,15 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
       else if ( n_support_a1[v] > 0 || n_support_a2[v] > 0 ) ++one_supported;
       else      ++neither_supported;
       
+      if ( n_invalid[v] ) ++total_invalid;
+      
       plog << vars(v) << "\t" 
 	   << vars(v).label( id ) << "\t"
 	   << n_ibd[v] << "\t"            // number of other individuals who are IBD with proband here
 	   << is_het[v] << "\t"           // flag for whether proband is a HET or not
 	   << n_support_a1[v] << "\t"     // # number of IBD segs supporting 'allele 1'
-	   << n_support_a2[v] << "\t";    // # number of IBD segs supporting 'allele 2'
-      
+	   << n_support_a2[v] << "\t"     // # number of IBD segs supporting 'allele 2'
+	   << n_invalid[v] << "\t";       // # of invalid sites
 
       std::vector<std::string>::iterator ii = implied_haps.begin();
       while ( ii != implied_haps.end() )
@@ -1095,8 +1115,8 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	{
 	  if ( pi == h1 ) 
 	    { 
-	      plog << "MATCH" << "\t"
-		   << hap_id[pi] << "\t";
+// 	      plog << "MATCH" << "\t"
+// 		   << hap_id[pi] << "\t";
 
 
 	    }
@@ -1116,6 +1136,19 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 
 	}
 
+
+  plog << "#2HET" << "\t" 
+       << "ID\t"
+       << "REGION\t"
+       << "NVAR\t"
+       << "NHET\t"
+       << "NOLAP\t"
+       << "CLOSET_TO_EDGE\t"
+       << "PCT5\t"
+       << "NINVALID\t"
+       << "NEITHER\t"
+       << "ONE\t"
+       << "BOTH\n";
   
   plog << "2HET" << "\t" 
        << proband_id_str << "\t" 
@@ -1123,6 +1156,9 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
        << nv << "\t" 
        << nhet << "\t"
        << xolap.size() << "\t"
+       << closest << "\t"
+       << n_pct05_close / (double)xolap.size() << "\t"
+       << total_invalid << "\t"
        << neither_supported << "\t"
        << one_supported << "\t"        
        << both_supported << "\n";
