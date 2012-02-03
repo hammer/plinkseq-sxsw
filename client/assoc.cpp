@@ -1630,3 +1630,109 @@ void g_set_association( VariantGroup & vars , void * p )
 
 }
 
+
+
+
+
+//void f_set_
+
+// // Per-individual set-enrichment scan
+
+// bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & args )
+// {
+  
+
+//   if ( args.has( "make-gene-map" ) )
+//     {
+      
+//       std::string filename = args.as_string( "make-gene-map" );
+      
+//       std::map<std::string,int> counts;
+      
+//       // iterate through each set; write number of individuals/genes that have 1+ allele
+      
+//       g.vardb.iterate( g_set_enrich_make_count_map , &counts , );
+
+//       return true;
+//     }
+  
+// //   if ( args.has( "make-set-count-map" ) ) 
+// //     {
+
+// //       return true;
+// //     }
+
+
+//   //
+//   // otherwise assume that we are going to score individuals
+//   //
+
+//   if ( ! args.has( "site-map" ) ) Pseq::halt( "no --site-map {file} specified" );
+//   if ( ! args.has( "set-count" ) ) Pseq::halt( "no --set-count {file} specified" );
+  
+//   std::string sitefile = args.as_string( "site-map" );
+//   std::string setfile = args.as_string( "set-count" );
+  
+//   Helper::checkFileExists( sitefile );
+//   Helper::checkFileExists( setfile );
+  
+//   InFile sites( sitefile );
+//   InFile sets( setfile );
+
+//   std::map<std::string,int> gene_counts;
+  
+//   while ( ! sites.eof() ) 
+//     {
+//       std::string gene;
+//       int count;
+//       sites >> gene >> count;
+//       gene_counts[ gene ] = count;
+//     }
+//   sites.close();
+  
+// //   while ( ! sets.eof() )
+// //     {
+// //       std::sintr 
+// //     }
+// //   sets.close();
+  
+
+//   // Step 0 : create site map
+
+//   // Step 1 : create set/count map
+  
+  
+//   // total number of genes/individuals per set with 1+ rare-variant per individual
+  
+//   std::map<std::string,int> stot;
+//   int t
+
+//   // For a given individual we have N variants of interest, e.g. LoF variants
+//   // Of those, n fall in genes of interest, m do not (N=n+m)
+
+//   // Reframe as, in a set with G genes, G1 have at least one variant of interest, G0 have no
+//   // 
+//   //  // |   |  |  |  |  |  |  |  |  |  |  |  | 
+//   //     20  
+//   //     
+
+//   //  // Step 1 -- for each set, create a table of Set-Variant-Count, where Count is collapsed entry per gene
+
+//   //  // Step 2 -- go back, for each set, for each individual, permute, count up # of genes hit 
+
+//   //     For a set, the overall ratio , calcuate T / 
+
+//   //   Now we will have N variants, n1 in sets, n0 not; 
+
+//   //   PERM-i : pick at random N variants from the entire list;  calculate all SET stats;  
+  
+
+//   // Create genic-scoring matrix; the total 
+
+//   // Sets will be specified by a locset.group Mask, we assume 
+//   // iterate for each set;   
+  
+//   return true;
+// }
+
+

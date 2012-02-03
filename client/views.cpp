@@ -461,8 +461,8 @@ void f_view_gene_matrix( VariantGroup & vars , void * p )
   
   std::string s = vars.name() + "\t" + Helper::int2str( nv );  
   bool variation = false;
-  const int ni = vars.n_individuals();
-  
+  const int ni = g.indmap.size();
+
   for (int i = 0 ; i < ni ; i++)
     {
 

@@ -292,6 +292,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "unique|views,tests|view variants specific to individual groups|VCF|ARG:indiv,require,allow"
 
+	  << "set-enrich|tests|test per individual for greater-than-expected burden of variants per set|GRP|ARG:phenotype,perm"
 
     //
     // IBD database 
@@ -306,6 +307,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv,region"
       
+      
     
     //
     // Gene-network database
@@ -316,7 +318,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
 	
 	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,pheno,file,output"
-
+            
 
 
     //

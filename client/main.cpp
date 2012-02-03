@@ -1837,6 +1837,8 @@ int main(int argc, char ** argv)
 
 	// if no perms specified, use adaptive permutation mode
 	Pseq::Assoc::set_assoc_test( m , args );
+
+	Pseq::finished();
 	
       }
     
@@ -1845,7 +1847,15 @@ int main(int argc, char ** argv)
 	if ( g.phmap.type() != PHE_DICHOT ) 
 	  Helper::halt("no dichotomous phenotype specified");
 	Pseq::Assoc::net_assoc_test( m , args );
+	Pseq::finished();
       }
+
+//     if ( command == "set-enrich" ) 
+//       {
+// 	Pseq::Assoc::set_enrich_wrapper( m , args );
+// 	Pseq::finished();
+//       }
+
 
     if ( command == "s-assoc" )
       {
