@@ -92,7 +92,8 @@ namespace Pseq
 	    int as_int( const std::string & a ) const;
 	    std::vector<int> as_int_vector( const std::string & a ) const;
 	    double as_float( const std::string & a ) const;	
-	    
+	    std::vector<double> as_float_vector( const std::string & a ) const;
+
 	    // as above, but for keywords ( --arg value=key value=key) -- still space delimited
 	    
 	    std::vector<std::string> as_string_vector( const std::string & , const std::string & a ) const;

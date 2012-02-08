@@ -1633,106 +1633,145 @@ void g_set_association( VariantGroup & vars , void * p )
 
 
 
+// Per-individual set-enrichment scan
 
-//void f_set_
+struct aux_set_enrichment{
+  std::vector<int> indiv;
+  std::vector<int> gene;
+  std::map<std::string,int> gene_id;
+};
 
-// // Per-individual set-enrichment scan
 
-// bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & args )
-// {
+void g_set_enrichment( VariantGroup & vars , void * p )
+{
+
+  aux_set_enrichment * aux = (aux_set_enrichment*)p;
+  
+  // keep track of gene name
+  const int gn = aux->gene_id.size();
+  aux->gene_id[ vars.name() ] = gn;
+
+  int a = 0;
+  const int n = g.indmap.size();
+  const int s = vars.size();
+
+  std::vector<bool> altmin(s);
+  for (int j = 0 ; j < s ; j++  )
+    {
+      int c, c_tot;      
+      altmin[j] = vars(j).n_minor_allele( &c , &c_tot );      
+    }
+
+  for ( int i = 0 ; i < n ; i++ )
+    {
+      for (int j = 0 ; j < s ; j++  )
+	{
+	  if ( vars(j,i).minor_allele( altmin[j] ) )
+	    {
+	      aux->gene.push_back( gn );
+	      aux->indiv.push_back( j );
+	      ++a;
+	      break;
+	    }
+	}
+    }
+
+  std::cout << " added " << a << " for " << vars.name() << "\n";
+
+}
+
+
+bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & args )
+{
+  
+  // We assume the initial scan has to be based on genes --mask loc.group=refseq
+
+  // We need a geneset list to be specified by the argment --locset go
+  // and that this relates to a locset that has been loaded into the LOCDB
+  // (and that will match in terms of 'refseq')
+  
+  // Populate a list of individual / gene initially
+  
+  aux_set_enrichment aux;
+
+  std::string locset = args.as_string( "locset" );
+  std::string loc = args.as_string( "loc" );
   
 
-//   if ( args.has( "make-gene-map" ) )
-//     {
-      
-//       std::string filename = args.as_string( "make-gene-map" );
-      
-//       std::map<std::string,int> counts;
-      
-//       // iterate through each set; write number of individuals/genes that have 1+ allele
-      
-//       g.vardb.iterate( g_set_enrich_make_count_map , &counts , );
+  // ensure that we iterate by gene initially, to build the gene table
+  // we want to do this for all genes (whether in set or not)
 
-//       return true;
-//     }
-  
-// //   if ( args.has( "make-set-count-map" ) ) 
-// //     {
+  mask.group_loc( loc );
 
-// //       return true;
-// //     }
+  // iterate through each set; write number of individuals/genes that have 1+ allele
+    
+  g.vardb.iterate( g_set_enrichment , &aux , mask ) ;
 
-
-//   //
-//   // otherwise assume that we are going to score individuals
-//   //
-
-//   if ( ! args.has( "site-map" ) ) Pseq::halt( "no --site-map {file} specified" );
-//   if ( ! args.has( "set-count" ) ) Pseq::halt( "no --set-count {file} specified" );
   
-//   std::string sitefile = args.as_string( "site-map" );
-//   std::string setfile = args.as_string( "set-count" );
-  
-//   Helper::checkFileExists( sitefile );
-//   Helper::checkFileExists( setfile );
-  
-//   InFile sites( sitefile );
-//   InFile sets( setfile );
-
-//   std::map<std::string,int> gene_counts;
-  
-//   while ( ! sites.eof() ) 
-//     {
-//       std::string gene;
-//       int count;
-//       sites >> gene >> count;
-//       gene_counts[ gene ] = count;
-//     }
-//   sites.close();
-  
-// //   while ( ! sets.eof() )
-// //     {
-// //       std::sintr 
-// //     }
-// //   sets.close();
+  // Now that we've built the gene/variant table for all individuals,
+  // we can go through each set, one at a time and score each
+  // individual
+ 
+  //           | Set | Not-Set
+  // ----------|-----|----------
+  // Indiv V   |     |
+  // ----------|-----|----------
+  // Rest  V-1 |     |
+  // ----------|-----|----------
   
 
-//   // Step 0 : create site map
+  // Now get a list of all SETs to use
+  
+  std::vector<std::string> sets = g.locdb.fetch_set_names( loc , locset );
 
-//   // Step 1 : create set/count map
+  // Create a mapping of gene --> sets 
+  // i.e. if individual carries gene g, we know to increment sets in g2s[g]
+
+  plog << "creating gene-to-set mapping...\n";
+  
+  std::vector< std::vector<int> > g2s( aux.gene_id.size() ) ;
+  
+  for (int s = 0 ; s < sets.size() ; s++ ) 
+    {
+      std::cout << "set = " << sets[s] << "\n";
+      std::vector<std::string> members = g.locdb.fetch_set_members( loc, locset, sets[s] );
+      for (int ss=0; ss<members.size(); ss++)
+	{
+	  if ( aux.gene_id.find( members[ss] ) == aux.gene_id.end() ) continue;
+	  const int gn = aux.gene_id[ members[ss] ];
+	  if ( gn >= g2s.size() ) continue;
+	  g2s[ gn ].push_back( s );
+	}
+    }
+  
+  plog << "eval gene to set mapping...\n";
+
+  // create large score matrix
+
+  const int n = g.indmap.size();
+
+  std::vector<std::vector<int> > scores(n);
+  for (int k=0;k<n;k++) scores[k].resize( sets.size() , 0 );
+  
+  for (int k = 0 ; k < aux.indiv.size() ; k++)
+    {
+      std::cout << "proc'ing " << k << " of " << aux.indiv.size() << "\n";
+
+      const int i = aux.indiv[k];
+      const int g = aux.gene[k];
+      for (int s = 0 ; s < g2s[g].size() ; s++ ) scores[i][g2s[g][s]]++;
+    }
+  
+
+  //
+  
+  // mapping of gene --> SET
+  
+  // FISHER'S
+  //       if ( ! fisher( Table( allele_refa, allele_refu, allele_alta, allele_altu ) , &fisher_pv0 ) ) fisher_pv0 = 1;
+
   
   
-//   // total number of genes/individuals per set with 1+ rare-variant per individual
-  
-//   std::map<std::string,int> stot;
-//   int t
+  return true;
 
-//   // For a given individual we have N variants of interest, e.g. LoF variants
-//   // Of those, n fall in genes of interest, m do not (N=n+m)
-
-//   // Reframe as, in a set with G genes, G1 have at least one variant of interest, G0 have no
-//   // 
-//   //  // |   |  |  |  |  |  |  |  |  |  |  |  | 
-//   //     20  
-//   //     
-
-//   //  // Step 1 -- for each set, create a table of Set-Variant-Count, where Count is collapsed entry per gene
-
-//   //  // Step 2 -- go back, for each set, for each individual, permute, count up # of genes hit 
-
-//   //     For a set, the overall ratio , calcuate T / 
-
-//   //   Now we will have N variants, n1 in sets, n0 not; 
-
-//   //   PERM-i : pick at random N variants from the entire list;  calculate all SET stats;  
-  
-
-//   // Create genic-scoring matrix; the total 
-
-//   // Sets will be specified by a locset.group Mask, we assume 
-//   // iterate for each set;   
-  
-//   return true;
-// }
-
-
+}

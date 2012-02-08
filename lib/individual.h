@@ -112,7 +112,7 @@ class Individual
   }
 
   std::string father() const { return pat_id ; }
-  std::string mother() const { return pat_id ; }
+  std::string mother() const { return mat_id ; }
 
   Individual * pat() const { return patp; }
   Individual * mat() const { return matp; }

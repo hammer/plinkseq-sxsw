@@ -66,6 +66,8 @@ namespace Pseq
 
       bool uniq_report( std::vector<std::string> & , Mask & m , OptUniq & );
       
+      bool denovo_scan( Mask & m );
+
       bool gene_stats_header( VStat & );
 
       bool variant_stats(Mask & m);

@@ -213,7 +213,9 @@ int IndDBase::fetch_id(const std::string & name)
   int code = 0;
   sql.bind_text( stmt_lookup_id , ":name" , name );
   if ( sql.step( stmt_lookup_id ) )
-    code = sql.get_int( stmt_lookup_id , 0 );
+    {
+      code = sql.get_int( stmt_lookup_id , 0 );
+    }
   sql.reset( stmt_lookup_id );
   return code;
 }
@@ -356,6 +358,9 @@ bool IndDBase::load_ped_info( const std::string & filename )
   
   int cnt1 = 0 , cnt2 = 0;
   
+  // place entire load in a single transaction
+  sql.begin();
+  
   while ( ! f.eof() )
     {
       
@@ -387,6 +392,8 @@ bool IndDBase::load_ped_info( const std::string & filename )
     }
   
   f.close();
+
+  sql.commit();
   
   plog << "Inserted " << cnt1 
        << " new individuals, updated " << cnt2 
@@ -607,12 +614,13 @@ bool IndDBase::fetch( Individual * person )
 {
 
   if ( ! attached() ) return false;
-  
+
   // Look-up this individual based upon their ID. 
   // Attach all phenotype and meta-information we find
   // Return true if find somebody matching that description
   
   uint64_t idx = fetch_id( person->id() );
+ 
   if ( idx == 0 ) return false;
   
   if ( fetch( person , fetch_id( person->id() ) ) )
@@ -638,7 +646,7 @@ Individual IndDBase::fetch( uint64_t indiv_id )
 
 bool IndDBase::fetch( Individual * person , uint64_t indiv_id )
 {
-  
+
   sql.bind_int64( stmt_fetch_individual , ":indiv_id" , indiv_id );
   
   bool obs = false;
@@ -652,6 +660,7 @@ bool IndDBase::fetch( Individual * person , uint64_t indiv_id )
       person->iid( sql.get_text(  stmt_fetch_individual , 3 ) );
       person->pat( sql.get_text(  stmt_fetch_individual , 4 ) );
       person->mat( sql.get_text(  stmt_fetch_individual , 5 ) );
+
       int s = sql.get_int(  stmt_fetch_individual , 6 ) ;
       if ( s == 1 ) 
 	person->sex( MALE );

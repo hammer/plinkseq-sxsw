@@ -1776,6 +1776,17 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
+
+    //
+    // Family-based operations
+    //
+
+    if ( command == "denovo" ) 
+      {
+	Pseq::VarDB::denovo_scan( m );
+	Pseq::finished();
+      }
+
     // 
     // Per indiviaul/group unique/enriched listing
     //
@@ -1850,12 +1861,12 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
-//     if ( command == "set-enrich" ) 
-//       {
-// 	Pseq::Assoc::set_enrich_wrapper( m , args );
-// 	Pseq::finished();
-//       }
-
+    if ( command == "set-enrich" ) 
+      {
+ 	Pseq::Assoc::set_enrich_wrapper( m , args );
+ 	Pseq::finished();
+      }
+    
 
     if ( command == "s-assoc" )
       {

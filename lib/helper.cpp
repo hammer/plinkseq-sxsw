@@ -887,31 +887,29 @@ string Helper::chrCode( int c , bool prefix )
   return prefix ? "chr"+ int2str(c) : int2str(c);
 }
 
-int Helper::chrCode(string c)
+int Helper::chrCode(const std::string & c)
 {
-  int cn;
+
+  // if available, use VARDB table
+  if ( GP && GP->vardb.attached() ) return GP->vardb.chr_code(c);
   
-  if ( str2int( c , cn ) )
-      return cn;
+  // Otherwise, use hard-coded human-specific values
+  int cn;  
+  if ( Helper::str2int( c , cn ) ) return cn;
   
-  // Ignore chr1_random, etc
-  
+  // Ignore chr1_random, etc  
   if( c.size() > 5 ) return 0;
   
   // Remove 'chr' prefix
-
+  std::string c2 ="";
   if ( c.size() > 3 && c.substr(0,3) == "chr" )
-      c = c.substr(3);
+    c2 = c.substr(3);
+  
+  if ( Helper::str2int( c2 , cn ) ) return cn;    
+  if ( c2 == "X" ) return 23;
+  if ( c2 == "Y" ) return 24;
+  if ( c2 == "M" ) return 25;
 
-  // Ignore 'random' 
-  
-  if ( str2int( c , cn ) )
-    return cn;
-  
-  if ( c == "X" ) return 23;
-  if ( c == "Y" ) return 24;
-  if ( c == "M" ) return 25;
-  
   return 0;
 }
 

@@ -366,12 +366,14 @@ struct AuxLookup
 { 
   bool append_phe;
   bool append_loc;
+  bool append_aliases;
   bool append_ref;
   bool append_seq;
   bool vardb;
   bool append_annot;    
   std::set<std::string> locs;
   std::set<std::string> refs;
+  std::set<std::string> aliases;
 };
 
 
@@ -571,6 +573,28 @@ void f_lookup_annotator( Variant & var , void * p )
 		   << "loc_" << *i << "\t"
 		   << j->coordinate() << ":"
 		   << j->name << "\n";
+
+	      if ( aux->append_aliases )
+		{
+		  std::set<std::string>::iterator jj = aux->aliases.begin();
+		  while ( jj != aux->aliases.end() )
+		    {
+		      
+		      std::set<std::string> a = g.locdb.targetted_lookup_alias( j->name , *i , *jj );
+		      std::set<std::string>::iterator ia = a.begin();
+		      while ( ia != a.end() )
+			{
+			  plog << s << "\t"
+			       << "loc_" << *jj << "\t"			       
+			       << *ia << "\n";
+			  ++ia;
+			}
+		      
+		      ++jj;
+		    }
+
+		}
+	      
 	      ++j;
 	    }
 	  ++i;
@@ -624,9 +648,11 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask , cons
 
   aux.locs = args.get_set( "loc" );
   aux.refs = args.get_set( "ref" );
-  
+  aux.aliases = args.get_set( "alias" );
+
   aux.append_phe = g.vardb.attached() && g.inddb.attached() && g.phmap.type() == PHE_DICHOT;    
   aux.append_loc = g.locdb.attached() && aux.locs.size() > 0;
+  aux.append_aliases = aux.append_loc && aux.aliases.size() > 0;
   aux.append_ref = g.refdb.attached() && aux.refs.size() > 0;
   aux.append_seq = g.seqdb.attached();
   aux.vardb = g.vardb.attached();
@@ -1236,4 +1262,510 @@ bool Pseq::VarDB::proximity_scan( Mask & mask )
   
   return true;
 }
+
+
+//
+//
+//
+
+struct aux_transmission_summary { 
+
+  bool has_parents;
+
+  int missing; // 1 or more missing genotypes in trio
+  // PAT x MAT --> OFF 
+
+  int aa_aa_aa;    
+  int aa_aa_ab; // **    
+  int aa_aa_bb; // **
+
+  int aa_ab_aa;    
+  int aa_ab_ab;    
+  int aa_ab_bb; // **  
+ 
+  int aa_bb_aa; // **
+  int aa_bb_ab; 
+  int aa_bb_bb; // **
+
+
+  int ab_aa_aa;    
+  int ab_aa_ab; 
+  int ab_aa_bb; // **
+
+  int ab_ab_aa;    
+  int ab_ab_ab; 
+  int ab_ab_bb; 
+  
+  int ab_bb_aa; // **    
+  int ab_bb_ab; 
+  int ab_bb_bb; 
+
+
+  int bb_aa_aa; // **   
+  int bb_aa_ab;     
+  int bb_aa_bb; // **
+
+  int bb_ab_aa; // **     
+  int bb_ab_ab;    
+  int bb_ab_bb; 
+ 
+  int bb_bb_aa; // **
+  int bb_bb_ab; // **
+  int bb_bb_bb; 
+  
+  int dcount;
+
+  int complete_transmissions() const
+  {
+    return aa_aa_aa +
+      aa_aa_ab +
+      aa_aa_bb +
+      aa_ab_aa +
+      aa_ab_ab +
+      aa_ab_bb +
+      aa_bb_aa +
+      aa_bb_ab +
+      aa_bb_bb +
+      ab_aa_aa +
+      ab_aa_ab +
+      ab_aa_bb +
+      ab_ab_aa +
+      ab_ab_ab +
+      ab_ab_bb +
+      ab_bb_aa +   
+      ab_bb_ab +
+      ab_bb_bb +
+      bb_aa_aa +  
+      bb_aa_ab +
+      bb_aa_bb +
+      bb_ab_aa +    
+      bb_ab_ab +
+      bb_ab_bb +
+      bb_bb_aa +
+      bb_bb_ab +
+      bb_bb_bb ;
+  }
+
+  int nonmendelian() const
+  {
+    return 
+      aa_aa_ab + 
+      aa_aa_bb +
+      aa_ab_bb +
+      aa_bb_aa + 
+      aa_bb_bb +
+      ab_aa_bb +
+      ab_bb_aa +   
+      bb_aa_aa +  
+      bb_aa_bb +
+      bb_ab_aa +    
+      bb_bb_aa +
+      bb_bb_ab ;
+  }
+
+  int trans_ref_from_het() const
+  {
+    return 
+      aa_ab_aa +
+      ab_aa_aa + 
+      ab_ab_aa + 
+      ab_ab_ab + 
+      ab_bb_ab + 
+      bb_ab_ab ;
+  }
+
+
+  int trans_alt_from_het() const
+  {
+
+    return 
+      aa_ab_ab +
+      ab_aa_ab +
+      ab_ab_ab + 
+      ab_ab_bb + 
+      ab_bb_bb + 
+      bb_ab_bb ;
+  }
+
+  int potential_denovo() const
+  {
+    return aa_aa_ab ;
+  }
+
+  int passing_denovo() const
+  {
+    return dcount;
+  }
+
+  aux_transmission_summary() 
+  {
+      aa_aa_aa =
+      aa_aa_ab =
+      aa_aa_bb =
+      aa_ab_aa =
+      aa_ab_ab =
+      aa_ab_bb =
+      aa_bb_aa =
+      aa_bb_ab =
+      aa_bb_bb = 0;
+    
+    ab_aa_aa =
+      ab_aa_ab =
+      ab_aa_bb =
+      ab_ab_aa =
+      ab_ab_ab =
+      ab_ab_bb = 
+      ab_bb_aa =
+      ab_bb_ab =
+      ab_bb_bb = 0;
+    
+    bb_aa_aa =
+      bb_aa_ab =
+      bb_aa_bb =
+      bb_ab_aa = 
+      bb_ab_ab =
+      bb_ab_bb = 
+      bb_bb_aa =
+      bb_bb_ab =
+      bb_bb_bb = 0;
+
+    has_parents = false;
+    missing = 0;
+    dcount = 0;
+  }
+
+};
+
+
+struct Aux_transmission_summary
+{
+
+  Aux_transmission_summary(const int n) 
+    { 
+      res.resize(n); 
+      dp_kid = dp_par = 0;
+      ab_kid_min = 0;
+      ab_kid_max = 1 ;
+      ab_par = 1;
+      pl_kid = pl_par = 0;
+    } 
+  
+  aux_transmission_summary * indiv(const int i) { return &res[i]; }
+  
+  std::vector<aux_transmission_summary> res;
+  
+  double dp_kid;
+  double dp_par;
+  
+  double ab_kid_min, ab_kid_max;
+  double ab_par;
+  
+  double pl_kid;
+  double pl_par;
+   
+};
+
+void f_denovo_scan( Variant & v , void * p )
+{
+  
+  Aux_transmission_summary * aux = (Aux_transmission_summary*)p;
+  
+  const int n = v.size();
+
+  for (int i=0; i<n; i++)
+    {
+      
+      Individual * pat = v.ind(i)->pat();      
+      Individual * mat = v.ind(i)->mat();
+      
+      // only consider individuals where both parents are present"
+      if ( pat == NULL || mat == NULL ) continue;
+
+      // there will be a better way to get the actual individual slot 
+      // but use for now...
+      
+      int patn = g.indmap.ind_n( pat->id() );
+      int matn = g.indmap.ind_n( mat->id() );
+
+      Genotype & go = v(i);
+      Genotype & gp = v(patn);
+      Genotype & gm = v(matn);
+      
+      bool denovo = false;
+
+      aux_transmission_summary * p = aux->indiv(i);
+      
+      if ( go.null() || gp.null() || gm.null() ) p->missing++;
+      else
+ 	{
+	  
+ 	  int ao = go.reference() ? 0 : go.heterozygote() ? 1 : go.alternate_homozygote() ? 2 : 0 ; 
+ 	  int ap = gp.reference() ? 0 : gp.heterozygote() ? 1 : gp.alternate_homozygote() ? 2 : 0 ; 
+ 	  int am = gm.reference() ? 0 : gm.heterozygote() ? 1 : gm.alternate_homozygote() ? 2 : 0 ; 
+	  
+ 	  if ( ap == 0 ) 
+ 	    {
+ 	      if ( am == 0 ) 
+ 		{
+ 		  if      ( ao == 0 ) ++p->aa_aa_aa;
+ 		  else if ( ao == 1 ) { ++p->aa_aa_ab; denovo = true; }
+ 		  else if ( ao == 2 ) ++p->aa_aa_bb;
+ 		}
+ 	      else if ( am == 1 ) 
+ 		{
+ 		  if      ( ao == 0 ) ++p->aa_ab_aa;
+ 		  else if ( ao == 1 ) ++p->aa_ab_ab;
+ 		  else if ( ao == 2 ) ++p->aa_ab_bb;
+ 		}
+ 	      else // am == 2 
+ 		{
+ 		  if      ( ao == 0 ) ++p->aa_bb_aa;
+ 		  else if ( ao == 1 ) ++p->aa_bb_ab;
+ 		  else if ( ao == 2 ) ++p->aa_bb_bb;
+ 		}
+ 	    }
+ 	  else if ( ap == 1 ) 
+ 	    {
+ 	      if ( am == 0 ) 
+ 		{
+ 		  if      ( ao == 0 ) ++p->ab_aa_aa;
+ 		  else if ( ao == 1 ) ++p->ab_aa_ab;
+ 		  else if ( ao == 2 ) ++p->ab_aa_bb;
+ 		}
+ 	      else if ( am == 1 ) 
+ 		{
+ 		  if      ( ao == 0 ) ++p->ab_ab_aa;
+ 		  else if ( ao == 1 ) ++p->ab_ab_ab;
+ 		  else if ( ao == 2 ) ++p->ab_ab_bb;
+ 		}
+ 	      else // am == 2 
+ 		{
+ 		  if      ( ao == 0 ) ++p->ab_bb_aa;
+ 		  else if ( ao == 1 ) ++p->ab_bb_ab;
+ 		  else if ( ao == 2 ) ++p->ab_bb_bb;
+ 		}
+ 	    }
+ 	  else
+ 	    {
+ 	      if ( am == 0 ) 
+ 		{
+ 		  if      ( ao == 0 ) ++p->bb_aa_aa;
+ 		  else if ( ao == 1 ) ++p->bb_aa_ab;
+ 		  else if ( ao == 2 ) ++p->bb_aa_bb;
+ 		}
+ 	      else if ( am == 1 ) 
+ 		{
+ 		  if      ( ao == 0 ) ++p->bb_ab_aa;
+ 		  else if ( ao == 1 ) ++p->bb_ab_ab;
+ 		  else if ( ao == 2 ) ++p->bb_ab_bb;
+ 		}
+ 	      else // am == 2 
+ 		{
+ 		  if      ( ao == 0 ) ++p->bb_bb_aa;
+ 		  else if ( ao == 1 ) ++p->bb_bb_ab;
+ 		  else if ( ao == 2 ) ++p->bb_bb_bb;
+ 		}
+ 	    }
+	  
+ 	}
+      
+      
+      // would this putative de novo pass special denovo filters?
+      if ( denovo ) 
+	{
+
+	  // Assume individual metrics: DP, PL, AD
+
+	  if ( aux->dp_kid > 0 ) 
+	    {
+	      if ( ! go.meta.has_field( "DP" ) ) denovo = false; 
+	      else if ( go.meta.get1_int( "DP" ) < aux->dp_kid ) denovo = false;
+	    }
+
+	  if ( aux->dp_par > 0 ) 
+	    {
+	      if ( ! gp.meta.has_field( "DP" ) ) denovo = false; 
+	      else if ( gp.meta.get1_int( "DP" ) < aux->dp_par ) denovo = false;
+	      
+	      if ( ! gm.meta.has_field( "DP" ) ) denovo = false; 
+	      else if ( gm.meta.get1_int( "DP" ) < aux->dp_par ) denovo = false;
+	    }
+	  
+	  
+	  // PLs
+	  
+	  if ( aux->pl_kid > 0 ) 
+	    {
+	      if ( ! go.meta.has_field( "PL" ) ) denovo = false; 
+	      else 
+		{
+		  std::vector<int> pl = go.meta.get_int( "PL" ) ;
+		  if ( pl.size() != 3 ) denovo = false;
+		  else if ( pl[0] < aux->pl_kid || pl[2] < aux->pl_kid ) denovo = false;
+		}
+	    }
+	  
+	  if ( aux->pl_par > 0 ) 
+	    {
+	      
+	      if ( ! gp.meta.has_field( "PL" ) ) denovo = false; 
+	      else 
+		{
+		  std::vector<int> pl = gp.meta.get_int( "PL" ) ;
+		  if ( pl.size() != 3 ) denovo = false;
+		  else if ( pl[1] < aux->pl_par || pl[2] < aux->pl_par ) denovo = false;
+		}
+
+	      if ( ! gm.meta.has_field( "PL" ) ) denovo = false; 
+	      else 
+		{
+		  std::vector<int> pl = gm.meta.get_int( "PL" ) ;
+		  if ( pl.size() != 3 ) denovo = false;
+		  else if ( pl[1] < aux->pl_par || pl[2] < aux->pl_par ) denovo = false;
+		}
+	    
+	    }
+
+
+	  // ABs
+	  
+	  if ( aux->ab_kid_min > 0 || aux->ab_kid_max < 1 ) 
+	    {
+	      if ( ! go.meta.has_field( "AD" ) ) denovo = false;
+	      else 
+		{
+		  std::vector<int> ad = go.meta.get_int( "AD" );
+		  if ( ad.size() != 2 ) denovo = false;
+		  else
+		    {
+		      // prop. of NR reads
+		      double ab = ad[1] / (double)( ad[0] + ad[1] );
+		      if ( ab < aux->ab_kid_min || ab > aux->ab_kid_max ) denovo = false;
+		    }
+		}
+	    }
+
+	  // AB in parents
+	  if ( aux->ab_par < 1 )
+	    {
+	      if ( ! gp.meta.has_field( "AD" ) ) denovo = false;
+	      else 
+		{
+		  std::vector<int> ad = gp.meta.get_int( "AD" );
+		  if ( ad.size() != 2 ) denovo = false;
+		  else
+		    {
+		      double ab = ad[1] / (double)( ad[0] + ad[1] );
+		      if ( ab > aux->ab_par ) denovo = false;
+		    }
+		}
+
+	      if ( ! gm.meta.has_field( "AD" ) ) denovo = false;
+	      else 
+		{
+		  std::vector<int> ad = gm.meta.get_int( "AD" );
+		  if ( ad.size() != 2 ) denovo = false;
+		  else
+		    {
+		      double ab = ad[1] / (double)( ad[0] + ad[1] );
+		      if ( ab > aux->ab_par ) denovo = false;
+		    }
+		}
+	    }
+	}
+      
+      
+      // directly output possible de novo events (only REF x REF --> HET)
+      // that also passed any above, de-novo specific filters
+      
+      if ( denovo ) 
+	{
+	  
+	  // track # of actual 'passing' de novo calls
+	  p->dcount++;
+	  
+	  // get allele frequencies
+	  int c = 0 , c_tot = 0;
+	  v.n_minor_allele( &c , &c_tot ); 
+	  
+	  plog << "Variant\tRefxRef->Het\t" 
+	       << v << "\t" 
+	       << c << "\t"
+	       << c_tot << "\t"
+	       << v.ind(i)->id() << "\t"
+	       << v.label( patn , "," ) << " x "
+	       << v.label( matn , "," ) << " -> "
+	       << v.label( i , "," ) << "\t"
+	       << "[" << v.gmeta_label(patn) << "]" << "\t"
+	       << "[" << v.gmeta_label(matn) << "]" << "\t"
+	       << "[" << v.gmeta_label(i) << "]" << "\n";
+
+	}      
+    }
+}
+
+
+bool Pseq::VarDB::denovo_scan( Mask & mask )
+{
+  
+  // did we have some special values 
+  
+  const int n = g.indmap.size();
+
+  // store summary transmission data 
+  Aux_transmission_summary aux(n);
+
+  if ( args.has("param") )
+    {
+      std::vector<double> p = args.as_float_vector( "param" );
+      if ( p.size() != 7 ) 
+	Helper::halt( "expect --param DP(kid) DP(par) PL(kid) PL(par) AB(kid,lwr) AB(kid,upr) AB(par,upr)" );
+
+      aux.dp_kid = p[0];
+      aux.dp_par = p[1];
+      aux.pl_kid = p[2];
+      aux.pl_par = p[3];
+  
+      aux.ab_kid_min = p[4];
+      aux.ab_kid_max = p[5];
+      aux.ab_par = p[6];  
+
+    }
+
+  
+  // Attach parents
+  for (int i=0;i<n;i++)
+    {      
+      Individual * person = g.indmap(i);
+      g.inddb.fetch( person );
+      Individual * p = g.indmap.ind( person->father() );
+      Individual * m = g.indmap.ind( person->mother() );
+      if ( p ) person->pat( p );
+      if ( m ) person->mat( m );
+      if ( p && m ) aux.indiv(i)->has_parents = true;      
+    }
+  
+  g.vardb.iterate( f_denovo_scan , &aux , mask );
+  
+  // display summaries
+  
+  for (int i=0;i<n;i++)
+    {
+      aux_transmission_summary * p = aux.indiv(i);
+      if ( p->has_parents ) 
+	plog << "Individual\t" 
+	     << g.indmap(i)->id() << "\t" 
+	     << p->complete_transmissions() << "\t"
+	     << p->missing << "\t"
+	     << p->trans_ref_from_het() << "\t"
+	     << p->trans_alt_from_het() << "\t"
+	     << p->trans_alt_from_het() / (double)( p->trans_ref_from_het() + p->trans_alt_from_het() ) << "\t"
+	     << p->nonmendelian() << "\t"
+	     << p->potential_denovo() << "\t"
+	     << p->passing_denovo() << "\n";
+    }
+  
+  return true;
+}
+
 

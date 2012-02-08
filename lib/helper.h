@@ -568,7 +568,7 @@ namespace Helper
 
   std::string chrCode(int c, bool prefix=true);
 
-  int chrCode(std::string c);
+  int chrCode(const std::string & c);
 
   std::string coordinate( const int chr, 
 			  const int bp1 = 0 , 

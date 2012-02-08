@@ -670,7 +670,7 @@ Variant VCFReader::getVariant(const std::string & s)
   if ( seqdb ) 
     {
 
-      std::string sref = seqdb->lookup( chrCode( chr ) , pos , pos + ref.size() - 1 );
+      std::string sref = seqdb->lookup( Helper::chrCode( chr ) , pos , pos + ref.size() - 1 );
 
       if ( sref != "" )
 	{

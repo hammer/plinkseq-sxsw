@@ -226,7 +226,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:format$build$repeat-mode$iupac,file,name,description,"
 	
-	  << "lookup|misc|lookup various annotatations for a list of positions"
+	  << "lookup|misc|lookup various annotatations for a list of positions|ARG:loc,alias,ref,annotate"
 	
 	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta"
 	
@@ -292,7 +292,14 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "unique|views,tests|view variants specific to individual groups|VCF|ARG:indiv,require,allow"
 
-	  << "set-enrich|tests|test per individual for greater-than-expected burden of variants per set|GRP|ARG:phenotype,perm"
+	  << "set-enrich|tests|test per individual for greater-than-expected burden of variants per set|GRP|ARG:phenotype,perm,locset"
+
+
+    //
+    // Family-based operations
+    //
+
+	  << "denovo|views|filter for de-novo mutations|VCF|ARG:param"
 
     //
     // IBD database 
@@ -441,9 +448,9 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "allow", INT , "allow N individuals without variant" );
     
     reg( "annotate" , STRING , "transcript group for annotation" );
-    reg( "loc" , STRING_VECTOR , "transcript group for annotation" );
-    reg( "ref" , STRING_VECTOR , "transcript group for annotation" );
-    
+    reg( "loc" , STRING_VECTOR , "transcript group" );
+    reg( "ref" , STRING_VECTOR , "reference-variant group " );
+    reg( "locset" , STRING_VECTOR , "locus-set group" );
 
     // Genotype/phenotype inputs
 
@@ -540,7 +547,10 @@ void Pseq::Util::Options::load( int n , char ** argv )
     keyword( "tests" , "stepup" , NONE , "Hoffman-Witte step-up test" );
     keyword( "tests" , "kbac" , NONE , "KBAC test" );
 
-    
+    // de-novo scan
+
+    reg( "param" , FLOAT_VECTOR , "parameter list" );
+
     // loading intervals/GTF 
     
     reg( "use-gene-id" , NONE , "loading GTFs" );
@@ -829,6 +839,21 @@ double Pseq::Util::Options::as_float( const std::string & a ) const
   double d;
   if ( ! Helper::str2dbl( data.find(a)->second[0] , d ) ) 
     Helper::halt("non-integer argument for --" + a );
+  return d;
+}
+
+std::vector<double> Pseq::Util::Options::as_float_vector( const std::string & a ) const
+{
+  if ( ! known(a) ) Helper::halt("argument " + a + " not found" );
+  if ( arg_type.find(a)->second != FLOAT_VECTOR ) Helper::halt("incorrect return type for " + a );
+  std::vector<double> d;
+  for (int i=0; i<data.find(a)->second.size(); i++)
+    {
+      double x;
+      if ( ! Helper::str2dbl( data.find(a)->second[i] , x ) ) 
+	Helper::halt("non-numeric argument for --" + a );
+      d.push_back(x);
+    }
   return d;
 }
 

@@ -224,7 +224,7 @@ class Genotype {
     return allele1 != allele2;
   }
   
-  bool alternate_homozyote() const
+  bool alternate_homozygote() const
   {
     if ( ploidy !=2 || is_null ) return false;
     return allele1 && allele2;

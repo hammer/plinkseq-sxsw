@@ -590,6 +590,8 @@ bool LocDBase::index()
   sql.query( "CREATE INDEX IF NOT EXISTS nameIndex ON loci(group_id,name);" );
   sql.query( "CREATE INDEX IF NOT EXISTS altNameIndex ON loci(group_id,altname);" );
 
+  sql.query( "CREATE INDEX IF NOT EXISTS setmem ON set_members(group_id,name);");
+
   sql.query( "CREATE INDEX IF NOT EXISTS indivIndex ON segments(indiv_id); ");
   sql.query( "CREATE INDEX IF NOT EXISTS indivIndex2 ON individuals(name);");
 
@@ -2816,14 +2818,16 @@ std::vector<std::string> LocDBase::fetch_set_members( const std::string & loc_gr
 
   sql.bind_int64( stmt_set_member_lookup, ":group_id" , id );
   sql.bind_text( stmt_set_member_lookup, ":name" , set_name );
+  
   uint64_t mem_id = 0;
+  
   if ( sql.step( stmt_set_member_lookup ) )
     {
       mem_id = sql.get_int64( stmt_set_member_lookup , 0 );
     }
   sql.reset( stmt_set_member_lookup );
   if ( mem_id == 0 ) return results;
-
+  
   sql.bind_int64( stmt_set_members_fetch, ":set_id" , mem_id );
   while ( sql.step( stmt_set_members_fetch ) )
     {

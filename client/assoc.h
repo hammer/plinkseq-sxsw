@@ -35,7 +35,7 @@ namespace Pseq
 
       bool net_assoc_test( Mask & , const Pseq::Util::Options & );
       
-      //      bool set_enrich_wrapper( Mask & , const Pseq::Util::Options & );
+      bool set_enrich_wrapper( Mask & , const Pseq::Util::Options & );
 
       struct Aux 
       {

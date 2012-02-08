@@ -261,12 +261,15 @@ bool Eval::get_token( std::string & input ,  Token & tok )
       
       if ( isfn )
 	{
+	  std::cout << "checking " << c << "\n";
 	  // does this look like a valid function name?
 	  std::map<std::string,int>::iterator f = 
 	    Token::fn_map.find( c );
 	  
 	  if ( f == Token::fn_map.end() ) 
 	    return false;
+
+	  std::cout << "storing " << c << "\n";
 
 	  // store function token
 	  tok.function( c );	    
@@ -655,6 +658,7 @@ bool Eval::execute( const std::vector<Token> & input )
 	  
 	  if ( sl < nargs ) 
 	    {
+	      std::cout << "c = " << c << "\n";
 	      errmsg( "not enough arguments for " + c.name() ) ;
 	      return false;
 	    }
@@ -694,41 +698,45 @@ bool Eval::execute( const std::vector<Token> & input )
 
 	      // note: args are in reverse order here
 	      
-	      if ( c.name() == "set" )  res = func.fn_set( args[0] );
+	      if      ( c.name() == "set" )  res = func.fn_set( args[0] );
 	      
-	      if ( c.name() == "sqrt" ) res = func.fn_sqrt( args[0] );
-	      if ( c.name() == "sqr" )  res = func.fn_sqr( args[0] );
-	      if ( c.name() == "pow" )  res = func.fn_pow( args[1] , args[0] );
+	      else if ( c.name() == "sqrt" ) res = func.fn_sqrt( args[0] );
+	      else if ( c.name() == "sqr" )  res = func.fn_sqr( args[0] );
+	      else if ( c.name() == "pow" )  res = func.fn_pow( args[1] , args[0] );
 	      
-	      if ( c.name() == "ifelse" ) 
-		res = func.fn_ifelse( args[2], args[1], args[0] );
+	      else if ( c.name() == "exp" ) res = func.fn_exp( args[0] );
+	      else if ( c.name() == "log" ) res = func.fn_log( args[0] );
+	      else if ( c.name() == "log10" ) res = func.fn_log10( args[0] );
+
+	      else if ( c.name() == "ifelse" ) res = func.fn_ifelse( args[2], args[1], args[0] );
 	      
 	      // vector functions
-	      if ( c.name() == "element" ) res = func.fn_vec_extract( args[1] , args[0] );
+	      else if ( c.name() == "element" ) res = func.fn_vec_extract( args[1] , args[0] );
 	      
-	      if ( c.name() == "length" )  res = func.fn_vec_length( args[0] );	      
+	      else if ( c.name() == "length" )  res = func.fn_vec_length( args[0] );	      
 	      
-	      if ( c.name() == "min" )     res = func.fn_vec_min( args[0] );	      
-	      if ( c.name() == "max" )     res = func.fn_vec_maj( args[0] );
+	      else if ( c.name() == "min" )     res = func.fn_vec_min( args[0] );	      
+	      else if ( c.name() == "max" )     res = func.fn_vec_maj( args[0] );
 	      
-	      if ( c.name() == "sum" )     res = func.fn_vec_sum( args[0] );	      
-	      if ( c.name() == "mean" )    res = func.fn_vec_mean( args[0] );	      
-	      if ( c.name() == "sort" )    res = func.fn_vec_sort( args[0] );
+	      else if ( c.name() == "sum" )     res = func.fn_vec_sum( args[0] );	      
+	      else if ( c.name() == "mean" )    res = func.fn_vec_mean( args[0] );	      
+	      else if ( c.name() == "sort" )    res = func.fn_vec_sort( args[0] );
 
-	      if ( c.name() == "vec_func" )   res = func.fn_vec_new_float( args[0] );	      
-	      if ( c.name() == "int_func" )   res = func.fn_vec_new_int( args[0] );	      
-	      if ( c.name() == "str_func" )   res = func.fn_vec_new_str( args[0] );	      
-	      if ( c.name() == "bool_func" )  res = func.fn_vec_new_bool( args[0] );	      
+	      else if ( c.name() == "vec_func" )   res = func.fn_vec_new_float( args[0] );	      
+	      else if ( c.name() == "int_func" )   res = func.fn_vec_new_int( args[0] );	      
+	      else if ( c.name() == "str_func" )   res = func.fn_vec_new_str( args[0] );	      
+	      else if ( c.name() == "bool_func" )  res = func.fn_vec_new_bool( args[0] );	      
 	      
-	      if ( c.name() == "any" )     res = func.fn_vec_any( args[1] , args[0] );	      
-	      if ( c.name() == "count" )   res = func.fn_vec_count( args[1] , args[0] );	      
+	      else if ( c.name() == "any" )     res = func.fn_vec_any( args[1] , args[0] );	      
+	      else if ( c.name() == "count" )   res = func.fn_vec_count( args[1] , args[0] );	      
 
-	      if ( c.name() == "g_func" )   res = func.fn_vec_g( args[0] , this );
-	      if ( c.name() == "gf_func" )  res = func.fn_vec_gnull( args[0] , this );
-	      if ( c.name() == "gs_func" )  res = func.fn_vec_gset( args[0] , this );
-	      if ( c.name() == "n" )        res = Token( gvar ? gvar->calls.size() : 0 );
+	      else if ( c.name() == "g_func" )   res = func.fn_vec_g( args[0] , this );
+	      else if ( c.name() == "gf_func" )  res = func.fn_vec_gnull( args[0] , this );
+	      else if ( c.name() == "gs_func" )  res = func.fn_vec_gset( args[0] , this );
+	      else if ( c.name() == "n" )        res = Token( gvar ? gvar->calls.size() : 0 );
 
-	      if ( c.name() == "p_func" )   res = genmeta_mode ? func.fn_vec_1pheno( args[0] , indiv ) : func.fn_vec_pheno( args[0] );
+	      else if ( c.name() == "p_func" )   res = genmeta_mode ? func.fn_vec_1pheno( args[0] , indiv ) : func.fn_vec_pheno( args[0] );
+
 	    }
 	  else
 	    {

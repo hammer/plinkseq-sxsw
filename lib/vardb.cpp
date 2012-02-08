@@ -253,7 +253,6 @@ bool VarDBase::newDB( std::string n )
     //    set members --> pathway names
     //    set data    --> which genes (set_id) are in which pathway (superset_id)
 
-
   return true;
 
 }
@@ -1679,6 +1678,12 @@ int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy )
   sql.step( stmt_insert_chr_code );
   int c = sql.last_insert_rowid();
   sql.reset( stmt_insert_chr_code );
+
+  // and add to current map
+  chr_name_map[c]=n;
+  chr_code_map[n]=c;
+  chr_ploidy_map[c] = ploidy ? *ploidy : PLOIDY_UNKNOWN ; 
+  
   return c;
 }
 

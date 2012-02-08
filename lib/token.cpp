@@ -164,6 +164,9 @@ void Token::init()
     fn_map[ "set"  ]   = 1;  // number of args
     fn_map[ "sqrt" ]   = 1;  // square-root
     fn_map[ "sqr"  ]   = 1;  // X^2
+    fn_map[ "log"  ]   = 1;
+    fn_map[ "log10"]   = 1;
+    fn_map[ "exp"  ]   = 1;
     fn_map[ "pow"  ]   = 2;  // X^N    
     fn_map[ "ifelse" ] = 3;  // ifelse( cond , T , F )
     fn_map[ "n" ]      = 0;  // number of people in file
@@ -1763,6 +1766,47 @@ Token TokenFunctions::fn_sqrt( const Token & tok ) const
     }
   return Token();
 }
+
+Token TokenFunctions::fn_log( const Token & tok ) const
+{
+  if ( tok.is_int() ) return Token( log( tok.as_int() ) );
+  if ( tok.is_float() ) return Token( log( tok.as_float() ) );
+  if ( tok.is_int_vector() || tok.is_float_vector() ) 
+    {
+      std::vector<double> ans = tok.as_float_vector();
+      for (int i=0; i<ans.size(); i++) ans[i] = log( ans[i] );
+      return Token( ans );
+    }
+  return Token();
+}
+
+
+Token TokenFunctions::fn_log10( const Token & tok ) const
+{
+  if ( tok.is_int() ) return Token( log10( tok.as_int() ) );
+  if ( tok.is_float() ) return Token( log10( tok.as_float() ) );
+  if ( tok.is_int_vector() || tok.is_float_vector() ) 
+    {
+      std::vector<double> ans = tok.as_float_vector();
+      for (int i=0; i<ans.size(); i++) ans[i] = log10( ans[i] );
+      return Token( ans );
+    }
+  return Token();
+}
+
+Token TokenFunctions::fn_exp( const Token & tok ) const
+{
+  if ( tok.is_int() ) return Token( exp( tok.as_int() ) );
+  if ( tok.is_float() ) return Token( exp( tok.as_float() ) );
+  if ( tok.is_int_vector() || tok.is_float_vector() ) 
+    {
+      std::vector<double> ans = tok.as_float_vector();
+      for (int i=0; i<ans.size(); i++) ans[i] = exp( ans[i] );
+      return Token( ans );
+    }
+  return Token();
+}
+
 
 Token TokenFunctions::fn_pow( const Token & tok , const Token & tok2 ) const
 {
