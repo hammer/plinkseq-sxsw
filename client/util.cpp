@@ -173,9 +173,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "loc-delete-alias|locop|remove gene-alias table"
 	
-	  << "loc-swap-names|locop|swap LOCDB names" 
+	  << "loc-swap-names|locop|swap LOCDB names|ARG:file,group,alternate-name"
 	
-	  << "loc-delete|locop|remove a LOCDB group" 
+	  << "loc-delete|locop|remove a LOCDB group|ARG:group"
 	
 	  << "loc-index|locop|index a LOCDB" 
 	
@@ -192,7 +192,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "loc-intersect|views,locop|view loci from a LOCDB group with 1 or more variants"
 	
-	  << "loc-view|views,locop|show all loci in a LOCDB group"
+	  << "loc-view|views,locop|show all loci in a LOCDB group|ARG:group,alias,no-meta,show-subregions"
 	
 	  << "loc-stats|views,locop|locus-based stats|ARG:no-subregions,show-subregions,loc-group,ref-group"
 	
@@ -343,7 +343,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "ibs-matrix|qc|IBS matrix calculation|VCF|ARG:long-format,two-counts"
 	
-	  << "intersect|locop|intersect locus groups"
+	  << "intersect|locop|intersect locus groups|ARG:file,group"
 
 
 
