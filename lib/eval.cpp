@@ -39,10 +39,10 @@ void Eval::init()
   gdef[ "p" ] = 1;      // expression
 
   // vector creation functions
-  gdef[ "int" ] = 1;
-  gdef[ "bool" ] = 1;
-  gdef[ "vec" ] = 1;
-  gdef[ "str" ] = 1;
+//   gdef[ "int" ] = 1;
+//   gdef[ "bool" ] = 1;
+//   gdef[ "vec" ] = 1;
+//   gdef[ "str" ] = 1;
 
 
 }
@@ -261,16 +261,14 @@ bool Eval::get_token( std::string & input ,  Token & tok )
       
       if ( isfn )
 	{
-	  std::cout << "checking " << c << "\n";
+	  
 	  // does this look like a valid function name?
 	  std::map<std::string,int>::iterator f = 
 	    Token::fn_map.find( c );
-	  
+	  	  
 	  if ( f == Token::fn_map.end() ) 
 	    return false;
-
-	  std::cout << "storing " << c << "\n";
-
+	  
 	  // store function token
 	  tok.function( c );	    
 	}
@@ -652,13 +650,12 @@ bool Eval::execute( const std::vector<Token> & input )
 
 	  // It is known a priori that the operator takes n arguments.
 	  
-	  unsigned int nargs = op_arg_count(c);
+	  int nargs = op_arg_count(c);
 	  
 	  // If there are fewer than n values on the stack
 	  
-	  if ( sl < nargs ) 
+	  if ( sl < nargs && nargs != -1 ) 
 	    {
-	      std::cout << "c = " << c << "\n";
 	      errmsg( "not enough arguments for " + c.name() ) ;
 	      return false;
 	    }
@@ -672,25 +669,37 @@ bool Eval::execute( const std::vector<Token> & input )
 
 	  if ( c.is_function() ) 
 	    {
-
+	      
 	      std::vector<Token> args;
+	      
+	      // for fixed 'nargs' functions, just count them off 
+	      
+	      if ( nargs == -1 ) 
+		{
+		  nargs = stack.back().as_int();
+		  stack.pop_back(); 
+		  sl--;
+		}
 	      
 	      while ( nargs > 0 ) 
 		{		  
 		  sc = stack.back();
 		  stack.pop_back(); 
-		  sl--;		  
-		  args.push_back(sc);		  
+		  sl--;
+		  args.push_back(sc);
 		  --nargs;
 		}
 	      
+
 	      //
 	      // Perform function calls:
 	      //
 	      
 	      // correct # of arguments? 
-
-	      if ( args.size() != Token::fn_map[ c.name() ] ) 
+	      // -1 means variable length
+	      
+	      const int nargs = Token::fn_map[ c.name() ]; 
+	      if ( args.size() != nargs && nargs != -1 ) 
 		{
 		  errmsg( "wrong number of arguments for " + c.name() );
 		  return false;
@@ -718,14 +727,14 @@ bool Eval::execute( const std::vector<Token> & input )
 	      else if ( c.name() == "min" )     res = func.fn_vec_min( args[0] );	      
 	      else if ( c.name() == "max" )     res = func.fn_vec_maj( args[0] );
 	      
-	      else if ( c.name() == "sum" )     res = func.fn_vec_sum( args[0] );	      
-	      else if ( c.name() == "mean" )    res = func.fn_vec_mean( args[0] );	      
+	      else if ( c.name() == "sum" )     res = func.fn_vec_sum( args[0] );
+	      else if ( c.name() == "mean" )    res = func.fn_vec_mean( args[0] );
 	      else if ( c.name() == "sort" )    res = func.fn_vec_sort( args[0] );
 
-	      else if ( c.name() == "vec_func" )   res = func.fn_vec_new_float( args[0] );	      
-	      else if ( c.name() == "int_func" )   res = func.fn_vec_new_int( args[0] );	      
-	      else if ( c.name() == "str_func" )   res = func.fn_vec_new_str( args[0] );	      
-	      else if ( c.name() == "bool_func" )  res = func.fn_vec_new_bool( args[0] );	      
+	      else if ( c.name() == "vec_func" )  res = func.fn_vec_new_float( args );
+	      else if ( c.name() == "int_func" )   res = func.fn_vec_new_int( args );
+	      else if ( c.name() == "str_func" )   res = func.fn_vec_new_str( args );     
+	      else if ( c.name() == "bool_func" )  res = func.fn_vec_new_bool( args ); 
 	      
 	      else if ( c.name() == "any" )     res = func.fn_vec_any( args[1] , args[0] );	      
 	      else if ( c.name() == "count" )   res = func.fn_vec_count( args[1] , args[0] );	      
@@ -826,6 +835,8 @@ bool Eval::parse( const std::string & input )
   
   if ( ! expand_indices( &input2 ) ) return false;
 
+  if ( ! expand_vargs( &input2 ) ) return false;
+
   // this may contain several statements, delimited by ";"
   // evaluate each sequential, to perform any assignments into
   // meta data, but only the last will be reflected in the 'e' 
@@ -848,10 +859,10 @@ bool Eval::parse( const std::string & input )
       output[i].clear();    
 
       errs = "";
-      
+
       if ( ! extract_gfunc( &(etok[i]) ) )
 	is_valid = false;
-      
+
       if ( ! shunting_yard( etok[i], output[i] ) )
 	is_valid = false;
       
@@ -885,10 +896,28 @@ bool Eval::extract_gfunc( std::string * s )
       while ( i != gdef.end() )
 	{
 	  
-	  int p = s->find( i->first + "(" );
+	  size_t p = s->find( i->first + "(" );
 	  
 	  if ( p != std::string::npos ) 
 	    {	      
+
+	      // this will also match 
+	      //       g(X)
+	      //     log(X)
+	      // so we need to check that an actual g() or p() has been found
+	      
+	      if ( p > 1 )
+		{
+		  if ( ( (*s)[p-1] >= 'A' && (*s)[p-1] <= 'Z' ) || 
+		       ( (*s)[p-1] >= 'a' && (*s)[p-1] <= 'z' ) || 
+		       ( (*s)[p-1] >= '0' && (*s)[p-1] <= '9' ) || 
+		       (*s)[p-1] >= '_' ) { p = std::string::npos; } 
+		}
+	    }
+	  
+
+	  if ( p != std::string::npos )
+	    {
 	      
 	      found = true;
 	      
@@ -1193,8 +1222,7 @@ Token Eval::eval_gfunc( const std::string & expr , int gmode )
 	    gvar->calls.genotype(j).null( true );
 	}
       else if ( gset_mode ) 
-	{
-	  std::cout << "setting geno...\n";
+	{	  
 	  Helper::halt( "gset() not yet implemented" );
 	}
       else // mode to return a vector of expressions
@@ -1415,6 +1443,106 @@ void Eval::reset_symbols()
 void Eval::delete_symbols() 
 {
   vartb.clear();
+}
+
+
+bool Eval::expand_vargs( std::string * s )
+{
+  // change vec(1,2,3) to vec(22,23,24,3)
+  //        vec()      to vec(0)
+  //        vec(22)    to vec(22,1)
+  // etc i.e. put VA at end (as will come off stack first)
+
+
+  std::vector<std::string> fname;
+  fname.push_back("vec(");
+  fname.push_back("int(");
+  fname.push_back("str(");
+  fname.push_back("bool(");
+  
+  for (int f = 0 ; f < fname.size() ; f++)
+    while ( 1 ) 
+      {
+	
+	size_t p = s->find( fname[f] );
+	
+	if ( p != std::string::npos ) 
+	  {	      
+	    
+	    // this will also match 
+	    //     blahint(X)
+	    
+	    if ( p > 1 )
+	      {
+		if ( ( (*s)[p-1] >= 'A' && (*s)[p-1] <= 'Z' ) || 
+		     ( (*s)[p-1] >= 'a' && (*s)[p-1] <= 'z' ) || 
+		     ( (*s)[p-1] >= '0' && (*s)[p-1] <= '9' ) || 
+		     (*s)[p-1] >= '_' ) { p = std::string::npos; } 
+	      }
+
+	  }
+	
+	bool found = false;
+
+	if ( p != std::string::npos )
+	  {
+	    
+	    found = true;
+	    
+	    // count # of upper level ARGs, by counting commas until the next matching ")"
+	    
+	    //  vec( 1 , 2 , 3 )     -->  2 commas , 3 args
+	    //  int( pow(2,3) , 7 )  ---> 1 comma  , 2 args
+	    
+	    
+	    // look for closing brace
+	    
+	    int bc = 0;
+	    int q = p;
+	    int pp = p;
+	    int commacnt = 0;
+
+	    while ( ++q )
+	      {
+		
+		// gone past end of string?
+		if ( q == s->size() ) return false;
+		
+		char c = s->substr(q,1)[0];
+		
+		if ( c == '(' ) 
+		  {
+		    ++bc;  //includes first paran		    
+		  }
+		else if ( c == ')' )
+		  {
+		    --bc;
+		    
+		    // end of expression
+		    if ( bc == 0 ) 
+		      {
+			break;
+		      }
+		  }
+		else if ( bc == 1 && c == ',' ) ++commacnt;
+	      }
+	    
+	    int len = q-p+1;	    
+	    std::string orig = s->substr(p,q-p+1);    
+	    orig = fname[f].substr( 0 , fname[f].size() - 1 ) + "_func("  + orig.substr( fname[f].size() ) ;
+	    orig = orig.substr(0,orig.size()-1);
+	    orig += "," + Helper::int2str( commacnt+1 ) + ")";
+	    
+	    s->replace( p , len , orig );
+	    	    
+	  }
+	
+	// are we sure there are no more gfunc()s in input?
+	if ( ! found ) break;
+	
+      }	  
+
+  return true;
 }
 
 

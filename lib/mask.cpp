@@ -196,6 +196,7 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "geno" , "str-list" , "retain genotypes passing any meta-field criterion" ); 
   mask_add( s , g , c++ , gl , "geno.req" , "str-list" , "retain genotypes passing all meta-field criteria" ); 
   mask_add( s , g , c++ , gl , "null" , "int-range" , "include variants with number of null genotypes in [n-m]" ); 
+  mask_add( s , g , c++ , gl , "null.prop" , "flost-range" , "include variants with proportion of null genotypes in [n-m]" ); 
   mask_add( s , g , c++ , gl , "assume-ref" , "flag" , "assume null/missing genotypes are reference" );
   mask_add( s , g , c++ , gl , "soft-ref" , "flag" , "0/REF allele initially implies only absence of ALT" );
   mask_add( s , g , c++ , gl , "hard-ref" , "flag" , "0/REF allele always implies presence of REF allele" );
@@ -1124,6 +1125,11 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       null_filter( m.get1_string( "null" ) );
     }
   
+  if ( m.has_field( "null.prop" ) )
+    {
+      null_prop_filter( m.get1_string( "null.prop" ) );
+    }
+
 
   if ( m.has_field( "qual" ) )
     {
@@ -2301,8 +2307,14 @@ bool Mask::eval_filters( const SampleVariant & v )
   bool include = inc_filter.size() == 0 ? true : false;
   
   // Filter of *any* elements?
-
+  std::cout << "fste = " << v.fileset() << "\t";
+  std::cout << "exc_f_any = " << exc_filter_any << "\t";  
+  std::cout << "v.() = " << v.any_filter() << "\t";
+  std::cout << v.filter() << "\n";
+  
   if ( exc_filter_any && v.any_filter() ) return false;
+
+  std::cout << "stil here..\n";
 
   if ( ( inc_filter_any || req_filter_any ) && ! v.any_filter() ) return false; 
 
@@ -2350,7 +2362,6 @@ bool Mask::eval_filters( const SampleVariant & v )
 	}
       ++i;
     }
-
   
   return include;
    
@@ -3431,6 +3442,24 @@ bool Mask::null_filter( const int j ) const
 {
   return null_fltr.in( j );
 }
+
+
+void Mask::null_prop_filter( const dbl_range & r )
+{
+  has_null_prop_filter = true;
+  null_prop_fltr = r;
+}
+
+bool Mask::null_prop_filter( ) const 
+{
+  return has_null_prop_filter;
+}
+
+bool Mask::null_prop_filter( const double j ) const
+{
+  return null_prop_fltr.in( j );
+}
+
 
 void Mask::case_control_filter( const std::string & a , const std::string & u )
 {

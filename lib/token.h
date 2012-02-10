@@ -187,6 +187,12 @@ class Token {
   std::string string_element(const int) const;
   bool        bool_element(const int) const;
 
+  // above, with type-conversion
+  int         as_int_element(const int ) const;
+  double      as_float_element(const int) const;
+  std::string as_string_element(const int) const;
+  bool        as_bool_element(const int) const;
+
   std::vector<int>         as_int_vector()    const;
   std::vector<double>      as_float_vector()  const;
   std::vector<std::string> as_string_vector() const;
@@ -220,6 +226,10 @@ class Token {
   std::vector<std::string>  svec;
   std::vector<bool>         bvec;
   
+
+  // helper func
+  bool string2bool( const std::string & sval ) const ;
+
 };
 
 
@@ -257,10 +267,10 @@ class TokenFunctions{
   Token fn_assign_pheno( Token & lhs , const Token & rhs );
 
 
-  Token fn_vec_new_float( const Token & tok ) const;
-  Token fn_vec_new_int( const Token & tok ) const;
-  Token fn_vec_new_str( const Token & tok ) const;
-  Token fn_vec_new_bool( const Token & tok ) const;
+  Token fn_vec_new_float( const std::vector<Token> & tok ) const;
+  Token fn_vec_new_int( const std::vector<Token> & tok ) const;
+  Token fn_vec_new_str( const std::vector<Token> & tok ) const;
+  Token fn_vec_new_bool( const std::vector<Token> & tok ) const;
   
   Token fn_vec_any( const Token & tok1 , const Token & tok2 ) const;
   Token fn_vec_count( const Token & tok1 , const Token & tok2 ) const;

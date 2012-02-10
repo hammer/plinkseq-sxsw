@@ -416,8 +416,15 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "keep-unmerged" , NONE , "retain unmerged region group when loading GTF" );
     
     reg( "mask", STRING_VECTOR, "mask specification");
+    
     reg( "include", STRING, "filter specification");
-    reg( "exclude", STRING , "filter specification");
+    reg( "eval", STRING, "eval expression");
+    reg( "exclude", STRING , "filter excludes");
+
+    reg( "v-include", STRING, "variant filter specification");
+    reg( "v-eval", STRING, "variant eval expression");
+    reg( "v-exclude", STRING , "variant filter excludes");
+
     reg( "gene", STRING_VECTOR, "gene-group gene1 gene2 ...");
     reg( "em", FLOAT , "EM calculation of P(geno|data) from GL or PL");
     

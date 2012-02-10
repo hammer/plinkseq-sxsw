@@ -184,10 +184,10 @@ void Token::init()
 
     // vector creation 
 
-    fn_map[ "vec_func" ]    = 1;  // vec( 1,0,1 ) -- floating point vector
-    fn_map[ "int_func" ]    = 1;  // int( 1,0,1 )  ints
-    fn_map[ "str_func" ]    = 1;  // str( 1,0,1 )  strings
-    fn_map[ "bool_func" ]   = 1;  // bool( 1,0,1 )  bools
+    fn_map[ "vec_func" ]    = -1;  // vec( 1,0,1 ) -- floating point vector --> vec(3,1,0,1)
+    fn_map[ "int_func" ]    = -1;  // int( 1,0,1 )  ints
+    fn_map[ "str_func" ]    = -1;  // str( 1,0,1 )  strings
+    fn_map[ "bool_func" ]   = -1;  // bool( 1,0,1 )  bools
 
     // genotype-vector extraction
     fn_map[ "g_func" ]      = 1;  // g( DP < 10 ) -- internally --> g( 'DP < 10' )
@@ -1583,13 +1583,13 @@ bool Token::as_bool() const
   if      ( ttype == BOOL )   return bval;    
   else if ( ttype == INT )    return ival;
   else if ( ttype == FLOAT )  return fval;
-  else if ( ttype == STRING ) return !( sval == "" || sval == "." ) ;
+  else if ( ttype == STRING ) return !( sval == "" || sval == "." || sval == "0" || sval == "F" || sval == "f" || sval == "false" || sval == "FALSE" ) ;
 
   else if ( ttype == BOOL_VECTOR )  for (int i=0;i<bvec.size(); i++) { if ( bvec[i] ) return true; } 
   else if ( ttype == INT_VECTOR )   for (int i=0;i<ivec.size(); i++) { if ( ivec[i] ) return true; }
   else if ( ttype == FLOAT_VECTOR ) for (int i=0;i<fvec.size(); i++) { if ( fvec[i] ) return true; }
   else if ( ttype == STRING_VECTOR ) 
-    for (int i=0;i<svec.size(); i++) { if ( ! ( svec[i] == "." || svec[i] == "" ) ) return true; }
+    for (int i=0;i<svec.size(); i++) { if ( ! ( svec[i] == "." || svec[i] == "" || sval == "0" || sval == "F" || sval == "f" || sval == "false" || sval == "FALSE") ) return true; }
 
   return false;
 }
@@ -1628,6 +1628,72 @@ bool Token::bool_element(const int i) const
   if ( ttype == BOOL ) return bval;
   return false;  
 }
+
+
+
+int Token::as_int_element(const int i) const
+{
+  if ( i < 0 || i > size() ) return 0;
+  if ( ttype == INT_VECTOR ) return ivec[i];
+  if ( ttype == INT ) return ival;
+  if ( ttype == FLOAT_VECTOR ) return fvec[i];
+  if ( ttype == FLOAT ) return fval;  
+  if ( ttype == BOOL_VECTOR ) return bvec[i];
+  if ( ttype == BOOL ) return bval;  
+  return 0;      
+}
+
+double Token::as_float_element(const int i) const
+{
+  if ( i < 0 || i > size() ) return 0;
+  if ( ttype == FLOAT_VECTOR ) return fvec[i];
+  if ( ttype == FLOAT ) return fval;
+  if ( ttype == INT_VECTOR ) return ivec[i];
+  if ( ttype == INT ) return ival;
+  if ( ttype == BOOL_VECTOR ) return bvec[i];
+  if ( ttype == BOOL ) return bval;  
+  return 0;      
+}
+
+
+std::string Token::as_string_element(const int i) const
+{
+  if ( i < 0 || i > size() ) return ".";
+
+  if ( ttype == STRING_VECTOR ) return svec[i];
+  if ( ttype == STRING ) return sval;
+
+  if ( ttype == INT_VECTOR ) return Helper::int2str( ivec[i] );
+  if ( ttype == INT ) return Helper::int2str( ival );
+
+  if ( ttype == FLOAT_VECTOR ) return Helper::dbl2str( fvec[i] );
+  if ( ttype == FLOAT ) return Helper::dbl2str( fval );
+
+  if ( ttype == BOOL_VECTOR ) return bvec[i] ? "T" : "F" ; 
+  if ( ttype == BOOL ) return bval ? "T" : "F" ; 
+
+  return ".";      
+}
+
+bool Token::string2bool( const std::string & sval ) const
+{ 
+  return !( sval == "" || sval == "." || sval == "0" || sval == "F" || sval == "f" || sval == "false" || sval == "FALSE" ) ; 
+}
+  
+bool Token::as_bool_element(const int i) const
+{
+  if ( i < 0 || i > size() ) return false;
+  if ( ttype == BOOL_VECTOR ) return bvec[i];
+  if ( ttype == BOOL ) return bval;
+  if ( ttype == INT_VECTOR ) return ivec[i];
+  if ( ttype == INT ) return ival;
+  if ( ttype == FLOAT_VECTOR ) return fvec[i];
+  if ( ttype == FLOAT ) return fval;
+  if ( ttype == STRING_VECTOR ) return string2bool( svec[i] ); 
+  if ( ttype == STRING ) return string2bool( sval ); 
+  return false;  
+}
+
 
 
 std::vector<int> Token::as_int_vector() const
@@ -2125,50 +2191,48 @@ Token TokenFunctions::fn_vec_maj( const Token & tok ) const
 }
 
 
-Token TokenFunctions::fn_vec_new_float( const Token & tok ) const
+Token TokenFunctions::fn_vec_new_float( const std::vector<Token> & tok ) const
 {
-  // create a new float vector from a comma-delimited string literal, '1,2,3'
-  if ( tok.type() != Token::STRING ) return Token();
-  std::vector<std::string> t = Helper::char_split( tok.as_string() , ',' , false );
-  std::vector<double> d( t.size() );
-  for (int i=0; i<d.size(); i++)
-    if ( ! Helper::from_string<double>( d[i] , t[i] , std::dec ) ) return Token();
+  // read off in reverse (RPN) 
+  // concatenates scalars and vectors
+  if ( tok.size() == 0 ) return Token();
+  std::vector<double> d;
+  for (int i=tok.size()-1; i >= 0 ; i-- ) 
+    for (int j=0;j<tok[i].size();j++) 
+      d.push_back( tok[i].as_float_element(j) );
   return Token( d );
 }
 
 
-Token TokenFunctions::fn_vec_new_int( const Token & tok ) const
+Token TokenFunctions::fn_vec_new_int( const std::vector<Token> & tok ) const
 {
-  // create a new float vector from a comma-delimited string literal, '1,2,3'
-  if ( tok.type() != Token::STRING ) return Token();
-  std::vector<std::string> t = Helper::char_split( tok.as_string() , ',' , false );
-  std::vector<int> d( t.size() );
-  for (int i=0; i<d.size(); i++)
-    if ( ! Helper::from_string<int>( d[i] , t[i] , std::dec ) ) return Token();
+  if ( tok.size() == 0 ) return Token();
+  std::vector<int> d;
+  for (int i=tok.size()-1; i >= 0 ; i-- ) 
+    for (int j=0;j<tok[i].size();j++) 
+      d.push_back( tok[i].as_int_element(j) );
   return Token( d );
 }
 
-Token TokenFunctions::fn_vec_new_str( const Token & tok ) const
+Token TokenFunctions::fn_vec_new_str( const std::vector<Token> & tok ) const
 {
-  // create a new float vector from a comma-delimited string literal, '1,2,3'
-  if ( tok.type() != Token::STRING ) return Token();
-  return Token( Helper::char_split( tok.as_string() , ',' , false ) );
+  if ( tok.size() == 0 ) return Token();
+  std::vector<std::string> d;
+  for (int i=tok.size()-1; i >= 0 ; i-- ) 
+    for (int j=0;j<tok[i].size();j++) 
+      d.push_back( tok[i].as_string_element(j) );
+  return Token( d );
 }
 
 
-Token TokenFunctions::fn_vec_new_bool( const Token & tok ) const
+Token TokenFunctions::fn_vec_new_bool( const std::vector<Token> & tok ) const
 {
-  // create a new float vector from a comma-delimited string literal, '1,2,3'
-  if ( tok.type() != Token::STRING ) return Token();
-  std::vector<std::string> t = Helper::char_split( tok.as_string() , ',' , false );
-  std::vector<bool> d( t.size() );
-  for (int i=0; i<d.size(); i++)
-    { 
-      if( t[i] == "T" || t[i] == "true" || t[i] == "1" ) d[i] = true;
-      else if ( t[i] == "F" || t[i] == "false" || t[i] == "0" ) d[i] = false;
-      else return Token();
-    }
-   return Token( d );
+  if ( tok.size() == 0 ) return Token();
+  std::vector<bool> d;
+  for (int i=tok.size()-1; i >= 0 ; i-- ) 
+    for (int j=0;j<tok[i].size();j++) 
+      d.push_back( tok[i].as_bool_element(j) );
+  return Token( d );
 }
 
 
@@ -2372,8 +2436,6 @@ Token TokenFunctions::fn_vec_pheno( const Token & tok ) const
       // If we do not recognise this phenotype name, means that 
       // Return as a function ( so can be an lvalue in a subsequent assignment )	
 
-      std::cout << "setting here..\n";
-
       Token ftok;
       ftok.function( "p_func" );
       return ftok;
@@ -2411,7 +2473,6 @@ Token TokenFunctions::fn_vec_1pheno( const Token & tok , int indiv ) const
 
 Token TokenFunctions::fn_assign_pheno( Token & lhs , const Token & rhs )
 {
-
 
   // as an lvalue, it is no longer defined
   lhs = Token();

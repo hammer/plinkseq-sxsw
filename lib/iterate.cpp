@@ -872,9 +872,13 @@ bool VarDBase::eval_and_call( Mask & mask,
       SampleVariant * vmeta_target = MetaMeta::force_consensus() ? &(var.consensus) : target ;
       
       SampleVariant * genotype_target = align->flat() ? &(var.consensus) : &svar ;
-
+      
       bool sample_okay = true;
+      
+      // exclude any empty sets? -- but would this impact summary handles of VCFs?  yes...
+      //  thus, not a good idea to implement, as empty VCFs are a handy device
 
+      // if ( align->size( svar.fileset() ) == 0 ) sample_okay = false;
 
       // Basic stuff (allele encoding)
 
@@ -903,8 +907,8 @@ bool VarDBase::eval_and_call( Mask & mask,
       {	  
 	  if ( mask.fail_on_sample_variant() ) return false;
 	  else sample_okay = false;
-	}
-      
+      }
+
       
       //
       // At this point, we now have to create the full sample-variant with all
@@ -968,8 +972,7 @@ bool VarDBase::eval_and_call( Mask & mask,
       //
 
       if ( ! sample_okay ) svar_rlist.push_back( s - svar_rlist.size() );
-      
-      
+            
       // next SampleVariant
     } 
 
@@ -979,6 +982,7 @@ bool VarDBase::eval_and_call( Mask & mask,
   //
 
   if ( ! good ) return false;
+
 
   // Evaluate fail.nfile (i.e. that we did not fail on more than nfailed
   // samples, and that we have at least 'ngood' good samples)
@@ -993,7 +997,10 @@ bool VarDBase::eval_and_call( Mask & mask,
   if ( svar_rlist.size() > 0 ) 
     {
       for ( int i = 0 ; i < svar_rlist.size(); i++)
-	var.remove( svar_rlist[i] );
+	{
+	  std::cout << "removing " << svar_rlist[i] << "\n";
+	  var.remove( svar_rlist[i] );      
+	}
     }
 
 

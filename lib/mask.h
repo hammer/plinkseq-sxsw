@@ -817,6 +817,10 @@ class Mask {
   bool null_filter( ) const;
   bool null_filter( const int ) const;
 
+  void null_prop_filter( const dbl_range & r );
+  bool null_prop_filter( ) const;
+  bool null_prop_filter( const double ) const;
+
 
   //
   // Case/control counts
@@ -1048,6 +1052,7 @@ class Mask {
       maf_filter = false;
       
       has_null_filter = false;
+      has_null_prop_filter = false;
       has_case_control_filter = false;
 	
     }
@@ -1369,6 +1374,7 @@ class Mask {
 	mac_filter = false;	
 	maf_filter = false;
 	has_null_filter = false;
+	has_null_prop_filter = false;
 	has_case_control_filter = false;
 	inc_filter_any = false;
 	req_filter_any = false;
@@ -1381,6 +1387,7 @@ class Mask {
 	use_qual_filter = false;
 	qual.set(".");
 	null_fltr.reset();
+	null_prop_fltr.reset();
 	case_fltr.reset();
 	control_fltr.reset();	
 	fail_on_sample_variant_allow = -1; // allow inf.
@@ -1750,6 +1757,9 @@ class Mask {
 
     bool         has_null_filter;
     int_range    null_fltr;
+
+    bool         has_null_prop_filter;
+    dbl_range    null_prop_fltr;
 
     bool         has_case_control_filter;
     int_range    case_fltr;

@@ -1050,7 +1050,7 @@ int main()
          
        std::cout << "<table border=1><tr><th>Field</th><th>Value</th></tr>";
        std::cout << "<tr><td>Name</td><td>" << rs_link( var.name() ) << "</td></tr>";
-       std::cout << "<tr><td>Chromosome</td><td>" << var.chromosome() << "</td></tr>";
+       std::cout << "<tr><td>Chromosome</td><td>" << Helper::chrCode( var.chromosome() ) << "</td></tr>";
        std::cout << "<tr><td>Position</td><td>" << var.position() << "</td></tr>";
        std::cout << "<tr><td>Reference allele</td><td>" << var.pp_reference() << "</td></tr>";
        std::cout << "<tr><td>Alternate allele(s)</td><td>" << var.pp_alternate() << "</td></tr>";
@@ -1443,7 +1443,7 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 
   o1 << "</td>";
   
-  o1 << "<td>" << var.chromosome() << "</td>";
+  o1 << "<td>" << Helper::chrCode( var.chromosome() ) << "</td>";
 
   if ( var.stop() == 0 || var.stop() == var.position() )
     o1 << "<td>" << var.position() << "</td>";
@@ -1628,7 +1628,7 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
 
       std::cout << "</td>";
 
-      std::cout << "<td>" << vars.var(i).chromosome() << "</td>" 
+      std::cout << "<td>" << Helper::chrCode( vars.var(i).chromosome() ) << "</td>" 
 	   << "<td>" << vars.var(i).position() << "</td>";
 
       // Print name, with link to dbSNP if appropriate

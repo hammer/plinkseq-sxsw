@@ -699,27 +699,30 @@ bool VarDBase::release()
 
 bool VarDBase::index()
 {
-    sql.query( "CREATE INDEX IF NOT EXISTS pos_var ON variants(chr,bp1,bp2);" );
-    //sql.query( "CREATE INDEX IF NOT EXISTS file_idx ON variants(file_id);");
-    sql.query( "CREATE INDEX IF NOT EXISTS vIndx1 ON vdat( var_id ) ; ");
-    
-    sql.query( "CREATE INDEX IF NOT EXISTS bcfIdx ON bcfs( file_id ); ");
-    
-    sql.query( "CREATE INDEX IF NOT EXISTS set1 ON set_data( set_id ) ; ");    
-    sql.query( "CREATE INDEX IF NOT EXISTS set2 ON set_members( group_id ); ");
-    sql.query( "CREATE INDEX IF NOT EXISTS set3 ON set_data( var_id ) ; ");
-    sql.query( "CREATE INDEX IF NOT EXISTS set4 ON set_members( name ); ");
 
-    sql.query( "CREATE INDEX IF NOT EXISTS meta1 ON indep_meta_data( var_id ) ; ");
-    sql.query( "CREATE INDEX IF NOT EXISTS filetags ON files( tag ) ; " );
-
-    release();
-    init();
+  sql.query( "CREATE INDEX IF NOT EXISTS pos_var ON variants(chr,bp1,bp2);" );
+  sql.query( "CREATE INDEX IF NOT EXISTS name_var ON variants(name); " );
+  
+  //sql.query( "CREATE INDEX IF NOT EXISTS file_idx ON variants(file_id);");
+  sql.query( "CREATE INDEX IF NOT EXISTS vIndx1 ON vdat( var_id ) ; ");
+  
+  sql.query( "CREATE INDEX IF NOT EXISTS bcfIdx ON bcfs( file_id ); ");
+  sql.query( "CREATE INDEX IF NOT EXISTS set1 ON set_data( set_id ) ; ");    
+  sql.query( "CREATE INDEX IF NOT EXISTS set2 ON set_members( group_id ); ");
+  sql.query( "CREATE INDEX IF NOT EXISTS set3 ON set_data( var_id ) ; ");
+  sql.query( "CREATE INDEX IF NOT EXISTS set4 ON set_members( name ); ");
+  
+  sql.query( "CREATE INDEX IF NOT EXISTS meta1 ON indep_meta_data( var_id ) ; ");
+  sql.query( "CREATE INDEX IF NOT EXISTS filetags ON files( tag ) ; " );
+  
+  release();
+  init();
 }
 
 bool VarDBase::drop_index()
 {
   sql.query( "DROP INDEX IF EXISTS pos_var;");
+  sql.query( "DROP INDEX IF EXISTS name_var;");
   sql.query( "DROP INDEX IF EXISTS vIndx1; ");
   sql.query( "DROP INDEX IF EXISTS set1; ");    
   sql.query( "DROP INDEX IF EXISTS set2; ");

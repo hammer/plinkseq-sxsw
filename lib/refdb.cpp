@@ -103,6 +103,7 @@ void RefDBase::drop_index()
 {
   if ( ! attached() ) return;
   sql.query( "DROP INDEX IF EXISTS ind1;");
+  sql.query( "DROP INDEX IF EXISTS ind2;");
   release();
   init();
 }
@@ -112,9 +113,9 @@ void RefDBase::index()
 {
   if ( ! attached() ) return;  
   sql.query( "CREATE INDEX IF NOT EXISTS ind1 ON refvariants(group_id,chr, bp1); " );    
+  sql.query( "CREATE INDEX IF NOT EXISTS ind2 ON refvariants(group_id,name); " );    
   release();
-  init();
-  
+  init();  
 }
 
 bool RefDBase::init()

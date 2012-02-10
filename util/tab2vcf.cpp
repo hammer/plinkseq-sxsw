@@ -107,17 +107,17 @@ int main( int argc , char ** argv )
 
       field[i] = tok(i);
 
-      if      ( field[i] == "POS" ) { special_field = true; pos = i; } 
-      else if ( field[i] == "VAR" ) { special_field = true; pos = i; }
+      if       ( field[i] == "VAR" ) { special_field = true; pos = i; }
+      else if  ( field[i] == "LOC" ) { special_field = true; pos = i; }
       
       else if ( field[i] == "CHR" ) { special_field = true; chr = i; }
       else if ( field[i] == "CHROM" ) { special_field = true; chr = i; }
       
       else if ( field[i] == "BP" ) { special_field = true; bp1 = i; }
       else if ( field[i] == "BP1" ) { special_field = true; bp1 = i; }
-      
       else if ( field[i] == "BP2" ) { special_field = true; bp2 = i; }  
-      
+
+      else if ( field[i] == "POS" ) { special_field = true; bp1 = i; }      
       else if ( field[i] == "POS1" ) { special_field = true; bp1 = i;}
       else if ( field[i] == "POS2" ) { special_field = true;  bp2 = i; }
       

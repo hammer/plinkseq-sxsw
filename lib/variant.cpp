@@ -901,10 +901,13 @@ bool Variant::frequency_filter( Mask * mask )
 
 bool Variant::null_filter( Mask * mask )
 {
-  if ( !mask ) return true;
-  if ( ! mask->null_filter() ) return true;
-  int n = n_null();
-  return mask->null_filter( n );
+  if ( ! mask ) return true;
+  if ( ! ( mask->null_filter() || mask->null_prop_filter() ) ) return true;  
+  const int n = n_null();
+  bool okay = true;
+  if ( mask->null_filter() && ! mask->null_filter( n ) ) okay = false;
+  if ( mask->null_prop_filter() && ! mask->null_prop_filter( n/(double)size() ) ) okay = false;  
+  return okay;
 }
 
 

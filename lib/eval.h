@@ -105,6 +105,7 @@ class Eval {
   // Symbol table for variables, and related functions
   bool extract_gfunc( std::string * );
   bool expand_indices( std::string * s );
+  bool expand_vargs( std::string * s );
   std::map<std::string,std::set<Token*> > vartb;
   void delete_symbols();
   void reset_symbols();

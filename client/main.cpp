@@ -535,8 +535,11 @@ int main(int argc, char ** argv)
     {
       filtspec = args.as_string( "include" );
     }
-  
-  if ( args.has("exclude") )
+  else if ( args.has("eval") )
+    {
+      filtspec = args.as_string( "eval" );
+    }  
+  else if ( args.has("exclude") )
     {
       filtspec = args.as_string( "exclude" );
       filter_T_include = false;
@@ -736,6 +739,26 @@ int main(int argc, char ** argv)
     }
   
   
+  //
+  // Load variant lists into the VARDB
+  //
+
+  if ( command == "var-set" ) 
+    {
+      if ( ! args.has( "group" ) ) Helper::halt( "need to specify a --group" );
+      
+      // either from a file; or from a TAG
+      if ( args.has( "file" ) )
+	{
+	  
+	}
+      else if ( args.has( "name" ) ) 
+	{
+	  
+	}
+      
+    }
+
   
   //
   // Load/merge GTF files into locus database

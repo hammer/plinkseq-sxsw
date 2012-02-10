@@ -96,17 +96,17 @@ double Pseq::Assoc::stat_calpha( const VariantGroup & vars ,
   
   std::vector<int> y( vars.size() , 0);
   std::vector<int> n( vars.size() , 0);
-  std::map<int, std::set<int> >::iterator i1 = pre->carriers.begin();  
+  std::map<int, std::set<int> >::iterator i1 = pre->carriers.begin();
   
   while ( i1 != pre->carriers.end() )
     {
       int j = g.perm.pos(  i1->first  );
       affType aff = vars.ind( j )->affected();
-      
+
       std::set<int>::iterator k = i1->second.begin();
       while ( k != i1->second.end() )
 	{
-	  const int ac = vars.geno(*k,j).minor_allele_count( pre->refmin.find(*k) == pre->refmin.end() ) ;
+	  const int ac = vars.geno( *k , i1->first ).minor_allele_count( pre->refmin.find(*k) == pre->refmin.end() ) ;
 	  if ( aff == CASE ) y[ *k ] += ac ;
 	  n[ *k ] += ac ;	      
 	  ++k;
@@ -118,7 +118,7 @@ double Pseq::Assoc::stat_calpha( const VariantGroup & vars ,
   double score = 0;
   
   for (int i = 0 ; i < vars.size(); i++ )
-    {                
+    {                      
       double t = y[i] - n[i] * aux->p_a;
       t *= t;
       score += t - n[i] * aux->p_ap_u;     
@@ -164,7 +164,6 @@ double Pseq::Assoc::stat_calpha( const VariantGroup & vars ,
 	  ++i;
 	}	  
     }
-
   
   // C-alpha statistic
   return score / sqrt( aux->variance ) ;      
