@@ -82,7 +82,7 @@ bool VarDBase::newDB( std::string n )
              "   chr_id  INTEGER PRIMARY KEY , "
              "   name    VARCHAR(20) NOT NULL , "
 	     "   ploidy  INTEGER NOT NULL , "
-             " CONSTRAINT cChr UNIQUE ( name ) ) ; " );
+               " CONSTRAINT cChr UNIQUE ( name ) ) ; " );
   
   
   //
@@ -91,7 +91,7 @@ bool VarDBase::newDB( std::string n )
   
   if ( populate_chr_codes ) 
     {
-      
+
       stmt_insert_chr_code = 
 	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name , ploidy ) values( :name , :ploidy ); " );      
       stmt_fix_chr_code = 
@@ -322,7 +322,7 @@ bool VarDBase::dettach()
 
 bool VarDBase::init()
 {
-  
+
     // 
     // Insertions
     // 
@@ -1656,6 +1656,7 @@ bool VarDBase::chr_code( const int c , const std::string & n , const ploidy_t pl
 
 int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy ) 
 {
+
   std::map<std::string,int>::iterator i = chr_code_map.find(n);
   if ( i != chr_code_map.end() ) 
     {
@@ -1663,10 +1664,20 @@ int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy )
       return i->second;
     }
 
+
+     stmt_fetch_chr_code = 
+       sql.prepare( " SELECT chr_id , ploidy FROM chrcodes WHERE name == :name ; " );
+  
+     stmt_fetch_chr_name = 
+       sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
+
+
   sql.bind_text( stmt_fetch_chr_code , ":name" , n );
   if ( sql.step( stmt_fetch_chr_code ) )
     {
+      
       int c = sql.get_int( stmt_fetch_chr_code , 0 );
+      chr_name_map[c]=n;
       chr_code_map[n]=c;
       chr_ploidy_map[c] = (ploidy_t)sql.get_int( stmt_fetch_chr_code , 1 );
       if ( ploidy ) *ploidy = chr_ploidy_map[c];
@@ -1679,9 +1690,9 @@ int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy )
   if ( ploidy ) sql.bind_int( stmt_insert_chr_code , ":ploidy" , *ploidy );
   else sql.bind_int( stmt_insert_chr_code , ":ploidy" , PLOIDY_UNKNOWN );
   sql.step( stmt_insert_chr_code );
-  int c = sql.last_insert_rowid();
   sql.reset( stmt_insert_chr_code );
-
+  int c = sql.last_insert_rowid();
+    
   // and add to current map
   chr_name_map[c]=n;
   chr_code_map[n]=c;

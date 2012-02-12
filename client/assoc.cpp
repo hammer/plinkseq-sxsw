@@ -1711,6 +1711,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // Now that we've built the gene/variant table for all individuals,
   // we can go through each set, one at a time and score each
   // individual
+
  
   //           | Set | Not-Set
   // ----------|-----|----------
@@ -1720,21 +1721,28 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // ----------|-----|----------
   
 
-  // Now get a list of all SETs to use
-  
+  //
+  // Obtain a list of all sets
+  //
+
   std::vector<std::string> sets = g.locdb.fetch_set_names( loc , locset );
 
+  //
   // Create a mapping of gene --> sets 
-  // i.e. if individual carries gene g, we know to increment sets in g2s[g]
+  // i.e. if individual carries gene g, we will increment all sets in g2s[g]
+  //
 
   plog << "creating gene-to-set mapping...\n";
-  
-  std::vector< std::vector<int> > g2s( aux.gene_id.size() ) ;
-  
+
+  const int numgenes = aux.gene_id.size();
+  std::vector< std::vector<int> > g2s( numgenes );
+  std::vector<int> setsize;
+
   for (int s = 0 ; s < sets.size() ; s++ ) 
     {
       std::cout << "set = " << sets[s] << "\n";
       std::vector<std::string> members = g.locdb.fetch_set_members( loc, locset, sets[s] );
+      setsize.push_back( members.size() );
       for (int ss=0; ss<members.size(); ss++)
 	{
 	  if ( aux.gene_id.find( members[ss] ) == aux.gene_id.end() ) continue;
@@ -1745,32 +1753,76 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
     }
   
   plog << "eval gene to set mapping...\n";
-
-  // create large score matrix
-
-  const int n = g.indmap.size();
-
-  std::vector<std::vector<int> > scores(n);
-  for (int k=0;k<n;k++) scores[k].resize( sets.size() , 0 );
-  
-  for (int k = 0 ; k < aux.indiv.size() ; k++)
-    {
-      std::cout << "proc'ing " << k << " of " << aux.indiv.size() << "\n";
-
-      const int i = aux.indiv[k];
-      const int g = aux.gene[k];
-      for (int s = 0 ; s < g2s[g].size() ; s++ ) scores[i][g2s[g][s]]++;
-    }
   
 
   //
-  
-  // mapping of gene --> SET
-  
-  // FISHER'S
-  //       if ( ! fisher( Table( allele_refa, allele_refu, allele_alta, allele_altu ) , &fisher_pv0 ) ) fisher_pv0 = 1;
+  // Create large score matrix of indiv x set
+  //
 
+  const int n = g.indmap.size();  
+  std::vector<std::vector<int> > scores(n);  
+  for (int k=0;k<n;k++) scores[k].resize( sets.size() , 0 );
   
+  //
+  // Create per individual counts
+  //
+  
+  std::vector<int> indcnt( n , 0 );
+  
+  //
+  // Populate scores matrix
+  //
+  
+  for (int k = 0 ; k < aux.indiv.size() ; k++)
+    {
+      
+      std::cout << "proc'ing " << k << " of " << aux.indiv.size() << "\n";
+      
+      const int i = aux.indiv[k];
+      const int g = aux.gene[k];
+      
+      // track total number of mutant genes per individual
+      indcnt[i]++;
+      
+      // track number of mutant per set per individual
+      for (int s = 0 ; s < g2s[g].size() ; s++ ) scores[i][g2s[g][s]]++;
+    }
+  
+  
+  //
+  // Calculate enrichment statistic per individual for each set
+  //
+
+  for ( int i = 0 ; i < n ; i++ ) 
+    {
+      int g0s0 = 0 , g0s1 = 0 , g1s0 = 0 , g1s2 = 0;
+      for (int s = 0 ; s < sets.size() ; s++)
+	{
+	  int g1s1 = scores[i][s];
+	  int g1s0 = indcnt[i]  - g1s1;
+	  int g0s1 = setsize[s] - g1s1; 
+	  int g0s0 = numgenes - g0s1 - g1s0 - g1s1;
+	  
+	  double pval = 0;
+	  if ( ! fisher( Table( g0s0 , g0s1 , g1s0 , g1s1 ) , &pval ) ) pval = 1;
+	  
+	  plog << g.indmap.ind(i)->id() << "\t"
+	       << sets[s] << "\t"
+	       << pval << "\n";
+	}
+    }
+  
+
+
+  //
+  // Permutation procedure is simply to shuffle the phenotype on the list of (i.e. disconnect aux.indiv[] and aux.gene[]
+  //
+  
+  
+  
+  //
+  //  
+  // 
   
   return true;
 

@@ -107,7 +107,7 @@ std::map<int,std::string> IndividualMap::map_slot_to_id() const
 // Create an individual-map (given a VARDB and a Mask)
 //
 
-int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask & m )
+int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
 {
 
   // First clear the map
@@ -130,7 +130,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
   // assign 'multi-sample' status or not
 
   std::set<int> obs_files;
-  
+
   //
   // Start a transaction
   //
@@ -149,20 +149,20 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 	}
 
       int actual_j = 0;
-
+      
       std::vector<std::string> ind = vardb.fetch_individuals( f->first );
 
       // Always include N=0 files (i.e. summary info), unless explicitly filtered
-      // out via the mas (use_file() above)
+      // out via the mask (use_file() above)
       
-      if ( ind.size() == 0 ) obs_files.insert( f->first );
       
       // otherwise, if this file actually contains individuals, let's see if any are used:
 
-      for (int j = 0 ; j < ind.size(); j++ ) 
+      for ( int j = 0 ; j < ind.size(); j++ ) 
 	{
 	  
 	  std::string id = ind[j];
+	  
 
 	  // Are we interested in this individual?  
 	  
@@ -182,12 +182,12 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 
 	  
 	  //
-	  // Track the number of unique files observed
+	  // Track the number of unique files observed (whether we'll be pulling 1+ individuals from them or not, as they 
+	  // will still be indexed
 	  //
 	  
 	  obs_files.insert( f->first );
-
-
+	  
 	  // Store mapping as appropriate
 	  
 	  if ( id_list.find( id ) == id_list.end() ) 
@@ -214,6 +214,15 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
 	}
 
       
+      // For obligatory empty files, always include these  (unless we've explicitly 
+      // been told not to, above)
+      
+      if ( ind.size() == 0 ) 
+	{
+	  obs_files.insert( f->first );
+	  m.set_site_only( f->first );
+	}
+	  
       // Move on to next file.
 
       ++f;
@@ -226,6 +235,24 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , const Mask
   //
   
   phmap.commit();
+  
+
+  //
+  // For any non-empty files that we will not be taking at least one individual from, add to list of files to exclude
+  //
+
+
+  f = files.begin();
+  while ( f != files.end() )
+    {      
+      if ( m.use_file( f->first ) && obs_files.find( f->first ) == obs_files.end() )
+	{
+	  std::cout << "excluding file " << f->second << "\n";
+	  m.exclude_file( f->second ) ;
+	}
+      ++f;      
+    }
+
   
 
   //

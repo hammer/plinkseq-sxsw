@@ -101,6 +101,12 @@ class LocDBase {
 					      const std::string & set_group,
 					      const std::string & set_name );
   
+  bool populate_set_structures( const std::string & group , 
+				std::map<int,std::string> * gene_id ,
+				std::map<int,std::string> * set_id , 
+				std::map<int,std::set<int> > * set_members );
+  
+
   // Handle temporary groups
   
   void temporary(const uint64_t id, const bool b);

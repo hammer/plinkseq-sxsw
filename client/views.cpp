@@ -67,7 +67,7 @@ void f_view( Variant & v , void * p )
 	  
 	  plog << v << "\t"
 	       << v.name() << "\t"
-	       << sample << "\t"
+	       << sample << "\t"	       
 	       << sample.file_name() << "\t"	    
 	       << sample.filter();
 	  

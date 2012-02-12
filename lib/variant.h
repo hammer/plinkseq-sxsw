@@ -614,33 +614,7 @@ class Variant {
       return svar.back();      
     }
   
-  bool remove( int s ) 
-    {
-
-      // this will invalidate 'si'
-      if ( s < 0 || s >= svar.size() ) return false;
-      
-      // remove from svar (and also svtof and ftosv)
-      svar.erase( svar.begin() + s );
-      
-      svtof.erase( svtof.begin() + s );
-      std::map<int,std::vector<int> >::iterator i = ftosv.begin();
-      while ( i != ftosv.end() ) 
-	{
-	  std::vector<int>::iterator j = i->second.begin();
-	  while ( j != i->second.end() )
-	    {	      
-	      if ( *j == s ) 
-		j = i->second.erase( j );
-	      else
-		++j;
-	    }	  
-	  ++i;
-	}      
-	
-      return true;
-    }
-
+  bool remove( int s ) ;
 
   
   //

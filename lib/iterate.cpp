@@ -874,18 +874,31 @@ bool VarDBase::eval_and_call( Mask & mask,
       SampleVariant * genotype_target = align->flat() ? &(var.consensus) : &svar ;
       
       bool sample_okay = true;
-      
+
       // exclude any empty sets? -- but would this impact summary handles of VCFs?  yes...
       //  thus, not a good idea to implement, as empty VCFs are a handy device
-
-      // if ( align->size( svar.fileset() ) == 0 ) sample_okay = false;
+      
 
       // Basic stuff (allele encoding)
 
       svar.decode_BLOB_basic( target ); 
+
+
+      // Is this a populated file, but from which nobody was actually
+      // included?  In that case, we should treat this as if it does
+      // not exist.  In the case of an initially empty VCF
+      // (i.e. sites-only VCF) then N=0 is no longer a critieron for
+      // exclusion, however.
       
+      if ( align->size( svar.fileset() ) == 0 && ! mask.site_only( svar.fileset() ) ) sample_okay = false;
+      
+      if ( ! sample_okay ) { svar_rlist.push_back( s - svar_rlist.size() ); continue; } 
+
+
+      //
       // Attach any extra meta-information that belongs to this sample-variant
-      
+      //
+
       if ( mask.attach_meta() ) 
       {	  
 	  if ( mask.attach_all_meta() ) 
@@ -893,7 +906,7 @@ bool VarDBase::eval_and_call( Mask & mask,
 	      attach_indep_metadata( svar.index() , *vmeta_target , NULL );
 	  }
 	  else
-	  {
+	    {
 	      std::set<std::string> s = mask.attach_meta_fields();
 	      attach_indep_metadata( svar.index() , *vmeta_target , &s );
 	  }
@@ -905,10 +918,11 @@ bool VarDBase::eval_and_call( Mask & mask,
       
       if ( ! mask.eval_filters( *target ) ) 
       {	  
-	  if ( mask.fail_on_sample_variant() ) return false;
-	  else sample_okay = false;
+	if ( mask.fail_on_sample_variant() ) return false;
+	else sample_okay = false;	
       }
 
+      if ( ! sample_okay ) { svar_rlist.push_back( s - svar_rlist.size() ); continue; } 
       
       //
       // At this point, we now have to create the full sample-variant with all
@@ -922,6 +936,7 @@ bool VarDBase::eval_and_call( Mask & mask,
 	  else sample_okay = false;
 	}
       
+      if ( ! sample_okay ) { svar_rlist.push_back( s - svar_rlist.size() ); continue; } 
       
       //
       // Assign all genotypes (and genotype meta-information) to
@@ -938,6 +953,7 @@ bool VarDBase::eval_and_call( Mask & mask,
 	  else sample_okay = false;
 	}
 
+      if ( ! sample_okay ) { svar_rlist.push_back( s - svar_rlist.size() ); continue; } 
       
       //
       // Apply vmeta filters (include statements) if they depend on genotype (
@@ -970,7 +986,7 @@ bool VarDBase::eval_and_call( Mask & mask,
       // dealing with multiple-SampleVariants in a Variant (adjusting for shrinkage of list as first items are 
       // removed)
       //
-
+      
       if ( ! sample_okay ) svar_rlist.push_back( s - svar_rlist.size() );
             
       // next SampleVariant
@@ -998,11 +1014,11 @@ bool VarDBase::eval_and_call( Mask & mask,
     {
       for ( int i = 0 ; i < svar_rlist.size(); i++)
 	{
-	  std::cout << "removing " << svar_rlist[i] << "\n";
 	  var.remove( svar_rlist[i] );      
 	}
     }
 
+  
 
   // 
   // If everything looks good with the individual SampleVariants, now 
@@ -1011,6 +1027,7 @@ bool VarDBase::eval_and_call( Mask & mask,
   //
 
   var.make_consensus( align );
+
 
 
   //
@@ -1178,6 +1195,7 @@ bool VarDBase::eval_and_call( Mask & mask,
       f( var , data );
     }
   
+
     
   return true;
 

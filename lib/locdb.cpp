@@ -425,6 +425,12 @@ bool LocDBase::init()
   stmt_set_names_fetch = 
     sql.prepare( "SELECT name FROM set_members WHERE group_id == :group_id ; ");
   
+  stmt_set_names_and_idsfetch = 
+    sql.prepare( "SELECT name,set_id FROM set_members WHERE group_id == :group_id ; ");
+
+  stmt_set_data_dump = 
+    sql.prepare( "SELECT loc_id , set_id FROM set_data WHERE set_id IN ( SELECT " name,set_id FROM set_members WHERE group_id == :group_id ; ");
+
   stmt_set_members_fetch = 
     sql.prepare( "SELECT l.name FROM loci AS l , set_data AS sd "
 		 " WHERE l.loc_id == sd.loc_id "
@@ -2916,3 +2922,49 @@ void LocDBase::clear_special()
   if ( ! attached() ) return;
   sql.query(" DELETE FROM special; "); 
 }
+
+
+
+bool LocDBase::populate_set_structures( const std::string & loc_group , 
+					const std::string & set_group , 
+					std::map<int,std::string> * gene_id ,
+					std::map<int,std::string> * set_id , 
+					std::map<int,std::set<int> > * set_members )
+{
+
+  if ( ! attached() ) return false;
+  
+  // get set ID
+  uint64_t id = lookup_set_id( loc_group , set_group );
+  if ( id == 0 ) return false;
+
+  // Get all members
+  sql.bind_int64( stmt_set_member_lookup, ":group_id" , id );
+  
+  uint64_t mem_id = 0;
+  
+  if ( sql.step( stmt_set_member_lookup ) )
+    {
+      mem_id = sql.get_int64( stmt_set_member_lookup , 0 );
+    }
+  sql.reset( stmt_set_member_lookup );
+  if ( mem_id == 0 ) return results;
+  
+
+
+
+  sql.bind_int64( stmt_set_members_fetch, ":set_id" , mem_id );
+  while ( sql.step( stmt_set_members_fetch ) )
+    {
+      results.push_back( sql.get_text( stmt_set_members_fetch , 0 ) );
+    }
+  sql.reset( stmt_set_members_fetch );
+  
+  return results;
+}
+
+
+}
+
+
+

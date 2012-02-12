@@ -643,6 +643,7 @@ Variant VCFReader::getVariant(const std::string & s)
   // Key variant fields
 
   var.name( id );
+
   var.chromosome( Helper::chrCode(chr) );
   var.position( pos );
   var.stop( stop ? stop : pos + ref.size() - 1 );

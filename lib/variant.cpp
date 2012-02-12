@@ -1363,3 +1363,41 @@ std::string Variant::pp_alternate() const
 }
 
 
+
+bool Variant::remove( int s ) 
+{
+
+  // this will invalidate 'si'
+  if ( s < 0 || s >= svar.size() ) Helper::halt( "internal error in Variant::remove()" );
+  
+  // remove from svar (and also svtof and ftosv)
+  svar.erase( svar.begin() + s );
+  
+  svtof.erase( svtof.begin() + s );
+
+  std::map<int,std::vector<int> >::iterator i = ftosv.begin();
+  while ( i != ftosv.end() ) 
+    {
+
+      std::vector<int>::iterator j = i->second.begin();
+      while ( j != i->second.end() )
+	{	      
+	  if ( *j == s ) 
+	    j = i->second.erase( j );
+	  else
+	    ++j;
+	}
+
+      // reiterate, to shift down the SV values above 's' (i.e. to be j-1, if j>s)
+      j = i->second.begin();
+      while ( j != i->second.end() )
+	{	      
+	  if ( *j > s ) --(*j); 
+	  ++j;
+	}      
+       
+      ++i;
+    }      
+  
+  return true;
+}

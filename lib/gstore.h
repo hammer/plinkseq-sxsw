@@ -147,7 +147,7 @@ class GStore {
 
   void reset();
   
-  bool register_mask( const Mask & );
+  bool register_mask( Mask & );
 
   void buildIndex();
   

@@ -464,7 +464,11 @@ class Mask {
   int exclude_file( const std::string & filetag );
 
   bool use_file( const int ) const;
-
+  
+  // Keep track of site-only VCFs too
+  
+  bool site_only(const int i) const { return site_only_samples.find(i) != site_only_samples.end() ; } 
+  void set_site_only( const int i ) { site_only_samples.insert(i); }
   
   //
   // Are we looking at a single VCF?
@@ -997,6 +1001,8 @@ class Mask {
       in_files.clear();
       ex_files.clear();
       
+      site_only_samples.clear();
+
       // External VCF mode?
       
       ext_vcf = false;
@@ -1531,7 +1537,8 @@ class Mask {
 
     std::set<int> in_files;
     std::set<int> ex_files;
-
+    
+    std::set<int> site_only_samples;
 
     // External VCF mode
 

@@ -2307,14 +2307,8 @@ bool Mask::eval_filters( const SampleVariant & v )
   bool include = inc_filter.size() == 0 ? true : false;
   
   // Filter of *any* elements?
-  std::cout << "fste = " << v.fileset() << "\t";
-  std::cout << "exc_f_any = " << exc_filter_any << "\t";  
-  std::cout << "v.() = " << v.any_filter() << "\t";
-  std::cout << v.filter() << "\n";
   
   if ( exc_filter_any && v.any_filter() ) return false;
-
-  std::cout << "stil here..\n";
 
   if ( ( inc_filter_any || req_filter_any ) && ! v.any_filter() ) return false; 
 

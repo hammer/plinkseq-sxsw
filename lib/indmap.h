@@ -23,7 +23,7 @@ class IndividualMap {
       reset();
     }
   
-  int populate( VarDBase & , PhenotypeMap & , const Mask & );
+  int populate( VarDBase & , PhenotypeMap & , Mask & );
 
   int populate( const std::vector<std::string> & );
   

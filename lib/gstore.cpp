@@ -99,7 +99,7 @@ bool GStore::set_project( const std::string & filename, bool verbose)
 
 }
 
-bool GStore::register_mask( const Mask & m )
+bool GStore::register_mask( Mask & m )
 {
   // set up the individual map  
   int n = indmap.populate( vardb , phmap , m );
