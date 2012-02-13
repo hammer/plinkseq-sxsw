@@ -1638,7 +1638,7 @@ void g_set_association( VariantGroup & vars , void * p )
 struct aux_set_enrichment{
   std::vector<int> indiv;
   std::vector<int> gene;
-  std::map<std::string,int> gene_id;
+  std::vector<std::string> gene_id;
 };
 
 
@@ -1649,7 +1649,7 @@ void g_set_enrichment( VariantGroup & vars , void * p )
   
   // keep track of gene name
   const int gn = aux->gene_id.size();
-  aux->gene_id[ vars.name() ] = gn;
+  aux->gene_id.push_back( vars.name() );
 
   int a = 0;
   const int n = g.indmap.size();
@@ -1725,32 +1725,68 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // Obtain a list of all sets
   //
 
-  std::vector<std::string> sets = g.locdb.fetch_set_names( loc , locset );
 
+  plog << "pulling all set information\n";
+
+  std::map<int,std::string> sets;
+  std::map<int,std::string> genes;
+  std::map<int,std::set<int> > s2g;
+  std::map<int,std::set<int> > g2s;
+  
+  bool okay = g.locdb.populate_set_structures( loc , locset , &genes , &sets , &s2g , &g2s );
+  
   //
   // Create a mapping of gene --> sets 
   // i.e. if individual carries gene g, we will increment all sets in g2s[g]
   //
-
+  
   plog << "creating gene-to-set mapping...\n";
+  
+//   const int numgenes = aux.gene_id.size();
+//   std::vector< std::vector<int> > g2s( numgenes );
+//   std::vector<int> setsize;
+  
+//   std::map<int,std::string>::iterator i_sets = sets.begin();
+//   while ( i_sets != sets.end() )
+//     {
+//       std::cout << "set = " << i_sets->second << "\n";
+//       std::map<int,std::set<int> >::iterator ii = s2g.find( i_sets->first );
+//       if ( ii == s2g.end() ) { ++i_sets; continue; } 
+//       std::set<int>::iterator iii = ii->second.begin();
+//       while ( iii != ii->second.end() )
+// 	{
+// 	  if ( genes.find( *iii ) == genes.end() ) continue;
+// 	  std::cout << "set " << i_sets->second << "\t" 
+// 		    << genes[ *iii ] << "\n";
+// 	  ++iii;
+// 	}
+//       ++i_sets;
+//      }
 
-  const int numgenes = aux.gene_id.size();
-  std::vector< std::vector<int> > g2s( numgenes );
-  std::vector<int> setsize;
 
-  for (int s = 0 ; s < sets.size() ; s++ ) 
+//   std::cout << "found " << sets.size() << " " << s2g.size() << " sets\n";
+//   std::cout << "found " << genes.size() << " " << g2s.size() << " genes\n";
+
+  std::map<std::string,int> genes_rmap;
+  std::map<int,std::string>::iterator i = genes.begin();
+  while ( i != genes.end() )
     {
-      std::cout << "set = " << sets[s] << "\n";
-      std::vector<std::string> members = g.locdb.fetch_set_members( loc, locset, sets[s] );
-      setsize.push_back( members.size() );
-      for (int ss=0; ss<members.size(); ss++)
-	{
-	  if ( aux.gene_id.find( members[ss] ) == aux.gene_id.end() ) continue;
-	  const int gn = aux.gene_id[ members[ss] ];
-	  if ( gn >= g2s.size() ) continue;
-	  g2s[ gn ].push_back( s );
-	}
+      genes_rmap[ i->second ] = i->first;
+      ++i;
     }
+      
+// if ( 
+//     std::set<int> & 
+//     std::vector<std::string> members = g.locdb.fetch_set_members( loc, locset, sets[s] );
+//     setsize.push_back( members.size() );
+//       for (int ss=0; ss<members.size(); ss++)
+// 	{
+// 	  if ( aux.gene_id.find( members[ss] ) == aux.gene_id.end() ) continue;
+// 	  const int gn = aux.gene_id[ members[ss] ];
+// 	  if ( gn >= g2s.size() ) continue;
+// 	  g2s[ gn ].push_back( s );
+// 	}
+//     }
   
   plog << "eval gene to set mapping...\n";
   
@@ -1773,44 +1809,59 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // Populate scores matrix
   //
   
-  for (int k = 0 ; k < aux.indiv.size() ; k++)
+  // Map ID from LOCDB to SLOT from iterate()
+  std::map<int,int> g2g;
+  for (int g=0;g<aux.gene_id.size();g++)
     {
-      
-      std::cout << "proc'ing " << k << " of " << aux.indiv.size() << "\n";
-      
-      const int i = aux.indiv[k];
-      const int g = aux.gene[k];
-      
-      // track total number of mutant genes per individual
-      indcnt[i]++;
-      
-      // track number of mutant per set per individual
-      for (int s = 0 ; s < g2s[g].size() ; s++ ) scores[i][g2s[g][s]]++;
+      if ( genes_rmap.find( aux.gene_id[g] ) == genes_rmap.end() ) g2g[g] = -1;
+      else g2g[ genes_rmap.find( aux.gene_id[g] )
     }
+
+  for (int k = 0 ; k < aux.indiv.size() ; k++)
+     {
+    
+       std::cout << "proc'ing " << k << " of " << aux.indiv.size() << "\n";
+       
+       const int i = aux.indiv[k];
+       if ( genes_rmap.find( aux.gene_id[ aux.gene[k] ] ) == genes_rmap.end() ) continue;
+       const int g = genes_rmap[ aux.gene_id[ aux.gene[k] ] ];
+       
+       // track total number of mutant genes per individual
+       indcnt[i]++;
+    
+       // track number of mutant per set per individual
+       std::set<int>::itertor ii = g2s[g].begin();
+       while ( ii != g2s[g].end() ) 
+	 {
+	   scores[i][ *ii ]++;
+	   ++ii;
+	 }
+       for (int s = 0 ; s < g2s[g].size() ; s++ ) scores[i][ g2s[g][s] ]++;
+     }
   
   
   //
   // Calculate enrichment statistic per individual for each set
   //
 
-  for ( int i = 0 ; i < n ; i++ ) 
-    {
-      int g0s0 = 0 , g0s1 = 0 , g1s0 = 0 , g1s2 = 0;
-      for (int s = 0 ; s < sets.size() ; s++)
-	{
-	  int g1s1 = scores[i][s];
-	  int g1s0 = indcnt[i]  - g1s1;
-	  int g0s1 = setsize[s] - g1s1; 
-	  int g0s0 = numgenes - g0s1 - g1s0 - g1s1;
+//   for ( int i = 0 ; i < n ; i++ ) 
+//     {
+//       int g0s0 = 0 , g0s1 = 0 , g1s0 = 0 , g1s2 = 0;
+//       for (int s = 0 ; s < sets.size() ; s++)
+// 	{
+// 	  int g1s1 = scores[i][s];
+// 	  int g1s0 = indcnt[i]  - g1s1;
+// 	  int g0s1 = setsize[s] - g1s1; 
+// 	  int g0s0 = numgenes - g0s1 - g1s0 - g1s1;
 	  
-	  double pval = 0;
-	  if ( ! fisher( Table( g0s0 , g0s1 , g1s0 , g1s1 ) , &pval ) ) pval = 1;
+// 	  double pval = 0;
+// 	  if ( ! fisher( Table( g0s0 , g0s1 , g1s0 , g1s1 ) , &pval ) ) pval = 1;
 	  
-	  plog << g.indmap.ind(i)->id() << "\t"
-	       << sets[s] << "\t"
-	       << pval << "\n";
-	}
-    }
+// 	  plog << g.indmap.ind(i)->id() << "\t"
+// 	       << sets[s] << "\t"
+// 	       << pval << "\n";
+// 	}
+//     }
   
 
 

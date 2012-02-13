@@ -425,11 +425,11 @@ bool LocDBase::init()
   stmt_set_names_fetch = 
     sql.prepare( "SELECT name FROM set_members WHERE group_id == :group_id ; ");
   
-  stmt_set_names_and_idsfetch = 
+  stmt_set_names_and_id_fetch = 
     sql.prepare( "SELECT name,set_id FROM set_members WHERE group_id == :group_id ; ");
 
-  stmt_set_data_dump = 
-    sql.prepare( "SELECT loc_id , set_id FROM set_data WHERE set_id IN ( SELECT " name,set_id FROM set_members WHERE group_id == :group_id ; ");
+  stmt_set_data_dumper = 
+    sql.prepare( "SELECT loc_id , set_id FROM set_data; ");
 
   stmt_set_members_fetch = 
     sql.prepare( "SELECT l.name FROM loci AS l , set_data AS sd "
@@ -2927,9 +2927,10 @@ void LocDBase::clear_special()
 
 bool LocDBase::populate_set_structures( const std::string & loc_group , 
 					const std::string & set_group , 
-					std::map<int,std::string> * gene_id ,
-					std::map<int,std::string> * set_id , 
-					std::map<int,std::set<int> > * set_members )
+					std::map<int,std::string> * genes ,
+					std::map<int,std::string> * sets , 
+					std::map<int,std::set<int> > * s2g,
+					std::map<int,std::set<int> > * g2s )
 {
 
   if ( ! attached() ) return false;
@@ -2938,32 +2939,43 @@ bool LocDBase::populate_set_structures( const std::string & loc_group ,
   uint64_t id = lookup_set_id( loc_group , set_group );
   if ( id == 0 ) return false;
 
-  // Get all members
-  sql.bind_int64( stmt_set_member_lookup, ":group_id" , id );
-  
-  uint64_t mem_id = 0;
-  
-  if ( sql.step( stmt_set_member_lookup ) )
+  // get locus ID
+  uint64_t loc_id = lookup_group_id( loc_group );
+  if ( loc_id == 0 ) return false;
+
+  // Get all members of set
+  sql.bind_int64( stmt_set_names_and_id_fetch , ":group_id" , id );
+  while ( sql.step( stmt_set_names_and_id_fetch ) ) 
     {
-      mem_id = sql.get_int64( stmt_set_member_lookup , 0 );
+      uint64_t mem_id = sql.get_int64( stmt_set_names_and_id_fetch , 1 );
+      std::string name = sql.get_text( stmt_set_names_and_id_fetch , 0 );
+      (*sets)[ mem_id ] = name; 
     }
-  sql.reset( stmt_set_member_lookup );
-  if ( mem_id == 0 ) return results;
-  
+  sql.reset( stmt_set_names_and_id_fetch );
 
 
+  // Get locus-IDs
+  sql.bind_int64( stmt_loc_lookup_group , ":group_id" , loc_id );		 
+  while ( sql.step(stmt_loc_lookup_group) ) 
+    {      
+      uint64_t lid = sql.get_int64( stmt_loc_lookup_group , 0 );
+      std::string name = sql.get_text( stmt_loc_lookup_group , 1 );      
+      (*genes)[ lid ] = name;
+    }
+  sql.reset( stmt_loc_lookup_group );
 
-  sql.bind_int64( stmt_set_members_fetch, ":set_id" , mem_id );
-  while ( sql.step( stmt_set_members_fetch ) )
+  // Get all locus-set pairings (dumps all, manually extract relevant groups)
+  while ( sql.step( stmt_set_data_dumper ) )
     {
-      results.push_back( sql.get_text( stmt_set_members_fetch , 0 ) );
+      uint64_t set_id = sql.get_int64( stmt_set_data_dumper , 1 ) ;
+      if ( sets->find( set_id ) == sets->end() ) continue;
+      uint64_t loc_id = sql.get_int64( stmt_set_data_dumper , 0 ) ;
+      (*s2g)[ set_id ].insert( loc_id );
+      (*g2s)[ loc_id ].insert( set_id );
     }
-  sql.reset( stmt_set_members_fetch );
+  sql.reset( stmt_set_data_dumper );
   
-  return results;
-}
-
-
+  return true;
 }
 
 

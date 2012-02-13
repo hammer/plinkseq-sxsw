@@ -102,9 +102,11 @@ class LocDBase {
 					      const std::string & set_name );
   
   bool populate_set_structures( const std::string & group , 
+				const std::string & loc_group , 
 				std::map<int,std::string> * gene_id ,
 				std::map<int,std::string> * set_id , 
-				std::map<int,std::set<int> > * set_members );
+				std::map<int,std::set<int> > * s2g ,
+				std::map<int,std::set<int> > * g2s );
   
 
   // Handle temporary groups
@@ -440,6 +442,8 @@ class LocDBase {
   sqlite3_stmt * stmt_set_names_fetch;
   sqlite3_stmt * stmt_set_data_insert;
   sqlite3_stmt * stmt_dump_all_sets;
+  sqlite3_stmt * stmt_set_data_dumper;
+  sqlite3_stmt * stmt_set_names_and_id_fetch;
 
   // Meta-information
 
