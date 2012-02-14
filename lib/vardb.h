@@ -129,14 +129,17 @@ class VarDBase {
   // Variant groups
   //
   
-  uint64_t set_group_id( const std::string & name , bool temp = false , 
-			 const std::string & desc = "");
-  uint64_t lookup_group_id( const std::string & name );
-  uint64_t set_member_id( const uint64_t grp_id , const std::string & name );
-  void     set_add_variant( const uint64_t set_id , const uint64_t var_id );
-  std::string   group_name( const uint64_t set_id );
+  bool add_set( const std::string & name , const std::string & desc = "" );
+  bool add_var_to_set( const std::string & , Variant & );
   
-
+  bool add_superset( const std::string & name , const std::string & desc = "" );
+  bool add_set_to_superset( const std::string & , const std::string & );
+  
+  std::vector<std::string> get_sets();
+  std::vector<std::string> get_supersets();
+  std::vector<std::string> get_sets( const std::string & superset );
+  int get_set_size( const std::string & );
+  
   //
   // Add/remove meta-information on variants (independent of VCF load)
   //
@@ -417,6 +420,8 @@ class VarDBase {
   void clear()
     {
       indiv.clear();
+      varset_map.clear();
+      varsuperset_map.clear();     
     }
   
 
@@ -440,6 +445,9 @@ class VarDBase {
   std::map<int,std::string> chr_name_map;
   std::map<int,ploidy_t> chr_ploidy_map;
   
+  std::map<std::string,int> varset_map;
+  std::map<std::string,int> varsuperset_map;		       
+
   std::map<int,BCF*> bcfmap;
   std::map<int,VCFZ*> vcfzmap;
   

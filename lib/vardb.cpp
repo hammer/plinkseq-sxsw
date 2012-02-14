@@ -1077,9 +1077,16 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
 //
 
 
-uint64_t VarDBase::set_group_id( const std::string & name , bool temp , const std::string & desc)
+bool VarDBase::add_set( const std::string & name , const std::string & desc)
 {
+
+  // retrieve from cache?
+
+  std::map<std::string,int>::iterator ii = varset_map.find( name );
+  if ( ii != varset_map.end() ) return ii->second;
   
+  // either pull or add from database
+
   uint64_t group_id = 0;
   
   sql.bind_text(stmt_lookup_group, ":name" , name ); 
@@ -1100,10 +1107,17 @@ uint64_t VarDBase::set_group_id( const std::string & name , bool temp , const st
       group_id = sql.last_insert_rowid();
       sql.reset( stmt_insert_group );
     }
+
+  // add in cache
+  varset_map[ name ] = group_id;
   
   return group_id;
   
 }
+
+
+
+
 
 uint64_t VarDBase::lookup_group_id( const std::string & name )
 {
@@ -1133,6 +1147,33 @@ void VarDBase::set_add_variant( const uint64_t set_id , const uint64_t var_id )
   sql.step( stmt_insert_group_variant );      
   sql.reset( stmt_insert_group_variant );
 }
+
+
+std::vector<std::string> VarDBase::get_sets()
+{
+
+}
+
+std::vector<std::string> VarDBase::get_supersets()
+{
+
+}
+
+std::vector<std::string> VarDBase::get_sets( const std::string & superset )
+{
+
+}
+
+int VarDBase::get_set_size( const std::string & )
+{
+
+}
+
+
+ 
+ //
+ // Individuals
+ //
 
 
 std::vector<std::string> VarDBase::fetch_individuals(uint64_t file_id)
