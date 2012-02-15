@@ -97,25 +97,33 @@ class Mask {
   int require_var( int x );   
   int exclude_var( int x );   
   
+  int include_varset( int x );   
+  int require_varset( int x );   
+  int exclude_varset( int x );   
+
   int include_ref( int x );   
   int require_ref( int x );   
   int exclude_ref( int x );   
 
-  int include_loc( std::string n );
-  int require_loc( std::string n );
-  int exclude_loc( std::string n );
+  int include_loc( const std::string & n );
+  int require_loc( const std::string & n );
+  int exclude_loc( const std::string & n );
   
   int include_seg( const std::string & n );
   int require_seg( const std::string & n );
   int exclude_seg( const std::string & n );
 
-  int include_var( std::string n );
-  int require_var( std::string n );
-  int exclude_var( std::string n );
+  int include_var( const std::string & n );
+  int require_var( const std::string & n );
+  int exclude_var( const std::string & n );
   
-  int include_ref( std::string n );
-  int require_ref( std::string n );
-  int exclude_ref( std::string n );
+  int include_varset( const std::string & n );
+  int require_varset( const std::string & n );
+  int exclude_varset( const std::string & n );
+
+  int include_ref( const std::string & n );
+  int require_ref( const std::string & n );
+  int exclude_ref( const std::string & n );
   
   void individual_data(const bool b) { inddata = b; }
   bool individual_data() const { return inddata; }
@@ -147,23 +155,27 @@ class Mask {
   
   const std::set<int> & included_loc() const { return in_locset; }
   const std::set<int> & included_var() { return in_varset; }
+  const std::set<int> & included_varset() { return in_varset_set; }
   const std::set<Region> & included_reg() const { return in_regions; }
   const std::set<int> & included_ref() const { return in_refset; }
 
   const std::set<int> & required_loc() const { return req_locset; }
   const std::set<int> & required_locset() const { return req_locset_set; }
   const std::set<int> & required_var() const { return req_varset; }
+  const std::set<int> & required_varset() const { return req_varset_set; }
   const std::set<Region> & required_reg() const { return req_regions; }
   const std::set<int> & required_ref() const { return req_refset; }
 
   const std::set<int> & excluded_loc() const { return ex_locset; }
   const std::set<int> & excluded_locset() const { return ex_locset_set; }
   const std::set<int> & excluded_var() const { return ex_varset; }
+  const std::set<int> & excluded_varset() const { return ex_varset_set; }
   const std::set<Region> & excluded_reg() const { return ex_regions; }
   const std::set<int> & excluded_ref() const { return ex_refset; }
   
   const std::set<int> appended_ref() const { return app_refset; }
   const std::set<int> appended_var() const { return app_varset; }
+  const std::set<int> appended_var_set() const { return app_varset_set; }
   const std::set<int> appended_loc() const { return app_locset; }
   const std::set<int> appended_loc_set() const { return app_locset_set; }
   
@@ -384,6 +396,9 @@ class Mask {
   int append_var( int x );      
   int append_var( const std::string & n ); 
 
+  int append_var_set( int x );      
+  int append_var_set( const std::string & n ); 
+
   int append_ref( int x );	
   int append_ref( const std::string & n ); 
 
@@ -395,6 +410,10 @@ class Mask {
   void group_var(const int g);
 
   void group_var(const std::string & g);
+
+  void group_var_set(const int g);
+
+  void group_var_set(const std::string & g);
 
   void group_loc(const int g);
 
@@ -413,7 +432,7 @@ class Mask {
   int group_set() const 
     { 
       return group_var() ? 
-	group_variant : 
+	( group_var_set() ? group_variant_set : group_variant ) : 
 	group_loc_set() ? group_locus_set : group_locus ; 
     }
   
@@ -425,10 +444,12 @@ class Mask {
   
   bool named_grouping() const 
   { 
-    return group_var() || group_loc() || group_loc_set() ; 
+    return group_var() || group_loc() || group_var_set() || group_loc_set() ; 
   } 
 
   bool group_var() const { return group_variant != 0; }
+
+  bool group_var_set() const { return group_variant_set != 0; }
 
   bool group_loc() const { return group_locus != 0; }
 
@@ -454,6 +475,12 @@ class Mask {
 	  in_locset_set.clear();
 	  in_locset_set.insert( group_set() );
 	}
+      else if ( group_var_set() )
+	{
+	  in_varset_set.clear();
+	  in_varset_set.insert( group_set() );
+	}
+
     }
   
   //
@@ -1029,7 +1056,7 @@ class Mask {
       // Grouping
 	    
       group_region = false;
-      group_locus = group_variant = group_locus_set = 0;
+      group_locus = group_variant = group_variant_set = group_locus_set = 0;
 
       // Functions
 
@@ -1050,6 +1077,13 @@ class Mask {
       ex_locset_set.clear();
       app_locset_set.clear();
       
+      // Var Super-sets
+      in_varset_set.clear();
+      req_varset_set.clear();
+      ex_varset_set.clear();
+      app_varset_set.clear();
+
+
       // Allele frequency filters
       // either absolute counts 
       // or frequencies (that respect missing data)
@@ -1067,10 +1101,11 @@ class Mask {
   bool loc() const { return in_locset.size() > 0 ; }
   bool seg() const { return in_segset.size() > 0 ; } 
   bool var() const { return in_varset.size() > 0 ; }
-  bool reg() const { return in_regions.size() > 0 ; }
-  
+  bool reg() const { return in_regions.size() > 0 ; }  
   bool ref() const { return in_refset.size() > 0; }
+
   bool loc_set() const { return in_locset_set.size() > 0; }
+  bool var_set() const { return in_varset_set.size() > 0; }
 
   bool rloc() const { return req_locset.size() > 0; }
   bool rseg() const { return req_segset.size() > 0; }
@@ -1142,12 +1177,13 @@ class Mask {
   
   
   bool var_append() const { return app_varset.size() > 0; }
+  bool var_set_append() const { return app_varset_set.size() > 0; }
   bool loc_append() const { return app_locset.size() > 0; }
   bool loc_set_append() const { return app_locset_set.size() > 0; }
   bool ref_append() const { return app_refset.size() > 0; }
   
   bool append() const 
-    { return var_append() || loc_append() || ref_append(); }
+  { return var_append() || loc_append() || ref_append() || var_set_append() || loc_set_append() ; }
   
   int loc_size() const { return in_locset.size(); }
   int var_size() const { return in_varset.size(); }
@@ -1156,10 +1192,11 @@ class Mask {
   
   
   bool loc_any() const { return loc() || loc_append() || rloc() || xloc() || loc_set(); }
-  bool var_any() const { return var() || var_append() || rvar() || xvar(); }
+  bool var_any() const { return var() || var_append() || rvar() || xvar() || var_set(); }
   bool ref_any() const { return ref_append(); }
   bool reg_any() const { return reg() || rreg() || xreg(); } 
   bool loc_set_any() const { return loc_set(); }
+  bool var_set_any() const { return var_set(); }
   
 
   std::set<std::string> subset_loc(int j) const
@@ -1358,7 +1395,7 @@ class Mask {
     void construct()
       {
 	searchDB();
-	group_variant = group_locus = group_locus_set = 0;
+	group_variant = group_variant_set = group_locus = group_locus_set = 0;
 	group_region = false;
 	group_mode = false; 
 	empty_groups = false;
@@ -1472,6 +1509,13 @@ class Mask {
     std::set<int> ex_locset_set;
     std::set<int> app_locset_set;
     
+    // Variant super-sets
+
+    std::set<int> in_varset_set;
+    std::set<int> req_varset_set;
+    std::set<int> ex_varset_set;
+    std::set<int> app_varset_set;
+
     // Indicator of whether a group should be taken from 
     // LOCDB or SEGDB
 
@@ -1515,6 +1559,7 @@ class Mask {
     // Groups
 
     int group_variant;
+    int group_variant_set;
     int group_locus;  // specifies either LOCDB or SEGDB
     int group_locus_set;
     bool empty_groups;

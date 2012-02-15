@@ -129,10 +129,10 @@ class VarDBase {
   // Variant groups
   //
   
-  bool add_set( const std::string & name , const std::string & desc = "" );
-  bool add_var_to_set( const std::string & , Variant & );
+  uint64_t add_set( const std::string & name , const std::string & desc = "" , bool donotadd = false );
+  bool add_var_to_set( const std::string & , Variant & , bool allelic = false );
   
-  bool add_superset( const std::string & name , const std::string & desc = "" );
+  uint64_t add_superset( const std::string & name , const std::string & desc = "" , bool donotadd = false );
   bool add_set_to_superset( const std::string & , const std::string & );
   
   std::vector<std::string> get_sets();
@@ -184,8 +184,6 @@ class VarDBase {
   
   int populate_individual_alignment( IndividualMap &, Mask & );
   int populate_individual_map(PhenotypeMap &, const std::vector<Individual> & inds );
-  
-  std::map<int,std::string> fetch_sets();
   
   void addMetaFields(Variant &, sqlite3_stmt *, Mask &);
   
@@ -390,17 +388,21 @@ class VarDBase {
   sqlite3_stmt * stmt_iterate_variants;
 
 
-  // Groups
+  // Sets & supersets
 
-  sqlite3_stmt * stmt_insert_group;
-  sqlite3_stmt * stmt_insert_group_member;
-  sqlite3_stmt * stmt_insert_group_variant;
-  sqlite3_stmt * stmt_iterate_group;
-  sqlite3_stmt * stmt_lookup_group;
-  sqlite3_stmt * stmt_lookup_group_name;
-
-  sqlite3_stmt * stmt_fetch_set_names1;
-  sqlite3_stmt * stmt_fetch_set_names2;
+  sqlite3_stmt * stmt_insert_set;
+  sqlite3_stmt * stmt_insert_superset;
+  sqlite3_stmt * stmt_insert_set_variant;
+  sqlite3_stmt * stmt_attach_set_to_superset;
+  sqlite3_stmt * stmt_lookup_set;
+  sqlite3_stmt * stmt_lookup_superset;
+  sqlite3_stmt * stmt_lookup_set_name;
+  sqlite3_stmt * stmt_lookup_superset_name;
+  sqlite3_stmt * stmt_lookup_set_names;
+  sqlite3_stmt * stmt_dump_all_set_names;
+  sqlite3_stmt * stmt_dump_all_superset_names;
+  sqlite3_stmt * stmt_fetch_set_variants;
+  sqlite3_stmt * stmt_fetch_superset_variants;
 
   // Temporary table
 

@@ -98,8 +98,10 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf"
 	
-	
-	
+	  << "var-set|input,varop|add a variant-set to a VARDB|ARG:group,file"
+
+	  << "var-superset|input,varop|add a super-set to a VARDB|ARG:group,file,members"
+
 	//
 	// VARDB output
 	//
@@ -112,8 +114,8 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name,use-family-id" 
 	
 	  << "write-lik|output|write a BEALGE likelihood file|VCF"
-	
-	
+      
+      	
 	//
 	// Core view-functions for variant data
 	//
@@ -384,6 +386,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     
     reg( "file" , STRING_VECTOR , "generic input file(s)" );
     reg( "group" , STRING_VECTOR , "generic group label(s)" );
+    reg( "members" , STRING_VECTOR , "super-set members" );
     reg( "ref-group" , STRING , "REFDB group label" );
     reg( "loc-group" , STRING , "LOCDB group label" );
     reg( "region" , STRING_VECTOR , "region(s) ");

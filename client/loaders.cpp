@@ -503,7 +503,7 @@ bool Pseq::VarDB::add_to_varset( const std::string & group , Mask & mask )
   
   // Add all mask-passing variants
 
-  g.vardb.iterate( f_add_to_varset , &group , mask );
+  g.vardb.iterate( f_add_to_varset , (void*)&group , mask );
 
   return true;
 }
@@ -520,7 +520,7 @@ bool Pseq::VarDB::add_to_varset( const std::string & filename , const std::strin
       bool okay = true;
       Region reg( h[0] , okay );
       if ( ! okay ) continue;
-      if ( h.size() == 2 ) v.alternate( h[1] );
+      if ( h.size() == 2 ) v.consensus.alternate( h[1] );
       g.vardb.add_var_to_set( group , v );
     }
   f.close();  

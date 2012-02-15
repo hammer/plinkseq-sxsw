@@ -34,6 +34,7 @@ std::string & PLINKSeq::VCF_GENOTYPE_NONREF() { static std::string s = "GT_NR"; 
 std::string & PLINKSeq::VCF_GENOTYPE_NULL() { static std::string s = "GT_NULL"; return s; }
 
 std::string & PLINKSeq::DEFAULT_LOC_GROUP() { static std::string s = "refseq"; return s; }
+std::string & PLINKSeq::DEFAULT_GENE_SYMBOL() { static std::string s = "symbol"; return s; }
 std::string & PLINKSeq::DEFAULT_PHENOTYPE() { static std::string s = ""; return s; } 
 
 std::string & PLINKSeq::META_GENE() { static std::string s = "GENE"; return s; }
