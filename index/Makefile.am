@@ -1,0 +1,22 @@
+bin_PROGRAMS = index.cgi
+bin_SCRIPTS = index
+
+index_cgi_SOURCES = \
+index.cpp \
+index.h \
+cgi.h
+
+index_cgi_LDADD = ../lib/libplinkseq.la -ldl -lpthread -lz
+
+index_cgi_CPPFLAGS = -I../lib
+
+if WITH_PROTOBUF
+index_cgi_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
+endif
+
+
+mongoose_CPPFLAGS = 
+
+mongoose_LDFLAGS = -ldl -lpthread
+
+ACLOCAL_AMFLAGS = -I m4
