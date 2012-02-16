@@ -1,10 +1,10 @@
-#include "psb.h"
+#include "index.h"
 #include "cgi.h"
 
 #include <iostream>
 #include <algorithm>
 
-using namespace IndivExomeViewer;
+//using namespace IndivExome;
 
 int main()
 {

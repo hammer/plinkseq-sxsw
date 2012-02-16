@@ -2108,29 +2108,31 @@ void Mask::group_var(const string & g)
 void Mask::group_var_set( const int g)
 {
   group_variant = 0;
-  group_var_set = g;
+  group_variant_set = g;
   group_locus = 0;
   group_locus_set = 0;
-  include_var_set(g);
+  include_varset(g);
 }
 
 void Mask::group_var_set( const std::string & g )
 {
   if ( ! vardb )return;
-  include_var_set(g);
+  include_varset(g);
   int pid = vardb->add_superset( g );
   if ( pid > 0 ) return group_loc_set(pid);  
   return;
 }
 
-void Mask::group_loc_set(const string & n, const string & p)
-{  
-  if ( ! locdb ) return;
-  include_loc_set(n,p);
-  int pid = locdb->lookup_set_id( n,p );
-  if ( pid > 0 ) return group_loc_set(pid);  
-  return;
-}
+
+// TODO TODO TODO 
+// void Mask::group_loc_set(const string & n, const string & p)
+// {  
+//   if ( ! locdb ) return;
+//   include_loc_set(n,p);
+//   int pid = locdb->lookup_set_id( n,p );
+//   if ( pid > 0 ) return group_loc_set(pid);  
+//   return;
+// }
 
 
 void Mask::group_loc(const string & g) 

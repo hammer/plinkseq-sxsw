@@ -15,8 +15,4 @@ index_cgi_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
 endif
 
 
-mongoose_CPPFLAGS = 
-
-mongoose_LDFLAGS = -ldl -lpthread
-
 ACLOCAL_AMFLAGS = -I m4
