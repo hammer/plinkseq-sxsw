@@ -2050,6 +2050,18 @@ int Mask::append_var( const std::string & n )
   else return 0;
 }
 
+int append_var_set( int x )
+{
+  Helper::halt("not implemented yet");
+  return 0;
+}
+
+int append_var_set( const std::string & n )
+{
+  Helper::halt("not implemented yet");
+  return 0;
+}
+
 
 //
 // Appends from reference database
@@ -2245,6 +2257,13 @@ int Mask::include_varset( const std::string & g )
   for (int s=0;s<sets.size();s++) include_var( sets[s] );   
   return 0;
 }
+
+int Mask::include_varset( int x )
+{
+  Helper::halt("Not implemented yet.");
+  return 0;
+}
+
 
 int Mask::require_varset( const std::string & g )
 {
