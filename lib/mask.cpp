@@ -2050,13 +2050,13 @@ int Mask::append_var( const std::string & n )
   else return 0;
 }
 
-int append_var_set( int x )
+int Mask::append_var_set( int x )
 {
   Helper::halt("not implemented yet");
   return 0;
 }
 
-int append_var_set( const std::string & n )
+int Mask::append_var_set( const std::string & n )
 {
   Helper::halt("not implemented yet");
   return 0;

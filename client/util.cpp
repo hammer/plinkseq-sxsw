@@ -286,7 +286,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name"
 	
-	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests,info,fix-null,perm,midpoint"
+	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$no-burden$calpha$uniq$vt$fw$sumstat,info,fix-null,perm,midpoint"
     
 	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta"
 	
