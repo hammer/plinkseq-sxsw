@@ -4,6 +4,7 @@ bin_SCRIPTS = index
 index_cgi_SOURCES = \
 index.cpp \
 index.h \
+autohtml.h \
 cgi.h
 
 index_cgi_LDADD = ../lib/libplinkseq.la -ldl -lpthread -lz

@@ -176,7 +176,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "loc-delete-alias|locop|remove gene-alias table"
 	
 	  << "loc-swap-names|locop|swap LOCDB names|ARG:file,group,alternate-name"
-	
+
+	  << "loc-update-name-table|locop|update LOCDB name table|ARG:group,alternate-name,index-name"
+
 	  << "loc-delete|locop|remove a LOCDB group|ARG:group"
 	
 	  << "loc-index|locop|index a LOCDB" 
@@ -564,8 +566,9 @@ void Pseq::Util::Options::load( int n , char ** argv )
     // loading intervals/GTF 
     
     reg( "use-gene-id" , NONE , "loading GTFs" );
-    
-    reg( "alternate-name" , NONE , "swapping locus names" );
+    reg( "index-name" , NONE , "use LOCDB primary/index name (e.g. transcript ID)" );
+    reg( "alternate-name" , NONE , "use LOCDB alternate name (e.g. gene symbol)" );
+
 
     // v-stats command
     reg( "stats" , KEYWORD , "quantitaties calculated under (v|g|i)-stats" );

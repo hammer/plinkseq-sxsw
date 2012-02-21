@@ -367,6 +367,15 @@ bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq
 }
 
 
+bool Pseq::LocDB::update_searchtable( const std::string & group , bool locdb )
+{
+  LocDBase * db = locdb ? &g.locdb : &g.segdb ;
+  if (!db) return false;
+  db->populate_searchname_table( group );
+  return true;
+}
+
+
 //
 // Load generic regions into LOCDB or SEGDB
 //
@@ -460,16 +469,16 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
   // All good to go...
   //
 
-  return db->load_regions( filename , 
-			   label , 
-			   col_pos,
-			   col_chr , col_bp1 , col_bp2 , 
-			   col_name , col_sub , 
-			   col_meta , 
-			   col_indiv , 
-			   mf.size() == 0 ? NULL : &mf ) != 0;
+  bool state = db->load_regions( filename , 
+				 label , 
+				 col_pos,
+				 col_chr , col_bp1 , col_bp2 , 
+				 col_name , col_sub , 
+				 col_meta , 
+				 col_indiv , 
+				 mf.size() == 0 ? NULL : &mf ) != 0 ;
   
-
+  return state;
 }
 
 

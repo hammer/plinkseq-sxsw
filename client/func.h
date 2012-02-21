@@ -129,6 +129,8 @@ namespace Pseq
 
       bool load_generic_regions( std::string & filename , const std::string & label , Pseq::Util::Options & , bool );
 
+      bool update_searchtable( const std::string & g , bool locdb = true );
+
       bool load_segments( std::string filename , std::string label , Pseq::Util::Options & opt );
 
       bool load_set( std::string file , std::string set_label , std::string group_label , bool , bool );

@@ -1719,17 +1719,13 @@ void ExomeBrowser::make_gene_list(Aux * a)
 {
 
   // true param indicates to fetch alternate names
-  std::vector<std::string> genes = a->g->locdb.fetch_names( a->loc_set , true );
+  std::set<std::string> genes = a->g->locdb.fetch_names( a->loc_set );
   
-  // these are sorted, so only display unique ones
-  std::string lastgene = "";
-  for (int g=0; g<genes.size(); g++)
-    {      
-      if ( genes[g] != lastgene )
-	{
-	  std::cout << a->getURL()->addField("q", "r")->addField("regs", genes[g])->printLink(genes[g]) << "<br/>";
-	  lastgene = genes[g];
-	}
+  std::set<std::string>::iterator ii = genes.begin();
+  while ( ii != genes.end() )
+    {
+      std::cout << a->getURL()->addField("q", "r")->addField("regs", *ii )->printLink( *ii ) << "<br/>";
+      ++ii;
     }
   std::cout << "</body></html>";
   exit(0);

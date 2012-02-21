@@ -769,9 +769,13 @@ int main(int argc, char ** argv)
 	      Pseq::LocDB::load_GTF( s[0], tmpgrp , true );
 	      Pseq::LocDB::merge( tmpgrp , realgrp , true );
 	      if ( remove_unmerged ) g.locdb.flush( tmpgrp );
+	      Pseq::LocDB::update_searchtable( realgrp  );
 	  }
 	else if ( Helper::ends_with( s[0] , ".reg" ) || Helper::ends_with( s[0] , ".reg.gz" ) )
-	  Pseq::LocDB::load_generic_regions( s[0], grp[0] , args , true );
+	  {
+	    Pseq::LocDB::load_generic_regions( s[0], grp[0] , args , true );
+	    Pseq::LocDB::update_searchtable( grp[0]  );
+	  }
 	else Helper::halt("invalid file name, expecting extension: .gtf .gtf.gz .reg .reg.gz");
 	
 	Pseq::finished();
@@ -782,6 +786,15 @@ int main(int argc, char ** argv)
 	std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
 	std::string group = Pseq::Util::single_argument<std::string>( args , "group" );
 	Pseq::LocDB::swap_alternate_names( group , filename );
+      }
+    
+
+    if ( command == "loc-update-name-table" )
+      {
+	if ( ! args.has("group") ) Helper::halt("no group specified");
+	bool use_altname = ! args.has( "index-name" );
+	Pseq::LocDB::update_searchtable( args.as_string( "group" ) , use_altname );
+	Pseq::finished();
       }
 
 
