@@ -1304,7 +1304,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   a.cancor        =   args.has( "tests" , "cancor" );
   a.hoffman_witte =   args.has( "tests" , "stepup" );
   a.kbac          =   args.has( "tests" , "kbac" );
-
+  a.two_hit       =   args.has( "tests" , "two-hit");
 
   const int ntests = a.n_tests();
   
@@ -1321,6 +1321,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //          cancor   CANCOR
   //          stepup   STEPUP
   //          kbac     KBAC 
+  //          two-hit  TWO-HIT
 
   //
   // Set up permutation class
@@ -1410,7 +1411,7 @@ void g_set_association( VariantGroup & vars , void * p )
   // External tests
   Pseq::Assoc::Aux_hoffman_witte aux_hoffman_witte( vars, &aux_prelim );
   Pseq::Assoc::Aux_kbac aux_kbac;
-
+  Pseq::Assoc::Aux_two_hit aux_two_hit( 1 , vars.size() , vars.n_individuals() );
 
   //
   // Apply tests to original dataset
@@ -1521,6 +1522,15 @@ void g_set_association( VariantGroup & vars , void * p )
       double statistic = Pseq::Assoc::stat_kbac( vars , &aux_prelim , &aux_kbac , &test_text , true );
       test_statistic.push_back( statistic );
     }
+
+
+  if ( data->two_hit )
+    {
+      test_name.push_back( "TWO-HIT" );
+      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true, data->prev );
+      test_statistic.push_back( statistic );
+
+    }
   
   
   //
@@ -1587,7 +1597,11 @@ void g_set_association( VariantGroup & vars , void * p )
 	  double statistic = Pseq::Assoc::stat_kbac( vars , &aux_prelim , &aux_kbac , NULL , false );
 	  test_statistic.push_back( statistic );
 	}
-
+      if ( data->two_hit )
+        {
+	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false, data->prev );
+	  test_statistic.push_back( statistic );
+	}
 
       //
       // Store all statistics; permute phenotype labels
@@ -1814,7 +1828,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   for (int g=0;g<aux.gene_id.size();g++)
     {
       if ( genes_rmap.find( aux.gene_id[g] ) == genes_rmap.end() ) g2g[g] = -1;
-      else g2g[ genes_rmap.find( aux.gene_id[g] )
+      //else g2g[ genes_rmap.find( aux.gene_id[g] )];
     }
 
   for (int k = 0 ; k < aux.indiv.size() ; k++)
@@ -1830,13 +1844,13 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
        indcnt[i]++;
     
        // track number of mutant per set per individual
-       std::set<int>::itertor ii = g2s[g].begin();
+       std::set<int>::iterator ii = g2s[g].begin();
        while ( ii != g2s[g].end() ) 
 	 {
 	   scores[i][ *ii ]++;
 	   ++ii;
 	 }
-       for (int s = 0 ; s < g2s[g].size() ; s++ ) scores[i][ g2s[g][s] ]++;
+       //       for (int s = 0 ; s < g2s[g].size() ; s++ ) scores[i][ g2s[g][s] ]++;
      }
   
   

@@ -438,3 +438,285 @@ void Pseq::Assoc::stat_cancor( const VariantGroup & vars ,
 
 }
 
+double
+Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_hit * aux, std::map<std::string, std::string> * output, bool original, double prev) //, std::string var_class)
+{
+
+  const int n = vars.n_individuals();
+ 
+  // see stat_cancor above - you may be able to just copy that code for P and G
+  // populate P and G matrices
+
+  int ncases = 0;
+  int ncontrols = 0;
+
+  for (int i = 0; i < n; i++)
+    {
+      if(vars.ind(i)->affected() == CASE)
+        ncases++;
+      else
+        ncontrols++;
+    }
+
+  std::vector<double> hets;
+  std::vector<std::string> ann;
+  int mat[3][3];
+  int ahom = 0; int uhom = 0;
+  int achet = 0; int uchet = 0;
+  int ahet = 0; int uhet = 0;
+
+  int ahomi = 0; int uhomi = 0;
+  int acheti = 0; int ucheti = 0;
+  int aheti = 0; int uheti = 0;
+  
+  for (int i = 0; i < n; i++)
+    {
+      // permuted individual index i->j
+      int j = g.perm.pos(i);
+
+      std::string id = vars.ind( j )->id();
+      ahomi = uhomi = acheti = ucheti = aheti = uheti = 0;
+      
+      hets.clear();
+      ann.clear();
+      for( int j = 0; j < 3; j++ )
+        for( int k = 0; k < 3; k++ )
+          mat[j][k] = 0;
+      
+      for (int v = 0; v < vars.size(); v++){
+        double d = vars(v, i).null() ? 0 : vars(v, i).minor_allele_count(pre->refmin.find(v) == pre->refmin.end());
+	std::vector<int> pl;
+	std::vector<int> ad;
+        double ab  = 0;
+
+        const Genotype & g = vars.geno(v,i);
+        
+        if ( vars.geno(v,i).meta.has_field( "AD" ) )
+          {
+            ad = vars.geno(v,i).meta.get_int( "AD" );   
+            ab = (ad[0] * 1.0) / (ad[0] + ad[1]);
+          }
+
+        //std::cout << "WTF: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " " << d << "\n";
+
+        // count non-ref homozygotes
+	std::string annot = "";
+
+        if( vars(v).consensus.meta.has_field( "transcript" ) && vars(v).consensus.meta.has_field( "func" )){
+          
+	  std::vector<std::string> func = vars(v).consensus.meta.get_string( "func" );
+	  std::vector<std::string> transcript = vars(v).consensus.meta.get_string( "transcript");
+	  std::vector<std::string> func_split;
+	  std::vector<std::string> trans_split;
+          
+	  std::string::size_type i1 = 0;
+	  std::string::size_type i2 = transcript[0].find(",");
+          while (i2 != std::string::npos) {
+            trans_split.push_back(transcript[0].substr(i1, i2-i1));
+            i1 = ++i2;
+            i2 = transcript[0].find(",", i2);
+            if (i2 == std::string::npos)
+              trans_split.push_back(transcript[0].substr(i1, transcript[0].length( )));
+          }
+          
+          i1 = 0;
+          i2 = func[0].find(",");
+          while (i2 != std::string::npos) {
+            func_split.push_back(func[0].substr(i1, i2-i1));
+            i1 = ++i2;
+            i2 = func[0].find(",", i2);
+            if (i2 == std::string::npos)
+              func_split.push_back(func[0].substr(i1, func[0].length( )));
+          }
+          
+	  std::string annot1 = "";
+          
+          if( trans_split.size() == 0 )
+            annot = func[0];
+          else{
+            for( int ti = 0; ti < trans_split.size(); ti++)
+              if( trans_split[ti].compare(vars.name()) == 0 ){
+                //std::cout << trans_split[ti] << " " << vars.name() << " " << func_split[ti] << "\n";
+                if( annot.compare("") == 0 ){
+                  annot = func_split[ti];
+                }
+                else{
+		  std::string test = func_split[ti].substr(0,7);
+                  if( test.compare("esplice") == 0  && annot.compare("nonsense") != 0 )
+                    annot = func_split[ti];             
+                }
+              }
+          }
+        }
+        bool pass = false;
+        if( annot.compare("esplice3") == 0 || annot.compare("esplice5") == 0 || annot.compare("nonsense") == 0)
+          pass = true;
+
+        if( d == 2 && ab < .1 && pass )
+          {         
+            if( vars.ind( j )->affected() == CASE){
+              if(original)
+		std::cout << "HOM: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " case " << annot << "\n"; 
+              ahomi++;
+            }
+            else{
+              if(original)
+		std::cout << "HOM: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " control " << annot << "\n";
+              uhomi++;
+            }
+          }
+        
+        // found het, store for later
+        if( d == 1 && ab > .3 && ab < .7 && pass){
+          hets.push_back(v);
+          //      std::cout << annot << " " << ann.size() << "\n";
+          ann.push_back(annot);
+          
+          if(vars.ind(j)->affected() == CASE){
+            aheti++;
+          }
+          else{
+            uheti++;
+          }
+        }
+      }
+      //printf("SIZE:%d\n", hets.size());
+      if( hets.size() > 0 ){
+        for(int z = 0; z < hets.size()-1; z++){
+          for(int k = z+1; k < hets.size(); k++){
+
+            // fill in genotype matrix to test two hits
+            for (int l = 0; l < n; l++){
+              int var1 = (int) vars(hets[z], l).null() ? 0 : vars(hets[z], l).minor_allele_count(pre->refmin.find(hets[z]) == pre->refmin.end());
+              int var2 = (int) vars(hets[k], l).null() ? 0 : vars(hets[k], l).minor_allele_count(pre->refmin.find(hets[k]) == pre->refmin.end());         
+              mat[var1][var2]++;
+            }
+            
+            // test two hit
+            int rest = mat[0][1] + mat[0][2] + mat[1][0] + mat[1][2] + mat[2][0] + mat[2][1] + mat[2][2];
+            
+            if( ((mat[0][1] + mat[0][2]) > 0 && (mat[1][0] + mat[2][0]) > 0 && (mat[1][2] + mat[2][1] + mat[2][2]) == 0) || (mat[1][1] == 1 && rest == 0)){
+              if(vars.ind(j)->affected() == CASE){
+                if(original)
+		  std::cout << "CHET: " << vars(hets[z]).chromosome() << ":" << vars(hets[z]).position() << "-" << vars(hets[k]).chromosome() << ":" << vars(hets[k]).position() << " " << id << " case " << ann[z] << "-" << ann[k] << "\n";
+                acheti++;
+              }
+              else{
+                if(original)
+		  std::cout << "CHET: " << vars(hets[z]).chromosome() << ":" << vars(hets[z]).position() << "-" << vars(hets[k]).chromosome() << ":" << vars(hets[k]).position() << " " << id << " control  " << ann[z] << "-" << ann[k] << "\n";
+                ucheti++;
+              }
+            }   
+          }
+        }
+      }
+      
+
+
+      // count individual instances
+      /*ahom += ahomi;
+    uhom += uhomi;
+    achet += acheti;
+    uchet += ucheti;
+    ahet += aheti;
+    uhet += uheti;
+      */
+
+      // count total number of cases and controls
+      if( ahomi >0 )
+	ahom++;
+      if( uhomi >0 )
+	uhom++;
+      if( acheti >0 )
+	achet++;
+      if( ucheti >0 )
+	uchet++;
+      if( aheti >0 )
+	ahet++;
+      if( uheti >0 )
+	uhet++; 
+    }
+  
+  //printf("%d %d %d %d %d %d %d %d\n", ahom, achet, ahet, uhom, uchet, uhet, ncases, ncontrols);
+  int case_allele = (2 * ncases) + ahet;
+  
+  double total_hets = ahet + uhet;
+  double a = 2 * n;
+  double b = -1 * 2 * n;
+  double c = total_hets;
+  double descrim = (b*b) - (4*a*c);
+
+  double f = 1;  
+  if( descrim >= 0 )
+    f = ((-1*b) - sqrt(descrim)) / (2 * a);
+  else
+    f = ((-1*b) - sqrt(-1 * descrim)) / (2 * a);
+
+  double arec = ahom + achet;
+  double urec = uhom + uchet;
+  
+  double pAA = f * f;
+  double pAA_1 = urec / ncontrols;
+  if ( pAA < pAA_1) {
+    pAA = pAA_1;
+  }
+  if ( pAA == 0 ) {
+    pAA = 0.0001;
+  }
+  
+  double l0 = (arec * log(pAA)) + (ncases - arec) * log( 1.0 - pAA );
+  l0 += (urec * log(pAA)) + (ncontrols - urec) * log( 1.0 - pAA );
+  double l1 = l0;
+  
+  double denom1 = 0;
+  double this_l1 = 0;
+  double x = 0;
+  double pAA_nodis = 0;
+  double grrmax = 0;
+
+
+  for (double gr = 1.01; gr <= 50; gr += 0.01) {
+    
+    //    std::cout << "GRR: " << gr << " " << grrmax << "\n";
+    denom1 = gr * pAA + ( 1 - pAA );
+    
+    this_l1 = arec * log(gr*pAA/denom1) + (ncases-arec)*log(1.0 - (gr*pAA/denom1));
+    x = prev/denom1;
+    pAA_nodis = (1.0 - gr*x)*pAA / ( 1.0 - prev );
+    this_l1 += urec*log(pAA_nodis) + (ncontrols-urec)*log(1.0 - (pAA_nodis));
+    
+    if (this_l1 > l1) { 
+      l1 = this_l1; 
+      grrmax = gr; 
+    }
+  }
+
+  //std::cout << "END: " << denom1 << " " << x << " " << l1 << " " << grrmax << "\n";
+
+  double diff = (l1-l0) / log(10);
+  double diff2 = l1-l0;
+  
+  double chisqVal = 2 * diff2;
+
+  double pvalue = Statistics::chi2_prob(chisqVal, 1);
+
+  //printf( "%f %f %f %f,%f, %f, %e\n", grrmax, l0, l1, diff, f, chisqVal, pvalue);    
+
+  // set the statistic on the Aux_two_hit struct.
+  // gseq will read this value each permutation (this also includes adaptive permutation)
+
+  if (original)
+    {
+      //std::cout << chisqVal << " " << pvalue << "\n";
+      (*output)["TWO-HIT"] = "P=" + Helper::flt2str( pvalue ) + ";AF=" + Helper::flt2str(f) + ";CASES=" + Helper::dbl2str(ahom) + "," + Helper::dbl2str(achet) + "," + Helper::dbl2str(ahet) + "," + Helper::dbl2str(ncases) + ";CONTROLS=" + Helper::dbl2str(uhom) + "," + Helper::dbl2str(uchet) + "," + Helper::dbl2str(uhet) + "," + Helper::dbl2str(ncontrols);
+    }
+  
+  
+  //  printf("%f\n", chisqVal);
+  //if( chisqVal > 0 )
+  // printf("%d %d %d %d %d %d %d %d\n", ahom, achet, ahet, uhom, uchet, uhet, ncases, ncontrols);
+  return chisqVal;
+
+   
+}
+

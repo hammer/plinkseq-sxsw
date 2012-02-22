@@ -553,6 +553,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     keyword( "tests" , "cancor" , NONE , "canonical correlation test" );
     keyword( "tests" , "stepup" , NONE , "Hoffman-Witte step-up test" );
     keyword( "tests" , "kbac" , NONE , "KBAC test" );
+    keyword( "tests" , "two-hit" , NONE, "Recessive/compound het tests" );
 
     // de-novo scan
 

@@ -30,8 +30,10 @@ std::map<seq_annot_t,std::string> populate_seqinfo()
   m[MIS]      = "missense";
   m[NON]      = "nonsense";
   m[PART]     = "partial-codon";
-  m[SPLICE5]  = "5-splice";
-  m[SPLICE3]  = "3-splice";
+  m[SPLICE5]  = "splice5";
+  m[SPLICE3]  = "splice3";
+  m[ESPLICE3] = "esplice3";
+  m[ESPLICE5] = "esplice5"; 
   m[FS]       = "frameshift";
   m[RT]       = "readthrough";
   return m;
@@ -213,6 +215,7 @@ bool Annotate::annotate(Variant & var , Region * pregion )
   int is_silent = 0;
   int is_missense = 0;
   int is_splice = 0;
+  int is_esplice = 0;
   int is_nonsense = 0;
   int is_readthrough = 0;
   int is_intergenic = 0;
@@ -228,6 +231,7 @@ bool Annotate::annotate(Variant & var , Region * pregion )
       if ( i->missense() ) ++is_missense;
       if ( i->nonsense() ) ++is_nonsense;
       if ( i->splice() ) ++is_splice;
+      if ( i->esplice() ) ++is_esplice;
       if ( i->readthrough() ) ++is_readthrough;
       if ( i->intergenic() ) ++is_intergenic;
       if ( i->intronic() ) ++is_intronic;
@@ -257,7 +261,8 @@ bool Annotate::annotate(Variant & var , Region * pregion )
   // what is the 'worst' annotation?
   std::string aworst = "";
 
-  if ( is_nonsense ) aworst = "nonsense"; 
+  if ( is_nonsense ) aworst = "nonsense";
+  else if ( is_esplice ) aworst = "esplice";
   else if ( is_splice ) aworst = "splice";
   else if ( is_readthrough ) aworst = "readthrough";
   else if ( is_missense ) aworst = "missense";
@@ -274,6 +279,7 @@ bool Annotate::annotate(Variant & var , Region * pregion )
   if ( is_missense ) ++acount;
   if ( is_nonsense ) ++acount;
   if ( is_splice ) ++acount;
+  if ( is_esplice ) ++acount;
   if ( is_readthrough ) ++acount;
   if ( is_intergenic ) ++acount;
   
@@ -284,6 +290,7 @@ bool Annotate::annotate(Variant & var , Region * pregion )
   annot_summary += ",MIS=" + Helper::int2str( is_missense );
   annot_summary += ",SYN=" + Helper::int2str( is_silent );
   annot_summary += ",SPL=" + Helper::int2str( is_splice );
+  annot_summary += ",ESP=" + Helper::int2str( is_esplice );
   annot_summary += ",RTH=" + Helper::int2str( is_readthrough );
   annot_summary += ",INT=" + Helper::int2str( is_intronic );
   annot_summary += ",IGR=" + Helper::int2str( is_intergenic );
@@ -291,7 +298,7 @@ bool Annotate::annotate(Variant & var , Region * pregion )
   var.meta.set( PLINKSeq::ANNOT_SUMMARY() , annot_summary );
   
   // did we receive any annotation?
-  return is_silent || is_nonsense || is_missense || is_splice || is_readthrough;
+  return is_silent || is_nonsense || is_missense || is_splice || is_readthrough || is_esplice;
   
 }
 
@@ -542,43 +549,55 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      
 
 
-	      if ( s != first_exon  &&  abs( r->subregion[s].start.position() - bp1 ) < 3 )
-		{
-		  if ( negative_strand )
-		    {
-		      SeqInfo si = SeqInfo( r->name , SPLICE5 );
-		      si.splicedist = r->subregion[s].start.position() - bp1 ;		      
-		      if ( si.splicedist <= 0 ) --si.splicedist;
-		      if ( si.splicedist > -3 ) annot.insert( si );			       
-		    }
-		  else
-		    {
-		      SeqInfo si = SeqInfo( r->name , SPLICE3 );
-		      si.splicedist = bp1 - r->subregion[s].start.position() ;		      
-		      if ( si.splicedist >= 0 ) ++si.splicedist;
-		      if ( si.splicedist < 3 ) annot.insert( si );			       
-		    }
-		}
-	      
-	      if ( s != last_exon && abs( r->subregion[s].stop.position() - bp1 ) < 3 )
-		{
-		  if ( negative_strand )
-		    {
-		      SeqInfo si = SeqInfo( r->name , SPLICE5 );
-		      si.splicedist = r->subregion[s].stop.position() - bp1;
-		      if ( si.splicedist >= 0 ) ++si.splicedist;
-		      if ( si.splicedist < 3 ) annot.insert( si );			       		    
-		    }
-		  else
-		    {
-		      SeqInfo si = SeqInfo( r->name , SPLICE5 );
-		      si.splicedist = bp1 - r->subregion[s].stop.position() ;
-		      if ( si.splicedist <= 0 ) --si.splicedist;
-		      if ( si.splicedist > -3 ) annot.insert( si );			       		    
-		    }
-		}
-	      
-	    }
+              if ( s != first_exon  &&  abs( r->subregion[s].start.position() - bp1 ) < 3 )
+                {
+                  if ( negative_strand )
+                    {
+                      SeqInfo si = SeqInfo( r->name , ESPLICE5 );
+                      SeqInfo sie = SeqInfo( r->name , SPLICE5 );
+                      si.splicedist = r->subregion[s].start.position() - bp1;                 
+                      if ( si.splicedist <= 0 ) --si.splicedist;
+                      if ( si.splicedist > -3 && si.splicedist < 0) annot.insert( sie );
+                      if ( si.splicedist > 0 && si.splicedist < 3) annot.insert( si );
+                    }
+                  else
+                    {
+                      SeqInfo si = SeqInfo( r->name , ESPLICE3 );
+                      SeqInfo sie = SeqInfo( r->name , SPLICE3 );
+                      si.splicedist = bp1 - r->subregion[s].start.position();                 
+                      if ( si.splicedist >= 0 ) ++si.splicedist;
+                      if ( si.splicedist < 3 && si.splicedist > 0) annot.insert( sie );
+                      if ( si.splicedist > -3 && si.splicedist < 0) annot.insert( si );
+                    }
+                }
+              
+              if ( s != last_exon && abs( r->subregion[s].stop.position() - bp1 ) < 3 )
+                {
+                  if ( negative_strand )
+                    {
+                      SeqInfo si = SeqInfo( r->name , ESPLICE5 );
+                      SeqInfo sie = SeqInfo( r->name , SPLICE5 );
+                      si.splicedist = r->subregion[s].stop.position() - bp1;
+                      if ( si.splicedist >= 0 ) ++si.splicedist;
+                      if ( si.splicedist < 3 && si.splicedist > 0 ) annot.insert( sie );
+                      if ( si.splicedist > -3 && si.splicedist < 0 ) annot.insert( si );
+                    }
+                  else
+                    {
+                      SeqInfo si = SeqInfo( r->name , ESPLICE3 );
+                      SeqInfo sie = SeqInfo( r->name , SPLICE3 );
+                      si.splicedist = bp1 - r->subregion[s].stop.position() ;
+                      if ( si.splicedist <= 0 ) --si.splicedist;
+                      if ( si.splicedist > -3 && si.splicedist < 0 ) annot.insert( sie );
+                      if ( si.splicedist < 3 && si.splicedist > 0 ) annot.insert( si );
+                    }
+                }
+            }
+
+
+
+
+
 	  
 	  
 	  //
@@ -837,6 +856,7 @@ void Annotate::init()
   MetaInformation<VarMeta>::field( "_NON" , META_TEXT , -1 , "Nonsense allele" );
   MetaInformation<VarMeta>::field( "_PART" , META_TEXT , -1 , "Partial codon" );
   MetaInformation<VarMeta>::field( "_SPLICE" , META_TEXT , -1 , "Splice-site" );
+  MetaInformation<VarMeta>::field( "_ESPLICE" , META_TEXT , -1 , "Essential splice-site" );
   MetaInformation<VarMeta>::field( "_INTRON" , META_TEXT , -1 , "Intronic") ;
   MetaInformation<VarMeta>::field( "_FRAMESHIFT" , META_TEXT , -1 , "Frameshift allele");
   MetaInformation<VarMeta>::field( "_READTHROUGH" , META_TEXT , -1 , "Read-through allele");

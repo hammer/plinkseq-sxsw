@@ -20,6 +20,7 @@ namespace Pseq
     struct Aux_cancor;
     struct Aux_hoffman_witte;
     struct Aux_kbac;
+    struct Aux_two_hit;
      
     void  prelim( const VariantGroup & vars , Aux_prelim * aux );
     
@@ -58,6 +59,12 @@ namespace Pseq
 		      Aux_kbac * , 
 		      std::map<std::string,std::string> *  , 
 		      bool original );
+
+    double stat_two_hit( const VariantGroup & ,
+                         Aux_prelim * ,
+                         Aux_two_hit * ,
+                         std::map<std::string,std::string> *  ,
+                         bool original, double);
     
 
     struct AuxGenic 
@@ -67,6 +74,7 @@ namespace Pseq
       { 
 	g=NULL;
 	rseed=0; 
+	prev = 0.006;
 	fix_null_genotypes = true;
 	show_info = false; 
 	show_midbp = false;
@@ -81,6 +89,7 @@ namespace Pseq
 	cancor = false;
 	hoffman_witte = false;
 	kbac = false;
+	two_hit = false;
       }
       
 
@@ -96,6 +105,7 @@ namespace Pseq
 	  + cancor 
 	  + hoffman_witte
 	  + kbac;
+	  + two_hit;
       }
       
       GStore * g;
@@ -117,7 +127,8 @@ namespace Pseq
       bool cancor;
       bool hoffman_witte;
       bool kbac;
-
+      bool two_hit;
+      double prev;
     };
  
     
@@ -232,6 +243,15 @@ namespace Pseq
       double gw_hypergeometric_cmf(const unsigned int , const unsigned int , const unsigned int , const unsigned int ) const;
       
     };
+
+    struct Aux_two_hit {
+      Aux_two_hit(int np, int ng, int ni) : P(ni,np) , G(ni,ng), LD(ng, ng) { }
+      double stat;
+      Data::Matrix<double> P; // matrix of phenotypes (1 x num individuals)
+      Data::Matrix<double> G; // genotypes of each individual
+      Data::Matrix<double> LD; // LD matrix (num genotypes x num genotypes)
+    };
+
     
 
   }  
