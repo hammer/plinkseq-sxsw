@@ -110,16 +110,25 @@ std::set<mask_command_t> populate_known_commands()
 
 
   // variant-groups -- All hidden for now
-//   ++g; c=0; gl="variant-groups";
-//   mask_add( s , g , c++ , gl , "var" , "str-list" , "variant include list(s)" , true );
+  ++g; c=0; gl="variant-groups";
+  mask_add( s , g , c++ , gl , "var" , "str-list" , "variant include list(s)" );
+   mask_add( s , g , c++ , gl , "var.ex", "str-list" , "excluded variants" ); 
+   mask_add( s , g , c++ , gl , "var.req", "str-list" , "required variants" );
+
+
 //   mask_add( s , g , c++ , gl , "var.inc" , "str-list" , "variant include list(s)" , true ); // hidden
-//   mask_add( s , g , c++ , gl , "var.group" , "str" , "group variants by VARDB group" , true ); //hidden 
+
+   mask_add( s , g , c++ , gl , "var.group" , "str" , "group variants by VARDB sets" ); 
+   mask_add( s , g , c++ , gl , "var.append" , "str-list" , "append meta-information from VARDB" );
+
 //   mask_add( s , g , c++ , gl , "var.subset", "str-list" , "subsetted variants" , true ); 
 //   mask_add( s , g , c++ , gl , "var.skip", "str-list" , "skipped variants" , true ); 
-//   mask_add( s , g , c++ , gl , "var.ex", "str-list" , "excluded variants" , true ); 
-//   mask_add( s , g , c++ , gl , "var.req", "str-list" , "required variants" , true );
-//   mask_add( s , g , c++ , gl , "var.append" , "str-list" , "append meta-information from VARDB groups (not implemented)" );
 
+   mask_add( s , g , c++ , gl , "varset", "str-list" , "included variant-supersets" ); 
+   mask_add( s , g , c++ , gl , "varset.ex", "str-list" , "excluded variant-supersets");
+   mask_add( s , g , c++ , gl , "varset.req", "str-list" , "required variant-supersets");
+   mask_add( s , g , c++ , gl , "varset.group" , "str" , "group variants by VARDB super-set" ); 
+   mask_add( s , g , c++ , gl , "varset.append" , "str-list" , "append meta-information from VARDB" );
 
   // Reference databases
   ++g; c = 0 ; gl="ref-variants";
@@ -434,17 +443,40 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       for (int i=0; i<k.size(); i++) require_var(k[i]);
     }
   
-  if ( m.has_field( "var.subset" ) ) 
+
+  // variant super-sets
+
+  if ( m.has_field( "varset" ) ) 
     {
-      std::vector<std::string> k = m.get_string( "var.subset" );
-      for (int i=1; i<k.size(); i++) subset_var(k[0],k[i]);
+      std::vector<std::string> k = m.get_string( "varset" );
+      for (int i=0; i<k.size(); i++) include_varset(k[i]);
     }
   
-  if ( m.has_field( "var.skip" ) ) 
+  if ( m.has_field( "varset.ex" ) ) 
     {
-      std::vector<std::string> k = m.get_string( "var.skip" );
-      for (int i=1; i<k.size(); i++) skip_var(k[0],k[i]);
+      std::vector<std::string> k = m.get_string( "varset.ex" );
+      for (int i=0; i<k.size(); i++) exclude_varset(k[i]);
     }
+
+  if ( m.has_field( "varset.req" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "varset.req" );
+      for (int i=0; i<k.size(); i++) require_varset(k[i]);
+    }
+  
+
+
+//   if ( m.has_field( "var.subset" ) ) 
+//     {
+//       std::vector<std::string> k = m.get_string( "var.subset" );
+//       for (int i=1; i<k.size(); i++) subset_var(k[0],k[i]);
+//     }
+  
+//   if ( m.has_field( "var.skip" ) ) 
+//     {
+//       std::vector<std::string> k = m.get_string( "var.skip" );
+//       for (int i=1; i<k.size(); i++) skip_var(k[0],k[i]);
+//     }
   
   
   if ( m.has_field( "loc" ) ) 
@@ -1156,8 +1188,14 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     
   if ( m.has_field( "var.append" ) ) 
     {
-      vector<string> k = m.get_string( "var.append" );
+      std::vector<std::string> k = m.get_string( "var.append" );
       for (int i=0; i<k.size(); i++) append_var(k[i]);
+    }
+
+  if ( m.has_field( "varset.append" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "varset.append" );
+      for (int i=0; i<k.size(); i++) append_var_set(k[i]);
     }
 
   if ( m.has_field( "loc.append" ) ) 
@@ -1224,8 +1262,14 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
   if ( m.has_field( "var.group" ) ) 
     {
-      vector<string> k = m.get_string( "var.group" );
+      std::vector<std::string> k = m.get_string( "var.group" );
       if ( k.size() > 0 ) group_var( k[0] );
+    }
+
+  if ( m.has_field( "varset.group" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "varset.group" );
+      if ( k.size() > 0 ) group_var_set( k[0] );
     }
 
   if ( m.has_field( "loc.group" ) ) 
@@ -1487,7 +1531,7 @@ int Mask::include_var( int x )
 }
 
 
-int Mask::include_loc( string n )
+int Mask::include_loc( const std::string & n )
 {
   if ( ! locdb ) return 0;
   int id = locdb->lookup_group_id( n );
@@ -1503,12 +1547,13 @@ int Mask::include_seg( const std::string & n )
   else return 0;
 }
 
-int Mask::include_var( string n )
+int Mask::include_var( const std::string & n )
 {
-    if ( ! vardb ) return 0;
-    int id = vardb->lookup_group_id( n );
-    if ( id > 0 ) return include_var(id);
-    else return 0;
+  if ( ! vardb ) return 0;
+  const bool DO_NOT_ADD = true;
+  int id = vardb->add_set( n , "" , DO_NOT_ADD );
+  if ( id > 0 ) return include_var(id);
+  else return 0;
 }
 
 
@@ -1523,7 +1568,7 @@ int Mask::include_ref( int x )
   return x;
 }
 
-int Mask::include_ref( string n )
+int Mask::include_ref( const std::string & n )
 {
   if ( ! refdb ) return 0;
   int id = refdb->lookup_group_id( n );
@@ -1556,7 +1601,7 @@ int Mask::require_seg( int x )
   return x;
 }
 
-int Mask::require_loc( string n )
+int Mask::require_loc( const std::string & n )
 {
   if ( ! locdb ) return 0;
   int id = locdb->lookup_group_id( n );
@@ -1582,10 +1627,11 @@ int Mask::require_var( int x )
     return x;
 }
 
-int Mask::require_var( string n )
+int Mask::require_var( const std::string & n )
 {
   if ( ! vardb ) return 0;
-  int id = vardb->lookup_group_id( n );
+  const bool DO_NOT_ADD = true;
+  int id = vardb->add_set( n , "" , DO_NOT_ADD );
   if ( id > 0 ) return require_var(id);
   else return 0;  
 }
@@ -1601,7 +1647,7 @@ int Mask::require_ref( int x )
   return x;
 }
 
-int Mask::require_ref( string n )
+int Mask::require_ref( const std::string & n )
 {
   if ( ! refdb ) return 0;
   int id = refdb->lookup_group_id( n );
@@ -1635,37 +1681,38 @@ int Mask::exclude_seg( int x )
 
 int Mask::exclude_var( int x )      
 {  
-    if ( vardb ) 
-      {
-	ex_varset.insert(x); 
-      }
-    else return 0;
-    return x;
+  if ( vardb ) 
+    {
+      ex_varset.insert(x); 
+    }
+  else return 0;
+  return x;
 }
 
 
-int Mask::exclude_loc( string n )
+int Mask::exclude_loc( const std::string & n )
 {
-    if ( ! locdb ) return 0;
-    int id = locdb->lookup_group_id( n );
-    if ( id > 0 ) return exclude_loc(id);
-    else return 0;
+  if ( ! locdb ) return 0;
+  int id = locdb->lookup_group_id( n );
+  if ( id > 0 ) return exclude_loc(id);
+  else return 0;
 }
 
 int Mask::exclude_seg( const std::string & n )
 {
-    if ( ! segdb ) return 0;
-    int id = segdb->lookup_group_id( n );
-    if ( id > 0 ) return exclude_seg(id);
-    else return 0;
+  if ( ! segdb ) return 0;
+  int id = segdb->lookup_group_id( n );
+  if ( id > 0 ) return exclude_seg(id);
+  else return 0;
 }
 
-int Mask::exclude_var( string n )
+int Mask::exclude_var( const std::string & n )
 {
-    if ( ! vardb ) return 0;
-    int id = vardb->lookup_group_id( n );
-    if ( id > 0 ) return exclude_var(id);
-    else return 0;
+  if ( ! vardb ) return 0;
+  const bool DO_NOT_ADD = true;
+  int id = vardb->add_set( n , "" , DO_NOT_ADD );
+  if ( id > 0 ) return exclude_var(id);
+  else return 0;
 }
 
 
@@ -1680,7 +1727,7 @@ int Mask::exclude_ref( int x )
   return x;
 }
 
-int Mask::exclude_ref( string n )
+int Mask::exclude_ref( const std::string & n )
 {
   if ( ! refdb ) return 0;
   int id = refdb->lookup_group_id( n );
@@ -1693,7 +1740,7 @@ int Mask::exclude_ref( string n )
 // Subsetting/skipping for locus-inclusions
 //
 
-void Mask::subset_loc(const int s, const string & d)
+void Mask::subset_loc(const int s, const std::string & d)
 {
   include_loc(s);
   if ( in_locset.find(s) == in_locset.end() ) return;
@@ -1708,7 +1755,7 @@ void Mask::subset_loc(const int s, const string & d)
     i->second.insert(d);
 }
 
-void Mask::skip_loc(const int s, const string & d)
+void Mask::skip_loc(const int s, const std::string & d)
 {
   include_loc(s);
   if ( in_locset.find(s) == in_locset.end() ) return;
@@ -1767,8 +1814,11 @@ bool Mask::insert_locset( const int j , const std::string & n ) const
 // Subsetting/skipping for variant-inclusions
 //
 
-void Mask::subset_var(const int s, const string & d)
+void Mask::subset_var(const int s, const std::string & d)
 {
+
+  Helper::halt( "var.subset not currently supported" );
+
   include_var(s);
   if ( in_varset.find(s) == in_varset.end() ) return;
   map<int, set<string> >::iterator i = subset_varset.find( s );
@@ -1785,6 +1835,8 @@ void Mask::subset_var(const int s, const string & d)
 
 void Mask::skip_var(const int s, const string & d)
 {
+  Helper::halt( "var.skip not currently supported" );
+
   include_var(s);
   if ( in_varset.find(s) == in_varset.end() ) return;
   map<int, set<string> >::iterator i = skip_varset.find( s );
@@ -1799,25 +1851,25 @@ void Mask::skip_var(const int s, const string & d)
 }
 
 
-void Mask::subset_loc(const int s, const vector<string> & d)
+void Mask::subset_loc(const int s, const std::vector<std::string> & d)
 {
-    for (int i=0;i<d.size(); i++) subset_loc(s,d[i]);
+  for (int i=0;i<d.size(); i++) subset_loc(s,d[i]);
 }
 
-void Mask::subset_var(const int s, const vector<string> & d)
+void Mask::subset_var(const int s, const std::vector<std::string> & d)
 {
-    for (int i=0;i<d.size(); i++) subset_var(s,d[i]);
+  for (int i=0;i<d.size(); i++) subset_var(s,d[i]);
 }
 
 
-void Mask::skip_loc(const int s, const vector<string> & d)
+void Mask::skip_loc(const int s, const std::vector<std::string> & d)
 {
-    for (int i=0;i<d.size(); i++) skip_loc(s,d[i]);
+  for (int i=0;i<d.size(); i++) skip_loc(s,d[i]);
 }
 
-void Mask::skip_var(const int s, const vector<string> & d)
+void Mask::skip_var(const int s, const std::vector<std::string> & d)
 {
-    for (int i=0;i<d.size(); i++) skip_var(s,d[i]);
+  for (int i=0;i<d.size(); i++) skip_var(s,d[i]);
 }
 
 
@@ -1879,34 +1931,38 @@ void Mask::skip_loc(const string & n, const vector<string>& d)
 
 void Mask::subset_var(const string & n, const string& d)
 {
-    if ( ! vardb ) return;
-    int id = vardb->lookup_group_id( n );
-    if ( id > 0 ) return subset_var(id,d);
-    else return;
+  if ( ! vardb ) return;
+  const bool DO_NOT_ADD = true;
+  int id = vardb->add_set( n , "" , DO_NOT_ADD);
+  if ( id > 0 ) return subset_var(id,d);
+  else return;
 }
 
 void Mask::subset_var(const string & n, const vector<string>& d)
 {
-    if ( ! vardb ) return;
-    int id = vardb->lookup_group_id( n );
-    if ( id > 0 ) return subset_var(id,d);
-    else return;
+  if ( ! vardb ) return;
+  const bool DO_NOT_ADD = true;
+  int id = vardb->add_set( n , "" , DO_NOT_ADD );
+  if ( id > 0 ) return subset_var(id,d);
+  else return;
 }
 
 void Mask::skip_var(const string & n, const string& d)
 {
-    if ( ! vardb ) return;
-    int id = vardb->lookup_group_id( n );
-    if ( id > 0 ) return skip_var(id,d);
-    else return;
+  if ( ! vardb ) return;
+  const bool DO_NOT_ADD = true;
+  int id = vardb->add_set( n , "" , DO_NOT_ADD );
+  if ( id > 0 ) return skip_var(id,d);
+  else return;
 }
 
 void Mask::skip_var(const string & n, const vector<string>& d)
 {
-    if ( ! vardb ) return;
-    int id = vardb->lookup_group_id( n );
-    if ( id > 0 ) return skip_var(id,d);
-    else return;
+  if ( ! vardb ) return;
+  const bool DO_NOT_ADD = true;
+  int id = vardb->add_set( n , "" , DO_NOT_ADD );
+  if ( id > 0 ) return skip_var(id,d);
+  else return;
 }
 
 
@@ -1985,12 +2041,25 @@ int Mask::append_var( int x )
     return x;
 }
 
-int Mask::append_var( const string & n )
+int Mask::append_var( const std::string & n )
 {
-    if ( ! vardb ) return 0;
-    int id = vardb->lookup_group_id( n );
-    if ( id > 0 ) return append_var(id);
-    else return 0;
+  if ( ! vardb ) return 0;
+  const bool DO_NOT_ADD = true;
+  int id = vardb->add_set( n , "" , DO_NOT_ADD );
+  if ( id > 0 ) return append_var(id);
+  else return 0;
+}
+
+int Mask::append_var_set( int x )
+{
+  Helper::halt("not implemented yet");
+  return 0;
+}
+
+int Mask::append_var_set( const std::string & n )
+{
+  Helper::halt("not implemented yet");
+  return 0;
 }
 
 
@@ -2024,6 +2093,7 @@ int Mask::append_ref( const string & n )
 void Mask::group_var(const int g) 
 { 
   group_variant = g; 
+  group_variant_set = 0;
   group_locus = 0; 
   group_locus_set = 0;
   include_var(g);
@@ -2032,6 +2102,7 @@ void Mask::group_var(const int g)
 void Mask::group_loc(const int g) 
 { 
   group_locus = g;
+  group_variant_set = 0;
   group_locus_set = 0;
   group_variant = 0;
   include_loc(g);
@@ -2039,11 +2110,42 @@ void Mask::group_loc(const int g)
 
 void Mask::group_var(const string & g) 
 { 
-    if ( ! vardb ) return;
-    include_var(g); 
-    int id = vardb->lookup_group_id( g );
-    if ( id > 0 ) group_var(id);
+  if ( ! vardb ) return;
+  include_var(g); 
+  const bool DO_NOT_ADD = true;
+  int id = vardb->add_set( g , "" , DO_NOT_ADD );
+  if ( id > 0 ) group_var(id);
 }
+
+void Mask::group_var_set( const int g)
+{
+  group_variant = 0;
+  group_variant_set = g;
+  group_locus = 0;
+  group_locus_set = 0;
+  include_varset(g);
+}
+
+void Mask::group_var_set( const std::string & g )
+{
+  if ( ! vardb )return;
+  include_varset(g);
+  int pid = vardb->add_superset( g );
+  if ( pid > 0 ) return group_loc_set(pid);  
+  return;
+}
+
+
+// TODO TODO TODO 
+// void Mask::group_loc_set(const string & n, const string & p)
+// {  
+//   if ( ! locdb ) return;
+//   include_loc_set(n,p);
+//   int pid = locdb->lookup_set_id( n,p );
+//   if ( pid > 0 ) return group_loc_set(pid);  
+//   return;
+// }
+
 
 void Mask::group_loc(const string & g) 
 { 
@@ -2142,6 +2244,41 @@ bool Mask::f_exclude_annotation(const Variant & v)
   for (int i=0; i<ex_annotations.size(); i++)
     if ( v.meta.has_field( ex_annotations[i] ) ) return false;
   return true;  
+}
+
+//
+// Functions for variant super-sets
+//
+
+int Mask::include_varset( const std::string & g )
+{
+  // simply add each implied subset individually to the include
+  std::vector<std::string> sets = GP->vardb.get_sets( g );
+  for (int s=0;s<sets.size();s++) include_var( sets[s] );   
+  return 0;
+}
+
+int Mask::include_varset( int x )
+{
+  Helper::halt("Not implemented yet.");
+  return 0;
+}
+
+
+int Mask::require_varset( const std::string & g )
+{
+  // simply add each implied subset individually to the include
+  std::vector<std::string> sets = GP->vardb.get_sets( g );
+  for (int s=0;s<sets.size();s++) require_var( sets[s] );
+  return 0;  
+}
+
+int Mask::exclude_varset( const std::string & g )
+{
+  // simply add each implied subset individually to the include
+  std::vector<std::string> sets = GP->vardb.get_sets( g );
+  for (int s=0;s<sets.size();s++) exclude_var( sets[s] );   
+  return 0;  
 }
 
 

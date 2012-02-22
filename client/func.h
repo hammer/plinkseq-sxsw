@@ -92,6 +92,14 @@ namespace Pseq
 
       bool vdist_summary(Mask & m, long int );
 
+      bool add_to_varset( const std::string & , Mask & );
+
+      bool add_to_varset( const std::string & , const std::string & );
+
+      bool add_superset_from_file( const std::string & );
+
+      bool add_superset( const std::string & , const std::vector<std::string> & );
+
     }    
   
   namespace PPH2DB
@@ -120,6 +128,8 @@ namespace Pseq
       bool load_GTF( std::string gtf , std::string label , bool );
 
       bool load_generic_regions( std::string & filename , const std::string & label , Pseq::Util::Options & , bool );
+
+      bool update_searchtable( const std::string & g , bool locdb = true );
 
       bool load_segments( std::string filename , std::string label , Pseq::Util::Options & opt );
 

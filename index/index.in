@@ -1,0 +1,21 @@
+#!/bin/bash
+if [ ! $1 ]
+then
+    echo "Usage: index [project]"
+    exit
+fi
+ROOT_DIR=.
+PROJECT=${1}
+if [[ $PROJECT != /* ]]
+then
+    PROJECT=`pwd`/${PROJECT}
+fi
+mongoose -r @prefix@/bin > /dev/null & 
+MONGOOSE_PID=$!
+open http://localhost:8080/index.cgi?proj=${PROJECT} &
+echo "Running index [ "${PROJECT}" ]"
+read -n 1 -s
+# shut down mongoose
+disown $MONGOOSE_PID
+kill -9 $MONGOOSE_PID
+echo "Exiting index..."

@@ -367,6 +367,15 @@ bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq
 }
 
 
+bool Pseq::LocDB::update_searchtable( const std::string & group , bool locdb )
+{
+  LocDBase * db = locdb ? &g.locdb : &g.segdb ;
+  if (!db) return false;
+  db->populate_searchname_table( group );
+  return true;
+}
+
+
 //
 // Load generic regions into LOCDB or SEGDB
 //
@@ -460,16 +469,16 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
   // All good to go...
   //
 
-  return db->load_regions( filename , 
-			   label , 
-			   col_pos,
-			   col_chr , col_bp1 , col_bp2 , 
-			   col_name , col_sub , 
-			   col_meta , 
-			   col_indiv , 
-			   mf.size() == 0 ? NULL : &mf ) != 0;
+  bool state = db->load_regions( filename , 
+				 label , 
+				 col_pos,
+				 col_chr , col_bp1 , col_bp2 , 
+				 col_name , col_sub , 
+				 col_meta , 
+				 col_indiv , 
+				 mf.size() == 0 ? NULL : &mf ) != 0 ;
   
-
+  return state;
 }
 
 
@@ -484,4 +493,68 @@ bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
   return true;
 }
 
+
+
+
+
+void f_add_to_varset( Variant & var , void * p )
+{
+  std::string * group = (std::string*)p;
+  g.vardb.add_var_to_set( *group , var );
+}
+
+bool Pseq::VarDB::add_to_varset( const std::string & group , Mask & mask )
+{
+
+  // Create VarGroup if it does not exist
+
+  g.vardb.add_set( group );
+  
+  // Add all mask-passing variants
+
+  g.vardb.iterate( f_add_to_varset , (void*)&group , mask );
+
+  return true;
+}
+
+bool Pseq::VarDB::add_to_varset( const std::string & filename , const std::string & group )
+{
+  Helper::checkFileExists( filename );
+  InFile f( filename );
+  while ( ! f.eof() )
+    {
+      std::vector<std::string> h = f.tokenizeLine();
+      Variant v;
+      if ( h.size() != 1 && h.size() != 2 ) continue;
+      bool okay = true;
+      Region reg( h[0] , okay );
+      if ( ! okay ) continue;
+      if ( h.size() == 2 ) v.consensus.alternate( h[1] );
+      g.vardb.add_var_to_set( group , v );
+    }
+  f.close();  
+  return true;
+}
+
+bool Pseq::VarDB::add_superset_from_file( const std::string & filename )
+{
+  Helper::checkFileExists( filename );
+  InFile f( filename );
+  while ( ! f.eof() )
+    {
+      std::string superset, set;
+      f >> superset >> set ;
+      if ( superset == "" ) continue;
+      g.vardb.add_set_to_superset( superset , set );
+    }
+  f.close();
+  return true;
+}
+
+bool Pseq::VarDB::add_superset( const std::string & group , const std::vector<std::string> & members )
+{
+  g.vardb.add_superset( group );
+  for (int m=0;m<members.size(); m++) g.vardb.add_set_to_superset( group , members[m] );
+  return true;
+}
 

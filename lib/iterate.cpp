@@ -240,8 +240,27 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
   if ( mask.var() ) 
     {
       multiple_queries = true; 
+
+
+//       SELECT v.var_id, v.file_id, v.name, v.chr, v.bp1 , v.bp2 , v.offset , 1 , 0 , x.set_id FROM variants AS v 
+//       INNER JOIN ( SELECT * FROM set_data WHERE set_id IN ( 1 , 3 ) ) AS x ON x.var_id == v.var_id ;
+
+//       if ( mask.var_exceptions() )
+//         {
+//           query += " INNER JOIN tmp.var AS x "
+//             " ON v.var_id == x.var_id ";
+//         }
+//       else if ( mask.var() )
+//         {
+
+// 		       + mask.var_include_string() + " ) ) AS x "
+//             " ON x.var_id == v.var_id ";
+//         }
+
+      //// ---
       
-      query += "SELECT v.var_id, v.file_id, v.name, v.chr, v.bp1 , v.bp2 , v.offset , 1 , x.name, x.group_id "; 
+ //   query += "SELECT v.var_id, v.file_id, v.name, v.chr, v.bp1 , v.bp2 , v.offset , 1 , x.name, x.group_id "; 
+      query += "SELECT v.var_id, v.file_id, v.name, v.chr, v.bp1 , v.bp2 , v.offset , 1 , 0 , x.set_id "; 
       
       query += " FROM variants AS v ";
       
@@ -252,20 +271,20 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	}
       else if ( mask.var() )
 	{
-	  query += " INNER JOIN set_data AS sd "
-	    " ON v.var_id == sd.var_id "
-	    " INNER JOIN "
-	    "   ( SELECT * FROM set_members WHERE group_id IN ( " 
-	    + mask.var_include_string() + " ) ) "
-	    " AS x "  
-	    " ON x.set_id == sd.set_id ";	    
+	  query += " INNER JOIN "
+	    "   ( SELECT * FROM set_data WHERE set_id IN ( " 
+	    + mask.var_include_string() + " ) ) AS x "
+	    " ON x.var_id == v.var_id ";	    
 	}
       
       // Grouping? There will only be a single include here, so no need to check group
       
       if ( mask.named_grouping() )
-	query += " AND x.name == :grp_value ";
-      
+	{
+	  Helper::halt(" var.group not implemented yet" );
+	  query += " AND x.name == :grp_value ";
+	}
+
       // Requires/excludes performed here
       
       add_requires_excludes( query , mask );
@@ -1614,14 +1633,9 @@ void VarDBase::build_temporary_db( Mask & mask )
 	{
 	  
 	  sql.query( " INSERT OR IGNORE INTO tmp.require_var (var_id) "
-		     " SELECT v.var_id FROM variants AS v  "			
-		     " INNER JOIN set_data AS sd "
-		     " ON v.var_id == sd.var_id "
-		     " INNER JOIN "
-		     "   ( SELECT * FROM set_members WHERE group_id IN ( " 
-		     + mask.var_require_string() + " ) ) "
-		     " AS s "  
-		     " ON s.set_id == sd.set_id ;");	    
+		     " SELECT var_id FROM set_data WHERE set_id IN ( "
+		     + mask.var_require_string() + " ); " );
+
 	  
 	  ++combines;
 	  if ( combines == 1 ) first = 2;
@@ -1641,13 +1655,14 @@ void VarDBase::build_temporary_db( Mask & mask )
 	  
 	}
       
-
       
-      // TODO: ?? (check: is it that it can be done more
-      // efficiently in the main SELECT?): remove 'files' from
-      // this part... and xfiles() below
+      // TODO: Think this is ~okay, but at some point check whethe
+      // this can be done more efficiently in the main SELECT
+      // (i.e. and then remove all file-specific filters from this
+      // part).  Have a feeling it needs to stay here but can't recall
+      // why right now.
       
-      // TODO: ?? check how the tmp_reg() thing works also.
+      // TODO: remind oneself how tmp_reg() is meant to work
       
       if ( mask.files() ) 
 	{
@@ -1722,14 +1737,8 @@ void VarDBase::build_temporary_db( Mask & mask )
       if ( mask.xvar() ) 
 	{
 	  sql.query( " INSERT OR IGNORE INTO tmp.exclude (var_id) "
-		     " SELECT v.var_id FROM variants AS v "			
-		     " INNER JOIN set_data AS sd "
-		     " ON v.var_id == sd.var_id "
-		     " INNER JOIN "
-		     "   ( SELECT * FROM set_members WHERE group_id IN ( " 
-		     + mask.var_exclude_string() + " ) ) "
-		     " AS s "  
-		     " ON s.set_id == sd.set_id ;");	    
+		     " SELECT var_id FROM set_data WHERE set_id IN ( "
+		     + mask.var_exclude_string() + " ); ");
 	}
       
       if ( mask.xreg() )

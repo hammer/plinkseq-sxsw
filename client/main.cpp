@@ -739,26 +739,6 @@ int main(int argc, char ** argv)
     }
   
   
-  //
-  // Load variant lists into the VARDB
-  //
-
-  if ( command == "var-set" ) 
-    {
-      if ( ! args.has( "group" ) ) Helper::halt( "need to specify a --group" );
-      
-      // either from a file; or from a TAG
-      if ( args.has( "file" ) )
-	{
-	  
-	}
-      else if ( args.has( "name" ) ) 
-	{
-	  
-	}
-      
-    }
-
   
   //
   // Load/merge GTF files into locus database
@@ -789,9 +769,13 @@ int main(int argc, char ** argv)
 	      Pseq::LocDB::load_GTF( s[0], tmpgrp , true );
 	      Pseq::LocDB::merge( tmpgrp , realgrp , true );
 	      if ( remove_unmerged ) g.locdb.flush( tmpgrp );
+	      Pseq::LocDB::update_searchtable( realgrp  );
 	  }
 	else if ( Helper::ends_with( s[0] , ".reg" ) || Helper::ends_with( s[0] , ".reg.gz" ) )
-	  Pseq::LocDB::load_generic_regions( s[0], grp[0] , args , true );
+	  {
+	    Pseq::LocDB::load_generic_regions( s[0], grp[0] , args , true );
+	    Pseq::LocDB::update_searchtable( grp[0]  );
+	  }
 	else Helper::halt("invalid file name, expecting extension: .gtf .gtf.gz .reg .reg.gz");
 	
 	Pseq::finished();
@@ -802,6 +786,15 @@ int main(int argc, char ** argv)
 	std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
 	std::string group = Pseq::Util::single_argument<std::string>( args , "group" );
 	Pseq::LocDB::swap_alternate_names( group , filename );
+      }
+    
+
+    if ( command == "loc-update-name-table" )
+      {
+	if ( ! args.has("group") ) Helper::halt("no group specified");
+	bool use_altname = ! args.has( "index-name" );
+	Pseq::LocDB::update_searchtable( args.as_string( "group" ) , use_altname );
+	Pseq::finished();
       }
 
 
@@ -2122,7 +2115,49 @@ int main(int argc, char ** argv)
       }
 
 
+    //
+    // Load variant lists into the VARDB
+    //
+    
+    if ( command == "var-set" ) 
+      {
+	
+	if ( ! args.has( "group" ) ) Helper::halt( "need to specify a --group" );
+	
+	// either from a file; or all mask-passing variants
 
+	if ( args.has( "file" ) )
+	  Pseq::VarDB::add_to_varset( args.as_string( "file" ) , args.as_string( "group" ) ); 
+	else 
+	  Pseq::VarDB::add_to_varset( args.as_string( "group" ) , m ); 
+	
+	Pseq::finished();
+      }
+    
+    
+    //
+    // Group a bunch of variants sets
+    //
+    
+    if ( command == "var-superset" )
+      {
+	
+	// Read from file
+	if ( args.has( "file" ) ) 
+	  {
+	    Pseq::VarDB::add_superset_from_file( args.as_string( "file" ) );
+	    Pseq::finished();
+	  }
+	else if ( args.has( "group") )
+	  {
+	    if ( ! args.has( "members" ) ) Helper::halt( "need to specify --members with --group" );
+	    std::vector<std::string> m = args.as_string_vector( "members" );
+	    Pseq::VarDB::add_superset( args.as_string( "group" ) , m );
+	    Pseq::finished();
+	  }
+      }
+    
+        
     Pseq::finished();
     return 0;
     

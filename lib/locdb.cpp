@@ -33,6 +33,15 @@ bool LocDBase::attach( const std::string & n )
   
   fname = n;
   
+  //
+  // DB version, and a place for various other meta-information in future
+  //
+  
+  sql.query(" CREATE TABLE IF NOT EXISTS dbmeta("
+            "   varname      VARCHAR(20) NOT NULL , "
+            "   varvalue    VARCHAR(20) NOT NULL , "
+            " CONSTRAINT uMeta UNIQUE (varname ) ); " );
+
 
   // Main locus table
   
@@ -45,6 +54,11 @@ bool LocDBase::attach( const std::string & n )
 	    "   bp2      INTEGER  , "
 	    "   altname  VARCHAR(20)  ); " );
   
+  // Simple name-search table (for dumping gene-lists)
+
+  sql.query(" CREATE TABLE IF NOT EXISTS searchnames("
+	    "   group_id INTEGER NOT NULL , "
+	    "   name     VARCHAR(20) ); " );
   
   // Sub-region/exon table (with strand/frame as fixed fields
   
@@ -290,11 +304,8 @@ bool LocDBase::init()
     stmt_loc_lookup_group = 
       sql.prepare(" SELECT * FROM loci WHERE group_id == :group_id ORDER BY chr,bp1; " );    
     
-    stmt_loc_name_list = 
-      sql.prepare(" SELECT name FROM loci WHERE group_id == :group_id ORDER BY name;");
-
-    stmt_loc_altname_list = 
-      sql.prepare(" SELECT altname FROM loci WHERE group_id == :group_id ORDER BY altname;");
+    stmt_loc_name_dump = 
+      sql.prepare(" SELECT name FROM searchnames WHERE group_id == :group_id;");
 
     stmt_loc_lookup_group_and_name = 
       sql.prepare(" SELECT * FROM loci WHERE group_id == :group_id AND name == :name ; " );
@@ -528,7 +539,7 @@ bool LocDBase::release()
   sql.finalise(stmt_loc_lookup_group_with_overlap);
 
   sql.finalise(stmt_loc_lookup_set);
-  sql.finalise(stmt_loc_name_list);
+  sql.finalise(stmt_loc_name_dump);
   sql.finalise(stmt_loc_submeta_insert);
   sql.finalise(stmt_loc_targetted_group_alias_lookup);
   sql.finalise(stmt_lookup_indiv_id);
@@ -595,6 +606,8 @@ bool LocDBase::index()
   sql.query( "CREATE INDEX IF NOT EXISTS groupPositionIndex ON loci(group_id,chr, bp1); " );  
   sql.query( "CREATE INDEX IF NOT EXISTS nameIndex ON loci(group_id,name);" );
   sql.query( "CREATE INDEX IF NOT EXISTS altNameIndex ON loci(group_id,altname);" );
+  
+  sql.query( "CREATE INDEX IF NOT EXISTS searchNameIdx ON searchnames(group_id); " );
 
   sql.query( "CREATE INDEX IF NOT EXISTS setmem ON set_members(group_id,name);");
 
@@ -624,6 +637,8 @@ bool LocDBase::drop_index()
   sql.query( "DROP INDEX IF EXISTS groupPositionIndex;");
   sql.query( "DROP INDEX IF EXISTS nameIndex;");
   sql.query( "DROP INDEX IF EXISTS altNameIndex;");
+
+  sql.query( "DROP INDEX IF EXISTS searchNameIdx;" );
 
   sql.query( "DROP INDEX IF EXISTS indivIndex;");
   sql.query( "DROP INDEX IF EXISTS indiv2Index;");
@@ -1087,6 +1102,7 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
 
   int inserted = 0;
   
+  std::set<std::string> names;
   
   /////////////////////////////////////////
   //                                     //
@@ -1155,6 +1171,7 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
       
       std::string name = use_transcript_id ? tok2[3] : tok2[1];
       
+      
       int chromosome = Helper::chrCode( tok[0] ) ;
       
       if ( chromosome == 0 ) continue;
@@ -1164,12 +1181,12 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
 		name , 
 		(int)group_id ); 
 
-
+      
       // Track gene-name, if unique name is a transcript
       
       if ( use_transcript_id ) r.altname = tok2[1];
       else r.altname = tok2[3]; 
-
+      
 
       // Always expect gene_id and transcript_id 
       // Use gene_id
@@ -1203,6 +1220,8 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
     }
 
 
+
+
   /////////////////////////////////////////
   //                                     //
   // Finish transaction                  //
@@ -1230,6 +1249,54 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
 
 }
 
+
+void LocDBase::populate_searchname_table( const std::string & g , bool altname )
+{
+  
+  if ( ! attached() ) return;
+  int grp_id = lookup_group_id( g );
+  if ( grp_id == 0 ) return;
+
+  // clear out any existing entries
+  
+  sql.query( "DELETE FROM searchnames WHERE group_id == " + Helper::int2str( grp_id ) + " ; " ) ;
+
+  // get new list of genes to add in
+
+  sqlite3_stmt * s = altname ? 
+    sql.prepare( "SELECT altname FROM loci WHERE group_id == " + Helper::int2str( grp_id ) + " ; " ) :
+    sql.prepare( "SELECT    name FROM loci WHERE group_id == " + Helper::int2str( grp_id ) + " ; " ) ;
+
+  std::set<std::string> names;
+  while ( sql.step(s) )
+    {
+      std::string n = sql.get_text( s , 0 ); 
+      names.insert( n );
+    }
+  sql.reset(s);
+  sql.finalise(s);
+
+
+  // and now insert them
+
+  sql.begin();
+  s = sql.prepare( "INSERT OR IGNORE INTO searchnames ( group_id , name ) values ( :group_id , :name ) ; " );
+  sql.bind_int64( s , ":group_id" , grp_id );  
+  
+  std::set<std::string>::iterator ii = names.begin();
+  while ( ii != names.end() )
+    {
+      sql.bind_text( s , ":name" , *ii );
+      sql.step(s);
+      sql.reset(s);
+      ++ii;
+    }
+  sql.finalise(s);
+  sql.commit();
+
+  plog << "inserted " << names.size() << " into the name-table\n";
+
+}
 
 
 
@@ -2776,22 +2843,19 @@ std::vector<Region> LocDBase::fetch_real_names( const std::string & grp, const s
   return regions;
 }
 
-std::vector<std::string> LocDBase::fetch_names( const std::string & loc_group , bool alternate )
+std::set<std::string> LocDBase::fetch_names( const std::string & loc_group )
 {
   
-  std::vector<std::string> results;
+  std::set<std::string> results;
   if ( ! attached() ) return results;
+
   uint64_t id = lookup_group_id( loc_group );
   if ( id == 0 ) return results;
   
-  sqlite3_stmt * s = alternate ? stmt_loc_altname_list : stmt_loc_name_list ;
-  
-  sql.bind_int64( s , ":group_id" ,id );
-  while ( sql.step( s ) ) 
-    {
-      results.push_back( sql.get_text( s , 0 ) );
-    }
-  sql.reset( s );
+  sql.bind_int64( stmt_loc_name_dump , ":group_id" ,id );
+  while ( sql.step( stmt_loc_name_dump ) ) 
+    results.insert( sql.get_text( stmt_loc_name_dump , 0 ) );
+  sql.reset( stmt_loc_name_dump );
   return results;
 }
 
@@ -2976,6 +3040,48 @@ bool LocDBase::populate_set_structures( const std::string & loc_group ,
   sql.reset( stmt_set_data_dumper );
   
   return true;
+}
+
+
+
+void LocDBase::check_version()
+{
+
+  if ( ! sql.table_exists( "dbmeta" ) )
+    Helper::halt( "old database format, expecting LOCDB v"
+                  + Helper::int2str( PLINKSeq::LOCDB_VERSION_NUMBER() )
+                  + " : to fix, remake your project" );
+  
+  // expected version # is given by  PLINKSeq::LOCDB_VERSION_NUMBER()                                                                      
+  int v = 0;
+
+  sqlite3_stmt * s = sql.prepare( "SELECT varvalue FROM dbmeta WHERE varname == 'VERSION'; " );
+
+  if ( sql.step(s) )
+    {
+      v = sql.get_int( s , 0 );
+      sql.finalise(s);
+    }
+  else // implies a new database, as version note yet set -- so add one                                                                    
+    {
+      sql.finalise(s);
+      sqlite3_stmt * si = sql.prepare("INSERT OR REPLACE INTO dbmeta(varname, varvalue ) values( :x , :y ) ; " );
+      std::string vn = "VERSION";
+      v = PLINKSeq::LOCDB_VERSION_NUMBER();
+      sql.bind_text( si , ":x" , vn );
+      sql.bind_int( si , ":y" , v );
+      sql.step(si);
+      sql.finalise(si);
+    }
+
+  if ( v != PLINKSeq::LOCDB_VERSION_NUMBER() )
+    Helper::halt("LOCDB version "
+                 + Helper::int2str( v ) + " but expected "
+                 + Helper::int2str( PLINKSeq::LOCDB_VERSION_NUMBER() )
+                 + " : to fix, remake your LOCDB" );
+
+  return;
+
 }
 
 

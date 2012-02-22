@@ -2,9 +2,10 @@
 #include "defs.h"
 #include "meta.h"
 
-std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.08(14-Nov-2011)"; return s; }
+std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.1(20-Feb-2012)"; return s; }
 
-int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 4; return i; }
+int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 5; return i; }
+int & PLINKSeq::LOCDB_VERSION_NUMBER() { static int i = 1; return i; }
 
 std::string & PLINKSeq::SQLITE_SCRATCH_FOLDER() { static std::string s = ""; return s; }
 
@@ -34,6 +35,7 @@ std::string & PLINKSeq::VCF_GENOTYPE_NONREF() { static std::string s = "GT_NR"; 
 std::string & PLINKSeq::VCF_GENOTYPE_NULL() { static std::string s = "GT_NULL"; return s; }
 
 std::string & PLINKSeq::DEFAULT_LOC_GROUP() { static std::string s = "refseq"; return s; }
+std::string & PLINKSeq::DEFAULT_GENE_SYMBOL() { static std::string s = "symbol"; return s; }
 std::string & PLINKSeq::DEFAULT_PHENOTYPE() { static std::string s = ""; return s; } 
 
 std::string & PLINKSeq::META_GENE() { static std::string s = "GENE"; return s; }

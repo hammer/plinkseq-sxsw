@@ -14,6 +14,7 @@ struct PLINKSeq {
   static std::string & VERSION_NUMBER();
 
   static int         & VARDB_VERSION_NUMBER();
+  static int         & LOCDB_VERSION_NUMBER();
 
   static std::string & SQLITE_SCRATCH_FOLDER();  
   static std::string & PASS_FILTER();  
@@ -49,6 +50,7 @@ struct PLINKSeq {
   static std::string & DELIM();
   static std::string & VCF_MISSING_CHAR();
   static std::string & DEFAULT_LOC_GROUP();
+  static std::string & DEFAULT_GENE_SYMBOL();
 
   static std::string & VCF_GENOTYPE();
   static std::string & VCF_GENOTYPE_ACGT();

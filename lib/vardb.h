@@ -129,14 +129,17 @@ class VarDBase {
   // Variant groups
   //
   
-  uint64_t set_group_id( const std::string & name , bool temp = false , 
-			 const std::string & desc = "");
-  uint64_t lookup_group_id( const std::string & name );
-  uint64_t set_member_id( const uint64_t grp_id , const std::string & name );
-  void     set_add_variant( const uint64_t set_id , const uint64_t var_id );
-  std::string   group_name( const uint64_t set_id );
+  uint64_t add_set( const std::string & name , const std::string & desc = "" , bool donotadd = false );
+  bool add_var_to_set( const std::string & , Variant & , bool allelic = false );
   
-
+  uint64_t add_superset( const std::string & name , const std::string & desc = "" , bool donotadd = false );
+  bool add_set_to_superset( const std::string & , const std::string & );
+  
+  std::vector<std::string> get_sets();
+  std::vector<std::string> get_supersets();
+  std::vector<std::string> get_sets( const std::string & superset );
+  int get_set_size( const std::string & );
+  
   //
   // Add/remove meta-information on variants (independent of VCF load)
   //
@@ -181,8 +184,6 @@ class VarDBase {
   
   int populate_individual_alignment( IndividualMap &, Mask & );
   int populate_individual_map(PhenotypeMap &, const std::vector<Individual> & inds );
-  
-  std::map<int,std::string> fetch_sets();
   
   void addMetaFields(Variant &, sqlite3_stmt *, Mask &);
   
@@ -387,17 +388,21 @@ class VarDBase {
   sqlite3_stmt * stmt_iterate_variants;
 
 
-  // Groups
+  // Sets & supersets
 
-  sqlite3_stmt * stmt_insert_group;
-  sqlite3_stmt * stmt_insert_group_member;
-  sqlite3_stmt * stmt_insert_group_variant;
-  sqlite3_stmt * stmt_iterate_group;
-  sqlite3_stmt * stmt_lookup_group;
-  sqlite3_stmt * stmt_lookup_group_name;
-
-  sqlite3_stmt * stmt_fetch_set_names1;
-  sqlite3_stmt * stmt_fetch_set_names2;
+  sqlite3_stmt * stmt_insert_set;
+  sqlite3_stmt * stmt_insert_superset;
+  sqlite3_stmt * stmt_insert_set_variant;
+  sqlite3_stmt * stmt_attach_set_to_superset;
+  sqlite3_stmt * stmt_lookup_set;
+  sqlite3_stmt * stmt_lookup_superset;
+  sqlite3_stmt * stmt_lookup_set_name;
+  sqlite3_stmt * stmt_lookup_superset_name;
+  sqlite3_stmt * stmt_lookup_set_names;
+  sqlite3_stmt * stmt_dump_all_set_names;
+  sqlite3_stmt * stmt_dump_all_superset_names;
+  sqlite3_stmt * stmt_fetch_set_variants;
+  sqlite3_stmt * stmt_fetch_superset_variants;
 
   // Temporary table
 
@@ -417,6 +422,8 @@ class VarDBase {
   void clear()
     {
       indiv.clear();
+      varset_map.clear();
+      varsuperset_map.clear();     
     }
   
 
@@ -440,6 +447,9 @@ class VarDBase {
   std::map<int,std::string> chr_name_map;
   std::map<int,ploidy_t> chr_ploidy_map;
   
+  std::map<std::string,int> varset_map;
+  std::map<std::string,int> varsuperset_map;		       
+
   std::map<int,BCF*> bcfmap;
   std::map<int,VCFZ*> vcfzmap;
   

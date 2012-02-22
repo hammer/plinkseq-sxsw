@@ -1652,7 +1652,7 @@ void g_set_association( VariantGroup & vars , void * p )
 struct aux_set_enrichment{
   std::vector<int> indiv;
   std::vector<int> gene;
-  std::vector<std::string> gene_id;
+  std::map<std::string,int> * genes_slot;
 };
 
 
@@ -1661,14 +1661,16 @@ void g_set_enrichment( VariantGroup & vars , void * p )
 
   aux_set_enrichment * aux = (aux_set_enrichment*)p;
   
-  // keep track of gene name
-  const int gn = aux->gene_id.size();
-  aux->gene_id.push_back( vars.name() );
-
+  // only consider scoring for genes that are in the gene-map we will be using
+  if ( aux->genes_slot->find( vars.name() ) == aux->genes_slot->end() ) return;
+  
+  // get numeric ID 
+  const int gn = (*aux->genes_slot)[ vars.name() ];
+  
   int a = 0;
   const int n = g.indmap.size();
   const int s = vars.size();
-
+  
   std::vector<bool> altmin(s);
   for (int j = 0 ; j < s ; j++  )
     {
@@ -1683,14 +1685,14 @@ void g_set_enrichment( VariantGroup & vars , void * p )
 	  if ( vars(j,i).minor_allele( altmin[j] ) )
 	    {
 	      aux->gene.push_back( gn );
-	      aux->indiv.push_back( j );
+	      aux->indiv.push_back( i );
 	      ++a;
 	      break;
 	    }
 	}
     }
 
-  std::cout << " added " << a << " for " << vars.name() << "\n";
+  //  std::cout << " added " << a << " for " << vars.name() << "\n";
 
 }
 
@@ -1707,38 +1709,13 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // Populate a list of individual / gene initially
   
   aux_set_enrichment aux;
-
+  
   std::string locset = args.as_string( "locset" );
   std::string loc = args.as_string( "loc" );
   
-
-  // ensure that we iterate by gene initially, to build the gene table
-  // we want to do this for all genes (whether in set or not)
-
-  mask.group_loc( loc );
-
-  // iterate through each set; write number of individuals/genes that have 1+ allele
-    
-  g.vardb.iterate( g_set_enrichment , &aux , mask ) ;
-
-  
-  // Now that we've built the gene/variant table for all individuals,
-  // we can go through each set, one at a time and score each
-  // individual
-
- 
-  //           | Set | Not-Set
-  // ----------|-----|----------
-  // Indiv V   |     |
-  // ----------|-----|----------
-  // Rest  V-1 |     |
-  // ----------|-----|----------
-  
-
   //
-  // Obtain a list of all sets
+  // First, extract set information
   //
-
 
   plog << "pulling all set information\n";
 
@@ -1748,134 +1725,201 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   std::map<int,std::set<int> > g2s;
   
   bool okay = g.locdb.populate_set_structures( loc , locset , &genes , &sets , &s2g , &g2s );
-  
+
   //
-  // Create a mapping of gene --> sets 
-  // i.e. if individual carries gene g, we will increment all sets in g2s[g]
+  // Create gene-string --> numeric-ID mapping, and attach to aux
   //
   
-  plog << "creating gene-to-set mapping...\n";
-  
-//   const int numgenes = aux.gene_id.size();
-//   std::vector< std::vector<int> > g2s( numgenes );
-//   std::vector<int> setsize;
-  
-//   std::map<int,std::string>::iterator i_sets = sets.begin();
-//   while ( i_sets != sets.end() )
-//     {
-//       std::cout << "set = " << i_sets->second << "\n";
-//       std::map<int,std::set<int> >::iterator ii = s2g.find( i_sets->first );
-//       if ( ii == s2g.end() ) { ++i_sets; continue; } 
-//       std::set<int>::iterator iii = ii->second.begin();
-//       while ( iii != ii->second.end() )
-// 	{
-// 	  if ( genes.find( *iii ) == genes.end() ) continue;
-// 	  std::cout << "set " << i_sets->second << "\t" 
-// 		    << genes[ *iii ] << "\n";
-// 	  ++iii;
-// 	}
-//       ++i_sets;
-//      }
-
-
-//   std::cout << "found " << sets.size() << " " << s2g.size() << " sets\n";
-//   std::cout << "found " << genes.size() << " " << g2s.size() << " genes\n";
-
-  std::map<std::string,int> genes_rmap;
+  std::map<std::string,int> genes_slot;
+  std::map<int,int> genes_slot2map;  
   std::map<int,std::string>::iterator i = genes.begin();
+
+  int slot = 0;
   while ( i != genes.end() )
     {
-      genes_rmap[ i->second ] = i->first;
+      genes_slot[ i->second ] = slot;
+      genes_slot2map[ slot ] = i->first;
+      ++slot;
       ++i;
     }
-      
-// if ( 
-//     std::set<int> & 
-//     std::vector<std::string> members = g.locdb.fetch_set_members( loc, locset, sets[s] );
-//     setsize.push_back( members.size() );
-//       for (int ss=0; ss<members.size(); ss++)
-// 	{
-// 	  if ( aux.gene_id.find( members[ss] ) == aux.gene_id.end() ) continue;
-// 	  const int gn = aux.gene_id[ members[ss] ];
-// 	  if ( gn >= g2s.size() ) continue;
-// 	  g2s[ gn ].push_back( s );
-// 	}
-//     }
   
-  plog << "eval gene to set mapping...\n";
+  aux.genes_slot = &genes_slot;
   
+  
+  
+  //
+  // ensure that we iterate by gene initially, to build the gene table
+  // we want to do this for all genes (whether in set or not)
+  //
+
+  mask.group_loc( loc );
+  
+
+  //
+  // iterate through each set; write number of individuals/genes that have 1+ allele
+  //
+  
+  g.vardb.iterate( g_set_enrichment , &aux , mask ) ;
+
+
+
+  //
+  // Set ID --> Set Slot mapping
+  //
+
+  std::map<int,std::string>::iterator si = sets.begin();
+  std::map<int,int> s2s;
+  slot = 0;
+  while ( si != sets.end() )
+    {
+      s2s[ si->first ] = slot++;
+      ++si;
+    }
+
 
   //
   // Create large score matrix of indiv x set
   //
-
+  
   const int n = g.indmap.size();  
   std::vector<std::vector<int> > scores(n);  
   for (int k=0;k<n;k++) scores[k].resize( sets.size() , 0 );
   
+
   //
   // Create per individual counts
   //
   
   std::vector<int> indcnt( n , 0 );
+  std::map<int,int> gcnt;
   
   //
-  // Populate scores matrix
+  // Populate counts
   //
   
-  // Map ID from LOCDB to SLOT from iterate()
-  std::map<int,int> g2g;
-  for (int g=0;g<aux.gene_id.size();g++)
+  for (int k = 0 ; k < aux.indiv.size() ; k++)
     {
-      if ( genes_rmap.find( aux.gene_id[g] ) == genes_rmap.end() ) g2g[g] = -1;
-      //else g2g[ genes_rmap.find( aux.gene_id[g] )];
+      const int i = aux.indiv[k];
+      const int gslot = aux.gene[k];                // col position in SCORES matrix
+      const int gmap  = genes_slot2map[ gslot ];    // ID from LOCDB that connects genes to sets
+      
+      std::cout << "Individual/gene " << k << " of " << aux.indiv.size() << "\t" << i << " " << gslot << " " << gmap << "\n";
+      
+      // track total number of mutant genes per individual
+      indcnt[i]++;
+      
+      // similarly, for each gene
+      gcnt[gmap]++;
+      
+      // track number of mutants per set per individual
+      std::set<int> & gsets = g2s[ gmap ];
+      std::set<int>::iterator ii = gsets.begin();
+      while ( ii != gsets.end() ) 
+	{
+	  scores[i][ s2s[ *ii ] ]++;
+	  ++ii;
+	}
+      
     }
 
-  for (int k = 0 ; k < aux.indiv.size() ; k++)
-     {
-    
-       std::cout << "proc'ing " << k << " of " << aux.indiv.size() << "\n";
-       
-       const int i = aux.indiv[k];
-       if ( genes_rmap.find( aux.gene_id[ aux.gene[k] ] ) == genes_rmap.end() ) continue;
-       const int g = genes_rmap[ aux.gene_id[ aux.gene[k] ] ];
-       
-       // track total number of mutant genes per individual
-       indcnt[i]++;
-    
-       // track number of mutant per set per individual
-       std::set<int>::iterator ii = g2s[g].begin();
-       while ( ii != g2s[g].end() ) 
-	 {
-	   scores[i][ *ii ]++;
-	   ++ii;
-	 }
-       //       for (int s = 0 ; s < g2s[g].size() ; s++ ) scores[i][ g2s[g][s] ]++;
-     }
-  
   
   //
   // Calculate enrichment statistic per individual for each set
   //
 
-//   for ( int i = 0 ; i < n ; i++ ) 
-//     {
-//       int g0s0 = 0 , g0s1 = 0 , g1s0 = 0 , g1s2 = 0;
-//       for (int s = 0 ; s < sets.size() ; s++)
-// 	{
-// 	  int g1s1 = scores[i][s];
-// 	  int g1s0 = indcnt[i]  - g1s1;
-// 	  int g0s1 = setsize[s] - g1s1; 
-// 	  int g0s0 = numgenes - g0s1 - g1s0 - g1s1;
+
+  //           | Set | Not-Set
+  // ----------|-----|----------
+  // Indiv V   |     |
+  // ----------|-----|----------
+  // Rest  V-1 |     |
+  // ----------|-----|----------
+
+
+  const int numgenes = g2s.size();
+  const int numsets = s2g.size();
+  
+  for ( int i = 0 ; i < n ; i++ ) 
+    plog << "ICNT" << "\t"
+	 << g.indmap.ind(i)->id() << "\t"
+	 << indcnt[i] << "\n";
+  
+  // For each gene, number of mutations (per person)
+  std::map<int,int> genic_hits;
+  std::map<int,std::set<int> >::iterator gi = g2s.begin();
+  while ( gi != g2s.end() )
+    {
+      plog << "GCNT" << "\t"
+	   << gi->second.size() << "\t"
+	   << gcnt.find( gi->first )->second << "\t"
+	   << genes[ gi->first ] << "\n";
+	   ++gi;
+    }
+      
+
+  // For each set, number of genes & number of mutations (per person)   
+  si = sets.begin();
+  while ( si != sets.end() )
+    {
+
+      plog << "SCNT" << "\t"
+	   << s2g[ si->first ].size() << "\t";
+      
+      int scnt = 0;
+      std::set<int> & gs = s2g.find( si->first )->second;
+      std::set<int>::iterator gi = gs.begin();
+      while ( gi != gs.end() )
+	{
+	  scnt += gcnt[ *gi ];
+	  ++gi;
+	}
+      plog << scnt << "\t"
+	   << si->second << "\n";
+      ++si;
+    }
+
+
+
+  // 
+  // Test each individual for each set
+  //
+
+  std::cout << "n = " << n << "\n";
+  
+  for ( int i = 0 ; i < n ; i++ ) 
+    {
+      
+      int g0s0 = 0 , g0s1 = 0 , g1s0 = 0 , g1s2 = 0;
+
+      int slot = 0;
+
+      std::cout << "set N = " << s2g.size() << "\n";
+
+      std::map<int,std::set<int> >::iterator si = s2g.begin();
+      while ( si != s2g.end() )
+	{
 	  
-// 	  double pval = 0;
-// 	  if ( ! fisher( Table( g0s0 , g0s1 , g1s0 , g1s1 ) , &pval ) ) pval = 1;
+ 	  int g1s1 = scores[i][slot++];
+ 	  int g1s0 = indcnt[i]  - g1s1;
+ 	  int g0s1 = si->second.size() - g1s1; 
+	  int g0s0 = numgenes - g0s1 - g1s0 - g1s1;
 	  
-// 	  plog << g.indmap.ind(i)->id() << "\t"
-// 	       << sets[s] << "\t"
-// 	       << pval << "\n";
-// 	}
-//     }
+	  plog << g.indmap.ind(i)->id() << "\t";
+
+	  plog << g0s0 << " " << g0s1 << " / " << g1s0 << " " << g1s1 << "\t";
+	  
+	  // basic Fisher's test
+ 	  double pval = 0;
+ 	  if ( ! fisher( Table( g0s0 , g0s1 , g1s0 , g1s1 ) , &pval ) ) pval = -1;
+	  if ( pval < 0 ) plog << "NA";
+	  else plog << pval;
+
+	  plog << "\t" << sets[ si->first ] << "\n";
+
+	  ++si;
+
+ 	}
+    }
   
 
 

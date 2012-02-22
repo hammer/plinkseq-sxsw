@@ -204,54 +204,29 @@ bool VarDBase::newDB( std::string n )
      
 
     
-    // Sets
+    // Sets (groups of variants)
     
-    sql.query(" CREATE TABLE IF NOT EXISTS set_groups("
-	      "   group_id    INTEGER PRIMARY KEY , "
-	      "   name        VARHCAR(20) , "
-	      "   temp        CHAR(1) , "
-	      "   description VARCHAR(20) ) ; " );
-    
-    sql.query(" CREATE TABLE IF NOT EXISTS set_members("
+    sql.query(" CREATE TABLE IF NOT EXISTS sets ("
 	      "   set_id      INTEGER PRIMARY KEY , "
-	      "   group_id    INTEGER NOT NULL , "
-	      "   name        VARCHAR(20) ) ; " );
+	      "   name        VARHCAR(20) , "
+	      "   description VARCHAR(20) ) ; " );
     
     sql.query(" CREATE TABLE IF NOT EXISTS set_data("
-	      "   var_id      INTEGER NOT NULL , "
-	      "   set_id      INTEGER NOT NULL ) ; " );
+	      "   set_id     INTEGER NOT NULL , "
+	      "   var_id     INTEGER NOT NULL , "
+	      "   allele     VARCHAR(1) ); " );
+	      
     
+    // Super-sets (groups of groups)
 
-    // Super-sets 
-
-    sql.query(" CREATE TABLE IF NOT EXISTS superset_groups("
-	      "   group_id    INTEGER PRIMARY KEY , "
-	      "   set_group_id INTEGER NOT NULL , "
-	      "   name        VARHCAR(20) , "
-	      "   temp        CHAR(1) , "
-	      "   description VARCHAR(20) ) ; " );
-
-    sql.query(" CREATE TABLE IF NOT EXISTS superset_members("
-	      "   superset_id  INTEGER PRIMARY KEY , "
-	      "   group_id     INTEGER NOT NULL , "
-	      "   name         VARCHAR(20) ) ; " );
+    sql.query(" CREATE TABLE IF NOT EXISTS supersets ("
+	      "   superset_id   INTEGER PRIMARY KEY , "
+	      "   name          VARHCAR(20) , "
+	      "   description   VARCHAR(20) ) ; " );
 
     sql.query(" CREATE TABLE IF NOT EXISTS superset_data("
-	      "   superset_id  INTEGER NOT NULL , "
-	      "   set_id       INTEGER NOT NULL ) ; " );
-
-
-    //
-    // i.e. relationship between sets and super-sets
-    
-    // Set = CCDS
-    //  set members -> gene names
-    //  set data    -> which variants are in which genes
-
-    // Super-set = KEGG 
-    //   based on CCDS ( linked by set_group_id )
-    //    set members --> pathway names
-    //    set data    --> which genes (set_id) are in which pathway (superset_id)
+	      "   superset_id   INTEGER NOT NULL , "
+	      "   set_id        INTEGER NOT NULL ) ; " );
 
   return true;
 
@@ -510,10 +485,6 @@ bool VarDBase::init()
     stmt_iterate_variants = 
 	sql.prepare(" SELECT * FROM variants ORDER BY chr,bp1,bp2 ; " );
 
-    stmt_fetch_sets = 
-	sql.prepare(" SELECT group_id, name FROM set_groups "
-		    " ORDER BY group_id; " );
-    
 
     //
     // Aux. meta-data
@@ -545,39 +516,53 @@ bool VarDBase::init()
     // Sets
     //
 
-    stmt_insert_group =
-	sql.prepare( " INSERT OR IGNORE INTO set_groups( name, temp, description ) "
-		     " values( :name, :temp, :description) ; " );
-    stmt_lookup_group =
-	sql.prepare( " SELECT group_id FROM set_groups WHERE name == :name ; " );
+    stmt_insert_set =
+      sql.prepare( " INSERT OR IGNORE INTO sets( name, description ) "
+		   " values( :name, :description) ; " );
 
-    stmt_lookup_group_name =
-	sql.prepare( " SELECT name FROM set_groups WHERE group_id == :group_id ; " );
+    stmt_insert_superset =
+      sql.prepare( " INSERT OR IGNORE INTO supersets( name, description ) "
+		   " values( :name, :description) ; " );
 
-    stmt_insert_group_member =
-	sql.prepare( " INSERT OR IGNORE INTO set_members ( group_id , name ) "
-		     " values( :group_id , :name ) ; " );
-
-    stmt_insert_group_variant =
-	sql.prepare( " INSERT OR IGNORE INTO set_data ( set_id , var_id ) "
-		     " values( :set_id , :var_id ) ; " );
+    stmt_insert_set_variant =
+      sql.prepare( " INSERT OR IGNORE INTO set_data ( set_id , var_id , allele ) "
+		   " values( :set_id , :var_id , :allele ) ; " );
     
-    stmt_iterate_group = 
-	sql.prepare( " SELECT * FROM variants "
-		     " WHERE var_id IN "
-		     "  ( SELECT var_id FROM set_data WHERE set_id IN "
-		     "  ( SELECT set_id FROM set_members WHERE group_id == :group_id ) ) "
-		     " ORDER BY chr,bp1,bp2 ; " );
-	
-    stmt_fetch_set_names1 = 
-	sql.prepare( " SELECT name FROM set_members WHERE set_id IN "
-		     "  ( SELECT set_id FROM set_data WHERE var_id == :var_id ) ; " ); 
+    stmt_attach_set_to_superset = 
+      sql.prepare( "INSERT OR IGNORE INTO superset_data ( superset_id , set_id ) "
+		   " values ( :superset_id , :set_id ) ; " );
 
-    stmt_fetch_set_names2 = 
-	sql.prepare( " SELECT name FROM set_members "
-		     " WHERE group_id == :group_id AND set_id IN "
-		     "  ( SELECT set_id FROM set_data WHERE var_id == :var_id ) ; " ); 
+
+    stmt_lookup_set =
+      sql.prepare( " SELECT set_id FROM sets WHERE name == :name ; " );
     
+    stmt_lookup_superset =
+      sql.prepare( " SELECT superset_id FROM supersets WHERE name == :name ; " );
+
+    stmt_lookup_set_name =
+      sql.prepare( " SELECT name FROM sets WHERE set_id == :set_id ; " );
+
+    stmt_dump_all_set_names =
+      sql.prepare( " SELECT name , set_id FROM sets ; " );
+    
+    stmt_dump_all_superset_names =
+      sql.prepare( " SELECT name , superset_id FROM supersets ; " );
+
+    stmt_lookup_superset_name =
+      sql.prepare( " SELECT name FROM supersets WHERE superset_id == :superset_id ; " );
+
+    stmt_lookup_set_names =
+      sql.prepare( " SELECT name FROM sets WHERE set_id IN "
+		   " ( SELECT set_id FROM superset_data WHERE superset_id == :superset_id ) ; " ) ;
+    
+
+    stmt_fetch_set_variants = 
+      sql.prepare( " SELECT var_id , allele FROM set_data WHERE set_id == :set_id ; " ); 
+    
+    stmt_fetch_superset_variants = 
+      sql.prepare( " SELECT var_id , allele FROM set_data WHERE set_id IN "
+		   "  ( SELECT set_id FROM superset_data WHERE superset_id == :superset_id ) ; " ) ;
+
     
     //
     // Misc
@@ -593,7 +578,7 @@ bool VarDBase::init()
 	sql.prepare("SELECT count(*) FROM ( SELECT DISTINCT chr,bp1 FROM variants ) ; ");
 
     stmt_setcount = 
-	sql.prepare("SELECT count(*) FROM set_members WHERE group_id == :group_id; ");
+	sql.prepare("SELECT count(*) FROM set_data WHERE set_id == :set_id; ");
 
   return true;
 
@@ -636,7 +621,6 @@ bool VarDBase::release()
   sql.finalise( stmt_insert_chr_code );
   sql.finalise( stmt_insert_file_summary );
   sql.finalise( stmt_insert_file_tag );
-  sql.finalise( stmt_lookup_group_name );    
   
   sql.finalise( stmt_insert_header );
   sql.finalise( stmt_insert_metatype ); 
@@ -679,14 +663,19 @@ bool VarDBase::release()
   sql.finalise( stmt_fetch_individuals ); 
   sql.finalise( stmt_iterate_variants ); 
   
-  sql.finalise( stmt_insert_group );
-  sql.finalise( stmt_lookup_group );
-  sql.finalise( stmt_insert_group_member );
-  sql.finalise( stmt_insert_group_variant );
-  sql.finalise( stmt_iterate_group ); 
-  sql.finalise( stmt_fetch_set_names1 ); 
-  sql.finalise( stmt_fetch_set_names2 ); 
-  sql.finalise( stmt_fetch_sets );
+  sql.finalise( stmt_insert_set );
+  sql.finalise( stmt_insert_superset );
+  sql.finalise( stmt_insert_set_variant );
+  sql.finalise( stmt_attach_set_to_superset );
+  sql.finalise( stmt_lookup_set );
+  sql.finalise( stmt_lookup_superset );
+  sql.finalise( stmt_lookup_set_name );
+  sql.finalise( stmt_lookup_superset_name );
+  sql.finalise( stmt_lookup_set_names );
+  sql.finalise( stmt_dump_all_set_names );
+  sql.finalise( stmt_dump_all_superset_names );
+  sql.finalise( stmt_fetch_set_variants );  
+  sql.finalise( stmt_fetch_superset_variants );
   
   sql.finalise( stmt_vcount );
   sql.finalise( stmt_totvcount );
@@ -700,20 +689,23 @@ bool VarDBase::release()
 bool VarDBase::index()
 {
 
+  // basic variant (positional, ID-based) indices
   sql.query( "CREATE INDEX IF NOT EXISTS pos_var ON variants(chr,bp1,bp2);" );
   sql.query( "CREATE INDEX IF NOT EXISTS name_var ON variants(name); " );
   
   //sql.query( "CREATE INDEX IF NOT EXISTS file_idx ON variants(file_id);");
   sql.query( "CREATE INDEX IF NOT EXISTS vIndx1 ON vdat( var_id ) ; ");
   
+  // filenames
   sql.query( "CREATE INDEX IF NOT EXISTS bcfIdx ON bcfs( file_id ); ");
-  sql.query( "CREATE INDEX IF NOT EXISTS set1 ON set_data( set_id ) ; ");    
-  sql.query( "CREATE INDEX IF NOT EXISTS set2 ON set_members( group_id ); ");
-  sql.query( "CREATE INDEX IF NOT EXISTS set3 ON set_data( var_id ) ; ");
-  sql.query( "CREATE INDEX IF NOT EXISTS set4 ON set_members( name ); ");
-  
-  sql.query( "CREATE INDEX IF NOT EXISTS meta1 ON indep_meta_data( var_id ) ; ");
   sql.query( "CREATE INDEX IF NOT EXISTS filetags ON files( tag ) ; " );
+
+  // sets 
+  sql.query( "CREATE INDEX IF NOT EXISTS set_idx ON set_data( set_id ) ; ");    
+  sql.query( "CREATE INDEX IF NOT EXISTS sset_idx ON superset_data( superset_id ) ; ");    
+  
+  // attached meta-data
+  sql.query( "CREATE INDEX IF NOT EXISTS meta1 ON indep_meta_data( var_id ) ; ");  
   
   release();
   init();
@@ -724,10 +716,8 @@ bool VarDBase::drop_index()
   sql.query( "DROP INDEX IF EXISTS pos_var;");
   sql.query( "DROP INDEX IF EXISTS name_var;");
   sql.query( "DROP INDEX IF EXISTS vIndx1; ");
-  sql.query( "DROP INDEX IF EXISTS set1; ");    
-  sql.query( "DROP INDEX IF EXISTS set2; ");
-  sql.query( "DROP INDEX IF EXISTS set3; ");
-  sql.query( "DROP INDEX IF EXISTS set4; ");
+  sql.query( "DROP INDEX IF EXISTS set_idx; ");    
+  sql.query( "DROP INDEX IF EXISTS sset_idx; ");
   sql.query( "DROP INDEX IF EXISTS meta1; ");
   sql.query( "DROP INDEX IF EXISTS filetags; " );
 }
@@ -1077,62 +1067,186 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
 //
 
 
-uint64_t VarDBase::set_group_id( const std::string & name , bool temp , const std::string & desc)
+uint64_t VarDBase::add_set( const std::string & name , const std::string & desc , bool donotadd )
 {
+
+  // retrieve from cache?
+
+  std::map<std::string,int>::iterator ii = varset_map.find( name );
+  if ( ii != varset_map.end() ) return ii->second;
   
+  // either pull or add from database
+
   uint64_t group_id = 0;
   
-  sql.bind_text(stmt_lookup_group, ":name" , name ); 
+  sql.bind_text(stmt_lookup_set, ":name" , name ); 
   
-  if ( sql.step( stmt_lookup_group ) ) 
+  if ( sql.step( stmt_lookup_set ) ) 
     {
-      group_id = sql.get_int64( stmt_lookup_group , 0 ) ;
-      sql.reset( stmt_lookup_group );
+      group_id = sql.get_int64( stmt_lookup_set , 0 ) ;
+      sql.reset( stmt_lookup_set );
     }
   else
     {
-      sql.reset( stmt_lookup_group );
+      sql.reset( stmt_lookup_set );
       
-      sql.bind_text( stmt_insert_group , ":name" , name );
-      sql.bind_int( stmt_insert_group , ":temp" , 1 );
-      sql.bind_text( stmt_insert_group , ":description" , name + " (default name)" );
-      sql.step( stmt_insert_group );      
+      if ( donotadd ) return 0;
+
+      sql.bind_text( stmt_insert_set , ":name" , name );
+      sql.bind_text( stmt_insert_set , ":description" , desc );
+      sql.step( stmt_insert_set );      
       group_id = sql.last_insert_rowid();
-      sql.reset( stmt_insert_group );
+      sql.reset( stmt_insert_set );
     }
+
+  // add in cache
+  varset_map[ name ] = group_id;
   
   return group_id;
   
 }
 
-uint64_t VarDBase::lookup_group_id( const std::string & name )
+
+bool VarDBase::add_var_to_set( const std::string & group , Variant & v , bool allelic )
 {
+  // Var group ID
+  uint64_t grp_id = add_set( group ); 
+  
+  // Add for each attached variant
+  
+  const int ns = v.n_samples();
+
+  sql.bind_int64( stmt_insert_set_variant , ":set_id" , grp_id );
+      
+  for (int s = 0 ; s < ns; s++ )
+    {      
+
+      const SampleVariant & sample = v.sample(s);
+      uint64_t vidx = sample.index();
+      
+      sql.bind_int64( stmt_insert_set_variant , ":var_id" , vidx );
+
+      std::vector<std::string> alts;
+      if ( allelic ) 
+	alts = Helper::char_split( sample.alternate() , ',' );
+      else
+	alts.push_back(".");
+      
+      for (int a=0;a<alts.size();a++)
+	{
+	  if ( allelic ) 
+	    sql.bind_text( stmt_insert_set_variant , ":allele" , alts[a] );
+
+	  sql.step( stmt_insert_set_variant );
+	  sql.reset(stmt_insert_set_variant );
+	}
+    }
+      
+  return true;
+
+}
+
+
+uint64_t  VarDBase::add_superset( const std::string & name , const std::string & desc , bool donotadd )
+{
+  // retrieve from cache?
+  
+  std::map<std::string,int>::iterator ii = varsuperset_map.find( name );
+  if ( ii != varsuperset_map.end() ) return ii->second;
+  
+  // either pull or add from database
+  
   uint64_t group_id = 0;
-  sql.bind_text(stmt_lookup_group, ":name" , name ); 
-  if ( sql.step( stmt_lookup_group ) ) 
-    group_id = sql.get_int64( stmt_lookup_group , 0 ) ;
-  sql.reset( stmt_lookup_group );
+  
+  sql.bind_text(stmt_lookup_superset, ":name" , name ); 
+  
+  if ( sql.step( stmt_lookup_superset ) ) 
+    {
+      group_id = sql.get_int64( stmt_lookup_superset , 0 ) ;
+      sql.reset( stmt_lookup_superset );
+    }
+  else
+    {
+      sql.reset( stmt_lookup_superset );
+
+      if ( donotadd ) return 0;
+
+      sql.bind_text( stmt_insert_superset , ":name" , name );
+      sql.bind_text( stmt_insert_superset , ":description" , desc );
+      sql.step( stmt_insert_superset );      
+      group_id = sql.last_insert_rowid();
+      sql.reset( stmt_insert_superset );
+    }
+
+  // add in cache
+  varsuperset_map[ name ] = group_id;
+  
   return group_id;
+
 }
 
-uint64_t VarDBase::set_member_id( const uint64_t grp_id , const std::string & name )
+bool VarDBase::add_set_to_superset( const std::string & supersetname , const std::string & setname )
 {
-  sql.bind_int64( stmt_insert_group_member , ":group_id" , grp_id );
-  sql.bind_text( stmt_insert_group_member , ":name" , name );
-  sql.step( stmt_insert_group_member );      
-  uint64_t new_id = sql.last_insert_rowid();
-  sql.reset( stmt_insert_group_member );
-  return new_id;
+  uint64_t set_id = add_set( setname );
+  uint64_t superset_id = add_superset( supersetname );
+  sql.bind_int64( stmt_attach_set_to_superset , ":set_id" , set_id );
+  sql.bind_int64( stmt_attach_set_to_superset , ":superset_id" , superset_id );
+  sql.step( stmt_attach_set_to_superset );
+  sql.reset( stmt_attach_set_to_superset );
+  return true;
 }
 
-
-void VarDBase::set_add_variant( const uint64_t set_id , const uint64_t var_id )
+std::vector<std::string> VarDBase::get_sets()
 {
-  sql.bind_int64( stmt_insert_group_variant , ":set_id" , set_id );
-  sql.bind_int64( stmt_insert_group_variant , ":var_id" , var_id );
-  sql.step( stmt_insert_group_variant );      
-  sql.reset( stmt_insert_group_variant );
+  std::vector<std::string> n;
+  while( sql.step( stmt_dump_all_set_names ) )
+    n.push_back( sql.get_text( stmt_dump_all_set_names , 0 ) );
+  sql.reset( stmt_dump_all_set_names );
+  return n;
 }
+
+std::vector<std::string> VarDBase::get_supersets()
+{
+  std::vector<std::string> n;
+  while( sql.step( stmt_dump_all_superset_names ) )
+    n.push_back( sql.get_text( stmt_dump_all_superset_names , 0 ) );
+  sql.reset( stmt_dump_all_set_names );
+  return n;  
+}
+
+std::vector<std::string> VarDBase::get_sets( const std::string & superset )
+{
+  std::vector<std::string> n;
+  const bool DO_NOT_ADD_TO_SUPERSET = true;
+  uint64_t superset_id = add_superset( superset , "" , DO_NOT_ADD_TO_SUPERSET );
+  if ( superset_id == 0 ) return n;
+  sql.bind_int64( stmt_lookup_set_names , ":superset_id" , superset_id );
+  while ( sql.step( stmt_lookup_set_names ) )
+    {
+      n.push_back( sql.get_text( stmt_lookup_set_names , 0 ) );
+      std::cout << "added " << n[ n.size()-1] << "\n";
+    }
+  sql.reset( stmt_lookup_set_names );
+  return n;
+}
+
+
+int VarDBase::get_set_size( const std::string & setname )
+{
+  const bool DO_NOT_ADD = true;
+  uint64_t set_id = add_set( setname , "" , DO_NOT_ADD );
+  if ( set_id == 0 ) return 0;
+  sql.bind_int64( stmt_setcount , ":set_id" , set_id );
+  sql.step( stmt_setcount );
+  int c = sql.get_int( stmt_setcount , 0 );
+  sql.reset( stmt_setcount );
+  return c;
+}
+
+
+ //
+ // Individuals
+ //
 
 
 std::vector<std::string> VarDBase::fetch_individuals(uint64_t file_id)
@@ -1255,30 +1369,6 @@ int VarDBase::n_files( Mask * mask )
   std::map<int,std::string> f = fetch_files( mask );
   return f.size();
 }
-
-
-std::map<int,std::string> VarDBase::fetch_sets()
-{
-  std::map<int,std::string> res;
-  while( sql.step( stmt_fetch_sets ) )
-    {
-      int f = sql.get_int( stmt_fetch_sets , 0 );
-      std::string n = sql.get_text( stmt_fetch_sets , 1 );
-      res[f] = n;
-    }
-  sql.reset( stmt_fetch_sets );
-  return res;
-}
-
-std::string VarDBase::group_name( const uint64_t group_id )
-{
-  sql.bind_int64( stmt_lookup_group_name , ":group_id" , group_id );
-  if ( sql.step( stmt_lookup_group_name ) )
-    return sql.get_text( stmt_lookup_group_name , 0 );
-  else
-    return "";
-}
-
 
 
 void VarDBase::addMetaFields( Variant & var, sqlite3_stmt * s, Mask & mask)
@@ -1505,27 +1595,37 @@ std::string VarDBase::summary( Mask * mask , bool ugly )
       ++i;
     }
     
-    // Sets
   
+  // Sets and super-sets
+  
+  std::vector<std::string> ssets = get_supersets();
+  std::vector<std::string> sets = get_sets();
+  if ( ( ssets.size() >0  || sets.size() > 0 ) && ! ugly ) ss << "\n";
+  
+  for (int s=0;s<ssets.size();s++)
+    {
 
+      std::vector<std::string> s2 = get_sets( ssets[s] );
 
-  std::map<int,std::string> s = fetch_sets();
-  if ( s.size() && ! ugly ) ss << "\n";
-  std::map<int,std::string>::iterator j = s.begin();
-  while ( j != s.end() )
+      if ( ugly ) 
+	ss << "VARDB\t"
+	   << "SUPERSET=" << ssets[s] << "\t" 
+	   << "N_SETS=" << s2.size() << "\n";
+      else
+	ss << "Superset " << ssets[s] << " containing " << s2.size() << " sets\n";
+    }
+  
+  for (int s=0;s<sets.size();s++)
     {
       if ( ugly ) 
 	ss << "VARDB\t"
-	   << "SET_N=" << j->first << "\t" 
-	   << "N_VAR=" << set_count( j->first ) << "\t"
-	   << "SET_NAME=" << j->second << "\n";
+	   << "SET=" << sets[s] << "\t" 
+	   << "N_VAR=" << get_set_size( sets[s] ) << "\n";
       else
-	ss << "Set " << j->second << " containing " << set_count( j->first ) << " variants\n";
-
-      ++j;
+	ss << "Set " << sets[s] << " containing " << get_set_size( sets[s] )  << " variants\n";
     }
- 
-  
+
+   
   // Indep meta-information
 
   if ( indep_metamap.size() && ! ugly ) ss << "\n";

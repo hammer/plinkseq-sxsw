@@ -32,7 +32,9 @@ class LocDBase {
   bool release();
   
   bool attached() { return sql.is_open(); }
-  
+
+  void check_version();
+
   std::string summary( bool );
 
   // Queries
@@ -47,7 +49,8 @@ class LocDBase {
 			   const std::string & real_name , 
 			   bool alternate_search = false );
 
-  std::vector<std::string> fetch_names( const std::string & loc_group , bool alternate = false);
+  void populate_searchname_table( const std::string & g , bool altname = true );
+  std::set<std::string> fetch_names( const std::string & loc_group );
 
   std::vector<std::string> fetch_name_given_altname( const std::string & loc_group , const std::string & altname );
   
@@ -368,8 +371,7 @@ class LocDBase {
   sqlite3_stmt * stmt_loc_replace_real_name;
   sqlite3_stmt * stmt_loc_replace_real_name_alternate;
 
-  sqlite3_stmt * stmt_loc_name_list;
-  sqlite3_stmt * stmt_loc_altname_list;
+  sqlite3_stmt * stmt_loc_name_dump;
   sqlite3_stmt * stmt_loc_lookup_real_name;
   sqlite3_stmt * stmt_loc_lookup_real_name_only;
 

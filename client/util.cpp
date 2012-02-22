@@ -98,8 +98,10 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf"
 	
-	
-	
+	  << "var-set|input,varop|add a variant-set to a VARDB|ARG:group,file"
+
+	  << "var-superset|input,varop|add a super-set to a VARDB|ARG:group,file,members"
+
 	//
 	// VARDB output
 	//
@@ -112,8 +114,8 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name,use-family-id" 
 	
 	  << "write-lik|output|write a BEALGE likelihood file|VCF"
-	
-	
+      
+      	
 	//
 	// Core view-functions for variant data
 	//
@@ -174,7 +176,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "loc-delete-alias|locop|remove gene-alias table"
 	
 	  << "loc-swap-names|locop|swap LOCDB names|ARG:file,group,alternate-name"
-	
+
+	  << "loc-update-name-table|locop|update LOCDB name table|ARG:group,alternate-name,index-name"
+
 	  << "loc-delete|locop|remove a LOCDB group|ARG:group"
 	
 	  << "loc-index|locop|index a LOCDB" 
@@ -284,7 +288,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name"
 	
-	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests,info,fix-null,perm,midpoint"
+	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$no-burden$calpha$uniq$vt$fw$sumstat,info,fix-null,perm,midpoint"
     
 	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta"
 	
@@ -384,6 +388,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     
     reg( "file" , STRING_VECTOR , "generic input file(s)" );
     reg( "group" , STRING_VECTOR , "generic group label(s)" );
+    reg( "members" , STRING_VECTOR , "super-set members" );
     reg( "ref-group" , STRING , "REFDB group label" );
     reg( "loc-group" , STRING , "LOCDB group label" );
     reg( "region" , STRING_VECTOR , "region(s) ");
@@ -562,8 +567,9 @@ void Pseq::Util::Options::load( int n , char ** argv )
     // loading intervals/GTF 
     
     reg( "use-gene-id" , NONE , "loading GTFs" );
-    
-    reg( "alternate-name" , NONE , "swapping locus names" );
+    reg( "index-name" , NONE , "use LOCDB primary/index name (e.g. transcript ID)" );
+    reg( "alternate-name" , NONE , "use LOCDB alternate name (e.g. gene symbol)" );
+
 
     // v-stats command
     reg( "stats" , KEYWORD , "quantitaties calculated under (v|g|i)-stats" );

@@ -72,11 +72,13 @@ a local directory and link to it with:
 )
 
 AC_CONFIG_FILES([
-Makefile 
+Makefile
 lib/Makefile 
 client/Makefile 
 browser/Makefile 
 browser/pbrowse
+index/Makefile
+index/index
 util/Makefile
 ])
 
