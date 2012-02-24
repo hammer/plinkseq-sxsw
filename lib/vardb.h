@@ -134,11 +134,16 @@ class VarDBase {
   
   uint64_t add_superset( const std::string & name , const std::string & desc = "" , bool donotadd = false );
   bool add_set_to_superset( const std::string & , const std::string & );
-  
+
   std::vector<std::string> get_sets();
   std::vector<std::string> get_supersets();
   std::vector<std::string> get_sets( const std::string & superset );
   int get_set_size( const std::string & );
+
+  void add_set_description( const std::string & name , const std::string & desc );
+  void add_superset_description( const std::string & name , const std::string & desc );
+  std::string get_set_description( const std::string & name );
+  std::string get_superset_description( const std::string & name );
   
   //
   // Add/remove meta-information on variants (independent of VCF load)
@@ -206,6 +211,7 @@ class VarDBase {
   Variant fetch(uint64_t idx);
 
   Variant fetch(int chr, int bp);
+  std::set<Variant> key_fetch( const Region & region );
 
   std::set<Variant> fetch( const Region & );
 
@@ -399,6 +405,8 @@ class VarDBase {
   sqlite3_stmt * stmt_lookup_set_name;
   sqlite3_stmt * stmt_lookup_superset_name;
   sqlite3_stmt * stmt_lookup_set_names;
+  sqlite3_stmt * stmt_lookup_set_desc;
+  sqlite3_stmt * stmt_lookup_superset_desc;
   sqlite3_stmt * stmt_dump_all_set_names;
   sqlite3_stmt * stmt_dump_all_superset_names;
   sqlite3_stmt * stmt_fetch_set_variants;

@@ -92,13 +92,13 @@ namespace Pseq
 
       bool vdist_summary(Mask & m, long int );
 
-      bool add_to_varset( const std::string & , Mask & );
+      bool add_to_varset( const std::string & , Mask & , const std::string & mtag = "" , const std::string & desc = "." );
 
-      bool add_to_varset( const std::string & , const std::string & );
+      bool add_to_varset( const std::string & );
 
       bool add_superset_from_file( const std::string & );
 
-      bool add_superset( const std::string & , const std::vector<std::string> & );
+      bool add_superset( const std::string & , const std::vector<std::string> & , const std::string & );
 
     }    
   

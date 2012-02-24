@@ -17,17 +17,24 @@ struct f_aux
   std::set<std::string> meta_var;
   std::set<std::string> meta_geno;
   std::set<std::string> meta_indiv;
+  std::set<std::string> meta_phenotype;
   bool show_geno;
-  bool show_alt_only;
+  int  show_alt_n;
+  
+  uint64_t loc_set_id;
+  GStore * g;
+
   int vcounter;
   std::vector<std::string> lines;  
 
   f_aux() 
   { 
     show_geno = true;
-    show_alt_only = true;
+    show_alt_n = 1; // at least one ALT indiv required
     vcounter = 0;
     lines.clear();
+    g = NULL;
+    loc_set_id = 0;
   }
 
 };
@@ -62,7 +69,7 @@ int main()
 
   std::string loc_set = PLINKSeq::DEFAULT_LOC_GROUP();
   std::string gene_symbol = PLINKSeq::DEFAULT_GENE_SYMBOL();
-  
+
   
   //
   // Get CGI variables from POST
@@ -100,7 +107,6 @@ int main()
       else if ( str == "imode" ) query_mode = "i";
       else if ( str == "gmode" ) query_mode = "g";
       else if ( str == "showgeno" ) aux.show_geno = true;
-      else if ( str == "showaltonly" ) aux.show_alt_only = true;
       else
 	{
 
@@ -109,6 +115,7 @@ int main()
 	  
 	  if      ( str == "p"          ) project = param;
 	  else if ( str == "genestring" ) genestring = param;
+	  else if ( str == "showaltn"   ) aux.show_alt_n = Helper::str2int( param );
 
 	  else if ( str == "vtags" ) inserter( vtags_sel , param );	  
 	  else if ( str == "indiv" ) inserter( indiv_sel , param );
@@ -147,6 +154,7 @@ int main()
   GStore g;  
   g.set_project( project ) ;
   
+
   if ( ! g.vardb.attached() ) HTMLHelper::end_page( "could not attach project [" + project +"]" );
   if ( ! g.locdb.attached() ) HTMLHelper::end_page( "no locus database attached to project" );
 
@@ -223,8 +231,23 @@ int main()
 	  
        }
      ++i;
-   }
-   
+    }
+
+  // also add any phenotype information in here
+  
+  std::map<std::string,std::vector<std::string> > pheno = g.inddb.fetch_phenotype_info();
+  std::map<std::string,std::vector<std::string> >::iterator p = pheno.begin();
+  while ( p != pheno.end() )
+    {
+      std::string name = p->first;
+      std::string desc = "(" + p->second[0] + ") " + p->second[1] ;
+      meta.insert(name);
+      meta_desc[name] = desc;
+      aux.meta_phenotype.insert(name);
+      ++p;
+    }
+  
+  
 
   //
   // Four main selection tables
@@ -267,11 +290,9 @@ int main()
 
   std::cout << "<br>";
 
-  std::string c1 = aux.show_geno ? "CHECKED" : "";
-  std::cout << "<input type=\"checkbox\" name=\"showgeno\" " << c1 << "> Show individual genotypes ";
-
-  c1 = aux.show_alt_only ? "CHECKED" : "";
-  std::cout << "<input type=\"checkbox\" name=\"showaltonly\" " << c1 << "> Only list non-reference sites ";
+  std::cout << "<input type=\"checkbox\" name=\"showgeno\" " << ( aux.show_geno ? "CHECKED" : "" ) << "> Show individual genotypes &nbsp;&nbsp;";
+  
+  std::cout << "<input type=\"text\" size=5 name=\"showaltn\" " << aux.show_alt_n << "> Only list sites with N non-reference individuals ";
   
   std::cout << " <br> ";
   
@@ -408,32 +429,69 @@ int main()
 
       g.indmap.populate( g.vardb, g.phmap, mask );
 
+      // some other house-keeping
+
+      aux.loc_set_id = g.locdb.lookup_group_id( loc_set );
+
+      aux.g = &g;
+
+
       // append meta-information 
       
       g.vardb.iterate( f_display , &aux , mask );
-
+      
       // display
       
       std::cout << "<br><em>Found " << aux.vcounter << " variants that match criteria</em><br>&nbsp;<br>";
 
-      std::cout << "<table border=1><tr align=\"center\"><th>Variant</th><th>REF/ALT</th>";
+      std::cout << "<table border=1><tr align=\"center\"><th>Variant</th><th>REF/ALT</th>"
+		<< "<th>GENE</th><th>ANNOT</th>";
 
       // meta-information
       std::set<std::string>::iterator mi = meta_sel.begin();
       while ( mi != meta_sel.end() )
 	{
-	  std::cout << "<th>" << *mi << "</th>";
+	  if ( aux.meta_var.find( *mi ) != aux.meta_var.end() )
+	    std::cout << "<th>" << *mi << "</th>";
 	  mi++;
 	}
-
+      
       // genotypes
       if ( aux.show_geno ) 
 	{
 	  const int n = g.indmap.size();
 	  for (int i=0;i<n;i++) std::cout << "<th>" << g.indmap(i)->id() << "</th>";
 	}
-
+      
       std::cout << "</tr>";
+
+      // show phenotype information ? 
+
+      if ( aux.show_geno && aux.meta_phenotype.size() > 0 ) 
+	{
+	  std::cout << "<tr><td>.</td><td>.</td>";
+	  std::set<std::string>::iterator mi = meta_sel.begin();
+	  while ( mi != meta_sel.end() )
+	    {
+	      if ( aux.meta_var.find( *mi ) != aux.meta_var.end() )
+		std::cout << "<td>.</td>";
+	      mi++;
+	    }
+      	  const int n = g.indmap.size();
+	  for (int i=0;i<n;i++) 
+	    {
+	      std::cout << "<td align=\"center\">";
+	      std::set<std::string>::iterator pi = aux.meta_phenotype.begin();
+	      while ( pi != aux.meta_phenotype.end() )
+		{
+		  if ( pi != aux.meta_phenotype.begin() ) std::cout << "<br>";		  
+		  std::cout << *pi << "=" << g.phmap.phenotype( *pi , i );
+		  ++pi;
+		}
+	      std::cout << "</td>";
+	    } // next indiv
+	  std::cout << "</tr>";
+	}
     
       // table rows
       for (int v=0;v<aux.lines.size();v++)
@@ -502,21 +560,46 @@ void f_display( Variant & v , void * p )
   // Only display variants with 1 or more alternate allele?
   //
 
-  if ( aux->show_alt_only )
+  if ( aux->show_alt_n )
     {
-      int c, c_tot;
-      bool altmin = v.n_minor_allele( &c , &c_tot );
-      if ( altmin && c == 0 ) return;
-      if ( c == c_tot && !altmin ) return;
+      int tot = 0;
+      const int n = v.size();
+      for ( int i=0; i<n; i++)
+	{
+	  Genotype & g = v(i);
+	  if ( g.heterozygote() || g.alternate_homozygote() ) ++tot;
+	}
+      if ( tot < aux->show_alt_n ) return;
     }
 
   //
   // Generate display line for table
   //
 
-  std::stringstream ss;
 
+  std::stringstream ss;
+  
   ss << "<tr align=\"center\"><td>" << v << "</td><td>" << v.consensus.reference() << "/" << v.consensus.alternate() << "</td>";
+
+  // Get simple gene-label
+  // assumes that ALTNAME contains the gene label. 
+  
+   std::string gname = aux->g->locdb.get_genename( v , aux->loc_set_id , "<br>" );
+   ss << "<td> G = " << gname << "</td>";
+
+
+   // Genic annotation
+  
+   std::set<SeqInfo> a = Annotate::lookup( v );
+   std::set<SeqInfo>::iterator ii = a.begin();
+   while ( ii != a.end() ) 
+     {
+       if ( ii != a.begin() ) ss << "<br>";
+       ss << ii->summary() ;
+       ++ii;
+     }
+   ss << "</td>";
+   
 
   // meta-information
   std::set<std::string>::iterator mi = aux->meta_var.begin();

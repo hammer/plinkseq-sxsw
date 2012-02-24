@@ -112,6 +112,8 @@ class PhenotypeMap {
   bool strata_set() const { return use_strata; } 
   
   std::string strata() const { return strata_name; }
+
+  std::string phenotype(const std::string & , const int indiv ) const;
   
   //
   // Directly load

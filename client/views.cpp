@@ -37,7 +37,9 @@ void f_view( Variant & v , void * p )
        << v.consensus << "\t"      
        << "." << "\t" 
        << v.n_samples() << "\t";
-  
+
+  plog << g.locdb.get_genename( v , 2 ) << " ";
+
   plog << v.print_meta_filter();
 
   if ( opt->vmeta )

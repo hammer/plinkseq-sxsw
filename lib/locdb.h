@@ -257,7 +257,12 @@ class LocDBase {
 
    std::set<Region> get_overlaps(uint64_t loc_id, OverlapDefinition & );
 
-   
+   //
+   // Convenience functions
+   //
+
+   std::string get_genename( const Variant & var , uint64_t group_id , const std::string & delim = "," );
+
    bool get_regions_and_overlap( void (*f)( Region&,Region&, int, int, void * ) ,
 				 void * data );
 
@@ -368,6 +373,9 @@ class LocDBase {
   sqlite3_stmt * stmt_loc_lookup_group_and_name;
   sqlite3_stmt * stmt_loc_lookup_id_group_and_range;
 
+  sqlite3_stmt * stmt_loc_fetch_altnames;
+  sqlite3_stmt * stmt_loc_fetch_altnames_indel;
+ 
   sqlite3_stmt * stmt_loc_replace_real_name;
   sqlite3_stmt * stmt_loc_replace_real_name_alternate;
 

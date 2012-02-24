@@ -11,7 +11,7 @@ bool Pseq::VarDB::load_VCF( Mask & mask )
 
     // are any optinal locus groups specified (this will act as a mask, such that
     // we only read in variants that fall in this region
-    
+
     bool region_mask = args.has("filter");
     
     std::string rmask;
@@ -24,8 +24,9 @@ bool Pseq::VarDB::load_VCF( Mask & mask )
     if ( args.has( "format" , "exclude-meta" ) ) excludes = args.get_set( "format" , "exclude-meta" );
 
     if ( ! args.has("check-reference") ) g.seqdb.dettach();
-    
+
     return g.vardb_load_vcf( mask , includes , excludes , region_mask ? & rmask : NULL );
+
 }
 
 bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & grp ) 
@@ -496,20 +497,55 @@ bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
 
 
 
+struct aux_addvar  {
+  std::string group;
+  bool tagvalue;  
+};
 
 void f_add_to_varset( Variant & var , void * p )
 {
+  aux_addvar * aux = (aux_addvar*)p;
   std::string * group = (std::string*)p;
-  g.vardb.add_var_to_set( *group , var );
+  if ( aux->tagvalue )
+    {
+      // to to group-name defined by tag-value
+      std::string val = "";
+      
+      // only allow this for text and integer tag values
+      meta_index_t midx = MetaInformation<VarMeta>::field( aux->group );
+      if ( !(  midx.mt == META_TEXT || midx.mt == META_INT ) ) return;
+
+      MetaInformation<VarMeta> * m = NULL;
+      if ( var.meta.has_field( aux->group ) ) m = &var.meta;
+      else if ( var.consensus.meta.has_field( aux->group ) ) m = &var.consensus.meta;      
+      if ( m == NULL ) return;
+      
+      if ( midx.mt == META_TEXT )
+	{
+	  std::vector<std::string> t = m->get_string( aux->group );
+	  for (int i=0; i<t.size(); i++ ) 
+	    g.vardb.add_var_to_set( t[i] , var  );
+	}
+      
+      if ( midx.mt == META_INT )
+	{
+	  std::vector<int> t = m->get_int( aux->group );
+	  for (int i=0; i<t.size(); i++ ) 
+	    g.vardb.add_var_to_set( aux->group + "[" + Helper::int2str( t[i] ) + "]" , var  );
+	}      
+    }
+  else
+    g.vardb.add_var_to_set( aux->group , var );
 }
 
-bool Pseq::VarDB::add_to_varset( const std::string & group , Mask & mask )
+bool Pseq::VarDB::add_to_varset( const std::string & group , Mask & mask , const std::string & mtag , const std::string & desc )
 {
 
   // Create VarGroup if it does not exist
 
   g.vardb.add_set( group );
-  
+  if ( desc != "." ) g.vardb.add_set_description( group , desc );
+
   // Add all mask-passing variants
 
   g.vardb.iterate( f_add_to_varset , (void*)&group , mask );
@@ -517,22 +553,109 @@ bool Pseq::VarDB::add_to_varset( const std::string & group , Mask & mask )
   return true;
 }
 
-bool Pseq::VarDB::add_to_varset( const std::string & filename , const std::string & group )
+bool Pseq::VarDB::add_to_varset( const std::string & filename  )
 {
+
+  // format ( tab-delim, 2/3/4 cols ) : 
+
+  //  #name        description
+  //  snp/region  var-pos   name   { alternate-allele } 
+       
+
   Helper::checkFileExists( filename );
+
   InFile f( filename );
+
+  bool vardb_exists = g.vardb.attached();
+  
   while ( ! f.eof() )
     {
-      std::vector<std::string> h = f.tokenizeLine();
-      Variant v;
-      if ( h.size() != 1 && h.size() != 2 ) continue;
-      bool okay = true;
-      Region reg( h[0] , okay );
-      if ( ! okay ) continue;
-      if ( h.size() == 2 ) v.consensus.alternate( h[1] );
-      g.vardb.add_var_to_set( group , v );
-    }
-  f.close();  
+
+      std::vector<std::string> h = f.tokenizeLine("\t");
+      
+      // a description / add a var-set name 
+      if ( h.size() == 2 ) 
+	{
+	  g.vardb.add_set_description( h[0] , h[1] ); 
+	}
+      else 
+	{
+	  if ( h.size() != 3 && h.size() != 4 ) continue;
+
+	  bool add_region = false;
+	  Helper::str2upper( h[0] );
+	  
+	  if ( h[0].substr(0,3) == "REG" ) add_region = true;
+	  else if ( h[0].substr(0,3) == "SNP" ) add_region = false;
+	  else 
+	    {
+	      plog.warn( "invalid region/snp code " , h[0] );
+	      continue; 
+	    }
+
+	  // add a set of SNPs in a region, or as a single variant ? 
+	  
+	  if ( add_region ) 
+	    {
+
+	      // this only works when a VARDB is attached
+	      if ( ! vardb_exists ) continue;
+	      
+	      // REG name var
+	      
+	      bool okay = true;
+	      Region reg( h[2] , okay );
+	      if ( ! okay ) continue;
+	      
+	      std::string group = h[1];
+
+	      std::set<Variant> vs = g.vardb.key_fetch( reg );
+	      std::set<Variant>::iterator vi = vs.begin();
+	      while ( vi != vs.end() ) 
+		{		  
+		  g.vardb.add_var_to_set( group , (Variant&)*vi );
+		  ++vi;
+		}
+	      
+	    }
+	  else
+	    {
+	      
+	      // SNP  name  var {alt}
+	      
+	      // add variant to 
+	      Variant v;
+	      bool okay = true;
+	      Region reg( h[2] , okay );
+	      if ( ! okay ) continue;
+
+	      // if a VARDB attached, only add SNP if it exists in the VARDB
+	      if ( vardb_exists ) 
+		{
+		  std::set<Variant> vs = g.vardb.key_fetch( reg );
+		  if ( vs.size() == 0 ) continue;
+		  v.consensus.index( vs.begin()->consensus.index() );
+		}
+	      
+	      v.chromosome( reg.chromosome() );
+	      v.position( reg.start.position() );
+	      v.stop( reg.stop.position() );
+
+	      // also specified an alternate allele?
+	      if ( h.size() == 4 ) 
+		v.consensus.alternate( h[3] );
+	      
+	      // if a VARDB is attached, only add this variant to the
+	      // set if it actually exists in 1 or more files
+	      
+	      // add SNP (group-name, variant)
+	      g.vardb.add_var_to_set( h[1] , v );
+	      
+	    } // end add-region
+	} // end add-snp
+    } // next row
+  
+  f.close();    
   return true;
 }
 
@@ -551,9 +674,10 @@ bool Pseq::VarDB::add_superset_from_file( const std::string & filename )
   return true;
 }
 
-bool Pseq::VarDB::add_superset( const std::string & group , const std::vector<std::string> & members )
+bool Pseq::VarDB::add_superset( const std::string & group , const std::vector<std::string> & members , const std::string & desc )
 {
   g.vardb.add_superset( group );
+  g.vardb.add_superset_description( group , desc );
   for (int m=0;m<members.size(); m++) g.vardb.add_set_to_superset( group , members[m] );
   return true;
 }

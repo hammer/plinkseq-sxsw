@@ -26,7 +26,7 @@ std::string PSEQ_DATE    = "4-Dec-2011";
 
 int main(int argc, char ** argv)
 {
-    
+
 
   //
   // Get command-line options into a sensible form
@@ -121,7 +121,6 @@ int main(int argc, char ** argv)
   std::string project_file = FileMap::tilde_expansion( args.project_file() );
   
 
-
   //
   // If a single VCF has been specified as the 'project'
   //
@@ -200,7 +199,7 @@ int main(int argc, char ** argv)
       Pseq::finished();
     }
   
-  
+
   //
   // Otherwise, open existing project
   //
@@ -230,6 +229,7 @@ int main(int argc, char ** argv)
       g.fIndex.make_dir( g.fIndex.file( RESOURCES )->name() );
     }
   
+
   if ( args.has("vardb") && ! g.single_file_mode() )
     g.vardb.attach( args.as_string( "vardb" ) );
 
@@ -297,7 +297,6 @@ int main(int argc, char ** argv)
       Pseq::finished();
     }
   
-
 
   //
   // Misc. formatting/display options
@@ -1114,6 +1113,7 @@ int main(int argc, char ** argv)
     // data, which can involve a mask, and possibly a phenotype
     //
     
+
     Mask m( maskspec , filtspec , filter_T_include , pcomm.groups( command ) );
 
 
@@ -1122,7 +1122,9 @@ int main(int argc, char ** argv)
     // also, reg meta-types, etc
     //
 
+
     g.register_mask( m );
+
 
     
     //
@@ -1191,6 +1193,7 @@ int main(int argc, char ** argv)
   
   if ( command == "load-vcf" )
     {
+
       // Add any VCFs specified on the command line, via --vcf or --file
       
       if ( args.has("vcf") ) 
@@ -1386,12 +1389,12 @@ int main(int argc, char ** argv)
 	for (int i=0;i<g.indmap.size(); i++)
 	  {
 	    Individual * person = g.indmap(i);
-	    std::cout << *person << "\n";
+	    plog << *person << "\n";
 	    std::set<Region> s = g.segdb.get_indiv_regions( grp , person->id() );
 	    std::set<Region>::iterator si = s.begin();
 	    while ( si != s.end() ) 
 	      {
-		std::cout << "\t" << *si << "\n";
+		plog << "\t" << *si << "\n";
 		++si;
 	      }
 	  }
@@ -2122,15 +2125,18 @@ int main(int argc, char ** argv)
     if ( command == "var-set" ) 
       {
 	
-	if ( ! args.has( "group" ) ) Helper::halt( "need to specify a --group" );
-	
 	// either from a file; or all mask-passing variants
-
-	if ( args.has( "file" ) )
-	  Pseq::VarDB::add_to_varset( args.as_string( "file" ) , args.as_string( "group" ) ); 
-	else 
-	  Pseq::VarDB::add_to_varset( args.as_string( "group" ) , m ); 
 	
+	if ( args.has( "file" ) )
+	  Pseq::VarDB::add_to_varset( args.as_string( "file" ) ); 
+	else 
+	  {
+	    if ( ! args.has( "group" ) ) Helper::halt( "need to specify a --group" );
+	    if ( args.has( "name" ) ) 
+	      Pseq::VarDB::add_to_varset( args.as_string( "group" ) , m , args.as_string( "name" ) );
+	    else 
+	      Pseq::VarDB::add_to_varset( args.as_string( "group" ) , m ); 
+	  }
 	Pseq::finished();
       }
     
@@ -2141,6 +2147,7 @@ int main(int argc, char ** argv)
     
     if ( command == "var-superset" )
       {
+	std::string desc = args.has( "description" ) ? args.as_string( "description" ) : ".";
 	
 	// Read from file
 	if ( args.has( "file" ) ) 
@@ -2152,9 +2159,11 @@ int main(int argc, char ** argv)
 	  {
 	    if ( ! args.has( "members" ) ) Helper::halt( "need to specify --members with --group" );
 	    std::vector<std::string> m = args.as_string_vector( "members" );
-	    Pseq::VarDB::add_superset( args.as_string( "group" ) , m );
+	    Pseq::VarDB::add_superset( args.as_string( "group" ) , m , desc );
 	    Pseq::finished();
 	  }
+	else 
+	  Helper::halt("need to specify --group and --members, or --file" );
       }
     
         
