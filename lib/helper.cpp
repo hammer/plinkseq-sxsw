@@ -913,6 +913,26 @@ int Helper::chrCode(const std::string & c)
   return 0;
 }
 
+/**
+ * Returns the default PLINK/SEQ chr encoding --
+ * right now this just makes "1" -> "chr1", etc.
+ * Used when loading vardd (VCF but not BED),
+ * refdb, locdb and seqdb
+ */
+std::string Helper::defaultChrPrefix(const std::string & s)
+{
+  int chr_int;
+  Helper::str2int(s, chr_int);
+  if (chr_int > 0 && chr_int < 23)
+    {
+      return "chr" + s;
+    }
+  else if (s == "X") return "chrX";
+  else if (s == "Y") return "chrY";
+  else if (s == "M") return "chrM";
+  else return s;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // File handling

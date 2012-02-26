@@ -604,6 +604,10 @@ Variant VCFReader::getVariant(const std::string & s)
   
   // requires a valid chr and position to be accepted as a variant
   if ( ! processVCF( tok(0) , &chr   ) ) return var; 
+
+  // change "1" to "chr1", etc
+  chr = Helper::defaultChrPrefix(chr);
+
   if ( ! processVCF( tok(1) , &pos   ) ) 
     {
       bool okay;
