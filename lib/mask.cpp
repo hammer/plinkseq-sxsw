@@ -1550,22 +1550,22 @@ void Mask::include_reg( const std::vector<std::string> & k )
 
 // variant IDs
 
-// void Mask::include_id( const std::vector<std::string> & r )
-// {
+void Mask::include_id( const std::vector<std::string> & r )
+{
 //   for (int i=0; i<r.size(); i++) in_ids.insert(r);
-// }
+}
 
 
-// void Mask::require_id( const std::vector<std::string> & r )
-// {
+void Mask::require_id( const std::vector<std::string> & r )
+{
 //   for (int i=0; i<r.size(); i++) req_ids.insert(r);
-// }
+}
 
 
-// void Mask::exclude_id( const std::vector<std::string> & r )
-// {
+void Mask::exclude_id( const std::vector<std::string> & r )
+{
 //   for (int i=0; i<r.size(); i++) ex_ids.insert(r);
-// }
+}
 
 
 // variant groups
