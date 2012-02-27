@@ -97,6 +97,12 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "reg.req" , "str-list" , "exclude regions(s)" ); 
   mask_add( s , g , c++ , gl , "reg.group" , "str-list" , "group variants by list of regions (not implemented)" ); 
 
+  // variant-IDs
+  ++g; c=0; gl="ids";
+  mask_add( s , g , c++ , gl , "id" , "str-list" , "include variants based on ID" ); 
+  mask_add( s , g , c++ , gl , "id.ex" , "str-list" , "require variants based on ID" ); 
+  mask_add( s , g , c++ , gl , "id.req" , "str-list" , "exclude variants based on ID" ); 
+
   // locus-sets
   ++g; c=0; gl="locus-set-groups";
   mask_add( s , g , c++ , gl , "locset" , "str-list" , "included locus-sets" ); 
@@ -109,11 +115,12 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "locset.append" , "str-list" , "append meta-information from LOCDB locus-sets" );
 
 
-  // variant-groups -- All hidden for now
+  // variant-groups 
   ++g; c=0; gl="variant-groups";
+    
   mask_add( s , g , c++ , gl , "var" , "str-list" , "variant include list(s)" );
-   mask_add( s , g , c++ , gl , "var.ex", "str-list" , "excluded variants" ); 
-   mask_add( s , g , c++ , gl , "var.req", "str-list" , "required variants" );
+  mask_add( s , g , c++ , gl , "var.ex", "str-list" , "excluded variants" ); 
+  mask_add( s , g , c++ , gl , "var.req", "str-list" , "required variants" );
 
 
 //   mask_add( s , g , c++ , gl , "var.inc" , "str-list" , "variant include list(s)" , true ); // hidden
@@ -685,6 +692,27 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     }
 
   
+  // Variant IDs
+
+  if ( m.has_field( "id" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "id" );
+      include_id( k );
+    }
+  
+  if ( m.has_field( "id.ex" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "id.ex" );
+      exclude_id( k );
+    }
+  
+  if ( m.has_field( "id.req" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "id.req" );
+      require_id( k );
+    }
+
+
   // Variant file masks
 
   if ( m.has_field( "obs.file" ) )
@@ -1519,6 +1547,28 @@ void Mask::include_reg( const std::vector<std::string> & k )
       if ( okay ) include_reg( r );
     }
 }
+
+// variant IDs
+
+// void Mask::include_id( const std::vector<std::string> & r )
+// {
+//   for (int i=0; i<r.size(); i++) in_ids.insert(r);
+// }
+
+
+// void Mask::require_id( const std::vector<std::string> & r )
+// {
+//   for (int i=0; i<r.size(); i++) req_ids.insert(r);
+// }
+
+
+// void Mask::exclude_id( const std::vector<std::string> & r )
+// {
+//   for (int i=0; i<r.size(); i++) ex_ids.insert(r);
+// }
+
+
+// variant groups
 
 int Mask::include_var( int x )      
 {  
