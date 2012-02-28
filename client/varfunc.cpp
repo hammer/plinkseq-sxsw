@@ -389,6 +389,7 @@ void f_lookup_annotator( Variant & var , void * p )
 
       bool exonic = Annotate::annotate( var );
   
+
       std::string annot = var.meta.get1_string( PLINKSeq::ANNOT() );
 	  
       // detailed annotation vector, primary annotation
@@ -427,9 +428,8 @@ void f_lookup_annotator( Variant & var , void * p )
       
     }
   
-
   std::string s = var.coordinate();
-  
+
   // Fetch from SEQDB
   
   if ( aux->append_seq ) 
@@ -445,11 +445,10 @@ void f_lookup_annotator( Variant & var , void * p )
 
     }
   
-  
   // Fetch from VARDB 
 
   std::set<Variant> vars = g.vardb.fetch( region );
-  
+
   if ( vars.size() == 0  )
     {
       if ( aux->vardb ) 
@@ -480,8 +479,7 @@ void f_lookup_annotator( Variant & var , void * p )
     {
       
       ++cnt;
-      
-      
+
       if ( vars.size() > 1 ) 
 	plog << s << "\t"
 	     << "var_" << cnt << "\t"
@@ -513,8 +511,7 @@ void f_lookup_annotator( Variant & var , void * p )
 		++control_n;
 	    }
 	}
-      
-      
+
       if ( aux->append_phe )
 	{
 	  if ( vars.size() > 1 ) 
@@ -548,7 +545,7 @@ void f_lookup_annotator( Variant & var , void * p )
       
     }
   
-  
+
   //
   // Locus DB ? 
   //
@@ -605,6 +602,7 @@ void f_lookup_annotator( Variant & var , void * p )
   //
   // Reference variants? 
   //
+
   
   if ( aux->append_ref ) 
     {
@@ -756,7 +754,6 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask , cons
 	      continue;
 	    }
 	  
-	  
 	  // Region REF ALT
 	  
 	  Region region( line[0] , okay );     
@@ -776,7 +773,9 @@ bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask , cons
 	      
 	      var.consensus.reference( ref_allele );
 	      var.consensus.alternate( alt_allele );	  
+
 	      f_lookup_annotator( var , &aux );
+
 	    }
 	  else
 	    plog.warn( "not a valid region" , line[0] );
@@ -1486,7 +1485,6 @@ void f_denovo_scan( Variant & v , void * p )
       
       int patn = g.indmap.ind_n( pat->id() );
       int matn = g.indmap.ind_n( mat->id() );
-
       Genotype & go = v(i);
       Genotype & gp = v(patn);
       Genotype & gm = v(matn);

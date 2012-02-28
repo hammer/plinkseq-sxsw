@@ -1621,21 +1621,22 @@ std::set<Variant> VarDBase::fetch( const Region & region )
   sql.bind_int( stmt_fetch_variant_range , ":rstart" , region.start.position() );
   sql.bind_int( stmt_fetch_variant_range , ":rend" , region.stop.position() );
     
-  std::map<int,Variant> vmap;
-
+  std::map<int2,Variant> vmap;
+  
   fetch_mode_t old_fetch_mode = fetch_mode;
   fetch_mode = ALL;
-
+  
   while ( sql.step( stmt_fetch_variant_range ) )
     {
       // extract BP position on this chromosome
       int pos = sql.get_int( stmt_fetch_variant_range , 4 );      
-      SampleVariant & sample = construct( vmap[pos] , stmt_fetch_variant_range , &indmap );
-      sample.decode_BLOB( &vmap[pos] , &indmap , NULL );
+      int stop = sql.get_int( stmt_fetch_variant_range , 5 );      
+      SampleVariant & sample = construct( vmap[int2(pos,stop)] , stmt_fetch_variant_range , &indmap );
+      sample.decode_BLOB( &vmap[int2(pos,stop)] , &indmap , NULL );
     } 
   sql.reset( stmt_fetch_variant_range ) ;  
 
-  std::map<int,Variant>::iterator i = vmap.begin();
+  std::map<int2,Variant>::iterator i = vmap.begin();
   while ( i != vmap.end() )
     {
       i->second.make_consensus( &indmap );

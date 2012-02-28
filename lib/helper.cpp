@@ -921,16 +921,15 @@ int Helper::chrCode(const std::string & c)
  */
 std::string Helper::defaultChrPrefix(const std::string & s)
 {
-  int chr_int;
-  Helper::str2int(s, chr_int);
-  if (chr_int > 0 && chr_int < 23)
-    {
-      return "chr" + s;
-    }
-  else if (s == "X") return "chrX";
-  else if (s == "Y") return "chrY";
-  else if (s == "M") return "chrM";
-  else return s;
+  // handle null case
+  if ( s.size() == 0 ) return s;
+  
+  // allow chr0 as unmapped
+  if ( s[0] >= '0' && s[0] <= '9' ) return "chr" + s;  
+  if ( s[0] == 'X' ) return "chrX";
+  if ( s[0] == 'Y' ) return "chrX";
+  if ( s[0] == 'M' ) return "chrX";
+  return s;
 }
 
 
