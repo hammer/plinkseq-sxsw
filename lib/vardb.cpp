@@ -1889,6 +1889,13 @@ int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy )
 {
 
   std::map<std::string,int>::iterator i = chr_code_map.find(n);
+
+  // "chr1" and "1" shouldn't return different results
+  if ( i == chr_code_map.end() && chr_code_map.find("chr" + n) != chr_code_map.end() )
+    {
+      i = chr_code_map.find("chr" + n);
+    }
+
   if ( i != chr_code_map.end() ) 
     {
       if ( ploidy ) *ploidy = chr_ploidy_map[ i->second ];
