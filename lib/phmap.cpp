@@ -3,6 +3,9 @@
 #include "indmap.h"
 #include "inddb.h"
 #include "filemap.h"
+#include "gstore.h"
+
+extern GStore * GP;
 
 PhenotypeMap::PhenotypeMap(IndDBase * pinddb) 
 {   
@@ -539,6 +542,26 @@ Data::Vector<double> PhenotypeMap::get_pheno( const std::string & p , const Indi
   return d;
 }
 
+
+std::string PhenotypeMap::phenotype(const std::string & p , const int i ) const
+{
+  // return for a single individual a printable version of the phenotype, or '.' if it does
+  // not exist
+
+  const int n = GP->indmap.size();
+  if ( i < 0 || i >= n ) return ".";
+  Individual * person = GP->indmap(i);
+  if ( person->meta.has_field( p ) )
+    {
+      mType mt = MetaInformation<IndivMeta>::type( p );      
+      if      ( mt == META_INT ) return Helper::int2str( person->meta.get1_int( p ) );
+      else if ( mt == META_FLOAT ) return Helper::dbl2str( person->meta.get1_double( p ) );
+      else if ( mt == META_BOOL ) return person->meta.get1_bool( p ) ? "T" : "F" ;
+      else if ( mt == META_TEXT ) return person->meta.get1_string( p );
+      else return ".";
+    }
+  return ".";
+}
 
 Data::Matrix<double> PhenotypeMap::covariates( const std::vector<std::string> & c , const IndividualMap & indmap )
 {

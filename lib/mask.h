@@ -159,6 +159,7 @@ class Mask {
   const std::set<Region> & included_reg() const { return in_regions; }
   const std::set<int> & included_ref() const { return in_refset; }
 
+
   const std::set<int> & required_loc() const { return req_locset; }
   const std::set<int> & required_locset() const { return req_locset_set; }
   const std::set<int> & required_var() const { return req_varset; }
@@ -240,6 +241,14 @@ class Mask {
   void include_reg( const std::vector<std::string> & r );
   void require_reg( const Region & r ) {  req_regions.insert(r); }
   void exclude_reg( const Region & r ) {  ex_regions.insert(r); }
+
+  //
+  // Variant IDs
+  //
+
+  void include_id( const std::vector<std::string> & r );
+  void require_id( const std::vector<std::string> & r );
+  void exclude_id( const std::vector<std::string> & r );
 
   //
   // Variant/file masks (i.e. remove variant if not observed/alt-allele in files x,y,z etc
@@ -1053,6 +1062,13 @@ class Mask {
       req_regions.clear();
       ex_regions.clear();
 
+      // Variant IDs
+
+      in_ids.clear();
+      req_ids.clear();
+      ex_ids.clear();
+
+      
       // Grouping
 	    
       group_region = false;
@@ -1370,6 +1386,11 @@ class Mask {
 	return set2str( app_refset );	
       }	
 
+    // TO ADD
+/*     std::string id_include_string() cosnt */
+/*       { */
+	
+/*       } */
 
     std::string files_include_string() const
       {
@@ -1600,7 +1621,15 @@ class Mask {
     std::set<Region> req_regions;
     std::set<Region> ex_regions;
 
+    //
+    // Variant IDs
+    //
     
+    std::set<std::string> in_ids;
+    std::set<std::string> ex_ids;
+    std::set<std::string> req_ids;
+
+
     // Functions that can be applied to the full variant, after extracting
     // from the database but before sending on the the calling function. All
     // standard attributes and meta-information for the variant will be

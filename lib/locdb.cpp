@@ -264,6 +264,7 @@ bool LocDBase::init()
 	sql.prepare("INSERT OR REPLACE INTO groups ( name, temp, description ) "
 		" values( :name, :temp, :description ) ; ");
   
+
     stmt_loc_lookup_group_name = 
       sql.prepare("SELECT group_id FROM groups WHERE name == :name ; " );
 
@@ -340,6 +341,14 @@ bool LocDBase::init()
     
     stmt_loc_iterate_two_groups =
       sql.prepare("SELECT * FROM loci WHERE group_id == :group_id1 OR group_id == :group_id2 ORDER BY chr,bp1 ;");
+
+
+    stmt_loc_fetch_altnames = 
+      sql.prepare(" SELECT altname FROM loci WHERE group_id == :group_id AND chr == :chr AND bp1 <= :bp AND bp2 >= :bp ; " );
+
+    stmt_loc_fetch_altnames_indel = 
+      sql.prepare(" SELECT altname FROM loci WHERE group_id == :group_id "
+		  " AND chr == :chr AND bp2 >= :start AND bp1 <= :stop ; " );
 
     stmt_loc_group_list = 
       sql.prepare("SELECT * FROM groups;");
@@ -1171,6 +1180,8 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
       
       std::string name = use_transcript_id ? tok2[3] : tok2[1];
       
+      // change "1" to "chr1", etc
+      //std::string chr_str = Helper::defaultChrPrefix(tok[0]);
       
       int chromosome = Helper::chrCode( tok[0] ) ;
       
@@ -3086,3 +3097,35 @@ void LocDBase::check_version()
 
 
 
+std::string LocDBase::get_genename( const Variant & var , uint64_t group_id , const std::string &  delim )
+{
+
+  std::string s = ".";
+  
+  if ( var.length() == 1 ) 
+    {
+      sql.bind_int64( stmt_loc_fetch_altnames , ":group_id" , group_id );
+      sql.bind_int( stmt_loc_fetch_altnames , ":chr" , var.chromosome() );
+      sql.bind_int( stmt_loc_fetch_altnames , ":bp" , var.position() );
+      while ( sql.step( stmt_loc_fetch_altnames ) )
+	{
+	  if ( s == "." ) s = sql.get_text( stmt_loc_fetch_altnames , 0 );
+	  else s += delim + sql.get_text( stmt_loc_fetch_altnames , 0 );
+	}
+      sql.reset( stmt_loc_fetch_altnames );
+    }
+  else
+    {
+      sql.bind_int64( stmt_loc_fetch_altnames_indel , ":group_id" , group_id );
+      sql.bind_int( stmt_loc_fetch_altnames_indel , ":chr" , var.chromosome() );
+      sql.bind_int( stmt_loc_fetch_altnames_indel , ":start" , var.position() );
+      sql.bind_int( stmt_loc_fetch_altnames_indel , ":stop" , var.stop() );
+      while ( sql.step( stmt_loc_fetch_altnames_indel ) )
+	{
+	  if ( s == "." ) s = sql.get_text( stmt_loc_fetch_altnames_indel , 0 );
+	  else s += delim + sql.get_text( stmt_loc_fetch_altnames_indel , 0 );
+	}
+      sql.reset( stmt_loc_fetch_altnames_indel );
+    }
+  return s;
+}

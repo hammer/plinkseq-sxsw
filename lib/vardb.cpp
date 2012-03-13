@@ -209,7 +209,8 @@ bool VarDBase::newDB( std::string n )
     sql.query(" CREATE TABLE IF NOT EXISTS sets ("
 	      "   set_id      INTEGER PRIMARY KEY , "
 	      "   name        VARHCAR(20) , "
-	      "   description VARCHAR(20) ) ; " );
+	      "   description VARCHAR(20)  , "
+	      " CONSTRAINT sc1 UNIQUE ( name ) ) ; " ); 
     
     sql.query(" CREATE TABLE IF NOT EXISTS set_data("
 	      "   set_id     INTEGER NOT NULL , "
@@ -222,7 +223,8 @@ bool VarDBase::newDB( std::string n )
     sql.query(" CREATE TABLE IF NOT EXISTS supersets ("
 	      "   superset_id   INTEGER PRIMARY KEY , "
 	      "   name          VARHCAR(20) , "
-	      "   description   VARCHAR(20) ) ; " );
+	      "   description   VARCHAR(20) , "
+	      " CONSTRAINT ssc1 UNIQUE (name) ) ; " );
 
     sql.query(" CREATE TABLE IF NOT EXISTS superset_data("
 	      "   superset_id   INTEGER NOT NULL , "
@@ -517,11 +519,11 @@ bool VarDBase::init()
     //
 
     stmt_insert_set =
-      sql.prepare( " INSERT OR IGNORE INTO sets( name, description ) "
+      sql.prepare( " INSERT OR REPLACE INTO sets( name, description ) "
 		   " values( :name, :description) ; " );
 
     stmt_insert_superset =
-      sql.prepare( " INSERT OR IGNORE INTO supersets( name, description ) "
+      sql.prepare( " INSERT OR REPLACE INTO supersets( name, description ) "
 		   " values( :name, :description) ; " );
 
     stmt_insert_set_variant =
@@ -544,6 +546,12 @@ bool VarDBase::init()
 
     stmt_dump_all_set_names =
       sql.prepare( " SELECT name , set_id FROM sets ; " );
+    
+    stmt_lookup_set_desc = 
+      sql.prepare( " SELECT description FROM sets WHERE set_id == :set_id ; " );
+
+    stmt_lookup_superset_desc = 
+      sql.prepare( " SELECT description FROM supersets WHERE superset_id == :superset_id ; " );
     
     stmt_dump_all_superset_names =
       sql.prepare( " SELECT name , superset_id FROM supersets ; " );
@@ -1109,21 +1117,49 @@ uint64_t VarDBase::add_set( const std::string & name , const std::string & desc 
 
 bool VarDBase::add_var_to_set( const std::string & group , Variant & v , bool allelic )
 {
+  
   // Var group ID
   uint64_t grp_id = add_set( group ); 
-  
+
   // Add for each attached variant
   
   const int ns = v.n_samples();
 
+//   std::cout << "v = " << v << " " << v.chromosome() << " " << v.position() << " " << v.stop() << " " << v.consensus.reference() << " " << v.consensus.alternate() << "\n";
+//   std::cout << "ns = " << ns << "\n";
+
   sql.bind_int64( stmt_insert_set_variant , ":set_id" , grp_id );
+
+  if ( ns == 0 ) 
+    {
+      const SampleVariant & sample = v.consensus;
+      uint64_t vidx = sample.index();
+
+      sql.bind_int64( stmt_insert_set_variant , ":var_id" , vidx );
+
+      std::vector<std::string> alts;
+      if ( allelic ) 
+	alts = Helper::char_split( sample.alternate() , ',' );
+      else
+	alts.push_back(".");
       
+      for (int a=0;a<alts.size();a++)
+	{
+	  if ( allelic ) 
+	    sql.bind_text( stmt_insert_set_variant , ":allele" , alts[a] );
+
+	  sql.step( stmt_insert_set_variant );
+	  sql.reset(stmt_insert_set_variant );
+	}
+
+    }
+  else
   for (int s = 0 ; s < ns; s++ )
     {      
 
       const SampleVariant & sample = v.sample(s);
       uint64_t vidx = sample.index();
-      
+
       sql.bind_int64( stmt_insert_set_variant , ":var_id" , vidx );
 
       std::vector<std::string> alts;
@@ -1224,7 +1260,6 @@ std::vector<std::string> VarDBase::get_sets( const std::string & superset )
   while ( sql.step( stmt_lookup_set_names ) )
     {
       n.push_back( sql.get_text( stmt_lookup_set_names , 0 ) );
-      std::cout << "added " << n[ n.size()-1] << "\n";
     }
   sql.reset( stmt_lookup_set_names );
   return n;
@@ -1241,6 +1276,45 @@ int VarDBase::get_set_size( const std::string & setname )
   int c = sql.get_int( stmt_setcount , 0 );
   sql.reset( stmt_setcount );
   return c;
+}
+
+void VarDBase::add_set_description( const std::string & name , const std::string & desc )
+{
+  // ensure set exists (create if not)
+  uint64_t  set_id = add_set( name );
+  sql.query(" UPDATE sets SET description = " + desc + " WHERE name == " + name + ";" );
+}
+
+void VarDBase::add_superset_description( const std::string & name , const std::string & desc )
+{
+  uint64_t  set_id = add_superset( name );
+  sql.query(" UPDATE supersets SET description = " + desc + " WHERE name == " + name + ";" );
+}
+
+std::string VarDBase::get_set_description( const std::string & name )
+{
+  const bool DO_NOT_ADD = true;
+  uint64_t set_id = add_set( name , "" , DO_NOT_ADD );
+  if ( set_id == 0 ) return "";
+  sql.bind_int64( stmt_lookup_set_desc , ":set_id" , set_id );
+  std::string r = "";
+  if ( sql.step( stmt_lookup_set_desc ) )
+    r = sql.get_text( stmt_lookup_set_desc , 0 ) ;
+  sql.reset( stmt_lookup_set_desc );
+  return r;
+}
+
+std::string VarDBase::get_superset_description( const std::string & name )
+{
+  const bool DO_NOT_ADD = true;
+  uint64_t superset_id = add_superset( name , "" , DO_NOT_ADD );
+  if ( superset_id == 0 ) return "";
+  sql.bind_int64( stmt_lookup_superset_desc , ":superset_id" , superset_id );
+  std::string r = "";
+  if ( sql.step( stmt_lookup_superset_desc ) )
+    r = sql.get_text( stmt_lookup_superset_desc , 0 ) ;
+  sql.reset( stmt_lookup_superset_desc );
+  return r;
 }
 
 
@@ -1479,6 +1553,62 @@ Variant VarDBase::fetch( int chr , int bp1 )
   return var;
 }
 
+std::set<Variant> VarDBase::key_fetch( const Region & region )
+{
+
+  // simply return a list of Variants with 1 SampleVariant 
+  // with the chr/bp and alleles populations (nothing else)
+  
+  std::set<Variant> s;
+  
+  if ( ! attached() ) return s; 
+
+  // single SNP
+  if ( region.stop.position() == 0 || region.stop.position() == region.start.position() )
+    {
+      sql.bind_int( stmt_fetch_variant_pos , ":chr" , region.chromosome() );
+      sql.bind_int( stmt_fetch_variant_pos , ":bp1" , region.start.position() );
+      while ( sql.step( stmt_fetch_variant_pos ) )
+	{
+	  Variant v;
+	  v.consensus.index( sql.get_int( stmt_fetch_variant_pos , 0 ) );
+	  v.chromosome( sql.get_int( stmt_fetch_variant_pos , 3 ) );
+	  v.position( sql.get_int( stmt_fetch_variant_pos , 4 ) );
+	  v.stop( sql.get_int( stmt_fetch_variant_pos , 5 ) );
+	  s.insert(v);
+	}	      
+      sql.reset(stmt_fetch_variant_pos);
+      return s;
+    }
+  else  // a true range
+    {
+
+      sql.bind_int( stmt_fetch_variant_range , ":chr" , region.chromosome() );
+      sql.bind_int( stmt_fetch_variant_range , ":rstart" , region.start.position() );
+      sql.bind_int( stmt_fetch_variant_range , ":rend" , region.stop.position() );
+      
+      while ( sql.step( stmt_fetch_variant_range ) )
+	{
+	  Variant v;
+	  v.consensus.index( sql.get_int( stmt_fetch_variant_range , 0 ) );
+	  v.chromosome( sql.get_int( stmt_fetch_variant_range , 3 ) );
+	  v.position( sql.get_int( stmt_fetch_variant_range , 4 ) );
+	  v.stop( sql.get_int( stmt_fetch_variant_range , 5 ) );
+	  
+	  // for now, ignore allele information 
+	  //SampleVariant & sample = construct( vmap[pos] , stmt_fetch_variant_range , &indmap );
+	  //sample.decode_BLOB( &vmap[pos] , &indmap , NULL );
+
+	  s.insert(v);
+	  
+	}
+      
+      sql.reset( stmt_fetch_variant_range ) ;  
+    }
+
+  return s;
+
+}
 
 std::set<Variant> VarDBase::fetch( const Region & region )
 {
@@ -1491,21 +1621,22 @@ std::set<Variant> VarDBase::fetch( const Region & region )
   sql.bind_int( stmt_fetch_variant_range , ":rstart" , region.start.position() );
   sql.bind_int( stmt_fetch_variant_range , ":rend" , region.stop.position() );
     
-  std::map<int,Variant> vmap;
-
+  std::map<int2,Variant> vmap;
+  
   fetch_mode_t old_fetch_mode = fetch_mode;
   fetch_mode = ALL;
-
+  
   while ( sql.step( stmt_fetch_variant_range ) )
     {
       // extract BP position on this chromosome
       int pos = sql.get_int( stmt_fetch_variant_range , 4 );      
-      SampleVariant & sample = construct( vmap[pos] , stmt_fetch_variant_range , &indmap );
-      sample.decode_BLOB( &vmap[pos] , &indmap , NULL );
+      int stop = sql.get_int( stmt_fetch_variant_range , 5 );      
+      SampleVariant & sample = construct( vmap[int2(pos,stop)] , stmt_fetch_variant_range , &indmap );
+      sample.decode_BLOB( &vmap[int2(pos,stop)] , &indmap , NULL );
     } 
   sql.reset( stmt_fetch_variant_range ) ;  
 
-  std::map<int,Variant>::iterator i = vmap.begin();
+  std::map<int2,Variant>::iterator i = vmap.begin();
   while ( i != vmap.end() )
     {
       i->second.make_consensus( &indmap );
@@ -1758,6 +1889,13 @@ int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy )
 {
 
   std::map<std::string,int>::iterator i = chr_code_map.find(n);
+
+  // "chr1" and "1" shouldn't return different results
+  if ( i == chr_code_map.end() && chr_code_map.find("chr" + n) != chr_code_map.end() )
+    {
+      i = chr_code_map.find("chr" + n);
+    }
+
   if ( i != chr_code_map.end() ) 
     {
       if ( ploidy ) *ploidy = chr_ploidy_map[ i->second ];
