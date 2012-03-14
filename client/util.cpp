@@ -82,25 +82,32 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "index-vcf|input|add index to VARDB for a BGZF-compressed VCF|ARG:vcf"
 	
+	  << "index-bcf|input|add index to VARDB for a BCF|ARG:bcf"
+
 	  << "reload-vcf|input|clear VARDB, then reload all VCF (not implemented yet)"
 	
 	  << "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id,iid,fid,check-reference,fix-strand" 
 	
-	  << "load-meta|input|load meta-information for existing VARDB variants|ARG:file,id,group"
+	  << "attach-meta|input|load meta-information for existing VARDB variants|ARG:file,id,group"
 	
 	  << "load-pheno|input,indop|load phenotypes into INDB|ARG:file"
 	
 	  << "load-pedigree|input,indop|load pedigree information into INDDB|ARG:file"
 
 	  << "delete-meta|varop|remove meta-information|ARG:group"
-	
-	  << "index-bcf|input|add index to VARDB for a BCF|ARG:bcf"
-	
-	  << "write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf"
-	
+		
 	  << "var-set|input,varop|add a variant-set to a VARDB|ARG:group,file"
 
 	  << "var-superset|input,varop|add a super-set to a VARDB|ARG:group,file,members"
+
+	  << "var-drop-set|varop|drop a set from a VARDB|AGR:group"
+
+	  << "var-drop-all-sets|varop|drop all sets from a VARDB"
+
+	  << "var-drop-superset|varop|drop a superset from a VARDB|AGR:group"
+
+	  << "var-drop-all-supersets|varop|drop all supersets from a VARDB"
+
 
 	//
 	// VARDB output
@@ -109,11 +116,16 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "write-vardb|output,varop|write a new VARDB|ARG:new-vardb,new-project"
 	
-	  << "write-vcf|output|write a new VCF file|VCF|file"
+	  << "write-vcf|output|write a new VCF file|VCF|file,format$BGZF"
 
 	  << "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name,use-family-id" 
 	
 	  << "write-lik|output|write a BEALGE likelihood file|VCF"
+
+	  << "write-haps|output|write a MaCH format haplotype file|VCF"
+      
+	  << "write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf"
+      
       
       	
 	//

@@ -769,6 +769,8 @@ Token Token::operator==(const Token & rhs) const
 
 }
 
+
+
 Token Token::operator+(const Token & rhs) const
 {
 
@@ -801,25 +803,25 @@ Token Token::operator+(const Token & rhs) const
       if ( is_float_vector() )
 	{
 	  std::vector<double> ans( sz );      
-	  if      ( rhs.is_int() )   for (int i=0; i<sz; i++) ans[i] = fvec[i] + rhs.ivec[i];
-	  else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = fvec[i] + rhs.fvec[i];
-	  else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] + (double)rhs.bvec[i];
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = fvec[i] + rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = fvec[i] + rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] + (double)rhs.bvec[i];
 	  return Token( ans );                  
 	}
       
       else if ( is_bool_vector() )
 	{
 	  std::vector<double> ans( sz );      
-	  if ( rhs.is_int() )        for (int i=0; i<sz; i++) ans[i] = bvec[i] + rhs.ivec[i];
-	  else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = bvec[i] + rhs.fvec[i];
-	  else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = bvec[i] + (double)rhs.bvec[i];
+	  if ( rhs.is_int_vector() )        for (int i=0; i<sz; i++) ans[i] = bvec[i] + rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = bvec[i] + rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = bvec[i] + (double)rhs.bvec[i];
 	  return Token( ans );                  
 	}
 
       return Token();
     }
 
-
+  
   // concatenate strings ( in which case, A+B != B+A, so do before next step)
   if ( is_string_vector() && rhs.is_string() ) 
     {
@@ -844,9 +846,15 @@ Token Token::operator+(const Token & rhs) const
       const int sz = size();
       if ( sz == 0 ) return Token();
       std::vector<int> ans( sz );      
-      if      ( rhs.is_int() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] + rhs.ival;
-      else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = ivec[i] + (int)rhs.fval;
+      if      ( rhs.is_int() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] + rhs.ival;      
       else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] + (int)rhs.bval;
+      else if ( rhs.is_float() ) 
+	{
+	  std::vector<double> ans( sz );   	
+	  for (int i=0; i<sz; i++) ans[i] = ivec[i] + rhs.fval;
+	  return Token( ans );            
+	}
+      else return Token();
       return Token( ans );            
     }
   
@@ -856,8 +864,14 @@ Token Token::operator+(const Token & rhs) const
       if ( sz == 0 ) return Token();
       std::vector<int> ans( sz );      
       if      ( is_int() )   for (int i=0; i<sz; i++) ans[i] = ival      + rhs.ivec[i];
-      else if ( is_float() ) for (int i=0; i<sz; i++) ans[i] = (int)fval + rhs.ivec[i];
       else if ( is_bool() )  for (int i=0; i<sz; i++) ans[i] = (int)bval + rhs.ivec[i];
+      else if ( is_float() ) 
+	{
+	  std::vector<double> ans( sz );      
+	  for (int i=0; i<sz; i++) ans[i] = fval + rhs.ivec[i];
+	  return Token( ans );            
+	}
+      else return Token();
       return Token( ans );            
     }
 
@@ -931,8 +945,50 @@ Token Token::operator+(const Token & rhs) const
 Token Token::operator-(const Token & rhs) const
 {
 
-  // vector x vector comparison not defined
-  if ( is_vector() && rhs.is_vector() ) return Token();
+  // vector x vector comparison defined for same-length vectors
+  if ( is_vector() && rhs.is_vector() ) 
+    {
+      
+      if ( size() != rhs.size() ) return Token();
+      const int sz = size();      
+      
+      if ( is_int_vector() ) 
+	{
+	  std::vector<int> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] - rhs.ivec[i];	  
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] - (int)rhs.bvec[i];
+	  else if ( rhs.is_float_vector() ) 
+	    {
+	      std::vector<double> ans( sz );      
+	      for (int i=0; i<sz; i++) ans[i] = ivec[i] - rhs.fvec[i];
+	      return Token( ans );            
+	    }
+	  else return Token();
+	  return Token( ans );            
+	}
+      
+      if ( is_float_vector() )
+	{
+	  std::vector<double> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = fvec[i] - rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = fvec[i] - rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] - (double)rhs.bvec[i];
+	  return Token( ans );                  
+	}
+      
+      else if ( is_bool_vector() )
+	{
+	  std::vector<double> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] - rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = bvec[i] - rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = bvec[i] - (double)rhs.bvec[i];
+	  return Token( ans );                  
+	}
+      
+      return Token();
+ 
+    }
+
 
   // vector x scalar ops
   if ( is_int_vector() ) 
@@ -940,9 +996,15 @@ Token Token::operator-(const Token & rhs) const
       const int sz = size();
       if ( sz == 0 ) return Token();
       std::vector<int> ans( sz );      
-      if      ( rhs.is_int() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] - rhs.ival;
-      else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = ivec[i] - (int)rhs.fval;
+      if      ( rhs.is_int() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] - rhs.ival;     
       else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] - (int)rhs.bval;
+      else if ( rhs.is_float() ) 
+	{
+	  std::vector<double> ans( sz );      
+	  for (int i=0; i<sz; i++) ans[i] = ivec[i] - rhs.fval;
+	  return Token( ans );            
+	}
+      else return Token();
       return Token( ans );            
     }
   
@@ -951,9 +1013,15 @@ Token Token::operator-(const Token & rhs) const
       const int sz = rhs.size();
       if ( sz == 0 ) return Token();
       std::vector<int> ans( sz );      
-      if      ( is_int() )   for (int i=0; i<sz; i++) ans[i] = ival      - rhs.ivec[i];
-      else if ( is_float() ) for (int i=0; i<sz; i++) ans[i] = (int)fval - rhs.ivec[i];
+      if      ( is_int() )   for (int i=0; i<sz; i++) ans[i] = ival      - rhs.ivec[i];      
       else if ( is_bool() )  for (int i=0; i<sz; i++) ans[i] = (int)bval - rhs.ivec[i];
+      else if ( is_float() ) 
+	{
+	  std::vector<double> ans( sz );      
+	  for (int i=0; i<sz; i++) ans[i] = fval - rhs.ivec[i];
+	  return Token( ans );            
+	}
+      else return Token();
       return Token( ans );            
     }
 
@@ -1001,8 +1069,51 @@ Token Token::operator-(const Token & rhs) const
 Token Token::operator*(const Token & rhs) const
 {
 
-  // vector x vector comparison not defined
-  if ( is_vector() && rhs.is_vector() ) return Token();
+  // vector x vector comparison defined for same-length vectors
+
+  if ( is_vector() && rhs.is_vector() ) 
+    {
+
+      if ( size() != rhs.size() ) return Token();
+      const int sz = size();      
+      
+      if ( is_int_vector() ) 
+	{
+	  std::vector<int> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] * rhs.ivec[i];	  
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] * (int)rhs.bvec[i];
+	  else if ( rhs.is_float_vector() ) 
+	    {
+	      std::vector<double> ans( sz );      	      
+	      for (int i=0; i<sz; i++) ans[i] = ivec[i] * rhs.fvec[i];
+	      return Token( ans );
+	    }	  
+	  else return Token();
+	  return Token( ans );            
+	}
+      
+      if ( is_float_vector() )
+	{
+	  std::vector<double> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = fvec[i] * rhs.ivec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] * (double)rhs.bvec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = fvec[i] * rhs.fvec[i];
+	  return Token( ans );                  
+	}
+      
+      else if ( is_bool_vector() )
+	{
+	  std::vector<double> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] * rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = bvec[i] * rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = bvec[i] * (double)rhs.bvec[i];
+	  return Token( ans );                  
+	}
+
+      return Token();
+
+    }
+
 
   // vector x scalar ops
   if ( is_int_vector() ) 
@@ -1011,8 +1122,14 @@ Token Token::operator*(const Token & rhs) const
       if ( sz == 0 ) return Token();
       std::vector<int> ans( sz );      
       if      ( rhs.is_int() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] * rhs.ival;
-      else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = ivec[i] * (int)rhs.fval;
       else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] * (int)rhs.bval;
+      else if ( rhs.is_float() ) 
+	{
+	  std::vector<double> ans( sz );      
+	  for (int i=0; i<sz; i++) ans[i] = ivec[i] * rhs.fval;
+	  return Token( ans );            
+	}
+      else return Token();
       return Token( ans );            
     }
   
@@ -1022,8 +1139,14 @@ Token Token::operator*(const Token & rhs) const
       if ( sz == 0 ) return Token();
       std::vector<int> ans( sz );      
       if      ( is_int() )   for (int i=0; i<sz; i++) ans[i] = ival      * rhs.ivec[i];
-      else if ( is_float() ) for (int i=0; i<sz; i++) ans[i] = (int)fval * rhs.ivec[i];
       else if ( is_bool() )  for (int i=0; i<sz; i++) ans[i] = (int)bval * rhs.ivec[i];
+      else if ( is_float() ) 
+	{
+	  std::vector<double> ans( sz );      
+	  for (int i=0; i<sz; i++) ans[i] = fval * rhs.ivec[i];
+	  return Token( ans );            
+	}
+      else return Token();
       return Token( ans );            
     }
 
@@ -1139,10 +1262,48 @@ Token Token::operator^(const Token & rhs) const
 
 Token Token::operator/(const Token & rhs) const
 {
-  // vector x vector comparison not defined
-  if ( is_vector() && rhs.is_vector() ) return Token();
+  
+  // always return a float
+  // allow bool as numerator, but not demoninator
+  // no strings
 
-  // vector x scalar ops
+  // vector x vector comparison defined for same length vector
+  if ( is_vector() && rhs.is_vector() ) 
+    {
+
+      if ( size() != rhs.size() ) return Token();
+      const int sz = size();      
+      
+      if ( is_int_vector() ) 
+	{
+	  std::vector<double> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] / rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = ivec[i] / (int)rhs.fvec[i];
+	  else return Token();
+	  return Token( ans );            
+	}
+      
+      if ( is_float_vector() )
+	{
+	  std::vector<double> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = fvec[i] / (double)rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = fvec[i] / rhs.fvec[i];	  
+	  return Token( ans );                  
+	}
+      
+      else if ( is_bool_vector() )
+	{
+	  std::vector<double> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = bvec[i] / (double)rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = bvec[i] / rhs.fvec[i];	  
+	  return Token( ans );                  
+	}
+
+      return Token();
+
+    }
+
+  // vector / scalar ops
   if ( is_int_vector() ) 
     {
       const int sz = size();
@@ -1150,7 +1311,6 @@ Token Token::operator/(const Token & rhs) const
       std::vector<double> ans( sz );      
       if      ( rhs.is_int() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] / (double)rhs.ival;
       else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = ivec[i] / rhs.fval;
-      else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] / (double)rhs.bval;
       return Token( ans );            
     }
   
@@ -1170,9 +1330,8 @@ Token Token::operator/(const Token & rhs) const
       const int sz = size();
       if ( sz == 0 ) return Token();
       std::vector<double> ans( sz );      
-      if ( rhs.is_int() )        for (int i=0; i<sz; i++) ans[i] = fvec[i] / rhs.ival;
-      else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = fvec[i] / rhs.fval;
-      else if ( rhs.is_bool() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] / (double)rhs.bval;
+      if ( rhs.is_int() )        for (int i=0; i<sz; i++) ans[i] = fvec[i] / (double)rhs.ival;
+      else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = fvec[i] / rhs.fval;      
       return Token( ans );                  
     }
 
@@ -1185,6 +1344,17 @@ Token Token::operator/(const Token & rhs) const
       else if ( is_float() ) for (int i=0; i<sz; i++) ans[i] = fval         / rhs.fvec[i];
       else if ( is_bool() )  for (int i=0; i<sz; i++) ans[i] = (double)bval / rhs.fvec[i];
       return Token( ans );            
+    }
+
+  else if ( is_bool_vector() )
+    {
+      const int sz = size();
+      if ( sz == 0 ) return Token();
+      std::vector<double> ans( sz );      
+      if ( rhs.is_int() )        for (int i=0; i<sz; i++) ans[i] = bvec[i] / (double)rhs.ival;
+      else if ( rhs.is_float() ) for (int i=0; i<sz; i++) ans[i] = bvec[i] / rhs.fval;
+      
+      return Token( ans );                  
     }
   
 
@@ -1200,6 +1370,12 @@ Token Token::operator/(const Token & rhs) const
     {
       if ( rhs.is_int()   ) return Token( fval / (double)rhs.ival );
       if ( rhs.is_float() ) return Token( fval / rhs.fval );
+    }
+
+  if ( is_bool() ) 
+    {
+      if ( rhs.is_int()   ) return Token( bval / (double)rhs.ival );
+      if ( rhs.is_float() ) return Token( bval / rhs.fval );
     }
 
   return Token();
@@ -1233,9 +1409,54 @@ Token Token::operator%(const Token & rhs) const
 Token Token::operator<(const Token & rhs) const
 {
 
-  // vector x vector comparison not defined
-  if ( is_vector() && rhs.is_vector() ) return Token();
-  
+  // vector x vector comparison defined for same length entities
+  if ( is_vector() && rhs.is_vector() ) 
+    {
+
+      if ( size() != rhs.size() ) return Token();
+      const int sz = size();      
+      
+      // allow string-to-string comparison
+      if ( is_string_vector() && rhs.is_string_vector() )
+	{
+	  std::vector<bool> ans( sz );      
+	  for (int i=0; i<sz; i++) ans[i] = svec[i] < rhs.svec[i];
+	  return Token( ans );            
+	}
+      
+      if ( is_int_vector() ) 
+	{
+	  std::vector<bool> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] < rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = ivec[i] < rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] < (int)rhs.bvec[i];
+	  else return Token();
+	  return Token( ans );            
+	}
+      
+      if ( is_float_vector() )
+	{
+	  std::vector<bool> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = fvec[i] < rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = fvec[i] < rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] < (double)rhs.bvec[i];
+	  return Token( ans );                  
+	}
+      
+      else if ( is_bool_vector() )
+	{
+	  std::vector<bool> ans( sz );      
+	  if ( rhs.is_int_vector() )        for (int i=0; i<sz; i++) ans[i] = bvec[i] < rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = bvec[i] < rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = bvec[i] < (double)rhs.bvec[i];
+	  return Token( ans );                  
+	}
+
+      return Token();
+
+    }
+ 
+ 
   // vector x scalar ops
   if ( is_int_vector() ) 
     {
@@ -1323,7 +1544,50 @@ Token Token::operator>(const Token & rhs) const
 {
 
   // vector x vector comparison not defined
-  if ( is_vector() && rhs.is_vector() ) return Token();
+  if ( is_vector() && rhs.is_vector() ) 
+    {
+      if ( size() != rhs.size() ) return Token();
+      const int sz = size();      
+      
+      // allow string-to-string comparison
+      if ( is_string_vector() && rhs.is_string_vector() )
+	{
+	  std::vector<bool> ans( sz );      
+	  for (int i=0; i<sz; i++) ans[i] = svec[i] > rhs.svec[i];
+	  return Token( ans );            
+	}
+      
+      if ( is_int_vector() ) 
+	{
+	  std::vector<bool> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] > rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = ivec[i] > rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] > (int)rhs.bvec[i];
+	  else return Token();
+	  return Token( ans );            
+	}
+      
+      if ( is_float_vector() )
+	{
+	  std::vector<bool> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = fvec[i] > rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = fvec[i] > rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = fvec[i] > (double)rhs.bvec[i];
+	  return Token( ans );                  
+	}
+      
+      else if ( is_bool_vector() )
+	{
+	  std::vector<bool> ans( sz );      
+	  if ( rhs.is_int_vector() )        for (int i=0; i<sz; i++) ans[i] = bvec[i] > rhs.ivec[i];
+	  else if ( rhs.is_float_vector() ) for (int i=0; i<sz; i++) ans[i] = bvec[i] > rhs.fvec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = bvec[i] > (double)rhs.bvec[i];
+	  return Token( ans );                  
+	}
+
+      return Token();
+
+    }
   
   // vector x scalar ops
   if ( is_int_vector() ) 
@@ -1419,10 +1683,38 @@ Token Token::operator<=(const Token & rhs) const
 
 Token Token::operator&&(const Token & rhs) const
 {
-  // vector x vector comparison not defined
-  if ( is_vector() && rhs.is_vector() ) return Token();
 
+  // only defined for int and bool
 
+  // vector x vector comparison defined for same-length vectors
+  if ( is_vector() && rhs.is_vector() ) 
+    {
+      if ( size() != rhs.size() ) return Token();
+      const int sz = size();      
+      
+      if ( is_int_vector() ) 
+	{
+	  std::vector<bool> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] && rhs.ivec[i];	  
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] && rhs.bvec[i];
+	  else return Token();
+	  return Token( ans );            
+	}
+      
+      else if ( is_bool_vector() )
+	{
+	  std::vector<bool> ans( sz );      
+	  if ( rhs.is_int_vector() )        for (int i=0; i<sz; i++) ans[i] = bvec[i] && rhs.ivec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = bvec[i] && rhs.bvec[i];
+	  return Token( ans );                  
+	}
+
+      return Token();
+
+    }
+  
+  // TODO: Note -- currently no vector x scalar implementataion....
+  
   // lazy evaluation of RHS
   if ( is_bool() && !bval ) return Token( false );
   if ( is_int() && !ival ) return Token( false );
@@ -1447,8 +1739,35 @@ Token Token::operator||(const Token & rhs) const
 {
 
   // vector x vector comparison not defined
-  if ( is_vector() && rhs.is_vector() ) return Token();
-  
+  if ( is_vector() && rhs.is_vector() ) 
+    {
+      if ( size() != rhs.size() ) return Token();
+      const int sz = size();
+      
+      if ( is_int_vector() ) 
+	{
+	  std::vector<bool> ans( sz );      
+	  if      ( rhs.is_int_vector() )   for (int i=0; i<sz; i++) ans[i] = ivec[i] || rhs.ivec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = ivec[i] || rhs.bvec[i];
+	  else return Token();
+	  return Token( ans );            
+	}
+      
+      else if ( is_bool_vector() )
+	{
+	  std::vector<bool> ans( sz );      
+	  if ( rhs.is_int_vector() )        for (int i=0; i<sz; i++) ans[i] = bvec[i] || rhs.ivec[i];
+	  else if ( rhs.is_bool_vector() )  for (int i=0; i<sz; i++) ans[i] = bvec[i] || rhs.bvec[i];
+	  return Token( ans );                  
+	}
+
+      return Token();
+    }
+
+  // TODO: no vector x scalar ops
+  // no lazy evaluation in the above
+
+
   // lazy evaluation of RHS
   if ( is_bool() && bval ) return Token( true );
   if ( is_int() && ival ) return Token( true );

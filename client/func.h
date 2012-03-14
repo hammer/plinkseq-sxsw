@@ -50,6 +50,8 @@ namespace Pseq
 
       bool write_lik(Mask & m);
 
+      bool write_haps(Mask & m, const std::string & );
+
       bool write_matrix(Mask & m);
 
       bool write_meta_matrix(Mask & m);
@@ -99,6 +101,10 @@ namespace Pseq
       bool add_superset_from_file( const std::string & );
 
       bool add_superset( const std::string & , const std::vector<std::string> & , const std::string & );
+
+      bool insert_meta_from_file( const std::string & ) ;
+
+      bool insert_meta_on_fly( const std::string & );
 
     }    
   

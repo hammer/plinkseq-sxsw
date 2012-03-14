@@ -101,9 +101,9 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 
       
   if ( mask.fixxy() )
-  {
+    {
       v.set_fixxy( &mask , &(GP->locdb), &(GP->inddb) );
-  }
+    }
 
 
   // Selectively filter in/out meta-information?
@@ -114,7 +114,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 
   // Respect 'reg' and 'loc' from command line.
   // But not loc.subset; loc.req, loc.ex, etc
-
+  
 
   std::set<Region> filter;
   std::string locinc = mask.loc_include_string();
@@ -131,11 +131,14 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
     }
 
   // Add other "reg" from mask? 
-
+  
   if ( filter.size() > 0 ) 
     v.set_region_mask( &filter );  
   
-  
+  if ( mask.id() )
+    v.add_id_filter( mask.included_id() );
+    
+
   // Misc. settings.
   
   downcode_mode = mask.downcode();

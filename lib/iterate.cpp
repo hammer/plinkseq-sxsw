@@ -70,7 +70,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
   //
   // Get access to Mask in all functions
   //
-      
+
   if      (  mask.load_genotype_data()   && (!mask.load_genotype_meta())  &&  mask.load_variant_meta()    ) fetch_mode = NO_GMETA;
   else if ( (!mask.load_genotype_data()) && (!mask.load_genotype_meta())  &&  mask.load_variant_meta()    ) fetch_mode = ONLY_VMETA;
   else if ( mask.load_genotype_data()    && (!mask.load_genotype_meta())  &&  (!mask.load_variant_meta()) ) fetch_mode = ONLY_GENO;
@@ -278,12 +278,15 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	}
       
       // Grouping? There will only be a single include here, so no need to check group
-      
-      if ( mask.named_grouping() )
-	{
-	  Helper::halt(" var.group not implemented yet" );
-	  query += " AND x.name == :grp_value ";
-	}
+      // (based on a varset.group)
+
+       if ( mask.named_grouping() )
+ 	{
+	  query += " AND v.var_id IN ( SELECT var_id FROM set_data WHERE set_id IN "
+	    " ( SELECT set_id FROM sets WHERE name == :grp_value ) ) ";
+ 	}
+
+    
 
       // Requires/excludes performed here
       
@@ -384,6 +387,10 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 
       }
     
+    
+    //
+    // Specific regions
+    //
         
     if ( mask.reg() ) 
       {
@@ -412,17 +419,45 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 
       }
 
+
+    //
+    // Named variant IDs
+    //
+        
+    if ( mask.id() ) 
+      {
+
+	if ( multiple_queries ) 
+	  query += " UNION ALL ";
+	
+	multiple_queries = true; 
+	
+	query += "SELECT v.var_id, v.file_id, v.name, v.chr, v.bp1 , v.bp2, v.offset , 0 , NULL , NULL  "; 
+	
+	query += " FROM variants AS v ";
+	
+	query += 
+	  " INNER JOIN tmp.vidin AS x "
+	  "     ON v.name == x.name ";
+	
+	// Requires/excludes performed here
+	
+	add_requires_excludes( query , mask );
+
+      }
+
+
     
     //
     // If no includes, implies all variants 
     //
 
-    if ( ! ( mask.var() || mask.reg() || mask.loc() || mask.loc_set() ) ) 
+    if ( ! ( mask.var() || mask.reg() || mask.loc() || mask.id() || mask.loc_set() || mask.var_set() ) ) 
       {
-
+	
 	query += "SELECT v.var_id, v.file_id, v.name, v.chr, v.bp1 , v.bp2, v.offset, 0 , NULL , NULL "; 
 	query += " FROM variants AS v ";
-		
+	
 	// Requires/excludes performed here
 	
 	add_requires_excludes( query , mask );
@@ -464,8 +499,9 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
     sqlite3_stmt * s0 = NULL;
 
     if ( mask.named_grouping() ) 
-      s0 = sql.prepare( "SELECT grp FROM tmp.grp" );
-    
+      {
+	s0 = sql.prepare( "SELECT grp FROM tmp.grp" );
+      }
 
 
     //
@@ -488,15 +524,15 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
       {
 	
 	std::string grp_name = "";
-	
+
 	if ( mask.named_grouping() ) 
 	  {
-
+	    
 	    vars.clear();
 	    
 	    if ( sql.step(s0) )
-	      {
-		grp_name = sql.get_text( s0 , 0 );		
+	      {		
+		grp_name = sql.get_text( s0 , 0 ); 		
 		sql.bind_text( s , ":grp_value" , grp_name );
 		vars.name( grp_name );
 	      }
@@ -533,7 +569,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      sample = &(construct( var , s , &indmap ));
 	      
 	      sample->decode_BLOB_alleles();
-	    
+	      
 	      if ( mask.named_grouping () ) 
 		  var.meta.add( PLINKSeq::META_GROUP() , grp_name );
 	      
@@ -611,22 +647,19 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      if ( merge_mode == MERGE_MODE_NONE ) 
 	      {
 		  
-                  // for allele codes, look at 
-		  
-// 		  std::cout << "nr " << nextrow.position() << " " << nextrow.reference() << " " << nextrow.alternate() << "\n";
-// 		  std::cout << "s  " << var.position() << " " << sample->reference() << " " << sample->alternate() << "\n";
-
-// 		  std::cout << "svS  " << sample->reference() << " " << sample->alternate() << "\n";
-// 		  std::cout << "svNS  " << next_sample.reference() << " " << next_sample.alternate() << "\n";
-
-		  // requires an exact match of REF and ALT
-		  same_variant = nextrow.chromosome() == var.chromosome() 
-		      && nextrow.position() == var.position() 
-		      && sample->reference() == nextrow.reference() 
-		      && sample->alternate() == nextrow.alternate() ;
-
-//		  std::cout << "same variant??? = " << same_variant << "\n";
-
+		// checks		
+		// std::cout << "nr " << nextrow.position() << " " << nextrow.reference() << " " << nextrow.alternate() << "\n";
+		// std::cout << "s  " << var.position() << " " << sample->reference() << " " << sample->alternate() << "\n";
+		// std::cout << "svS  " << sample->reference() << " " << sample->alternate() << "\n";
+		// std::cout << "svNS  " << next_sample.reference() << " " << next_sample.alternate() << "\n";
+		
+		// requires an exact match of REF and ALT
+		
+		same_variant = nextrow.chromosome() == var.chromosome() 
+		  && nextrow.position() == var.position() 
+		  && sample->reference() == nextrow.reference() 
+		  && sample->alternate() == nextrow.alternate() ;
+		
 	      }
 	      else if ( merge_mode == MERGE_MODE_EXACT )
 	      {
@@ -637,10 +670,8 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 		      && nextrow.position() == var.position() 
 		      && nextrow.stop() == var.stop();
 		  
-//		  std::cout << "same var? = " << same_variant << "\n";
-		  
 		  if ( same_variant && var.alternate() != nextrow.alternate() )		      
-		  {
+		    {
 		      // also check that the ALT alleles have a similar size
 		      std::set<int> sz;		      
 		      std::vector<std::string> a1 = Helper::char_split( sample->alternate() , ',' );
@@ -656,33 +687,32 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 		  same_variant = nextrow.chromosome() == var.chromosome() && nextrow.position() <= var.stop();
 	      }
 	      
-	      
-		  
+	     		  
 	      
 	      if ( same_variant )
 		{
 		  
-		    // if allowing non-exact matches, update spans and keep track of
-		    // individual SV base positions
+		  // if allowing non-exact matches, update spans and keep track of
+		  // individual SV base positions
 		  
-		    if ( merge_mode == MERGE_MODE_ANY_OVERLAP )
+		  if ( merge_mode == MERGE_MODE_ANY_OVERLAP )
 		    {
-			
-			if ( nextrow.stop() > var.stop() ) 
-			    var.stop( nextrow.stop() );
-			
-			// also, ensure that all allele codes start from the same position
-			
-			next_sample.offset = nextrow.position() - var.position();
-			
+		      
+		      if ( nextrow.stop() > var.stop() ) 
+			var.stop( nextrow.stop() );
+		      
+		      // also, ensure that all allele codes start from the same position
+		      
+		      next_sample.offset = nextrow.position() - var.position();
+		      
 		    }
+		  
 		    
+		  // track what the latest SampleVariant is in 'sample'
 		    
-		    // track what the latest SampleVariant is in 'sample'
-		    
-		    sample = &(var.add( next_sample ));
-		    
-		    continue;
+		  sample = &(var.add( next_sample ));
+		  
+		  continue;
 		}
 	      
 	      
@@ -699,18 +729,22 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      // instances of SampleVariant within the same file (which we assume will
 	      // not happen too often).  This will include when "overlapping" variants
 	      // are being merged though, e.g. a SNP in an indel, that have been 
-	      // coded separately.  In either case, the variant will contain a file
+	      // coded separately.  In either case, the variant will bed contained 
+	      // within a single file
 	      //
 	      
 	      if ( var.infile_overlap() ) 
-		indmap.force_unflat( true );
+		{		  
+		  indmap.force_unflat( true );
+		}
 
-
+	      //
 	      // In single-variant (non-group) iteration, just apply the function
 	      // In group-iteration mode, the single-variant function has been 
 	      // adapted to add this variant to the group, potentially, so run
 	      // it in any case
-	      
+	      //
+
 	      if ( eval_and_call( mask, &indmap , var , f , data ) ) 
 		{
 		  indmap.force_unflat( false );
@@ -897,17 +931,19 @@ bool VarDBase::eval_and_call( Mask & mask,
       // exclude any empty sets? -- but would this impact summary handles of VCFs?  yes...
       //  thus, not a good idea to implement, as empty VCFs are a handy device
       
-
+      
       // Basic stuff (allele encoding)
-
+      
       svar.decode_BLOB_basic( target ); 
 
-
+      
+      //
       // Is this a populated file, but from which nobody was actually
       // included?  In that case, we should treat this as if it does
       // not exist.  In the case of an initially empty VCF
       // (i.e. sites-only VCF) then N=0 is no longer a critieron for
       // exclusion, however.
+      //
       
       if ( align->size( svar.fileset() ) == 0 && ! mask.site_only( svar.fileset() ) ) sample_okay = false;
       
@@ -920,11 +956,11 @@ bool VarDBase::eval_and_call( Mask & mask,
 
       if ( mask.attach_meta() ) 
       {	  
-	  if ( mask.attach_all_meta() ) 
+	if ( mask.attach_all_meta() ) 
 	  {
-	      attach_indep_metadata( svar.index() , *vmeta_target , NULL );
+	    attach_indep_metadata( svar.index() , *vmeta_target , NULL );
 	  }
-	  else
+	else
 	    {
 	      std::set<std::string> s = mask.attach_meta_fields();
 	      attach_indep_metadata( svar.index() , *vmeta_target , &s );
@@ -1408,8 +1444,6 @@ void VarDBase::build_temporary_db( Mask & mask )
 	      sql.bind_int( stmt_tmp_insert, ":grp" , *i );
 	      sql.bind_text( stmt_tmp_insert, ":name" , n ); 
 	    
-	      // std::cout << "entering " << chr << " " << bp1 << " " << bp2 << " " << *i << " " << n << "\n";
-
 	      sql.step( stmt_tmp_insert );
 	      sql.reset( stmt_tmp_insert );
 	      
@@ -1526,7 +1560,88 @@ void VarDBase::build_temporary_db( Mask & mask )
       
     }
   
+
+  //
+  // Variant ID based includes/requires/excludes
+  //
+
+
+  // ID-includes
+      
+  if ( mask.id() )
+    {
+
+      sql.query(" CREATE TABLE tmp.vidin ( name VARCHAR(20) ); " );
+      
+      stmt_tmp_insert = 
+	sql.prepare( "INSERT INTO tmp.vidin(name) values (:name); ");
+      
+      const std::set<std::string> & nset = mask.included_id();
+      std::set<std::string>::iterator n = nset.begin();
+      while ( n != nset.end() )
+	{
+	  sql.bind_text( stmt_tmp_insert , ":name" , *n );
+	  sql.step( stmt_tmp_insert );
+	  sql.reset( stmt_tmp_insert );
+	  ++n;
+	}
+      
+      sql.finalise( stmt_tmp_insert );
+	  
+    }
   
+
+  
+  // ID-requires
+  
+  if ( mask.rid() )
+    {
+      
+      sql.query(" CREATE TABLE tmp.vidreq ( name VARCHAR(20) ); " );
+      
+      stmt_tmp_insert = 
+	sql.prepare( "INSERT INTO tmp.vidreq(name) values (:name); ");
+      
+      const std::set<std::string> & nset = mask.required_id();
+      std::set<std::string>::iterator n = nset.begin();
+      while ( n != nset.end() )
+	{
+	  sql.bind_text( stmt_tmp_insert , ":name" , *n );
+	  sql.step( stmt_tmp_insert );
+	  sql.reset( stmt_tmp_insert );
+	  ++n;
+	}
+      
+      sql.finalise( stmt_tmp_insert );
+	  
+    }
+
+
+  // ID-excludes
+  
+  if ( mask.xid() )
+    {
+      
+      sql.query(" CREATE TABLE tmp.videx ( name VARCHAR(20) ); " );
+      
+      stmt_tmp_insert = 
+	sql.prepare( "INSERT INTO tmp.videx(name) values (:name); ");
+      
+      const std::set<std::string> & nset = mask.excluded_id();
+      std::set<std::string>::iterator n = nset.begin();
+      while ( n != nset.end() )
+	{
+	  sql.bind_text( stmt_tmp_insert , ":name" , *n );
+	  sql.step( stmt_tmp_insert );
+	  sql.reset( stmt_tmp_insert );
+	  ++n;
+	}
+      
+      sql.finalise( stmt_tmp_insert );
+	  
+    }
+
+
   
   // 
   // Locus sets?
@@ -1597,19 +1712,21 @@ void VarDBase::build_temporary_db( Mask & mask )
   // i.e. require:  if a var_id isn't on the list, exclude
   //      exclude:  if a var_id is on the list, exclude
   
+  // CHECK -- does this work for files (i.e. they do not flag mask.requires() ?? )
+  
   
   if ( mask.requires() ) 
     {
-
 
       // Requirements: you must meet *all* requirements
       
       sql.query("CREATE TABLE tmp.require ( var_id INTEGER PRIMARY KEY );");
       
-      sql.query("CREATE TABLE tmp.require_loc ( var_id INTEGER PRIMARY KEY );");
-      sql.query("CREATE TABLE tmp.require_var ( var_id INTEGER PRIMARY KEY );");
+      sql.query("CREATE TABLE tmp.require_loc  ( var_id INTEGER PRIMARY KEY );");
+      sql.query("CREATE TABLE tmp.require_var  ( var_id INTEGER PRIMARY KEY );");
       sql.query("CREATE TABLE tmp.require_file ( var_id INTEGER PRIMARY KEY );");
-      sql.query("CREATE TABLE tmp.require_reg ( var_id INTEGER PRIMARY KEY );");
+      sql.query("CREATE TABLE tmp.require_reg  ( var_id INTEGER PRIMARY KEY );");
+      sql.query("CREATE TABLE tmp.require_id   ( var_id INTEGER PRIMARY KEY );");
       
       int combines = 0;
       int first = 0;
@@ -1656,6 +1773,16 @@ void VarDBase::build_temporary_db( Mask & mask )
 	}
       
       
+      if ( mask.rid() )
+	{	  
+	  sql.query( " INSERT OR IGNORE INTO tmp.require_id (var_id) "
+		     "  SELECT v.var_id FROM variants AS v INNER JOIN tmp.vidreq AS z ON v.name == z.name ;" );	  
+	  ++combines;
+	  if ( combines == 1 ) first = 4;
+	  
+	}
+
+      
       // TODO: Think this is ~okay, but at some point check whethe
       // this can be done more efficiently in the main SELECT
       // (i.e. and then remove all file-specific filters from this
@@ -1671,7 +1798,7 @@ void VarDBase::build_temporary_db( Mask & mask )
 		     " WHERE v.file_id IN ( " + mask.files_include_string() + " ) ; ") ;
 	  
 	  ++combines;
-	  if ( combines == 1 ) first = 4;
+	  if ( combines == 1 ) first = 5;
 	  
 	}
       
@@ -1692,6 +1819,9 @@ void VarDBase::build_temporary_db( Mask & mask )
 		       " SELECT var_id FROM tmp.require_reg; " );
 	  else if ( first == 4 ) 
 	    sql.query( " INSERT OR IGNORE INTO tmp.require (var_id) "
+		       " SELECT var_id FROM tmp.require_id; " );	  
+	  else if ( first == 5 ) 
+	    sql.query( " INSERT OR IGNORE INTO tmp.require (var_id) "
 		       " SELECT var_id FROM tmp.require_file; " );
 	}
       else
@@ -1700,11 +1830,13 @@ void VarDBase::build_temporary_db( Mask & mask )
 	  if ( first == 1 )      q+= " SELECT f.var_id FROM tmp.require_loc   AS f ";
 	  else if ( first == 2 ) q+= " SELECT f.var_id FROM tmp.require_var   AS f ";
 	  else if ( first == 3 ) q+= " SELECT f.var_id FROM tmp.require_reg   AS f ";
-	  else if ( first == 4 ) q+= " SELECT f.var_id FROM tmp.require_file AS f ";
+	  else if ( first == 4 ) q+= " SELECT f.var_id FROM tmp.require_id    AS f ";
+	  else if ( first == 5 ) q+= " SELECT f.var_id FROM tmp.require_file  AS f ";
 	  
 	  if ( mask.rvar() && first < 2 ) q += " INNER JOIN tmp.require_var ";
 	  if ( mask.rreg() && first < 3 ) q += " INNER JOIN tmp.require_reg ";
-	  if ( mask.files() && first < 4 ) q += " INNER JOIN tmp.require_file ";
+	  if ( mask.rid() && first < 4 )  q += " INNER JOIN tmp.require_id ";
+	  if ( mask.files() && first < 5 ) q += " INNER JOIN tmp.require_file ";
 	  
 	  q += " USING ( var_id ) ; ";
 	  
@@ -1764,12 +1896,13 @@ void VarDBase::build_temporary_db( Mask & mask )
   //
   // Grouping variable
   //
-  
+
+
   if ( mask.named_grouping() ) 
     {
       
       sql.query("CREATE TABLE tmp.grp ( grp VARCHAR(20) NOT NULL );");
-      
+
       if ( mask.group_loc() ) 
 	{
 	  
@@ -1793,9 +1926,12 @@ void VarDBase::build_temporary_db( Mask & mask )
 		     " SELECT DISTINCT name FROM tmp.locset AS t "
 		     " WHERE t.group_id == " + Helper::int2str( mask.group_set() ) + " ; ") ;
 	}
-      else if ( mask.group_var() )
+      else if ( mask.group_var_set() )
 	{
-	  Helper::halt("var.group not yet implemented, sorry...");
+	  sql.query( " INSERT OR IGNORE INTO tmp.grp (grp) "
+		     " SELECT name FROM sets WHERE set_id IN ( SELECT DISTINCT set_id FROM superset_data AS s "
+		     " WHERE s.superset_id == " + Helper::int2str( mask.group_set() ) + " ) ;" );
+	  
 	}
     }
   

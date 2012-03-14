@@ -134,6 +134,9 @@ class VarDBase {
   
   uint64_t add_superset( const std::string & name , const std::string & desc = "" , bool donotadd = false );
   bool add_set_to_superset( const std::string & , const std::string & );
+  
+  void drop_set( const std::string & );
+  void drop_superset( const std::string & );
 
   std::vector<std::string> get_sets();
   std::vector<std::string> get_supersets();

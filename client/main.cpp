@@ -22,7 +22,7 @@ Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.08";
-std::string PSEQ_DATE    = "4-Dec-2011";
+std::string PSEQ_DATE    = "10-Mar-2012";
 
 int main(int argc, char ** argv)
 {
@@ -181,7 +181,11 @@ int main(int argc, char ** argv)
 	   << PSEQ_DATE << ")\n";
       
       g.show_version();
-	
+
+#ifdef ZLIB_VERNUM
+      plog << "ZLIB\t" << ZLIB_VERSION << "\n";
+#endif
+
       Pseq::finished();
   
     }
@@ -506,7 +510,7 @@ int main(int argc, char ** argv)
   std::string filtspec = "";
   bool filter_T_include = true;
   
-  if ( args.has("mask") )
+  if ( args.has( "mask" ) )
     {	
       std::vector<std::string> t = args.as_string_vector( "mask" );
       for (int i=0; i<t.size(); i++)
@@ -536,7 +540,7 @@ int main(int argc, char ** argv)
     }
   else if ( args.has("eval") )
     {
-      filtspec = args.as_string( "eval" );
+      filtspec = args.as_string( "eval" ) + " ; T " ;      
     }  
   else if ( args.has("exclude") )
     {
@@ -671,10 +675,21 @@ int main(int argc, char ** argv)
   
   
   //
-  // Load/flush meta-information into VARDB
+  // Load/flush meta-information into VARDB, as independent meta-information 
   //
+
+  // TODO  
+//   if ( command == "load-meta" )
+//     {
+//       // either put a new meta-information, or from a file
+//       if ( args.has( "file" ) ) Pseq::insert_meta_from_file( args.has( "file" ) ) ;
+//       else if ( args.has( "name" ) ) Pseq::insert_meta_on_fly( args.has( "name" ) );
+//       else Helper::halt( "need to specify --file or --name" );
+//       Pseq::finished();
+//     }
   
-  if ( command == "load-meta" )
+
+  if ( command == "attach-meta" )
     {
       std::string file = Pseq::Util::single_argument<std::string>( args , "file" );
       std::vector<std::string> id = Pseq::Util::n_arguments<std::string>( args , "id" );
@@ -683,6 +698,8 @@ int main(int argc, char ** argv)
 	g.vardb.loader_indep_meta( file , g.vardb.file_tag( id[i] ) , group );
       Pseq::finished();
     }
+
+ 
   
   if ( command == "delete-meta" )
     {
@@ -1274,7 +1291,7 @@ int main(int argc, char ** argv)
 	    plog.warn( "could not insert any variants: is the VCF BGZF-gzipped?" );	    
 	  }
 	else
-	  plog << "inserted " << inserted << " variants from compressed VCF; now finishing index...\n";
+	  plog << "processed " << inserted << " rows (variants & header) from compressed VCF; now finishing index...\n";
 	
 	g.vardb.commit();
 	vcfz->close();
@@ -2060,6 +2077,15 @@ int main(int argc, char ** argv)
       }    
     
 
+    if ( command == "write-haps" )
+      {
+	if ( ! args.has( "name" ) )
+	  Helper::halt("requires --name to be specified");
+	Pseq::VarDB::write_haps(m,args.as_string("name"));
+	Pseq::finished();
+      }    
+
+
     if ( command == "v-matrix" )
       {	
 	Pseq::VarDB::write_matrix(m);
@@ -2140,7 +2166,20 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
     
-    
+
+    if ( command == "var-drop-set" )
+      {
+	if ( ! args.has( "group" ) ) Helper::halt( "need to specify a --group" );
+	g.vardb.drop_set( args.as_string( "group") );
+	Pseq::finished();
+      }
+        
+    if ( command == "var-drop-all-sets" )
+      {
+	g.vardb.drop_set( "_ALL_" );
+	Pseq::finished();
+      }
+
     //
     // Group a bunch of variants sets
     //
@@ -2164,6 +2203,20 @@ int main(int argc, char ** argv)
 	  }
 	else 
 	  Helper::halt("need to specify --group and --members, or --file" );
+      }
+
+
+    if ( command == "var-drop-superset" )
+      {
+	if ( ! args.has( "group" ) ) Helper::halt( "need to specify a --group" );
+	g.vardb.drop_superset( args.as_string( "group") );
+	Pseq::finished();
+      }
+        
+    if ( command == "var-drop-all-supersets" )
+      {
+	g.vardb.drop_superset( "_ALL_" );
+	Pseq::finished();
       }
     
         

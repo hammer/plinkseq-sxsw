@@ -1180,9 +1180,6 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
       
       std::string name = use_transcript_id ? tok2[3] : tok2[1];
       
-      // change "1" to "chr1", etc
-      //std::string chr_str = Helper::defaultChrPrefix(tok[0]);
-      
       int chromosome = Helper::chrCode( tok[0] ) ;
       
       if ( chromosome == 0 ) continue;

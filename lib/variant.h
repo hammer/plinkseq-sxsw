@@ -438,6 +438,9 @@ class Variant {
   /// A biallelic deletion? (ALT length < REF )
   bool simple_del() const;
   
+  /// Is this an indel?
+  bool indel() const;
+
   /// Return the 'Allele' object for allele 'a'
   const Allele & allele(const int a) const;
 
@@ -529,6 +532,8 @@ class Variant {
   std::string phased_geno_label( const int, const Genotype & ) const;
   std::string label( const int, const std::string & delim = "," ) const;
   std::string gmeta_label( const int, const std::string & delim = "," ) const;
+  std::string allele1_label( const Genotype & ) const;
+  std::string allele2_label( const Genotype & ) const;
 
   
   /*!

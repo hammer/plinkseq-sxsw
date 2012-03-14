@@ -496,62 +496,92 @@ bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
 
 
 
-
 struct aux_addvar  {
   std::string group;
+  std::string mtag;
   bool tagvalue;  
+  std::set<std::string> sets;
 };
+
 
 void f_add_to_varset( Variant & var , void * p )
 {
   aux_addvar * aux = (aux_addvar*)p;
-  std::string * group = (std::string*)p;
+  
   if ( aux->tagvalue )
     {
       // to to group-name defined by tag-value
       std::string val = "";
       
       // only allow this for text and integer tag values
-      meta_index_t midx = MetaInformation<VarMeta>::field( aux->group );
+      meta_index_t midx = MetaInformation<VarMeta>::field( aux->mtag );
       if ( !(  midx.mt == META_TEXT || midx.mt == META_INT ) ) return;
 
       MetaInformation<VarMeta> * m = NULL;
-      if ( var.meta.has_field( aux->group ) ) m = &var.meta;
-      else if ( var.consensus.meta.has_field( aux->group ) ) m = &var.consensus.meta;      
+      if ( var.meta.has_field( aux->mtag ) ) m = &var.meta;
+      else if ( var.consensus.meta.has_field( aux->mtag ) ) m = &var.consensus.meta; 
       if ( m == NULL ) return;
       
       if ( midx.mt == META_TEXT )
 	{
-	  std::vector<std::string> t = m->get_string( aux->group );
+	  std::vector<std::string> t = m->get_string( aux->mtag );
 	  for (int i=0; i<t.size(); i++ ) 
-	    g.vardb.add_var_to_set( t[i] , var  );
+	    {
+	      const std::string n = aux->mtag + "[" + t[i] + "]";
+	      g.vardb.add_var_to_set( n , var  );
+	      if ( aux->sets.find( n ) == aux->sets.end() )
+		{
+		  g.vardb.add_set_to_superset( aux->group , n );
+		  aux->sets.insert( n );
+		}
+	    }
 	}
       
       if ( midx.mt == META_INT )
 	{
-	  std::vector<int> t = m->get_int( aux->group );
+	  std::vector<int> t = m->get_int( aux->mtag );
 	  for (int i=0; i<t.size(); i++ ) 
-	    g.vardb.add_var_to_set( aux->group + "[" + Helper::int2str( t[i] ) + "]" , var  );
-	}      
+	    {
+	      const std::string n = aux->mtag + "[" + Helper::int2str( t[i] ) + "]";
+	      g.vardb.add_var_to_set( n , var  );
+	      if ( aux->sets.find( n ) == aux->sets.end() )
+		{
+		  g.vardb.add_set_to_superset( aux->group , n );
+		  aux->sets.insert( n );
+		}
+	    }
+	}
     }
   else
     g.vardb.add_var_to_set( aux->group , var );
 }
 
+
 bool Pseq::VarDB::add_to_varset( const std::string & group , Mask & mask , const std::string & mtag , const std::string & desc )
 {
 
-  // Create VarGroup if it does not exist
+  // Create set if it does not exist
 
-  g.vardb.add_set( group );
+  // if setting sets based on the value of a meta-field, then create an umbrella super-set 
+  // based on the --group given
+  
+  if ( mtag == "" ) g.vardb.add_set( group );
+  else g.vardb.add_superset( group );
+
   if ( desc != "." ) g.vardb.add_set_description( group , desc );
 
   // Add all mask-passing variants
 
-  g.vardb.iterate( f_add_to_varset , (void*)&group , mask );
+  aux_addvar av;
+  av.group = group;
+  if ( mtag != "" ) { av.tagvalue = true; av.mtag = mtag; } 
+  g.vardb.begin();
+  g.vardb.iterate( f_add_to_varset , &av , mask );
+  g.vardb.commit();
 
   return true;
 }
+
 
 bool Pseq::VarDB::add_to_varset( const std::string & filename  )
 {
@@ -677,8 +707,23 @@ bool Pseq::VarDB::add_superset_from_file( const std::string & filename )
 bool Pseq::VarDB::add_superset( const std::string & group , const std::vector<std::string> & members , const std::string & desc )
 {
   g.vardb.add_superset( group );
-  g.vardb.add_superset_description( group , desc );
+  
+  //  g.vardb.add_superset_description( group , desc );
+
   for (int m=0;m<members.size(); m++) g.vardb.add_set_to_superset( group , members[m] );
   return true;
+}
+
+
+// Insert meta-information, either from a file or from a new meta-tag created on-the-fly
+
+bool Pseq::VarDB::insert_meta_from_file( const std::string & filename )
+{
+
+}
+
+bool Pseq::VarDB::insert_meta_on_fly( const std::string & name )
+{
+
 }
 

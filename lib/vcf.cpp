@@ -95,19 +95,20 @@ VCFReader::line_t VCFReader::parseLine( Variant ** pvar )
   // Either meta-information, header row, or variant row
   //
   
-  if ( s.substr(0,2) == "##" ) 
+  if ( s[0] == '#' )
     {
-      getMetaInformation(s);
-      return VCF_META;
+      if ( s[1] == '#' )
+	{
+	  getMetaInformation(s);
+	  return VCF_META;
+	}
+      else
+	{
+	  getHeader(s);
+	  summary();
+	  return VCF_HEADER;
+	}
     }
-  
-  if ( s.substr(0,1) == "#" )
-    {
-      getHeader(s);
-      summary();
-      return VCF_HEADER;
-    }
-  
 
   //
   // Get variant from VCF row, and insert into the database
@@ -334,7 +335,7 @@ void VCFReader::getMetaInformation(const std::string & s)
        
        if ( refdb ) refdb->insert_header( file_id , tok[0] , tok[1] );
        else vardb->insert_header( file_id , tok[0] , tok[1] ); 
-
+       
 
        if ( name != "GT" ) 
 	 {
@@ -605,8 +606,6 @@ Variant VCFReader::getVariant(const std::string & s)
   // requires a valid chr and position to be accepted as a variant
   if ( ! processVCF( tok(0) , &chr   ) ) return var; 
 
-  // change "1" to "chr1", etc
-  // chr = Helper::defaultChrPrefix(chr);
 
   if ( ! processVCF( tok(1) , &pos   ) ) 
     {
@@ -643,6 +642,15 @@ Variant VCFReader::getVariant(const std::string & s)
       }
     }
   
+  if ( using_idfilter )
+    {
+      if ( idfilter.find( id ) == idfilter.end() )
+	{
+	  var.valid( false );
+	  return var;
+	}
+    }
+
 
   // Key variant fields
 
@@ -850,6 +858,17 @@ void VCFReader::set_region_mask( const std::set<Region> * myfilter )
       if ( i->length() > largest_region ) 
 	largest_region = i->length();
        ++i;
+    }
+}
+
+void VCFReader::add_id_filter( const std::set<std::string> & s)
+{
+  using_idfilter = true;
+  std::set<std::string>::iterator ii = s.begin();
+  while ( ii != s.end() )
+    {
+      idfilter.insert( *ii );
+      ++ii;
     }
 }
 

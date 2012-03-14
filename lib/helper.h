@@ -570,7 +570,6 @@ namespace Helper
 
   int chrCode(const std::string & c);
 
-  std::string defaultChrPrefix(const std::string & s);
 
   std::string coordinate( const int chr, 
 			  const int bp1 = 0 , 

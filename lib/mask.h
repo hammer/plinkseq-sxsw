@@ -157,6 +157,7 @@ class Mask {
   const std::set<int> & included_var() { return in_varset; }
   const std::set<int> & included_varset() { return in_varset_set; }
   const std::set<Region> & included_reg() const { return in_regions; }
+  const std::set<std::string> & included_id() const { return in_ids; }
   const std::set<int> & included_ref() const { return in_refset; }
 
 
@@ -165,6 +166,7 @@ class Mask {
   const std::set<int> & required_var() const { return req_varset; }
   const std::set<int> & required_varset() const { return req_varset_set; }
   const std::set<Region> & required_reg() const { return req_regions; }
+  const std::set<std::string> & required_id() const { return req_ids; }
   const std::set<int> & required_ref() const { return req_refset; }
 
   const std::set<int> & excluded_loc() const { return ex_locset; }
@@ -172,6 +174,7 @@ class Mask {
   const std::set<int> & excluded_var() const { return ex_varset; }
   const std::set<int> & excluded_varset() const { return ex_varset_set; }
   const std::set<Region> & excluded_reg() const { return ex_regions; }
+  const std::set<std::string> & excluded_id() const { return ex_ids; }
   const std::set<int> & excluded_ref() const { return ex_refset; }
   
   const std::set<int> appended_ref() const { return app_refset; }
@@ -440,17 +443,22 @@ class Mask {
 
   int group_set() const 
     { 
-      return group_var() ? 
-	( group_var_set() ? group_variant_set : group_variant ) : 
-	group_loc_set() ? group_locus_set : group_locus ; 
-    }
-  
+      if ( group_var_set() ) return group_variant_set;
+      if ( group_loc_set() ) return group_locus_set;
+      if ( group_loc() ) return group_locus;
+      return 0;
+    }  
   
   bool any_grouping() const 
   { 
-    return named_grouping(); //  || file_grouping() || file_split() ; 
+    return all_group || named_grouping(); //  || file_grouping() || file_split() ; 
   } 
   
+  bool all_grouping() const 
+  {
+    return all_group;
+  }
+
   bool named_grouping() const 
   { 
     return group_var() || group_loc() || group_var_set() || group_loc_set() ; 
@@ -544,6 +552,19 @@ class Mask {
 
   bool exclude_monomorphic() const { return exc_monomorphic; }
   void exclude_monomorphic(const bool b ) { exc_monomorphic = b; }
+
+  void only_indels( const bool b ) { req_indels = b; }
+  bool only_indels() const { return req_indels; } 
+
+  void skip_indels( const bool b ) { exc_indels = b; } 
+  bool skip_indels() const { return exc_indels; } 
+  
+  void only_novel( const bool b ) { req_novel = b; }
+  bool only_novel() const { return req_novel; } 
+
+  void skip_novel( const bool b ) { exc_novel = b; } 
+  bool skip_novel() const { return exc_novel; } 
+  
   
   // 
   // QUAL filter
@@ -1023,12 +1044,14 @@ class Mask {
       req_geno_le.clear();
 
       // variant/allele merging/splitting
-
-      merge_mode = MERGE_MODE_EXACT;
-      downcode_mode = DOWNCODE_MODE_ALL_ALT;
-            
-      // EM caller
       
+      // default to keep as separate sites
+      merge_mode = MERGE_MODE_NONE;           
+      
+      // default to treat as separate alleles
+      downcode_mode = DOWNCODE_MODE_EACH_ALT;  
+
+      // EM caller      
       use_em = false;
       em_threshold = 0;
 
@@ -1072,6 +1095,7 @@ class Mask {
       // Grouping
 	    
       group_region = false;
+      all_group = false;
       group_locus = group_variant = group_variant_set = group_locus_set = 0;
 
       // Functions
@@ -1118,6 +1142,7 @@ class Mask {
   bool seg() const { return in_segset.size() > 0 ; } 
   bool var() const { return in_varset.size() > 0 ; }
   bool reg() const { return in_regions.size() > 0 ; }  
+  bool id() const  { return in_ids.size() > 0; }
   bool ref() const { return in_refset.size() > 0; }
 
   bool loc_set() const { return in_locset_set.size() > 0; }
@@ -1127,24 +1152,29 @@ class Mask {
   bool rseg() const { return req_segset.size() > 0; }
   bool rvar() const { return req_varset.size() > 0; }
   bool rreg() const { return req_regions.size() > 0; }
+  bool rid() const  { return req_ids.size() > 0; }
   bool rref() const { return req_refset.size() > 0; }
   
   bool xloc() const { return ex_locset.size() > 0; }
   bool xseg() const { return ex_segset.size() > 0; }
   bool xvar() const { return ex_varset.size() > 0; }
   bool xreg() const { return ex_regions.size() > 0; }
+  bool xid() const { return ex_ids.size() > 0 ; } 
   bool xref() const { return ex_refset.size() > 0; }
   
-  bool requires() const 
-  { 
+  bool requires() const { 
     return req_locset.size() > 0
       || req_varset.size() > 0
-      || req_regions.size() > 0 ;
-      }
+      || req_regions.size() > 0
+      || req_ids.size() > 0;
+  }
   
-  bool excludes() const { return ex_locset.size() > 0 
-			    || ex_varset.size() > 0 
-			    || ex_regions.size() > 0 ;  }
+  bool excludes() const { 
+    return ex_locset.size() > 0 
+      || ex_varset.size() > 0 
+      || ex_regions.size() > 0 
+      || ex_ids.size() > 0;  
+  }
   
   
   bool loc_exceptions() const { return subset_locset.size() > 0 
@@ -1186,6 +1216,7 @@ class Mask {
 	|| requires() 
 	|| excludes() 
 	|| reg() 
+	|| id()
 	|| xreg() 
 	|| files() 
 	|| xfiles();
@@ -1417,6 +1448,7 @@ class Mask {
       {
 	searchDB();
 	group_variant = group_variant_set = group_locus = group_locus_set = 0;
+	all_group = false;
 	group_region = false;
 	group_mode = false; 
 	empty_groups = false;
@@ -1464,6 +1496,10 @@ class Mask {
 	will_attach_all_meta = false;
 	req_biallelic = false;
 	exc_biallelic = false;
+	req_indels = false;
+	exc_indels = false;
+	req_novel = false;
+	exc_novel = false;
 	req_monomorphic = false;
 	exc_monomorphic = false;
 	eval_expr_set = false;
@@ -1584,6 +1620,7 @@ class Mask {
     int group_locus;  // specifies either LOCDB or SEGDB
     int group_locus_set;
     bool empty_groups;
+    bool all_group;
 
     // From the above sets, are we only interested in a named subset of
     // entries, that have been specified directly to this Mask, i.e. not
@@ -1692,9 +1729,15 @@ class Mask {
 
     bool req_biallelic;
     bool exc_biallelic;
+
     bool req_monomorphic;
     bool exc_monomorphic;
+    
+    bool req_indels;
+    bool exc_indels;
 
+    bool req_novel;
+    bool exc_novel;
 
     //
     // Meta masks

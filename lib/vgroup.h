@@ -159,7 +159,7 @@ class VariantGroup {
       @return True if the group is now complete 
     */
     
-    bool complete() const { return is_complete; } 
+    bool complete() const { return mask.all_grouping() ? false : is_complete; } 
 
 
     /*!

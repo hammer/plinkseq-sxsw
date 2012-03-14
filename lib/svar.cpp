@@ -485,6 +485,7 @@ bool SampleVariant::decode_BLOB_basic( SampleVariant * svar )
 
   if ( svar->bcf || vcf_direct ) return true; 
 
+
   //
   // The index, chr, name and bp1,2 will be already set
   // for the main Variant. Here we assign SampleVariant
@@ -529,21 +530,24 @@ bool SampleVariant::decode_BLOB_basic( SampleVariant * svar )
 
 void SampleVariant::decode_BLOB_alleles()
 { 
+  
+  // this function sometimes called when deciding to merge two SampleVariants into one Variant
+  // (i.e. based on MERGE rules).  Thus we may need to peek at the REF and ALT prior to the 
+  // decode_BLOB_basic() being called.
+  
+  if ( bcf || vcf_direct ) {
+    return; // should already have been done
+  }
 
-    // this function sometimes called when deciding to merge two SampleVariants into one Variant
-    // (i.e. based on MERGE rules).  Thus we may need to peek at the REF and ALT prior to the 
-    // decode_BLOB_basic() being called.
-    
-    if ( bcf || vcf_direct ) return; 
-    alt = var_buf.alt();
-    ref = var_buf.ref();
+  alt = var_buf.alt();
+  ref = var_buf.ref();
 }
 
 
 
 bool SampleVariant::decode_BLOB_vmeta( Mask * mask, Variant * parent , SampleVariant * sample )
 {    
-
+  
   
   // SampleVariant meta-information
   
@@ -1024,7 +1028,6 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   else if ( target->bcf ) 
     {     
       
- 
      // The format of the genotype is a string in bcf_format
       
       //       std::string           bcf_format;
@@ -1034,11 +1037,12 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 
       // Number of individuals in BCF buffer
       unsigned int n_buffer = target->bcf->sample_n();
-      
+
       
       // Number of individuals we actually want
       unsigned int n_variant = align ? align->size() : n_buffer ;
       
+
       //
       // Allocate space as needed
       //
@@ -1050,12 +1054,11 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
       
       std::vector<std::string> format = Helper::char_split( target->bcf_format , ':' );
 
-      // really slow ways to get allele count duplicating previous effort, but 
-      // keep for now
+      // TODO: fix this really slow way to get allele count, that duplicates previous effort...
       
       int nalt = Helper::char_split( vtarget->alternate() , ',' ).size() + 1;
       int ngen = (int) (nalt * (nalt+1) * 0.5);
-
+      
       // create mapping of source-to-target slots
       std::vector<int> s2t( n_buffer );
       
@@ -1064,15 +1067,19 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	  int slot = i;	  
 	  if ( align )
 	    {	
+
 	      // get within-sample slot
 	      slot = align->sample_remapping( source->fileset() , i ) ;	      
+
 	      // under a flat alignment, we need to reset to the
 	      // consensus slot: check -- or should this be (fset,i) ?	      
+
 	      if ( align->flat() ) 
 		slot = align->get_slot( source->fileset() , slot );
 	    }	  
 	  s2t[ i ] = slot;	  
 	}
+
       
       // posiiton in genotype buffer
       int p = 0;
@@ -1098,6 +1105,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	  
 	  if ( bt.type == BCF::BCF_genotype )
 	    {
+
 	      for ( int i=0; i < n_buffer ; i++ )
 		{
 		  if ( s2t[i] != -1 )
@@ -1119,7 +1127,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 		      std::vector<int> tmp( bt.len );
 		      for (int j=0;j< bt.len; j++)
 			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint32_t) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );		      
 		    }
 		  p += bt.len * sizeof(uint32_t);
 		}
@@ -1154,7 +1162,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 		  p += bt.len * sizeof(uint16_t);
 		}
 	    }
-
+	  
 
 	  else if ( bt.type == BCF::BCF_double )
 	    {
@@ -1496,6 +1504,18 @@ void SampleVariant::set_allelic_encoding()
 }
 
 
+std::string SampleVariant::allele1_label( const Genotype & g ) const
+{
+  if ( g.null() ) return ".";
+  return alleles[ g.acode1() ].name();
+}
+
+std::string SampleVariant::allele2_label( const Genotype & g ) const
+{
+  if ( g.null() ) return ".";
+  if ( g.haploid() ) return ".";
+  return alleles[ g.acode2() ].name();
+}
 
 std::string SampleVariant::label( const Genotype & g , bool phased ) const
 {
@@ -1620,6 +1640,10 @@ bool SampleVariant::has_nonreference( const bool also_poly , const std::vector<i
 
 void SampleVariant::recall( Genotype & g , SampleVariant * p )
 {
+  
+  // null genotypes always remain null
+
+  if ( g.null() ) return;
 
   std::string str1 = p->alleles[ g.acode1() ].name();
   
@@ -1628,22 +1652,22 @@ void SampleVariant::recall( Genotype & g , SampleVariant * p )
   for ( int a=0; a<alleles.size(); a++)
     {
       if ( alleles[a].name() == str1 ) 
-      {
+	{
 	  if ( g.haploid() ) 
-	  {
+	    {
 	      g.genotype( a );
 	      return;
-	  }
+	    }
 	  a0 = a;
 	  break;
-      }
+	}
     }
   
-
+  
   // Second swap allele
 
   std::string str2 = p->alleles[ g.acode2() ].name();
-
+  
   for ( int a=0; a<alleles.size(); a++)
     {
       if ( alleles[a].name() == str2 ) 
@@ -1652,7 +1676,7 @@ void SampleVariant::recall( Genotype & g , SampleVariant * p )
 	  break;
 	}
     }
-
+  
 }
 
 

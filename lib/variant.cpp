@@ -79,10 +79,10 @@ bool Variant::make_consensus( IndividualMap * a )
   // no need to worry
   //
 
-
   if ( infile_overlap() ) 
-    align->force_unflat( true );
-
+    {
+      align->force_unflat( true );
+    }
 
   //
   // If this is a flat alignment (no dupe genotypes) then nothing else
@@ -99,7 +99,7 @@ bool Variant::make_consensus( IndividualMap * a )
     {
       
       int n_alleles = consensus.parse_alleles();
-
+      
       // for biallelic markers, we can leave now
       if ( n_alleles == 2 ) 
 	{	  
@@ -116,13 +116,12 @@ bool Variant::make_consensus( IndividualMap * a )
     svar[i].parse_alleles();
 
 
-
   //
   // Align basic allelic informaiton
   //
   
   SampleVariant & first = svar[0];
-  
+
   consensus.ref = first.ref;
   consensus.alt = "";
   
@@ -164,7 +163,7 @@ bool Variant::make_consensus( IndividualMap * a )
 	}
       
     }
-
+  
 
   if ( expanded_ref ) 
     {
@@ -186,11 +185,11 @@ bool Variant::make_consensus( IndividualMap * a )
       SampleVariant & sv = svar[i];
       
       sv.set_allelic_encoding();
-
+      
       // 
       // Is the alternate alleles specification exactly the same?
       //
-      
+
       if ( sv.alt != consensus.alt ) 
 	{
 	  if ( consensus.alt != "" ) 
@@ -299,6 +298,7 @@ bool Variant::make_consensus( IndividualMap * a )
       return true;
     }
 
+
       
   //
   // Genotypes in non-flat alignments, (which might need to be recoded)
@@ -311,7 +311,7 @@ bool Variant::make_consensus( IndividualMap * a )
 
   for (int i=0; i<n; i++)
     {
-      
+
       int2 j = align->unique_mapping(i);      
       
       // Does this individual feature in multiple samples? 
@@ -365,7 +365,7 @@ bool Variant::make_consensus( IndividualMap * a )
 
 	  bool slot_filled = false;
 
-	  
+
 	  // Get the list of SampleVariant IDs that this individual features in for this Variant
 	  
 	  std::vector<int> svids;
@@ -373,6 +373,7 @@ bool Variant::make_consensus( IndividualMap * a )
 	  
 	  if ( j.p1 != -1 )  // single file, but multi obs within that file
 	    {
+
 	      std::vector<int> & xx = ftosv[ j.p1 ];
 	      for (int z=0; z<xx.size(); z++)
 		{
@@ -416,20 +417,22 @@ bool Variant::make_consensus( IndividualMap * a )
 		 
 		  if ( need_to_resolve )
 		    {
-// 		      std::string label = p->label( g );
-// 		      g = consensus.spec->callGenotype( label , this , true ); // T=ACGT mode
 		      consensus.recall( g , p );
 		    }
 		  
+
 		  // Ignore null genotypes
-		  
+
 		  if ( g.null() ) continue; 
-		  
+
+
 		  // If consensus is null, insert here
 
 		  if ( consensus(i).null() ) 
 		    {
-		      consensus(i) = g;
+
+		      consensus(i) = g;		      
+
 		      if ( slot_filled ) 
 			consensus(i).meta.clear();
 		      slot_filled = true;
@@ -454,7 +457,7 @@ bool Variant::make_consensus( IndividualMap * a )
 		    consensus(i).meta.clear();
 
 		  slot_filled = true;
-
+		  
 		}
 	      	      
 	    }    
@@ -516,6 +519,16 @@ std::string Variant::print_PED(const Genotype & g, const std::string & delim ) c
 std::string Variant::geno_label( const Genotype & g ) const
 {
   return consensus.label( g );
+}
+
+std::string Variant::allele1_label( const Genotype & g ) const
+{
+  return consensus.allele1_label( g );
+}
+
+std::string Variant::allele2_label( const Genotype & g ) const
+{
+  return consensus.allele2_label( g );
 }
 
 std::string Variant::geno_label( const int s , const Genotype & g ) const
@@ -793,6 +806,15 @@ bool Variant::simple_del() const
     consensus.alleles[1].type() == ALLELE_DELETION;
 }
 
+
+bool Variant::indel() const
+{
+  // also should check for whether 'I' and 'D' coding is employed...
+  int rs = consensus.alleles[0].name().size();
+  for (int i=1;i<consensus.alleles.size(); i++)
+    if ( consensus.alleles[i].name().size() != rs ) return true;
+  return false;
+}
 
 std::string Variant::VCF() const
 {
