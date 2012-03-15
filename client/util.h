@@ -83,10 +83,9 @@ namespace Pseq
 	    std::string command() const { return command_str; } 	
 	    std::string project_file() const { return project_str; } 
 	    void shortform( const std::string & a , const std::string & b );
-	    
+
 	    
 	    // extraction/converstion functions
-	    
 	    std::vector<std::string> as_string_vector( const std::string & a ) const;
 	    std::string as_string( const std::string & a ) const;	
 	    int as_int( const std::string & a ) const;
@@ -203,7 +202,15 @@ namespace Pseq
 			Helper::halt( "internal error: malformed command spec:" + s );
 		    
 		    // first 3 standard arguments
+
+		    // command under development? 
 		    
+		    if ( d[0][0] == '*' ) 
+		      {
+			d[0] = d[0].substr(1);
+			devel.insert(d[0]);
+		      }
+
 		    // description
 		    comm_desc[ d[0] ] = d[2];
 		    
@@ -271,7 +278,12 @@ namespace Pseq
 		{
 		    return comm_desc.find(c) != comm_desc.end() ;
 		}
-	    
+
+	    bool stable( const std::string & c ) const
+	    {
+	      return devel.find( c ) == devel.end();
+	    }
+
 	    std::string description( const std::string & c ) 
 		{
 		    return known(c) ? comm_desc[c] : "?" ;
@@ -386,6 +398,10 @@ namespace Pseq
 	    std::map<std::string,std::string> group_desc;
 	    std::map<std::string,std::vector<std::string> > group_group;
 	    std::map<std::string,std::string> group_group_rmap;
+
+	    // command under development, should not be shown in help
+	    // registered as "*command" when entering
+	    std::set<std::string> devel;
 	    
 	    Options * pargs;
 	    

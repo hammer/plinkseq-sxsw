@@ -82,9 +82,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "index-vcf|input|add index to VARDB for a BGZF-compressed VCF|ARG:vcf"
 	
-	  << "index-bcf|input|add index to VARDB for a BCF|ARG:bcf"
+	  << "*index-bcf|input|add index to VARDB for a BCF|ARG:bcf"
 
-	  << "reload-vcf|input|clear VARDB, then reload all VCF (not implemented yet)"
+	  << "*reload-vcf|input|clear VARDB, then reload all VCF (not implemented yet)"
 	
 	  << "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id,iid,fid,check-reference,fix-strand" 
 	
@@ -122,9 +122,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "write-lik|output|write a BEALGE likelihood file|VCF"
 
-	  << "write-haps|output|write a MaCH format haplotype file|VCF"
+	  << "*write-haps|output|write a MaCH format haplotype file|VCF"
       
-	  << "write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf"
+	  << "*write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf"
       
       
       	
@@ -144,7 +144,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     
 	  << "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta,rarelist,phenotype,verbose"
     
-	  << "gs-view|views|view gene variants in sequence|GRP|ARG:ref-variants"
+	  << "*gs-view|views|view gene variants in sequence|GRP|ARG:ref-variants"
 	
 	  << "i-view|views|individuals in project/file|VCF|ARG:pheno,from-vardb"
 
@@ -193,9 +193,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "loc-delete|locop|remove a LOCDB group|ARG:group"
 	
-	  << "loc-index|locop|index a LOCDB" 
+	  << "*loc-index|locop|index a LOCDB" 
 	
-	  << "loc-drop-index|locop|remove index from LOCDB"         
+	  << "*loc-drop-index|locop|remove index from LOCDB"         
 	
 	  << "loc-set-special|locop|set special variable in a LOCDB|ARG:key,value"
 	
@@ -206,7 +206,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "seg-view|views|individual segments|ARG:group"
 	
 
-	  << "loc-intersect|views,locop|view loci from a LOCDB group with 1 or more variants"
+	  << "*loc-intersect|views,locop|view loci from a LOCDB group with 1 or more variants"
 	
 	  << "loc-view|views,locop|show all loci in a LOCDB group|ARG:group,alias,no-meta,show-subregions"
 	
@@ -216,7 +216,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "loc-annotate|locop,annot|annotate loci|ARG:group,show-subregions"
 	
-	  << "loc-overlap|locop|show loci in groups Y, Z that overlap each locus in X|ARG:group,alias,comma,tab,row"
+	  << "*loc-overlap|locop|show loci in groups Y, Z that overlap each locus in X|ARG:group,alias,comma,tab,row"
 
 
 // 	 << "seg-load|input,segop|input segment data to SEGDB" 
@@ -236,13 +236,13 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "ref-load|input,refop|load data (VCF or flat-file) into REFDB|ARG:file,group,vcf"
 	
-	  << "load-weights|input,refop|load weight table|ARG:name,file" 
+	  << "*load-weights|input,refop|load weight table|ARG:name,file" 
 	
-	  << "score-weights|annot|score variants for weights|VCF|ARG:name"
+	  << "*score-weights|annot|score variants for weights|VCF|ARG:name"
 	
 	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:format$build$repeat-mode$iupac,file,name,description,"
 	
-	  << "lookup|misc|lookup various annotatations for a list of positions|ARG:loc,alias,ref,annotate"
+	  << "lookup|misc,annot|lookup various annotatations for a list of positions|ARG:loc,alias,ref,annotate"
 	
 	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta"
 	
@@ -308,27 +308,27 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "unique|views,tests|view variants specific to individual groups|VCF|ARG:indiv,require,allow"
 
-	  << "set-enrich|tests|test per individual for greater-than-expected burden of variants per set|GRP|ARG:phenotype,perm,locset"
+	  << "*set-enrich|tests|test per individual for greater-than-expected burden of variants per set|GRP|ARG:phenotype,perm,locset"
 
 
     //
     // Family-based operations
     //
 
-	  << "denovo|views|filter for de-novo mutations|VCF|ARG:param"
+	  << "*denovo|views|filter for de-novo mutations|VCF|ARG:param"
 
     //
     // IBD database 
     //
 
 
-	  << "ibd-load|input,ibd|load IBD segment data|ARG:ibddb,file"
+	  << "*ibd-load|input,ibd|load IBD segment data|ARG:ibddb,file"
 	
-	  << "ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb"
+	  << "*ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb"
 	
-	  << "s-assoc|tests,ibd|segment-based IBD test|ARG:perm,file"
+	  << "*s-assoc|tests,ibd|segment-based IBD test|ARG:perm,file"
 
-	  << "mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv,region"
+	  << "*mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv,region"
       
       
     
@@ -336,11 +336,11 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     // Gene-network database
     //
 
-	  << "net-load|input,net|populate a NETDB|ARG:netdb,file"
+	  << "*net-load|input,net|populate a NETDB|ARG:netdb,file"
 	
-	  << "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
+	  << "*net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
 	
-	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,pheno,file,output"
+	  << "*net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,pheno,file,output"
             
 
 
@@ -368,7 +368,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     // Misc.
     //
     
-	  << "simple-sim|misc|simple gene variant simulation|GRP";
+	  << "*simple-sim|misc|simple gene variant simulation|GRP";
 
 
 }
@@ -992,7 +992,7 @@ std::string Pseq::Util::Options::desc( const std::string & c ) const
   if ( c == "." )
     {
 
-      ss << "\nusage:\tpseq {project-file|VCF} {command} {--options}\n\n";
+      ss << "\nusage:\tpseq {project-file|VCF|-|.} {command} {--options}\n\n";
       
       std::vector<std::string> groups = pcomm.groups( );
       
@@ -1026,9 +1026,12 @@ std::string Pseq::Util::Options::desc( const std::string & c ) const
       std::vector<std::string> cs = pcomm.all_commands();
 
       for (int c = 0 ; c < cs.size() ; c++)
-	{
-	  ss << "\t" << pcomm.command_description( cs[c] );
-	  ss << pcomm.command_description( cs[c] , true ) << "\n";
+	{	  
+	  if ( pcomm.stable( cs[c] ) )
+	    {
+	      ss << "\t" << pcomm.command_description( cs[c] );
+	      ss << pcomm.command_description( cs[c] , true ) << "\n";
+	    }
 	}
       
       
@@ -1048,7 +1051,7 @@ std::string Pseq::Util::Options::desc( const std::string & c ) const
       ss << "\t---------------------------------------------------------\n";
       std::vector<std::string> cs = pcomm.commands( c );      
       for (int c = 0 ; c < cs.size() ; c++)
-	ss << "\t" << pcomm.command_description( cs[c] );
+	if ( pcomm.stable( cs[c]) ) ss << "\t" << pcomm.command_description( cs[c] );
       
     }
   else if ( pcomm.known( c ) )

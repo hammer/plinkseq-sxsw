@@ -1955,8 +1955,8 @@ int Token::as_int_element(const int i) const
   if ( i < 0 || i > size() ) return 0;
   if ( ttype == INT_VECTOR ) return ivec[i];
   if ( ttype == INT ) return ival;
-  if ( ttype == FLOAT_VECTOR ) return fvec[i];
-  if ( ttype == FLOAT ) return fval;  
+  if ( ttype == FLOAT_VECTOR ) return (int)fvec[i];
+  if ( ttype == FLOAT ) return (int)fval;  
   if ( ttype == BOOL_VECTOR ) return bvec[i];
   if ( ttype == BOOL ) return bval;  
   return 0;      

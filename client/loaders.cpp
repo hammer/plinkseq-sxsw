@@ -616,10 +616,10 @@ bool Pseq::VarDB::add_to_varset( const std::string & filename  )
 	  Helper::str2upper( h[0] );
 	  
 	  if ( h[0].substr(0,3) == "REG" ) add_region = true;
-	  else if ( h[0].substr(0,3) == "SNP" ) add_region = false;
+	  else if ( h[0].substr(0,3) == "VAR" ) add_region = false;
 	  else 
 	    {
-	      plog.warn( "invalid region/snp code " , h[0] );
+	      plog.warn( "invalid region/variant code " , h[0] );
 	      continue; 
 	    }
 
