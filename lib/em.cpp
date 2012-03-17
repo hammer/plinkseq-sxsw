@@ -180,7 +180,7 @@ int EM::estimate()
 
     }
 
-  std::cout << "iter = " << iter << "\n";
+  //  std::cerr << "iter = " << iter << "\n";
 
 }
 

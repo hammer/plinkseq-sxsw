@@ -1790,7 +1790,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
       const int gslot = aux.gene[k];                // col position in SCORES matrix
       const int gmap  = genes_slot2map[ gslot ];    // ID from LOCDB that connects genes to sets
       
-      std::cout << "Individual/gene " << k << " of " << aux.indiv.size() << "\t" << i << " " << gslot << " " << gmap << "\n";
+      //      std::cout << "Individual/gene " << k << " of " << aux.indiv.size() << "\t" << i << " " << gslot << " " << gmap << "\n";
       
       // track total number of mutant genes per individual
       indcnt[i]++;
@@ -1872,7 +1872,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // Test each individual for each set
   //
 
-  std::cout << "n = " << n << "\n";
+  ///  std::cout << "n = " << n << "\n";
   
   for ( int i = 0 ; i < n ; i++ ) 
     {
@@ -1881,7 +1881,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 
       int slot = 0;
 
-      std::cout << "set N = " << s2g.size() << "\n";
+      //      std::cout << "set N = " << s2g.size() << "\n";
 
       std::map<int,std::set<int> >::iterator si = s2g.begin();
       while ( si != s2g.end() )

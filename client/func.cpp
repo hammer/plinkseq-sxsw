@@ -409,7 +409,7 @@ void f_write_haps( Variant & v , void * p )
       const Genotype & g = v(i);
       *f1 << v.allele1_label( v(i) );
       *f2 << v.allele1_label( v(i) ); 
-      std::cout << "want to write " << v.allele1_label( v(i) ) << " and " << v.allele2_label( v(i) ) << "\n";
+      //      std::cout << "want to write " << v.allele1_label( v(i) ) << " and " << v.allele2_label( v(i) ) << "\n";
     }
 }
 

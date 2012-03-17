@@ -43,8 +43,6 @@ bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & g
   if ( args.has( "format" , "include-meta" ) ) includes = args.get_set( "format" , "include-meta" );
   if ( args.has( "format" , "exclude-meta" ) ) excludes = args.get_set( "format" , "exclude-meta" );
 
-  std::cout << includes.size() << " is inc size\n";
-
   std::string comment;
   if ( args.has( "description" ) ) comment = args.as_string( "description" );
   

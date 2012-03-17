@@ -1583,14 +1583,15 @@ uint64_t LocDBase::load_regions( const std::string & filename,
 	  bool okay = true;
 	  Region t( buffer[ col_pos ] , okay );
 	  if ( ! okay ) continue;
-	  chromosome = t.chromosome();
+	  chromosome = t.chromosome() ;
 	  p1 = t.start.position();
 	  p2 = t.stop.position();
 	}
       else
 	{
 	  // CHR, BP1 and BP2 specified separately
-	  if ( chr ) chromosome = Helper::chrCode( buffer[ col_chr ] ) ;
+	  if ( chr )
+	    chromosome = Helper::chrCode( buffer[ col_chr ] ) ;	    	  
 	  if ( bp1 && ! Helper::str2int( buffer[ col_bp1 ] , p1 ) ) continue;
 	  if ( bp2 && ! Helper::str2int( buffer[ col_bp2 ] , p2 ) ) continue;
 	}

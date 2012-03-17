@@ -1351,10 +1351,10 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	    {
 	      target->calls.genotype(i).null( true );
 	    }
-	  else
-	    {
-	      std::cout << "DEBUG: keeping " << i << " " << *parent << " " << GP->indmap(i)->id() << "\n";
-	    }
+// 	  else
+// 	    {
+// 	      // std::cout << "DEBUG: keeping " << i << " " << *parent << " " << GP->indmap(i)->id() << "\n";
+// 	    }
 	}
     }
   

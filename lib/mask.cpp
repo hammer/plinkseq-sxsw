@@ -543,21 +543,18 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
   if ( m.has_field( "seg" ) ) 
     {
-      Helper::halt("seg mask not available currently");
       std::vector<std::string> k = m.get_string( "seg" );
       for (int i=0; i<k.size(); i++) include_seg(k[i]);
     }
   
   if ( m.has_field( "seg.req" ) ) 
     {
-      Helper::halt("seg mask not available currently");
       std::vector<std::string> k = m.get_string( "seg.req" );
       for (int i=0; i<k.size(); i++) require_seg(k[i]);
     }
 
   if ( m.has_field( "seg.ex" ) ) 
     {
-      Helper::halt("seg mask not available currently");
       std::vector<std::string> k = m.get_string( "seg.ex" );
       for (int i=0; i<k.size(); i++) exclude_seg(k[i]);
     }
@@ -4147,7 +4144,6 @@ void Mask::prep_segmask()
 	  std::set<Region>::iterator ss = s.begin();
 	  while ( ss != s.end() )
 	    {
-	      std::cout << "pushing...\n";
 	      ex_segs[ i ].push_back( *ss );
 	      ++ss;
 	    }
@@ -4170,7 +4166,7 @@ bool Mask::in_all_segmask( const Region & var , const std::map<int,std::vector<R
   if ( segs.size() == 0 ) return true;  
   std::map<int,std::vector<Region> >::const_iterator g = segs.begin();
   while ( g != segs.end() )
-    {
+    {      
       if ( ! in_any_segmask( var , g->second ) ) return false;
       ++g;
     }
@@ -4184,17 +4180,23 @@ bool Mask::eval_segmask( const int i , const Region & region )
   
   // excludes 
   if ( ex_segs.size() && ex_segs[i].size() ) 
-    if ( in_any_segmask( region , ex_segs[i] ) ) return false;
-  
+    {
+      if ( in_any_segmask( region , ex_segs[i] ) ) return false;
+    }
+
   // requires
-  if ( req_segs.size() && req_segs[i].size() )
-    if ( ! in_all_segmask( region , req_segs[i] ) ) return false;
-  
+  if ( req_segs.size() ) 
+    {
+      if ( req_segs[i].size() )
+	return in_all_segmask( region , req_segs[i] );      
+      else 
+	return false;
+    }
+
   // includes 
-  if ( in_segset.size() == 0 ) return true;
-  std::cout << "I-A\n";
+  if ( in_segset.size() == 0 ) return true;  
   if ( in_any_segmask( region , segs[i] ) ) return true;
-  std::cout << "I-B\n";
+
   return false;
 }
 

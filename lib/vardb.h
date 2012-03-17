@@ -163,6 +163,7 @@ class VarDBase {
   //
 
   bool chr_code( const int , const std::string & , const ploidy_t ); 
+  void chr_name( const int , const std::string & );
   int chr_code( const std::string & , ploidy_t * p = NULL );
   std::string chr_name( const int ) ;
   ploidy_t ploidy( const int c );
@@ -346,6 +347,7 @@ class VarDBase {
   sqlite3_stmt * stmt_fetch_sets;
 
   sqlite3_stmt * stmt_insert_chr_code;
+  sqlite3_stmt * stmt_insert_chr_name;
   sqlite3_stmt * stmt_fix_chr_code;
   sqlite3_stmt * stmt_fetch_chr_code;
   sqlite3_stmt * stmt_fetch_chr_name;

@@ -79,14 +79,20 @@ bool VarDBase::newDB( std::string n )
   //
   
   bool populate_chr_codes = ! sql.table_exists( "chrcodes" );
+
+  // for mapping (multiple ) string-id --> numeric 
+  sql.query( " CREATE TABLE IF NOT EXISTS chrnames("
+             "   name    VARCHAR(20) NOT NULL , "
+	     "   chr_id  INTEGER NOT NULL , "
+             "   CONSTRAINT cChr UNIQUE ( name ) ) ; " );
   
+  // mapping numeric ->  (single) string-id  
   sql.query( " CREATE TABLE IF NOT EXISTS chrcodes("
              "   chr_id  INTEGER PRIMARY KEY , "
              "   name    VARCHAR(20) NOT NULL , "
-	     "   ploidy  INTEGER NOT NULL , "
-               " CONSTRAINT cChr UNIQUE ( name ) ) ; " );
-  
-  
+	     "   ploidy  INTEGER NOT NULL ); " );
+
+    
   //
   // We only want to do this once (otherwise write to db will cause lock)
   //
@@ -96,91 +102,100 @@ bool VarDBase::newDB( std::string n )
 
       stmt_insert_chr_code = 
 	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name , ploidy ) values( :name , :ploidy ); " );      
+      
+      stmt_insert_chr_name = 
+	sql.prepare( " INSERT OR REPLACE INTO chrnames ( chr_id , name ) values( :chr_id , :name ); " );      
+      
       stmt_fix_chr_code = 
-	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name , ploidy ) values( :chr_id , :name , :ploidy ); " );      
+	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name , ploidy ) "
+		     " values( :chr_id , :name , :ploidy ); " );      
+      
       stmt_fetch_chr_code = 
-	sql.prepare( " SELECT chr_id , ploidy FROM chrcodes WHERE name == :name ; " );      
+	sql.prepare( " SELECT chr_id FROM chrnames WHERE name == :name ; " );      
+      
       stmt_fetch_chr_name = 
 	sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
-
-            
-
-      chr_code( 1, "1"     , PLOIDY_AUTOSOMAL );  
-      chr_code( 1, "chr1"  , PLOIDY_AUTOSOMAL );  
-
-      chr_code( 2, "2"     , PLOIDY_AUTOSOMAL );  
-      chr_code( 2, "chr2"  , PLOIDY_AUTOSOMAL );  
-
-      chr_code( 3, "3"     , PLOIDY_AUTOSOMAL );  
-      chr_code( 3, "chr3"  , PLOIDY_AUTOSOMAL );  
-
-      chr_code( 4, "4"     , PLOIDY_AUTOSOMAL );
-      chr_code( 4, "chr4"  , PLOIDY_AUTOSOMAL );
-
-      chr_code( 5, "5   "  , PLOIDY_AUTOSOMAL );  
-      chr_code( 5, "chr5"  , PLOIDY_AUTOSOMAL );  
-
-      chr_code( 6, "6"     , PLOIDY_AUTOSOMAL );  
-      chr_code( 6, "chr6"  , PLOIDY_AUTOSOMAL );  
-
-      chr_code( 7, "7"     , PLOIDY_AUTOSOMAL );  
-      chr_code( 7, "chr7"  , PLOIDY_AUTOSOMAL );  
-
-      chr_code( 8, "8"     , PLOIDY_AUTOSOMAL );
-      chr_code( 8, "chr8"  , PLOIDY_AUTOSOMAL );
-
-      chr_code( 9, "9"     , PLOIDY_AUTOSOMAL );  
-      chr_code( 9, "chr9"  , PLOIDY_AUTOSOMAL );  
-
-      chr_code(10, "10"    , PLOIDY_AUTOSOMAL );  
-      chr_code(10, "chr10" , PLOIDY_AUTOSOMAL );  
-
-      chr_code(11, "11"    , PLOIDY_AUTOSOMAL );  
-      chr_code(11, "chr11" , PLOIDY_AUTOSOMAL );  
-
-      chr_code(12, "12"    , PLOIDY_AUTOSOMAL );
-      chr_code(12, "chr12" , PLOIDY_AUTOSOMAL );
-
-      chr_code(13, "13"    , PLOIDY_AUTOSOMAL );  
-      chr_code(13, "chr13" , PLOIDY_AUTOSOMAL );  
-
-      chr_code(14, "14"    , PLOIDY_AUTOSOMAL );  
-      chr_code(14, "chr14" , PLOIDY_AUTOSOMAL );  
-
-      chr_code(15, "15"    , PLOIDY_AUTOSOMAL );  
-      chr_code(15, "chr15" , PLOIDY_AUTOSOMAL );  
-
-      chr_code(16, "16"    , PLOIDY_AUTOSOMAL );
-      chr_code(16, "chr16" , PLOIDY_AUTOSOMAL );
-
-      chr_code(17, "17"    , PLOIDY_AUTOSOMAL );  
-      chr_code(17, "chr17" , PLOIDY_AUTOSOMAL );  
-
-      chr_code(18, "18"    , PLOIDY_AUTOSOMAL );  
-      chr_code(18, "chr18" , PLOIDY_AUTOSOMAL );  
-
-      chr_code(19, "19"    , PLOIDY_AUTOSOMAL );  
-      chr_code(19, "chr19" , PLOIDY_AUTOSOMAL );  
-
-      chr_code(20, "20"    , PLOIDY_AUTOSOMAL );
-      chr_code(20, "chr20" , PLOIDY_AUTOSOMAL );
-
-      chr_code(21, "21"    , PLOIDY_AUTOSOMAL );  
-      chr_code(21, "chr21" , PLOIDY_AUTOSOMAL );  
-
-      chr_code(22, "22"    , PLOIDY_AUTOSOMAL );       
-      chr_code(22, "chr22" , PLOIDY_AUTOSOMAL );       
-
-      chr_code(23, "X"     , PLOIDY_X ); 
-      chr_code(23, "chrX"  , PLOIDY_X ); 
-
-      chr_code(24, "Y"     , PLOIDY_Y ); 
-      chr_code(24, "chrY"  , PLOIDY_Y ); 
-
-      chr_code(25, "M"     , PLOIDY_HAPLOID );      
-      chr_code(25, "chrM"  , PLOIDY_HAPLOID );      
       
+
+      chr_code( 1, "chr1"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 1, "1" );
+      
+      chr_code( 2, "chr2"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 2, "2" );
+      
+      chr_code( 3, "chr3"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 3, "3" );
+      
+      chr_code( 4, "chr4"  , PLOIDY_AUTOSOMAL );
+      chr_name( 4, "4" );
+      
+      chr_code( 5, "chr5"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 5, "5" );
+      
+      chr_code( 6, "chr6"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 6, "6" );
+      
+      chr_code( 7, "chr7"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 7, "7" );
+
+      chr_code( 8, "chr8"  , PLOIDY_AUTOSOMAL );
+      chr_name( 8, "8" );
+
+      chr_code( 9, "chr9"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 9, "9" );
+
+      chr_code(10, "chr10" , PLOIDY_AUTOSOMAL );  
+      chr_name(10, "10" );
+
+      chr_code(11, "chr11" , PLOIDY_AUTOSOMAL );  
+      chr_name(11, "11" );
+
+      chr_code(12, "chr12" , PLOIDY_AUTOSOMAL );
+      chr_name(12, "12" );
+
+      chr_code(13, "chr13" , PLOIDY_AUTOSOMAL );  
+      chr_name(13, "13" );
+
+      chr_code(14, "chr14" , PLOIDY_AUTOSOMAL );  
+      chr_name(14, "14" );
+
+      chr_code(15, "chr15" , PLOIDY_AUTOSOMAL );  
+      chr_name(15, "15" );
+
+      chr_code(16, "chr16" , PLOIDY_AUTOSOMAL );
+      chr_name(16, "16" );
+
+      chr_code(17, "chr17" , PLOIDY_AUTOSOMAL );  
+      chr_name(17, "17" );
+
+      chr_code(18, "chr18" , PLOIDY_AUTOSOMAL );  
+      chr_name(18, "18" );
+
+      chr_code(19, "chr19" , PLOIDY_AUTOSOMAL );  
+      chr_name(19, "19" );
+
+      chr_code(20, "chr20" , PLOIDY_AUTOSOMAL );
+      chr_name(20, "20" );
+
+      chr_code(21, "chr21" , PLOIDY_AUTOSOMAL );  
+      chr_name(21, "21" );
+
+      chr_code(22, "chr22" , PLOIDY_AUTOSOMAL );       
+      chr_name(22, "22" );
+
+      chr_code(23, "chrX"  , PLOIDY_X ); 
+      chr_name(23, "X" );
+      chr_name(23, "XY" );
+      chr_name(23, "PAR" );
+      
+      chr_code(24, "chrY"  , PLOIDY_Y ); 
+      chr_name(24, "Y" );
+
+      chr_code(25, "chrM"  , PLOIDY_HAPLOID );      
+      chr_name(25, "M" );
+
       sql.finalise( stmt_insert_chr_code );
+      sql.finalise( stmt_insert_chr_name );
       sql.finalise( stmt_fix_chr_code );
       sql.finalise( stmt_fetch_chr_code );
       sql.finalise( stmt_fetch_chr_name );
@@ -362,17 +377,22 @@ bool VarDBase::init()
 
     // Chromosome codes
 
-    stmt_insert_chr_code = 
-      sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name , ploidy ) values( :name , :ploidy ); " );
-
-    stmt_fix_chr_code = 
-      sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name , ploidy ) values( :chr_id , :name , :ploidy ); " );
-    
-    stmt_fetch_chr_code = 
-      sql.prepare( " SELECT chr_id , ploidy FROM chrcodes WHERE name == :name ; " );
-    
-    stmt_fetch_chr_name = 
-      sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
+      stmt_insert_chr_code = 
+	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name , ploidy ) values( :name , :ploidy ); " );      
+      
+      stmt_insert_chr_name = 
+	sql.prepare( " INSERT OR REPLACE INTO chrnames ( chr_id , name ) values( :chr_id , :name ); " );      
+      
+      stmt_fix_chr_code = 
+	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name , ploidy ) "
+		     " values( :chr_id , :name , :ploidy ); " );      
+      
+      stmt_fetch_chr_code = 
+	sql.prepare( " SELECT chr_id FROM chrnames WHERE name == :name ; " );      
+      
+      stmt_fetch_chr_name = 
+	sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
+      
 
 
     // Meta-value type information
@@ -676,6 +696,7 @@ bool VarDBase::release()
   sql.finalise( stmt_fetch_tag_from_file );
   sql.finalise( stmt_fix_chr_code );
   sql.finalise( stmt_insert_chr_code );
+  sql.finalise( stmt_insert_chr_name );
   sql.finalise( stmt_insert_file_summary );
   sql.finalise( stmt_insert_file_tag );
   
@@ -1974,16 +1995,36 @@ uint64_t VarDBase::file_tag( const std::string & filetag )
 
 bool VarDBase::chr_code( const int c , const std::string & n , const ploidy_t ploidy )
 {
+
+  // insert a code --> name (and ploidy)  one --> one mapping
+
   sql.bind_text( stmt_fix_chr_code , ":name" , n );
   sql.bind_int( stmt_fix_chr_code , ":chr_id" , c );
   sql.bind_int( stmt_fix_chr_code , ":ploidy" , ploidy );
   bool okay = sql.step( stmt_fix_chr_code );
   sql.reset( stmt_fix_chr_code );
+
+  chr_name( c , n );
+
   chr_name_map[c]=n;
   chr_code_map[n]=c;
   chr_ploidy_map[c]=ploidy;
+
   return okay;  
 }
+
+void VarDBase::chr_name( int c , const std::string & n ) 
+{
+  chr_code_map[n]=c;
+  // insert a name --> code mapping ( can be many --> 1)
+  if ( ! attached() ) return;
+  sql.bind_int( stmt_insert_chr_name , ":chr_id" , c );
+  sql.bind_text( stmt_insert_chr_name , ":name" , n );
+  sql.step( stmt_insert_chr_name );
+  sql.reset( stmt_insert_chr_name );
+  return;
+}
+
 
 int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy ) 
 {
@@ -1995,15 +2036,7 @@ int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy )
       if ( ploidy ) *ploidy = chr_ploidy_map[ i->second ];
       return i->second;
     }
-
-
-  stmt_fetch_chr_code = 
-    sql.prepare( " SELECT chr_id , ploidy FROM chrcodes WHERE name == :name ; " );
   
-  stmt_fetch_chr_name = 
-    sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
-  
-
   sql.bind_text( stmt_fetch_chr_code , ":name" , n );
   if ( sql.step( stmt_fetch_chr_code ) )
     {
@@ -2024,7 +2057,10 @@ int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy )
   sql.step( stmt_insert_chr_code );
   sql.reset( stmt_insert_chr_code );
   int c = sql.last_insert_rowid();
-    
+
+  // and add string-id --> code entry
+  chr_name( c , n );
+
   // and add to current map
   chr_name_map[c]=n;
   chr_code_map[n]=c;

@@ -2807,9 +2807,9 @@ Token TokenFunctions::fn_assign_pheno( Token & lhs , const Token & rhs )
   lhs.is_string( &name );
   rhs.is_string( &name );
     
-  std::cout << "N = " << name << "\n";
-  std::cout << "N = " << lhs.name() << "\n";
-  std::cout << "N = " << rhs.name() << "\n";
+//   std::cout << "N = " << name << "\n";
+//   std::cout << "N = " << lhs.name() << "\n";
+//   std::cout << "N = " << rhs.name() << "\n";
 
   if ( name == "" ) return Token();
 

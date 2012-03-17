@@ -283,10 +283,7 @@ class Region {
       return overlaps( Region( v.chromosome(), v.position(), v.stop() == 0 ? v.position() : v.stop() ) ); 
     }
 
-  bool overlaps(const Region& b) const
-    { 
-      return stop >= b.start && start <= b.stop;
-    }
+  bool overlaps(const Region& b) const;
 
   bool overlaps(const Subregion & b) const
   { 

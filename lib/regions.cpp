@@ -14,6 +14,7 @@ bool Subregion::overlaps(const Region & b) const
 } 
 
 
+
 bool Region::within( std::set<Region> & s )
 {
     
@@ -59,7 +60,7 @@ Region::Region(const std::string & s, bool & flag)
       // set a large value (appropriate for human
       // chromosomes) to get whole thing...
       
-      int chr = chrCode( s );
+      int chr = Helper::chrCode( s );
       if ( chr == 0 ) return;
       start.chromosome( chr );
       start.position( 1 );
@@ -71,7 +72,7 @@ Region::Region(const std::string & s, bool & flag)
     }
 
   // Get chromosome 
-  int chr = chrCode( s.substr( 0,p ) );
+  int chr = Helper::chrCode( s.substr( 0,p ) );
   if ( chr == 0 ) return;
   
   
@@ -102,6 +103,11 @@ Region::Region(const std::string & s, bool & flag)
   stop.position( str2int(spos.substr(q+2)));
   flag = true;
   return;
+}
+
+bool Region::overlaps(const Region& b) const
+{ 
+  return stop >= b.start && start <= b.stop;
 }
 
 
