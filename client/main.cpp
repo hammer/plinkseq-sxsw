@@ -1406,14 +1406,16 @@ int main(int argc, char ** argv)
 	for (int i=0;i<g.indmap.size(); i++)
 	  {
 	    Individual * person = g.indmap(i);
-	    plog << *person << "\n";
+	    plog << person->id() << "\t";
 	    std::set<Region> s = g.segdb.get_indiv_regions( grp , person->id() );
+	    plog << s.size();
 	    std::set<Region>::iterator si = s.begin();
 	    while ( si != s.end() ) 
 	      {
-		plog << "\t" << *si << "\n";
+		plog << "\t" << si->coordinate();
 		++si;
 	      }
+	    plog << "\n";
 	  }
 	Pseq::finished();
       }

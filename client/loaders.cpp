@@ -42,7 +42,9 @@ bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & g
   std::set<std::string> includes, excludes;
   if ( args.has( "format" , "include-meta" ) ) includes = args.get_set( "format" , "include-meta" );
   if ( args.has( "format" , "exclude-meta" ) ) excludes = args.get_set( "format" , "exclude-meta" );
-  
+
+  std::cout << includes.size() << " is inc size\n";
+
   std::string comment;
   if ( args.has( "description" ) ) comment = args.as_string( "description" );
   
@@ -334,10 +336,10 @@ bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq
 
 	  mType mt = META_TEXT;
 
-	  if      ( args.has( "integer" , h[i] ) ) mt = META_INT;
-	  else if ( args.has( "float"   , h[i] ) ) mt = META_FLOAT;
-	  else if ( args.has( "flag"    , h[i] ) ) mt = META_FLAG;
-	  else if ( args.has( "bool"    , h[i] ) ) mt = META_BOOL;
+	  if      ( args.has( "format" , "integer" , h[i] ) ) mt = META_INT;
+	  else if ( args.has( "format" , "float"   , h[i] ) ) mt = META_FLOAT;
+	  else if ( args.has( "format" , "flag"    , h[i] ) ) mt = META_FLAG;
+	  else if ( args.has( "format" , "bool"    , h[i] ) ) mt = META_BOOL;
 	  
 	  // ignore description for now
 	  std::string desc = "";
@@ -434,10 +436,10 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
       else // a user-defined type
 	{
 	  mType mt = META_TEXT;
-	  if      ( args.has( "integer" , h[i] ) )  mt = META_INT;
-	  else if ( args.has( "float"   , h[i] ) )  mt = META_FLOAT;
-	  else if ( args.has( "flag"    , h[i] ) )  mt = META_FLAG;
-	  else if ( args.has( "bool"    , h[i] ) )  mt = META_BOOL;
+	  if      ( args.has( "format" , "integer" , h[i] ) )  mt = META_INT;
+	  else if ( args.has( "format" , "float"   , h[i] ) )  mt = META_FLOAT;
+	  else if ( args.has( "format" , "flag"    , h[i] ) )  mt = META_FLAG;
+	  else if ( args.has( "format" , "bool"    , h[i] ) )  mt = META_BOOL;
 
 	  // ignore description for now
 	  std::string desc = "";

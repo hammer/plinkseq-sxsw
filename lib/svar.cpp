@@ -1340,12 +1340,11 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   // 2) mask any per-individual segments
   //
 
-
   if ( mask && mask->genotype_segmask() ) 
     {
-
+      
       Region vreg( *parent );
-
+      
       for ( unsigned int i = 0 ; i < n_var ; i++ )
 	{
 	  if ( ! mask->eval_segmask( i , vreg ) )

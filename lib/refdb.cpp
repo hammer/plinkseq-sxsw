@@ -31,6 +31,8 @@ bool RefDBase::attach(std::string name)
             "   chr       INTEGER NOT NULL , "
             "   bp1       INTEGER NOT NULL , "
             "   bp2       INTEGER NOT NULL , "
+	    "   ref       VARCHAR(1) , "
+	    "   alt       VARCHAR(1) , "
 	    "   value     VARCHAR(10) ); " );
 
   
@@ -140,8 +142,8 @@ bool RefDBase::init()
     sql.prepare( "SELECT * FROM refvariants WHERE group_id == :group_id AND name == :name ; "  );
 
   stmt_insert =
-    sql.prepare( "INSERT OR REPLACE INTO refvariants ( name, group_id, chr, bp1, bp2, value ) "
-		 " values( :name , :group_id, :chr, :bp1, :bp2, :value ) ; " );
+    sql.prepare( "INSERT OR REPLACE INTO refvariants ( name, group_id, chr, bp1, bp2, ref, alt, value ) "
+		 " values( :name , :group_id, :chr, :bp1, :bp2, :ref, :alt , :value ) ; " );
 
   stmt_dump = 
     sql.prepare( "SELECT * FROM refvariants WHERE group_id == :group_id ORDER BY chr,bp1; " );
@@ -375,6 +377,8 @@ bool RefDBase::insert( int file_id , const Variant & v )
 		 v.chromosome() , 
 		 v.position() , 
 		 v.stop() , 
+		 v.reference() , 
+		 v.alternate() , 
 		 ss.str()  
 		 );
   
@@ -399,9 +403,14 @@ bool RefDBase::refInsertion(const RefVariant & rv)
     sql.bind_int( stmt_insert , ":group_id", rv.group() );
     sql.bind_int( stmt_insert , ":chr" ,     rv.chromosome() );
     sql.bind_int( stmt_insert , ":bp1" ,     rv.start() );
+
+    sql.bind_int( stmt_insert , ":bp1" ,     rv.start() );
+    sql.bind_int( stmt_insert , ":bp1" ,     rv.start() );
+
+    sql.bind_text( stmt_insert , ":ref" ,   rv.reference() );
+    sql.bind_text( stmt_insert , ":alt" ,   rv.alternate() );
     
-    int bp2 = rv.stop() == rv.start() ? 0 : rv.stop() ; 
-    sql.bind_int( stmt_insert , ":bp2" ,     bp2 );
+    sql.bind_int( stmt_insert , ":bp2" ,     rv.stop() );
 
     sql.bind_text( stmt_insert , ":value" ,  rv.value() );
     sql.step( stmt_insert );
@@ -566,6 +575,11 @@ uint64_t RefDBase::loadRefVariants(const std::string & filename,
 				   bool zero2 )
 {
 
+  // for now, no allele codes allowed as input from flat files...
+  std::string ref = ".";
+  std::string alt = ".";
+
+
   if ( ! attached() ) return 0;
 
   if ( col_bp1 == -1 || col_chr == -1 ) 
@@ -696,6 +710,7 @@ uint64_t RefDBase::loadRefVariants(const std::string & filename,
 		     name ,
 		     chromosome ,
 		     p1 , p2 ,
+		     ref , alt , 
 		     "" );
 
       
@@ -829,9 +844,10 @@ void RefDBase::construct_inplace( sqlite3_stmt * s , RefVariant * rv )
   rv->name(       sql.get_text( s , 1 ) );
   rv->chromosome( sql.get_int( s , 2 ) ) ;
   rv->start(      sql.get_int( s , 3 ) ) ;
-  int bp2 =       sql.get_int( s , 4 );
-  if ( bp2 ) rv->stop( bp2 ? bp2 : rv->start() );
-  rv->value(      sql.get_text( s , 5 ) );  
+  rv->stop(       sql.get_int( s , 4 ) ) ;
+  rv->reference(  sql.get_text( s , 5 ) ) ;
+  rv->alternate(  sql.get_text( s , 6 ) ) ;
+  rv->value(      sql.get_text( s , 7 ) );  
 }
 
 
@@ -1009,9 +1025,11 @@ RefVariant RefDBase::construct( sqlite3_stmt * s)
   int chr = sql.get_int( s , 2 ) ;
   int bp1 = sql.get_int( s , 3 ) ;
   int bp2 = sql.get_int( s , 4 ) ;
-  std::string value = sql.get_text( s , 5 );
+  std::string ref = sql.get_text( s , 5 );
+  std::string alt = sql.get_text( s , 6 );
+  std::string value = sql.get_text( s , 7 );
   
-  return RefVariant(grp_id,name,chr,bp1,bp2,value);
+  return RefVariant(grp_id,name,chr,bp1,bp2,ref,alt,value);
 
 }
 

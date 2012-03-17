@@ -36,7 +36,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     pcomm.new_group( "varop"       , "Variant database operations" );
     pcomm.new_group( "locop"       , "Locus database operations" );
     pcomm.new_group( "refop"       , "Reference database operations" );
-//  pcomm.new_group( "segop"       , "Segment database operations" );
+    pcomm.new_group( "segop"       , "Segment database operations" );
     pcomm.new_group( "seqop"       , "Sequence database operations" );
     pcomm.new_group( "indop"       , "Individual database operations" );
     pcomm.new_group( "ibd"         , "IBD analysis" );
@@ -203,7 +203,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "loc-delete-special|locop|remove all special variables from a LOCDB"
 	
-	  << "seg-view|views|individual segments|ARG:group"
+
 	
 
 	  << "*loc-intersect|views,locop|view loci from a LOCDB group with 1 or more variants"
@@ -218,15 +218,18 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "*loc-overlap|locop|show loci in groups Y, Z that overlap each locus in X|ARG:group,alias,comma,tab,row"
 
+      
+	  << "seg-load|input,segop|input segment data to SEGDB" 
 
-// 	 << "seg-load|input,segop|input segment data to SEGDB" 
-//      << "seg-merge|segop|merge intervals in SEGDB" 
-//      << "segset-load|input,segop|load locus-sets in SEGDB" 
-//      << "seg-load-alias|input,segop|load alias-table" 
-//      << "seg-delete-alias|segop|remove alias-table"
-//      << "seg-delete|segop|remove segment group" 
-//      << "seg-index|segop|index SEGDB" 
-//      << "seg-drop-index|segop|index"            
+	  << "seg-view|views|individual segments|ARG:group"
+
+	  << "*seg-merge|segop|merge intervals in SEGDB" 
+	  << "*segset-load|input,segop|load locus-sets in SEGDB" 
+	  << "*seg-load-alias|input,segop|load alias-table" 
+	  << "*seg-delete-alias|segop|remove alias-table"
+	  << "*seg-delete|segop|remove segment group" 
+	  << "*seg-index|segop|index SEGDB" 
+	  << "*seg-drop-index|segop|index"            
     
 
     //
