@@ -307,7 +307,7 @@ void VCFReader::getMetaInformation(const std::string & s)
       // Ignore or read?
       //
       
-      if ( explicit_meta && meta_want.find( name ) == meta_want.end() ) return;
+      if ( explicit_meta && meta_want.find( name ) == meta_want.end() ) { std::cout << "home on " << name << "\n"; return; } 
       if ( meta_ignore.find( name ) != meta_ignore.end() ) return;
 
       if ( tok[0] == "INFO" ) 
