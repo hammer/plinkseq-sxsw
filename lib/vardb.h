@@ -352,6 +352,7 @@ class VarDBase {
   sqlite3_stmt * stmt_insert_chr_name;
   sqlite3_stmt * stmt_fix_chr_code;
   sqlite3_stmt * stmt_fetch_chr_code;
+  sqlite3_stmt * stmt_fetch_chr_all_codes;
   sqlite3_stmt * stmt_fetch_chr_name;
 
   sqlite3_stmt * stmt_insert_file;

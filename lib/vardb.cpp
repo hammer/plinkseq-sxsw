@@ -390,6 +390,9 @@ bool VarDBase::init()
       stmt_fetch_chr_code = 
 	sql.prepare( " SELECT chr_id FROM chrnames WHERE name == :name ; " );      
       
+      stmt_fetch_chr_all_codes = 
+	sql.prepare( " SELECT name, chr_id FROM chrnames ; " );      
+
       stmt_fetch_chr_name = 
 	sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
       
@@ -690,6 +693,7 @@ bool VarDBase::release()
 {
   sql.finalise( stmt_dump_indep_meta_group );
   sql.finalise( stmt_fetch_chr_code );
+  sql.finalise( stmt_fetch_chr_all_codes );
   sql.finalise( stmt_fetch_chr_name );
   sql.finalise( stmt_fetch_file_from_tag );
   sql.finalise( stmt_fetch_file_summary  );
@@ -2027,7 +2031,28 @@ void VarDBase::chr_name( int c , const std::string & n )
 
 bool VarDBase::chr_known( const std::string & n )
 {
-  return chr_code_map.find( n ) != chr_code_map.end();
+
+  // Note -- does not populate ploidy information here
+  // Note -- assumes that chr codes are not added after first query...
+
+  // cached? (if atleast one entry here, assume we've seen everything... see below)
+
+  if ( chr_code_map.size() > 0 ) 
+    return chr_code_map.find( n ) != chr_code_map.end() ;
+
+  // attempt to pull all from DB
+  
+  while ( sql.step( stmt_fetch_chr_all_codes ) )
+    {      
+      std::string n = sql.get_text( stmt_fetch_chr_all_codes , 0 );
+      int c = sql.get_int( stmt_fetch_chr_all_codes , 1 );
+      chr_name_map[c]=n;
+      chr_code_map[n]=c;
+    }
+  sql.reset( stmt_fetch_chr_all_codes );
+  
+  // now query cache again
+  return chr_code_map.find( n ) != chr_code_map.end() ;
 }
 
 int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy ) 

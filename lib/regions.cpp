@@ -59,7 +59,7 @@ Region::Region(const std::string & s, bool & flag)
       // is this a single chromosome?
       // set a large value (appropriate for human
       // chromosomes) to get whole thing...
-      
+
       if ( Helper::chr_known( s ) ) 
 	{
 	  int chr = Helper::chrCode( s );
@@ -72,6 +72,7 @@ Region::Region(const std::string & s, bool & flag)
 	  return;
 	}
     }
+
 
   // Get chromosome 
   if ( ! Helper::chr_known( s.substr( 0,p ) ) ) return;
