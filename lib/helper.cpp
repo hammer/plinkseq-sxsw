@@ -887,6 +887,13 @@ string Helper::chrCode( int c , bool prefix )
   return prefix ? "chr"+ int2str(c) : int2str(c);
 }
 
+bool Helper::chr_known( const std::string & c )
+{
+  if ( GP && GP->vardb.attached() ) return GP->vardb.chr_known(c);
+  return chrCode(c) != 0;
+}
+
+
 int Helper::chrCode(const std::string & c)
 {
 

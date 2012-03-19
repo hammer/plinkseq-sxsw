@@ -40,7 +40,6 @@ void Variant::init()
 bool Variant::make_consensus( IndividualMap * a )
 {
 
-
   //
   // We are entering this under one of three possible states:
   //
@@ -94,8 +93,10 @@ bool Variant::make_consensus( IndividualMap * a )
   // are letting the different SVARs be compiled within the same
   // VCF as a single variant.  In that case, the force_unflat()
   // flag will be set and we can use that.
-  
-  if ( ( ! align->multi_sample() ) && align->flat() ) 
+
+  bool sites_only = align->size() == 0;
+
+  if ( sites_only || ( ( ! align->multi_sample() ) && align->flat() ) ) 
     {
       
       int n_alleles = consensus.parse_alleles();
@@ -110,7 +111,6 @@ bool Variant::make_consensus( IndividualMap * a )
             
       return true;
     }
-  
   
   for (int i = 0 ; i < svar.size(); i++ )
     svar[i].parse_alleles();

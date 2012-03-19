@@ -95,7 +95,7 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
   // hack 
   if ( filename == "-" ) 
   {
-      v.observed_header( true );
+      v.observed_header( true );      
       v.set_number_individuals( GP->indmap.size() );
   }
 
@@ -183,11 +183,10 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
 	      delete pv;
 	      continue;
 	    }
-
-	  
+	  	  
 	  // So that the Variant functions know not to look for data
 	  // in a BLOB; also, they they know how to parse it downstream
-
+	  
 	  pv->set_vcf_buffer( v.gt_field , &v.formats );
 	  
 	  

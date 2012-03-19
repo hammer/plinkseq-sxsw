@@ -2025,6 +2025,10 @@ void VarDBase::chr_name( int c , const std::string & n )
   return;
 }
 
+bool VarDBase::chr_known( const std::string & n )
+{
+  return chr_code_map.find( n ) != chr_code_map.end();
+}
 
 int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy ) 
 {

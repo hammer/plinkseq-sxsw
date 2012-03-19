@@ -168,6 +168,8 @@ class VarDBase {
   std::string chr_name( const int ) ;
   ploidy_t ploidy( const int c );
 
+  bool chr_known( const std::string & n );
+
 
   //
   // Queries

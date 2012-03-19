@@ -32,10 +32,11 @@ namespace Statistics {
   // mainly helper functions for the above
   double factln(int);
   double factrl(int);
+  double gamln(double);
   double gammln(double);
   double factln(int n);
   double bico(int n, int k);
-  
+  double dbinom_raw( const double , const double , const double);
   double pythag( const double , const double );
 
   // matrix operations

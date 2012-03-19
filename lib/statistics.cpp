@@ -15,6 +15,10 @@ extern Log plog;
 #define M_2PI 6.283185307179586476925286766559/* 2*pi */
 #endif
 
+#ifndef LOG_BOOL
+#define LOG_BOOL false
+#endif
+
 #ifndef M_LN_SQRT_2PI
 #define M_LN_SQRT_2PI 0.918938533204672741780329736406/* log(sqrt(2*pi)) */
 #endif
@@ -1311,10 +1315,483 @@ long double factorial(int x) {
 }
 
 
-double Statistics::dbinom( int k , int n , double p )
-{
-  return bico( n , k ) * pow( p , k ) * pow( 1 - p , n - k ) ;
+/**
+ * AUTHOR
+ *   Catherine Loader, catherine\research.bell-labs.com.
+ *   October 23, 2000.
+ *
+ *  Merge in to R:
+ * Copyright (C) 2000, The R Core Development Team
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA.
+ *
+ *
+ * DESCRIPTION
+ *
+ *   To compute the binomial probability, call dbinom(x,n,p).
+ *   This checks for argument validity, and calls dbinom_raw().
+ *
+ *   dbinom_raw() does the actual computation; note this is called by
+ *   other functions in addition to dbinom()).
+ *     (1) dbinom_raw() has both p and q arguments, when one may be represented
+ *         more accurately than the other (in particular, in df()).
+ *     (2) dbinom_raw() does NOT check that inputs x and n are integers. This
+ *         should be done in the calling function, where necessary.
+ *     (3) Also does not check for 0 <= p <= 1 and 0 <= q <= 1 or NaN's.
+ *         Do this in the calling function.
+ */
+
+inline double rd0(const bool give_log) {
+  return 0.0;
 }
+
+inline double rd1(const bool give_log) {
+  return give_log ? 0.0 : 1.0;
+}
+
+inline double rdexp(const double x, const bool give_log) {
+  return give_log ? x : exp(x);
+}
+
+inline double rdfexp(const double f, const double x, const bool give_log) {
+  return give_log ? -0.5*log(f) + (x) : exp(x) / sqrt(f);
+}
+/// Natural log of the gamma function
+///
+/// \param x
+///
+/// from
+///
+/// NIST Guide to Available Math Software.
+/// Source for module GAMLN from package CMLIB.
+/// Retrieved from TIBER on Wed Apr 29 17:30:20 1998.
+// =====================================================================
+//    WRITTEN BY D. E. AMOS, SEPTEMBER, 1977.
+//
+//    REFERENCES
+//        SAND-77-1518
+//
+//        COMPUTER APPROXIMATIONS BY J.F.HART, ET.AL., SIAM SERIES IN
+//        APPLIED MATHEMATICS, WILEY, 1968, P.135-136.
+//
+//        NBS HANDBOOK OF MATHEMATICAL FUNCTIONS, AMS 55, BY
+//        M. ABRAMOWITZ AND I.A. STEGUN, DECEMBER. 1955, P.257.
+//
+//    ABSTRACT
+//        GAMLN COMPUTES THE NATURAL LOG OF THE GAMMA FUNCTION FOR
+//        X.GT.0. A RATIONAL CHEBYSHEV APPROXIMATION IS USED ON
+//        8.LT.X.LT.1000., THE ASYMPTOTIC EXPANSION FOR X.GE.1000. AND
+//        A RATIONAL CHEBYSHEV APPROXIMATION ON 2.LT.X.LT.3. FOR
+//        0.LT.X.LT.8. AND X NON-INTEGRAL, FORWARD OR BACKWARD
+//        RECURSION FILLS IN THE INTERVALS  0.LT.X.LT.2 AND
+//        3.LT.X.LT.8. FOR X=1.,2.,...,100., GAMLN IS SET TO
+//        NATURAL LOGS OF FACTORIALS.
+//
+//    DESCRIPTION OF ARGUMENTS
+//
+//        INPUT
+//          X      - X.GT.0
+//
+//        OUTPUT
+//          GAMLN  - NATURAL LOG OF THE GAMMA FUNCTION AT X
+//
+//    ERROR CONDITIONS
+//        IMPROPER INPUT ARGUMENT - A FATAL ERROR
+//
+double Statistics::gamln(const double x) {
+  static double xlim1 = 8.0;
+  static double xlim2 = 1e3;
+  static double rtwpil = .918938533204673;
+  static double p[5] =
+    { 7.66345188e-4, -5.9409561052e-4,
+      7.936431104845e-4, -.00277777775657725,
+      .0833333333333169
+    };
+  static double q[2] =
+    { -.00277777777777778, .0833333333333333 }
+  ;
+  static double pcoe[9] =
+    { .00297378664481017,
+      .0092381945590276, .109311595671044, .398067131020357,
+      2.15994312846059, 6.33806799938727,
+      20.7824725317921, 36.0367725300248, 62.0038380071273
+    }
+  ;
+  static double qcoe[4] =
+    { 1.0, -8.90601665949746,
+      9.82252110471399, 62.003838007127
+    };
+  static double gln[100] =
+    { 0., 0., .693147180559945,
+      1.79175946922806, 3.17805383034795,
+      4.78749174278205, 6.5792512120101,
+      8.52516136106541, 10.6046029027453,
+      12.8018274800815, 15.1044125730755,
+      17.5023078458739, 19.9872144956619,
+      22.5521638531234, 25.1912211827387,
+      27.8992713838409, 30.6718601060807,
+      33.5050734501369, 36.3954452080331,
+      39.3398841871995, 42.3356164607535,
+      45.3801388984769, 48.4711813518352,
+      51.6066755677644, 54.7847293981123,
+      58.0036052229805, 61.261701761002,
+      64.5575386270063, 67.8897431371815,
+      71.257038967168, 4.6582363488302,
+      78.0922235533153, 81.557959456115,
+      85.0544670175815, 88.5808275421977,
+      92.1361756036871, 95.7196945421432,
+      99.3306124547874, 102.968198614514,
+      106.631760260643, 110.320639714757,
+      114.034211781462, 117.771881399745,
+      121.533081515439, 125.317271149357,
+      129.123933639127, 132.952575035616,
+      136.802722637326, 140.673923648234,
+      144.565743946345, 148.477766951773,
+      152.409592584497, 156.360836303079,
+      160.331128216631, 164.320112263195,
+      168.327445448428, 172.352797139163,
+      176.395848406997, 180.456291417544,
+      184.533828861449, 188.628173423672,
+      192.739047287845, 196.86618167289,
+      201.009316399282, 205.168199482641,
+      209.342586752537, 213.532241494563,
+      217.736934113954, 221.95644181913,
+      226.190548323728, 230.439043565777,
+      234.701723442818, 238.978389561834,
+      243.268849002983, 247.572914096187,
+      251.890402209723, 256.22113555001,
+      260.564940971863, 264.921649798553,
+      269.29109765102, 273.673124285694,
+      278.067573440366, 282.47429268763,
+      286.893133295427, 291.32395009427,
+      295.766601350761, 300.220948647014,
+      304.686856765669, 309.164193580147,
+      313.652829949879, 318.152639620209,
+      322.663499126726, 327.185287703775,
+      331.717887196928, 336.261181979198,
+      340.815058870799, 345.379407062267,
+      349.95411804077, 354.539085519441,
+      359.134205369575
+    };
+
+  /* System generated locals */
+  long int i__1;
+  double ret_val = 0.0;
+
+  /* Local variables */
+  static double dgam;
+  static long int i__;
+  static double t, dx, px, qx, rx, xx;
+  static long int ndx, nxm;
+  static double sum, rxx;
+
+  if (x <= 0.0) {
+	   goto L90;
+	  } else {
+	    goto L5;
+	  }
+	 L5:
+	  ndx = static_cast<long>(x);
+	  t = x - static_cast<double>(ndx);
+	  if (t == 0.0) {
+	    goto L51;
+	  }
+	  dx = xlim1 - x;
+	  if (dx < 0.0) {
+	    goto L40;
+	  }
+	  /*     RATIONAL CHEBYSHEV APPROXIMATION ON 2.LT.X.LT.3 FOR GAMMA(X) */
+	  nxm = ndx - 2;
+	  px = pcoe[0];
+	  for (i__ = 2; i__ <= 9; ++i__) {
+	    /* L10: */
+	    px = t * px + pcoe[i__ - 1];
+	  }
+	  qx = qcoe[0];
+	  for (i__ = 2; i__ <= 4; ++i__) {
+	    /* L15: */
+	    qx = t * qx + qcoe[i__ - 1];
+	  }
+	  dgam = px / qx;
+	  if (nxm > 0) {
+	    goto L22;
+	  }
+	  if (nxm == 0) {
+	    goto L25;
+	  }
+	  /*     BACKWARD RECURSION FOR 0.LT.X.LT.2 */
+	  dgam /= t + 1.0;
+	  if (nxm == -1) {
+	    goto L25;
+	  }
+	  dgam /= t;
+	  ret_val = log (dgam);
+	  return ret_val;
+	  /*     FORWARD RECURSION FOR 3.LT.X.LT.8 */
+	 L22:
+	  xx = t + 2.0;
+	  i__1 = nxm;
+	  for (i__ = 1; i__ <= i__1; ++i__) {
+	    dgam *= xx;
+	    /* L24: */
+	    xx += 1.0;
+	  }
+	 L25:
+	  ret_val = log (dgam);
+	  return ret_val;
+	  /*     X.GT.XLIM1 */
+	 L40:
+	  rx = 1.0 / x;
+	  rxx = rx * rx;
+	  if (x - xlim2 < 0.0) {
+	    goto L41;
+	  }
+	  px = q[0] * rxx + q[1];
+	  ret_val = px * rx + (x - 0.5) * log (x) - x + rtwpil;
+	  return ret_val;
+	  /*     X.LT.XLIM2 */
+	 L41:
+	  px = p[0];
+	  sum = (x - 0.5) * log (x) - x;
+	  for (i__ = 2; i__ <= 5; ++i__) {
+	    px = px * rxx + p[i__ - 1];
+	    /* L42: */
+	  }
+	  ret_val = px * rx + sum + rtwpil;
+	  return ret_val;
+	  /*     TABLE LOOK UP FOR INTEGER ARGUMENTS LESS THAN OR EQUAL 100. */
+	 L51:
+	  if (ndx > 100) {
+	    goto L40;
+	  }
+	  ret_val = gln[ndx - 1];
+	  return ret_val;
+	 L90:
+	  return ret_val;
+	}
+
+
+// for stirlerr()
+const double S0 = 0.083333333333333333333;       /* 1/12 */
+const double S1 = 0.00277777777777777777778;     /* 1/360 */
+const double S2 = 0.00079365079365079365079365;  /* 1/1260 */
+const double S3 = 0.000595238095238095238095238; /* 1/1680 */
+const double S4 = 0.0008417508417508417508417508; /* 1/1188 */
+
+/*
+ *  AUTHOR
+ *    Catherine Loader, catherine\research.bell-labs.com.
+ *    October 23, 2000.
+ *
+ *  Merge in to R:
+ * Copyright (C) 2000, The R Core Development Team
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA.
+ *
+ *
+ *  DESCRIPTION
+ *
+ *    Computes the log of the error term in Stirling's formula.
+ *      For n > 15, uses the series 1/12n - 1/360n^3 + ...
+ *      For n <=15, integers or half-integers, uses stored values.
+ *      For other n < 15, uses lgamma directly (don't use this to
+ *        write lgamma!)
+ *
+ * Merge in to R:
+ * Copyright (C) 2000, The R Core Development Team
+ * R has lgammafn, and lgamma is not part of ISO C
+ *
+ */
+/* stirlerr(n) = log(n!) - log( sqrt(2*pi*n)*(n/e)^n ) */
+double stirlerr(double n) {
+  /*
+    error for 0, 0.5, 1.0, 1.5, ..., 14.5, 15.0.
+  */
+  const double sferr_halves[31] = {
+    0.0,       /* n=0 - wrong, place holder only */
+    0.1534264097200273452913848,        /* 0.5 */
+    0.0810614667953272582196702,        /* 1.0 */
+    0.0548141210519176538961390,        /* 1.5 */
+    0.0413406959554092940938221,        /* 2.0 */
+    0.03316287351993628748511048,       /* 2.5 */
+    0.02767792568499833914878929,       /* 3.0 */
+    0.02374616365629749597132920,       /* 3.5 */
+    0.02079067210376509311152277,       /* 4.0 */
+    0.01848845053267318523077934,       /* 4.5 */
+    0.01664469118982119216319487,       /* 5.0 */
+    0.01513497322191737887351255,       /* 5.5 */
+    0.01387612882307074799874573,       /* 6.0 */
+    0.01281046524292022692424986,       /* 6.5 */
+    0.01189670994589177009505572,       /* 7.0 */
+    0.01110455975820691732662991,       /* 7.5 */
+    0.010411265261972096497478567,       /* 8.0 */
+    0.009799416126158803298389475,       /* 8.5 */
+    0.009255462182712732917728637,       /* 9.0 */
+    0.008768700134139385462952823,       /* 9.5 */
+    0.008330563433362871256469318,       /* 10.0 */
+    0.007934114564314020547248100,       /* 10.5 */
+    0.007573675487951840794972024,       /* 11.0 */
+    0.007244554301320383179543912,       /* 11.5 */
+    0.006942840107209529865664152,       /* 12.0 */
+    0.006665247032707682442354394,       /* 12.5 */
+    0.006408994188004207068439631,       /* 13.0 */
+    0.006171712263039457647532867,       /* 13.5 */
+    0.005951370112758847735624416,       /* 14.0 */
+    0.005746216513010115682023589,       /* 14.5 */
+    0.005554733551962801371038690  /* 15.0 */
+  };
+
+  double nn;
+  if (n <= 15.0) {
+    nn = n + n;
+    if (nn == (int)nn)
+      return (sferr_halves[(int)nn]);
+    return (Statistics::gamln(n + 1.0) - (n + 0.5)*log(n) + n - M_LN_SQRT_2PI);
+  }
+  nn = n * n;
+  if (n > 500)
+    return ((S0 -S1 / nn) / n);
+  if (n > 80)
+    return ((S0 -(S1 - S2 / nn) / nn) / n);
+  if (n > 35)
+    return ((S0 -(S1 - (S2 - S3 / nn) / nn) / nn) / n);
+  /* 15 < n <= 35 : */
+  return ((S0 -(S1 - (S2 - (S3 - S4 / nn) / nn) / nn) / nn) / n);
+}
+
+
+/*
+ *  AUTHOR
+ * Catherine Loader, catherine\research.bell-labs.com.
+ * October 23, 2000.
+ *
+ *  Merge in to R:
+ * Copyright (C) 2000, The R Core Development Team
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA.
+ *
+ *
+ *  DESCRIPTION
+ * Evaluates the "deviance part"
+ * bd0(x,M) :=  M * D0(x/M) = M*[ x/M * log(x/M) + 1 - (x/M) ] =
+ *    =  x * log(x/M) + M - x
+ * where M = E[X] = n*p (or = lambda), for   x, M > 0
+ *
+ * in a manner that should be stable (with small relative error)
+ * for all x and np. In particular for x/np close to 1, direct
+ * evaluation fails, and evaluation is based on the Taylor series
+ * of log((1+v)/(1-v)) with v = (x-np)/(x+np).
+ */
+double bd0(double x, double np) {
+  double ej, s, s1, v;
+  int j;
+  if (fabs(x - np) < 0.1*(x + np)) {
+    v = (x - np) / (x + np);
+    s = (x - np) * v; /* s using v -- change by MM */
+    ej = 2 * x * v;
+    v = v * v;
+    for (j = 1; ; j++) { /* Taylor series */
+      ej *= v;
+      s1 = s + ej / ((j << 1) + 1);
+
+      if (s1 == s) /* last term was effectively 0 */
+        return (s1);
+
+      s = s1;
+    }
+  }
+  /* else:  | x - np |  is not too small */
+  return (x*log(x / np) + np - x);
+}
+
+
+
+
+
+double Statistics::dbinom_raw(const double k, const double n, const double p) {
+  double f, lc;
+  const double q = 1 - p;
+  if (p == 0)
+    return ((k == 0) ? rd1(LOG_BOOL) : rd0(LOG_BOOL));
+  if (q == 0)
+    return ((k == n) ? rd1(LOG_BOOL) : rd0(LOG_BOOL));
+  if (k == 0) {
+    if (n == 0)
+      return rd1(LOG_BOOL);
+    lc = (p < 0.1) ? -bd0(n, n * q) - n * p : n * log(q);
+    return rdexp(lc, LOG_BOOL);
+  }
+  if (k == n) {
+    lc = (q < 0.1) ? -bd0(n, n * p) - n * q : n * log(p);
+    return rdexp(lc, LOG_BOOL);
+  }
+  if (k < 0 || k > n)
+    return rd0(LOG_BOOL);
+  lc = stirlerr(n) - stirlerr(k) - stirlerr(n - k) - bd0(k, n * p) - bd0(n - k, n * q);
+  f = (M_2PI * k * (n - k)) / n;
+  return rdfexp(f, lc, LOG_BOOL);
+}
+
+
+/// Density of the binomial distribution.
+///
+/// \f[ f(k) = {n \choose k}p^k (1-p)^{n-k} \f]
+///
+/// Returns probability of getting k successes in n binomial trials
+/// with a probability p of success on each trial, if give_log == false.
+/// If give_log == true, returns the natural logarithm of the probability.
+///
+/// \param k          Number of successes
+/// \param n          Number of trials
+/// \param p          Probability of success on each trial
+/// \param give_log   FALSE
+///
+/// \f[ \mbox{E}(x) = np \f]
+/// \f[ \mbox{Var}(x) = np(1-p) \f]
+///
+/// The implementation uses dbinom_raw from R
+///
+double Statistics::dbinom(const int k, const int n, double p ) {
+  return dbinom_raw(k, n, p);
+}
+
+
 
 
 double Statistics::gammln(double xx)

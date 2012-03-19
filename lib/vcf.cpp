@@ -128,8 +128,8 @@ VCFReader::line_t VCFReader::parseLine( Variant ** pvar )
 	  if ( refdb ) refdb->insert( file_id , v );
 	  else vardb->insert_consensus( file_id , v );      
 	}
-      else
-	plog.warn( "read invalid line from VCF" , s );
+//       else
+// 	plog.warn( "read invalid line from VCF" , s );
     }
 
   return VCF_VARIANT;
@@ -307,7 +307,7 @@ void VCFReader::getMetaInformation(const std::string & s)
       // Ignore or read?
       //
       
-      if ( explicit_meta && meta_want.find( name ) == meta_want.end() ) { std::cout << "home on " << name << "\n"; return; } 
+      if ( explicit_meta && meta_want.find( name ) == meta_want.end() ) return;
       if ( meta_ignore.find( name ) != meta_ignore.end() ) return;
 
       if ( tok[0] == "INFO" ) 

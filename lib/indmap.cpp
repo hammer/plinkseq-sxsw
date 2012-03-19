@@ -272,7 +272,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
   // Handle n==0 cases specially
   //
 
-  if ( n == 0 ) { is_multi_sample = true; }
+  if ( n == 0 ) { is_multi_sample = true; } 
 
   //
   // (-1,-1) in uniq implies this person seen more than once, and so

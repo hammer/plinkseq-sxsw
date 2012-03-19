@@ -32,6 +32,8 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
  		   PART     =  21 ,    // partial codon  -- not used
 		   SPLICE5  =  22 ,    // 5' splice-site
 		   SPLICE3  =  23 ,    // 3' splice-site 
+		   ESPLICE5 =  27 ,    // Essential 5' splice-site
+                   ESPLICE3 =  28 ,    // Essential 3' splice-site
  		   NON      =  24 ,    // nonsense allele		   		  
  		   FS       =  25 ,    // frameshift 
 		   RT       =  26 };   // readthrough
@@ -45,6 +47,7 @@ struct SeqInfo {
   bool readthrough() const { return type == 26 ; }
   bool frameshift() const { return type == 25 ; }    
   bool splice() const { return type == 22 || type == 23; }   
+  bool esplice() const { return type == 27 || type == 28; }
 
   bool coding() const { return type > 9 ; } 
   bool synon() const { return type == 10 ; } 

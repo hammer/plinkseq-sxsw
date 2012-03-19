@@ -498,7 +498,7 @@ bool SampleVariant::decode_BLOB_basic( SampleVariant * svar )
   //
   // Assign allele codes and other core features
   //
-  
+
   svar->alt = var_buf.alt();
   svar->ref = var_buf.ref();
   svar->qual = var_buf.quality();
