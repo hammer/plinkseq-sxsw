@@ -890,7 +890,7 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
       if ( valid )
 	{
 	  
-	  set<Region> olaps = db.get_regions( group ,  r ) ;	  
+	  std::set<Region> olaps = db.get_regions( group ,  r ) ;	  
 
 	  plog << r.coordinate() << "\t";
 	  
@@ -902,8 +902,10 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
 	      genes.insert( i->altname );
 	      ++i;
 	    }	  
-	  
-	  
+
+	  // report # of loci overlapping
+	  plog << genes.size() << "\t";
+
 	  if ( genes.size() == 0 ) 
 	    plog << ".";
 	  else
@@ -925,7 +927,7 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
 	++inv;
     }
   
-  plog << "read " << regions.size() << " regions\n";
+  // plog << "read " << regions.size() << " regions\n";
   
   if( inv > 0 ) 
     plog.warn( "found " + Helper::int2str( inv ) +  " invalid regions" );
@@ -1366,7 +1368,7 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
   // Do we wish to count the instances of intersecting reference-group variants?
   //
 
-  bool refvars = refgroup != "";
+  bool refvars = ! ( refgroup == "" || refgroup == "." ) ;
   
   if ( refvars )
     {
@@ -1383,7 +1385,7 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
   // Header
   //
   
-  plog << "GROUP" << "\t"
+  plog << "LOCUS" << "\t"
        << "ALIAS" << "\t"
        << "NSUB" << "\t"
        << ( sub ? "SUB\t" : "" ) 
@@ -1479,12 +1481,22 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
 	      plog << stot << "\t"
 		   << "NA" << "\t";
 	      
-	      if ( okay ) 
-		plog 
-		  << (double)sgc/(double)(stot-sn) << "\t"
-		  << "NA" << "\t"
-		  << (double)sn/(double)stot << "\t"
-		  << "NA";
+	      if ( okay ) 		
+		{
+		  if ( stot-sn > 0 ) 
+		    plog << (double)sgc/(double)(stot-sn) << "\t";
+		  else 
+		    plog << "NA" << "\t";
+		  
+		  plog << "NA" << "\t";
+
+		  if ( stot > 0 ) 
+		    plog << (double)sn/(double)stot << "\t";
+		  else
+		    plog << "NA" << "\t";
+
+		  plog << "NA";
+		}
 	      else
 		plog << "NA\tNA\tNA\tNA";
 	    }

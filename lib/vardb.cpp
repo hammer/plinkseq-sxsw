@@ -392,6 +392,9 @@ bool VarDBase::init()
       
       stmt_fetch_chr_all_codes = 
 	sql.prepare( " SELECT name, chr_id FROM chrnames ; " );      
+      
+      stmt_fetch_chr_all_codes_2 = 
+	sql.prepare( " SELECT name, chr_id FROM chrcodes ; " );      
 
       stmt_fetch_chr_name = 
 	sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
@@ -694,6 +697,7 @@ bool VarDBase::release()
   sql.finalise( stmt_dump_indep_meta_group );
   sql.finalise( stmt_fetch_chr_code );
   sql.finalise( stmt_fetch_chr_all_codes );
+  sql.finalise( stmt_fetch_chr_all_codes_2 );
   sql.finalise( stmt_fetch_chr_name );
   sql.finalise( stmt_fetch_file_from_tag );
   sql.finalise( stmt_fetch_file_summary  );
@@ -1999,7 +2003,7 @@ uint64_t VarDBase::file_tag( const std::string & filetag )
 
 bool VarDBase::chr_code( const int c , const std::string & n , const ploidy_t ploidy )
 {
-
+  
   // insert a code --> name (and ploidy)  one --> one mapping
 
   sql.bind_text( stmt_fix_chr_code , ":name" , n );
@@ -2041,16 +2045,24 @@ bool VarDBase::chr_known( const std::string & n )
     return chr_code_map.find( n ) != chr_code_map.end() ;
 
   // attempt to pull all from DB
-  
+
   while ( sql.step( stmt_fetch_chr_all_codes ) )
     {      
       std::string n = sql.get_text( stmt_fetch_chr_all_codes , 0 );
-      int c = sql.get_int( stmt_fetch_chr_all_codes , 1 );
-      chr_name_map[c]=n;
+      int c = sql.get_int( stmt_fetch_chr_all_codes , 1 );      
       chr_code_map[n]=c;
     }
   sql.reset( stmt_fetch_chr_all_codes );
-  
+
+  // also get code->name (1:1) mapping from chrcodes
+  while ( sql.step( stmt_fetch_chr_all_codes_2 ) )
+    {      
+      std::string n = sql.get_text( stmt_fetch_chr_all_codes_2 , 0 );
+      int c = sql.get_int( stmt_fetch_chr_all_codes_2 , 1 );
+      chr_name_map[c]=n;      
+    }
+  sql.reset( stmt_fetch_chr_all_codes_2 );
+
   // now query cache again
   return chr_code_map.find( n ) != chr_code_map.end() ;
 }
@@ -2108,7 +2120,9 @@ ploidy_t VarDBase::ploidy( const int c )
 std::string VarDBase::chr_name( const int c ) 
 {
   std::map<int,std::string>::iterator i = chr_name_map.find(c);
-  if ( i != chr_name_map.end() ) return i->second;
+  if ( i != chr_name_map.end() ) 
+    return i->second;
+  
   sql.bind_int( stmt_fetch_chr_name , ":chr_id" , c );
   std::string n = ".";
   if ( sql.step( stmt_fetch_chr_name ) )

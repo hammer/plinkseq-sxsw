@@ -1242,6 +1242,11 @@ class Mask {
   bool var_any() const { return var() || var_append() || rvar() || xvar() || var_set(); }
   bool ref_any() const { return ref_append(); }
   bool reg_any() const { return reg() || rreg() || xreg(); } 
+
+  bool reg_force() const { return using_force_vlist; } 
+  void reg_force(const Region & r ) { using_force_vlist = true; force_vlist.insert(r); } 
+  bool forced( int,int,int,int,int,int,Region * ) const ;
+
   bool loc_set_any() const { return loc_set(); }
   bool var_set_any() const { return var_set(); }
   
@@ -1517,6 +1522,8 @@ class Mask {
 	alt_group_filter = false;
 	loc_border_3p = 0;
 	loc_border_5p = 0;
+	using_force_vlist = false;
+	force_vlist.clear();
 
 	load_genotypes = true;
 	load_vmeta = true;
@@ -1658,6 +1665,14 @@ class Mask {
     std::set<Region> req_regions;
     std::set<Region> ex_regions;
 
+    //
+    // Force variants to be output
+    //
+    
+    bool using_force_vlist;
+    std::set<Region> force_vlist;
+    
+    
     //
     // Variant IDs
     //

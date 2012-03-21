@@ -54,6 +54,8 @@ namespace Pseq
 
       bool write_matrix(Mask & m);
 
+      bool write_lookup_matrix(Mask & , const std::string & , const std::vector<std::string> & );
+
       bool write_meta_matrix(Mask & m);
 
       bool write_var_meta_matrix(Mask & m, std::string & name);

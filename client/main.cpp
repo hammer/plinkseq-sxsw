@@ -27,7 +27,6 @@ std::string PSEQ_DATE    = "10-Mar-2012";
 int main(int argc, char ** argv)
 {
 
-
   //
   // Get command-line options into a sensible form
   //
@@ -398,7 +397,7 @@ int main(int argc, char ** argv)
   // Functions that do not depend on the mask, variant or individual database
   //
   
-  if ( command == "intersect" ) 
+  if ( command == "loc-intersect" ) 
     {
 
       if ( ! args.has("file") )
@@ -1727,7 +1726,7 @@ int main(int argc, char ** argv)
       }
 
 
-    if ( command == "loc-intersect" )
+    if ( command == "intersect" )
       {
 
 	// print LOC group names that have 1+ VARDB variants, according to 
@@ -1746,14 +1745,16 @@ int main(int argc, char ** argv)
 	
 	if ( ! g.seqdb.attached() ) Helper::halt("no SEQDB attached");
 	
-	if ( ! args.has( "loc-group" ) ) 
-	  Helper::halt("requires a locus-group to be specified, with loc-group");
+	if ( ! args.has( "group" ) ) 
+	  Helper::halt("requires a locus-group to be specified, with --group");
 	
-	std::vector<std::string> grp = args.as_string_vector( "loc-group" );
-	
+	std::vector<std::string> grp = args.as_string_vector( "group" );
+
+	std::string refgroup = args.has( "ref" ) ? args.as_string( "ref" ) : "." ; 
+
 	for (int i=0; i<grp.size(); i++) 
-	  Pseq::SeqDB::loc_stats( grp[i] , args.as_string("ref-group") );
-	
+	  Pseq::SeqDB::loc_stats( grp[i] , refgroup );
+
 	Pseq::finished();
       }
     
@@ -2086,6 +2087,21 @@ int main(int argc, char ** argv)
 	Pseq::VarDB::write_haps(m,args.as_string("name"));
 	Pseq::finished();
       }    
+
+
+//     // Create a v-matrix style output, but for a fixed set of variants
+//     // (i.e. putting NA if no data)
+
+//     if ( command == "v-lookup" )
+//       {
+// 	std::string filename = args.has( "file" ) ? args.as_string( "file" ) : "." ;
+// 	std::vector<std::string> regs;
+// 	if ( args.has( "region" ) ) regs = args.as_string_vector( "region" );
+	 
+// 	Pseq::VarDB::write_lookup_matrix(m,filename,regs);
+
+// 	Pseq::finished();
+//       }
 
 
     if ( command == "v-matrix" )

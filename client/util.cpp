@@ -149,7 +149,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "i-view|views|individuals in project/file|VCF|ARG:pheno,from-vardb"
 
 	  << "v-matrix|output|write a matrix of allele counts|VCF"
-	
+
+ //	  << "v-lookup|output|write a matrix of allele counts for a specific set of variants|ARG:file,region"
+      
 	  << "g-matrix|output|write a matix of gene-based allele counts|GRP|ARG:hide-invariant,collapse"
 	
 	  << "g-meta-matrix|output|matix of gene-based per-individual meta-information|GRP|ARG:name"
@@ -206,11 +208,11 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	
 
-	  << "*loc-intersect|views,locop|view loci from a LOCDB group with 1 or more variants"
+	  << "*intersect|views,locop|view loci from a LOCDB group with 1 or more variants"
 	
 	  << "loc-view|views,locop|show all loci in a LOCDB group|ARG:group,alias,no-meta,show-subregions"
 	
-	  << "loc-stats|views,locop|locus-based stats|ARG:no-subregions,show-subregions,loc-group,ref-group"
+	  << "loc-stats|views,locop|locus-based stats|ARG:no-subregions,show-subregions,group,ref"
 	
 	  << "loc-translate|locop|AA sequence of loci"
 
@@ -362,7 +364,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "ibs-matrix|qc|IBS matrix calculation|VCF|ARG:long-format,two-counts"
 	
-	  << "intersect|locop|intersect locus groups|ARG:file,group"
+	  << "loc-intersect|locop|intersect locus groups|ARG:file,group"
 
 
 

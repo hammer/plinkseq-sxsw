@@ -640,8 +640,6 @@ int main()
       Region r(tok[i],okay);
       if ( okay ) 
 	{
-	  std::cout << tok[i] << "was assumed to be a region...\n";
-
 	  a.regions.push_back( r );	  
 	}
       else

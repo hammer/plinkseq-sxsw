@@ -96,6 +96,7 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "reg.ex" , "str-list" , "require regions(s)" ); 
   mask_add( s , g , c++ , gl , "reg.req" , "str-list" , "exclude regions(s)" ); 
   mask_add( s , g , c++ , gl , "reg.group" , "str-list" , "group variants by list of regions (not implemented)" ); 
+  //  mask_add( s , g , c++ , gl , "reg.force" , "str-list" , "force output on variants, whether present or not" ); 
 
   // variant-IDs
   ++g; c=0; gl="ids";
@@ -4200,3 +4201,27 @@ bool Mask::eval_segmask( const int i , const Region & region )
   return false;
 }
 
+
+bool Mask::forced( int achr , int abp1, int abp2, 
+		   int bchr , int bbp1 , int bbp2 , 
+		   Region * next ) const 
+{
+  
+  // 'previous' variant is 'a'
+  // next in varbd iteration is 'b'
+
+  // just check whether or not we have another variant in the force list that 
+  // should come before this. 
+
+  // if a == b , implies that we are at the end of the list w.r.t. vardb variants. 
+  
+  // of course, could be the case that we have 1 or more force variants anyway
+  
+  std::set<Region>::iterator upr = force_vlist.upper_bound( Region(achr,abp1,abp2) );
+  if ( upr == force_vlist.end() ) return false;
+  if ( ! ( *upr < Region(bchr,bbp1,bbp2) ) ) return false;
+
+  // otherwise, implies that this next guy should be inserted
+  *next = *upr;
+  return true;
+}
