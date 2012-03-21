@@ -553,21 +553,22 @@ std::set<SeqInfo> Annotate::annotate( int chr,
                 {
                   if ( negative_strand )
                     {
-                      SeqInfo si = SeqInfo( r->name , ESPLICE5 );
-                      SeqInfo sie = SeqInfo( r->name , SPLICE5 );
-                      si.splicedist = r->subregion[s].start.position() - bp1;                 
-                      if ( si.splicedist <= 0 ) --si.splicedist;
-                      if ( si.splicedist > -3 && si.splicedist < 0) annot.insert( sie );
-                      if ( si.splicedist > 0 && si.splicedist < 3) annot.insert( si );
+                      SeqInfo sie = SeqInfo( r->name , ESPLICE3 );
+                      SeqInfo si = SeqInfo( r->name , SPLICE3 );
+                      si.splicedist = sie.splicedist = r->subregion[s].start.position() - bp1; 
+                      if ( si.splicedist <= 0 ) { --si.splicedist; --sie.splicedist; }
+                      if ( si.splicedist > -3 && si.splicedist < 0) annot.insert( si );
+                      if ( si.splicedist > 0 && si.splicedist < 3) annot.insert( sie );
                     }
                   else
                     {
-                      SeqInfo si = SeqInfo( r->name , ESPLICE3 );
-                      SeqInfo sie = SeqInfo( r->name , SPLICE3 );
-                      si.splicedist = bp1 - r->subregion[s].start.position();                 
-                      if ( si.splicedist >= 0 ) ++si.splicedist;
-                      if ( si.splicedist < 3 && si.splicedist > 0) annot.insert( sie );
-                      if ( si.splicedist > -3 && si.splicedist < 0) annot.insert( si );
+                      SeqInfo sie = SeqInfo( r->name , ESPLICE5 );
+                      SeqInfo si = SeqInfo( r->name , SPLICE5 );
+                      si.splicedist = sie.splicedist = bp1 - r->subregion[s].start.position(); 
+                      if ( si.splicedist >= 0 ) { ++sie.splicedist; ++si.splicedist; } 
+                      if ( si.splicedist < 3 && si.splicedist > 0) annot.insert( si );
+                      if ( si.splicedist > -3 && si.splicedist < 0) annot.insert( sie );
+
                     }
                 }
               
@@ -575,21 +576,21 @@ std::set<SeqInfo> Annotate::annotate( int chr,
                 {
                   if ( negative_strand )
                     {
-                      SeqInfo si = SeqInfo( r->name , ESPLICE5 );
-                      SeqInfo sie = SeqInfo( r->name , SPLICE5 );
-                      si.splicedist = r->subregion[s].stop.position() - bp1;
-                      if ( si.splicedist >= 0 ) ++si.splicedist;
-                      if ( si.splicedist < 3 && si.splicedist > 0 ) annot.insert( sie );
-                      if ( si.splicedist > -3 && si.splicedist < 0 ) annot.insert( si );
+                      SeqInfo sie = SeqInfo( r->name , ESPLICE5 );
+                      SeqInfo si = SeqInfo( r->name , SPLICE5 );
+                      si.splicedist = sie.splicedist = r->subregion[s].stop.position() - bp1;
+                      if ( si.splicedist >= 0 ) { ++si.splicedist; ++sie.splicedist; }
+                      if ( si.splicedist < 3 && si.splicedist > 0 ) annot.insert( si );
+                      if ( si.splicedist > -3 && si.splicedist < 0 ) annot.insert( sie );
                     }
                   else
                     {
-                      SeqInfo si = SeqInfo( r->name , ESPLICE3 );
-                      SeqInfo sie = SeqInfo( r->name , SPLICE3 );
-                      si.splicedist = bp1 - r->subregion[s].stop.position() ;
-                      if ( si.splicedist <= 0 ) --si.splicedist;
-                      if ( si.splicedist > -3 && si.splicedist < 0 ) annot.insert( sie );
-                      if ( si.splicedist < 3 && si.splicedist > 0 ) annot.insert( si );
+                      SeqInfo sie = SeqInfo( r->name , ESPLICE3 );
+                      SeqInfo si = SeqInfo( r->name , SPLICE3 );
+                      si.splicedist = sie.splicedist = bp1 - r->subregion[s].stop.position() ;
+                      if ( si.splicedist <= 0 ) { --si.splicedist; --si.splicedist; }
+                      if ( si.splicedist > -3 && si.splicedist < 0 ) annot.insert( si );
+                      if ( si.splicedist < 3 && si.splicedist > 0 ) annot.insert( sie );
                     }
                 }
             }

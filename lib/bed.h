@@ -10,7 +10,7 @@ class IndDBase;
 class VarDBase;
 
 struct BEDLocus {
-  int chr;
+  std::string chr;
   std::string name;
   double pos;
   int bp;

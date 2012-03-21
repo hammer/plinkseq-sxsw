@@ -21,8 +21,10 @@ bool VarDBase::newDB( std::string n )
   
   sql.synchronous(false);
 
-  sql.query("PRAGMA encoding='UTF-8'");
-  
+  sql.query("PRAGMA journal_mode = OFF;");
+  sql.query("PRAGMA page_size = 8192;");
+  sql.query("PRAGMA encoding='UTF-8';");
+
   using_compression = true;
 
   //
@@ -77,14 +79,20 @@ bool VarDBase::newDB( std::string n )
   //
   
   bool populate_chr_codes = ! sql.table_exists( "chrcodes" );
+
+  // for mapping (multiple ) string-id --> numeric 
+  sql.query( " CREATE TABLE IF NOT EXISTS chrnames("
+             "   name    VARCHAR(20) NOT NULL , "
+	     "   chr_id  INTEGER NOT NULL , "
+             "   CONSTRAINT cChr UNIQUE ( name ) ) ; " );
   
+  // mapping numeric ->  (single) string-id  
   sql.query( " CREATE TABLE IF NOT EXISTS chrcodes("
              "   chr_id  INTEGER PRIMARY KEY , "
              "   name    VARCHAR(20) NOT NULL , "
-	     "   ploidy  INTEGER NOT NULL , "
-               " CONSTRAINT cChr UNIQUE ( name ) ) ; " );
-  
-  
+	     "   ploidy  INTEGER NOT NULL ); " );
+
+    
   //
   // We only want to do this once (otherwise write to db will cause lock)
   //
@@ -94,41 +102,100 @@ bool VarDBase::newDB( std::string n )
 
       stmt_insert_chr_code = 
 	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name , ploidy ) values( :name , :ploidy ); " );      
+      
+      stmt_insert_chr_name = 
+	sql.prepare( " INSERT OR REPLACE INTO chrnames ( chr_id , name ) values( :chr_id , :name ); " );      
+      
       stmt_fix_chr_code = 
-	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name , ploidy ) values( :chr_id , :name , :ploidy ); " );      
+	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name , ploidy ) "
+		     " values( :chr_id , :name , :ploidy ); " );      
+      
       stmt_fetch_chr_code = 
-	sql.prepare( " SELECT chr_id , ploidy FROM chrcodes WHERE name == :name ; " );      
+	sql.prepare( " SELECT chr_id FROM chrnames WHERE name == :name ; " );      
+      
       stmt_fetch_chr_name = 
 	sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
-
-            
-      chr_code( 1, "chr1"  , PLOIDY_AUTOSOMAL );  
-      chr_code( 2, "chr2"  , PLOIDY_AUTOSOMAL );  
-      chr_code( 3, "chr3"  , PLOIDY_AUTOSOMAL );  
-      chr_code( 4, "chr4"  , PLOIDY_AUTOSOMAL );
-      chr_code( 5, "chr5"  , PLOIDY_AUTOSOMAL );  
-      chr_code( 6, "chr6"  , PLOIDY_AUTOSOMAL );  
-      chr_code( 7, "chr7"  , PLOIDY_AUTOSOMAL );  
-      chr_code( 8, "chr8"  , PLOIDY_AUTOSOMAL );
-      chr_code( 9, "chr9"  , PLOIDY_AUTOSOMAL );  
-      chr_code(10, "chr10" , PLOIDY_AUTOSOMAL );  
-      chr_code(11, "chr11" , PLOIDY_AUTOSOMAL );  
-      chr_code(12, "chr12" , PLOIDY_AUTOSOMAL );
-      chr_code(13, "chr13" , PLOIDY_AUTOSOMAL );  
-      chr_code(14, "chr14" , PLOIDY_AUTOSOMAL );  
-      chr_code(15, "chr15" , PLOIDY_AUTOSOMAL );  
-      chr_code(16, "chr16" , PLOIDY_AUTOSOMAL );
-      chr_code(17, "chr17" , PLOIDY_AUTOSOMAL );  
-      chr_code(18, "chr18" , PLOIDY_AUTOSOMAL );  
-      chr_code(19, "chr19" , PLOIDY_AUTOSOMAL );  
-      chr_code(20, "chr20" , PLOIDY_AUTOSOMAL );
-      chr_code(21, "chr21" , PLOIDY_AUTOSOMAL );  
-      chr_code(22, "chr22" , PLOIDY_AUTOSOMAL );       
-      chr_code(23, "chrX"  , PLOIDY_X ); 
-      chr_code(24, "chrY"  , PLOIDY_Y ); 
-      chr_code(25, "chrM"  , PLOIDY_HAPLOID );      
       
+
+      chr_code( 1, "chr1"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 1, "1" );
+      
+      chr_code( 2, "chr2"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 2, "2" );
+      
+      chr_code( 3, "chr3"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 3, "3" );
+      
+      chr_code( 4, "chr4"  , PLOIDY_AUTOSOMAL );
+      chr_name( 4, "4" );
+      
+      chr_code( 5, "chr5"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 5, "5" );
+      
+      chr_code( 6, "chr6"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 6, "6" );
+      
+      chr_code( 7, "chr7"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 7, "7" );
+
+      chr_code( 8, "chr8"  , PLOIDY_AUTOSOMAL );
+      chr_name( 8, "8" );
+
+      chr_code( 9, "chr9"  , PLOIDY_AUTOSOMAL );  
+      chr_name( 9, "9" );
+
+      chr_code(10, "chr10" , PLOIDY_AUTOSOMAL );  
+      chr_name(10, "10" );
+
+      chr_code(11, "chr11" , PLOIDY_AUTOSOMAL );  
+      chr_name(11, "11" );
+
+      chr_code(12, "chr12" , PLOIDY_AUTOSOMAL );
+      chr_name(12, "12" );
+
+      chr_code(13, "chr13" , PLOIDY_AUTOSOMAL );  
+      chr_name(13, "13" );
+
+      chr_code(14, "chr14" , PLOIDY_AUTOSOMAL );  
+      chr_name(14, "14" );
+
+      chr_code(15, "chr15" , PLOIDY_AUTOSOMAL );  
+      chr_name(15, "15" );
+
+      chr_code(16, "chr16" , PLOIDY_AUTOSOMAL );
+      chr_name(16, "16" );
+
+      chr_code(17, "chr17" , PLOIDY_AUTOSOMAL );  
+      chr_name(17, "17" );
+
+      chr_code(18, "chr18" , PLOIDY_AUTOSOMAL );  
+      chr_name(18, "18" );
+
+      chr_code(19, "chr19" , PLOIDY_AUTOSOMAL );  
+      chr_name(19, "19" );
+
+      chr_code(20, "chr20" , PLOIDY_AUTOSOMAL );
+      chr_name(20, "20" );
+
+      chr_code(21, "chr21" , PLOIDY_AUTOSOMAL );  
+      chr_name(21, "21" );
+
+      chr_code(22, "chr22" , PLOIDY_AUTOSOMAL );       
+      chr_name(22, "22" );
+
+      chr_code(23, "chrX"  , PLOIDY_X ); 
+      chr_name(23, "X" );
+      chr_name(23, "XY" );
+      chr_name(23, "PAR" );
+      
+      chr_code(24, "chrY"  , PLOIDY_Y ); 
+      chr_name(24, "Y" );
+
+      chr_code(25, "chrM"  , PLOIDY_HAPLOID );      
+      chr_name(25, "M" );
+
       sql.finalise( stmt_insert_chr_code );
+      sql.finalise( stmt_insert_chr_name );
       sql.finalise( stmt_fix_chr_code );
       sql.finalise( stmt_fetch_chr_code );
       sql.finalise( stmt_fetch_chr_name );
@@ -310,17 +377,28 @@ bool VarDBase::init()
 
     // Chromosome codes
 
-    stmt_insert_chr_code = 
-      sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name , ploidy ) values( :name , :ploidy ); " );
+      stmt_insert_chr_code = 
+	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( name , ploidy ) values( :name , :ploidy ); " );      
+      
+      stmt_insert_chr_name = 
+	sql.prepare( " INSERT OR REPLACE INTO chrnames ( chr_id , name ) values( :chr_id , :name ); " );      
+      
+      stmt_fix_chr_code = 
+	sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name , ploidy ) "
+		     " values( :chr_id , :name , :ploidy ); " );      
+      
+      stmt_fetch_chr_code = 
+	sql.prepare( " SELECT chr_id FROM chrnames WHERE name == :name ; " );      
+      
+      stmt_fetch_chr_all_codes = 
+	sql.prepare( " SELECT name, chr_id FROM chrnames ; " );      
+      
+      stmt_fetch_chr_all_codes_2 = 
+	sql.prepare( " SELECT name, chr_id FROM chrcodes ; " );      
 
-    stmt_fix_chr_code = 
-      sql.prepare( " INSERT OR REPLACE INTO chrcodes ( chr_id, name , ploidy ) values( :chr_id , :name , :ploidy ); " );
-    
-    stmt_fetch_chr_code = 
-      sql.prepare( " SELECT chr_id , ploidy FROM chrcodes WHERE name == :name ; " );
-    
-    stmt_fetch_chr_name = 
-      sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
+      stmt_fetch_chr_name = 
+	sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
+      
 
 
     // Meta-value type information
@@ -448,16 +526,13 @@ bool VarDBase::init()
 		      " WHERE var_id == :var_id ; " );
 	
 	stmt_fetch_variant_data_vmeta_geno = 
-	  sql.prepare(" SELECT data , vdata , myuncompress(gdata) FROM vdat "
-		      " WHERE var_id == :var_id ; " );
+	  sql.prepare(" SELECT data , vdata , myuncompress(gdata) FROM vdat WHERE var_id == :var_id ; " );
 	
 	stmt_fetch_variant_data_vmeta = 
-	  sql.prepare(" SELECT data , vdata FROM vdat "
-		      " WHERE var_id == :var_id ; " );
+	  sql.prepare(" SELECT data , vdata FROM vdat WHERE var_id == :var_id ; " );
 
 	stmt_fetch_variant_data_geno = 
-	  sql.prepare(" SELECT data , gdata FROM vdat "
-		      " WHERE var_id == :var_id ; " );
+	  sql.prepare(" SELECT data , myuncompress(gdata) FROM vdat WHERE var_id == :var_id ; " );
 
       }
     else
@@ -621,12 +696,15 @@ bool VarDBase::release()
 {
   sql.finalise( stmt_dump_indep_meta_group );
   sql.finalise( stmt_fetch_chr_code );
+  sql.finalise( stmt_fetch_chr_all_codes );
+  sql.finalise( stmt_fetch_chr_all_codes_2 );
   sql.finalise( stmt_fetch_chr_name );
   sql.finalise( stmt_fetch_file_from_tag );
   sql.finalise( stmt_fetch_file_summary  );
   sql.finalise( stmt_fetch_tag_from_file );
   sql.finalise( stmt_fix_chr_code );
   sql.finalise( stmt_insert_chr_code );
+  sql.finalise( stmt_insert_chr_name );
   sql.finalise( stmt_insert_file_summary );
   sql.finalise( stmt_insert_file_tag );
   
@@ -711,7 +789,9 @@ bool VarDBase::index()
   // sets 
   sql.query( "CREATE INDEX IF NOT EXISTS set_idx ON set_data( set_id ) ; ");    
   sql.query( "CREATE INDEX IF NOT EXISTS sset_idx ON superset_data( superset_id ) ; ");    
-  
+  sql.query( "CREATE INDEX IF NOT EXISTS set_name ON sets( name ) ; ");
+  sql.query( "CREATE INDEX IF NOT EXISTS sset_name ON supersets( name ) ; ");
+
   // attached meta-data
   sql.query( "CREATE INDEX IF NOT EXISTS meta1 ON indep_meta_data( var_id ) ; ");  
   
@@ -726,8 +806,11 @@ bool VarDBase::drop_index()
   sql.query( "DROP INDEX IF EXISTS vIndx1; ");
   sql.query( "DROP INDEX IF EXISTS set_idx; ");    
   sql.query( "DROP INDEX IF EXISTS sset_idx; ");
+  sql.query( "DROP INDEX IF EXISTS set_name; ");
+  sql.query( "DROP INDEX IF EXISTS sset_name; ");
   sql.query( "DROP INDEX IF EXISTS meta1; ");
   sql.query( "DROP INDEX IF EXISTS filetags; " );
+  sql.query( "DROP INDEX IF EXISTS bcfIdx; " );
 }
 
 int VarDBase::variant_count( uint64_t file_id )
@@ -994,12 +1077,18 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
 	  SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
 	  
 	  vcfz->read_record( var , sample , target , genotype_target, offset_idx ); 
+	  
+	  // also populate sample ref/alt, as this is needed for merge decisions
+	  // TODO: this seems a far from clean way of doing things -- clean up when going
+	  // through this entire core component more thoroughly
+
+	  sample.ref = target.ref;
+	  sample.alt = target.alt;
+
       }
       else 
       {
 
-	Helper::halt( "BCF not present in this release" );
-	
 	BCF * bcf = bcfmap[ file_id ];	  
 	
 	if ( bcf ) 
@@ -1009,7 +1098,7 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
 	    bcf->read_record( var , target , genotype_target, offset_idx ); 
 	  }
 	else
-	  Helper::halt( "requested compressed-VCF or BCF not attached" );
+	  Helper::halt( "a requested compressed-VCF or BCF not attached" );
       }
       
   }
@@ -1125,9 +1214,6 @@ bool VarDBase::add_var_to_set( const std::string & group , Variant & v , bool al
   
   const int ns = v.n_samples();
 
-//   std::cout << "v = " << v << " " << v.chromosome() << " " << v.position() << " " << v.stop() << " " << v.consensus.reference() << " " << v.consensus.alternate() << "\n";
-//   std::cout << "ns = " << ns << "\n";
-
   sql.bind_int64( stmt_insert_set_variant , ":set_id" , grp_id );
 
   if ( ns == 0 ) 
@@ -1185,8 +1271,9 @@ bool VarDBase::add_var_to_set( const std::string & group , Variant & v , bool al
 
 uint64_t  VarDBase::add_superset( const std::string & name , const std::string & desc , bool donotadd )
 {
+
   // retrieve from cache?
-  
+
   std::map<std::string,int>::iterator ii = varsuperset_map.find( name );
   if ( ii != varsuperset_map.end() ) return ii->second;
   
@@ -1221,6 +1308,48 @@ uint64_t  VarDBase::add_superset( const std::string & name , const std::string &
 
 }
 
+
+void VarDBase::drop_set( const std::string & s )
+{
+
+  if ( s == "_ALL_" )
+    {
+      sql.query( "DELETE FROM sets;" );
+      sql.query( "DELETE FROM supersets;" );
+      sql.query( "DELETE FROM set_data;" );
+      sql.query( "DELETE FROM superset_data;" );
+      return;
+    }
+
+  uint64_t set_id = add_set( s );
+  if ( set_id == 0 ) return;
+
+  sql.query( "DELETE FROM sets WHERE set_id == " + Helper::int2str( set_id ) + ";" );
+  sql.query( "DELETE FROM set_data WHERE set_id == " + Helper::int2str( set_id ) + ";" );
+  sql.query( "DELETE FROM superset_data WHERE set_id == " + Helper::int2str( set_id ) + ";" );
+
+}
+
+
+void VarDBase::drop_superset( const std::string & s )
+{
+
+  if ( s == "_ALL_" )
+    {
+      sql.query( "DELETE FROM supersets;" );
+      sql.query( "DELETE FROM superset_data;" );
+      return;
+    }
+
+  uint64_t superset_id = add_superset( s );  
+  if ( superset_id == 0 ) return;
+
+  sql.query( "DELETE FROM supersets WHERE set_id == " + Helper::int2str( superset_id ) + ";" );
+  sql.query( "DELETE FROM superset_data WHERE set_id == " + Helper::int2str( superset_id ) + ";" );
+
+}
+
+
 bool VarDBase::add_set_to_superset( const std::string & supersetname , const std::string & setname )
 {
   uint64_t set_id = add_set( setname );
@@ -1228,7 +1357,7 @@ bool VarDBase::add_set_to_superset( const std::string & supersetname , const std
   sql.bind_int64( stmt_attach_set_to_superset , ":set_id" , set_id );
   sql.bind_int64( stmt_attach_set_to_superset , ":superset_id" , superset_id );
   sql.step( stmt_attach_set_to_superset );
-  sql.reset( stmt_attach_set_to_superset );
+  sql.reset( stmt_attach_set_to_superset );  
   return true;
 }
 
@@ -1282,13 +1411,13 @@ void VarDBase::add_set_description( const std::string & name , const std::string
 {
   // ensure set exists (create if not)
   uint64_t  set_id = add_set( name );
-  sql.query(" UPDATE sets SET description = " + desc + " WHERE name == " + name + ";" );
+  sql.query(" UPDATE sets SET description = '" + desc + "' WHERE name == " + name + ";" );
 }
 
 void VarDBase::add_superset_description( const std::string & name , const std::string & desc )
 {
   uint64_t  set_id = add_superset( name );
-  sql.query(" UPDATE supersets SET description = " + desc + " WHERE name == " + name + ";" );
+  sql.query(" UPDATE supersets SET description = '" + desc + "' WHERE name == " + name + ";" );
 }
 
 std::string VarDBase::get_set_description( const std::string & name )
@@ -1874,15 +2003,68 @@ uint64_t VarDBase::file_tag( const std::string & filetag )
 
 bool VarDBase::chr_code( const int c , const std::string & n , const ploidy_t ploidy )
 {
+  
+  // insert a code --> name (and ploidy)  one --> one mapping
+
   sql.bind_text( stmt_fix_chr_code , ":name" , n );
   sql.bind_int( stmt_fix_chr_code , ":chr_id" , c );
   sql.bind_int( stmt_fix_chr_code , ":ploidy" , ploidy );
   bool okay = sql.step( stmt_fix_chr_code );
   sql.reset( stmt_fix_chr_code );
+
+  chr_name( c , n );
+
   chr_name_map[c]=n;
   chr_code_map[n]=c;
   chr_ploidy_map[c]=ploidy;
+
   return okay;  
+}
+
+void VarDBase::chr_name( int c , const std::string & n ) 
+{
+  chr_code_map[n]=c;
+  // insert a name --> code mapping ( can be many --> 1)
+  if ( ! attached() ) return;
+  sql.bind_int( stmt_insert_chr_name , ":chr_id" , c );
+  sql.bind_text( stmt_insert_chr_name , ":name" , n );
+  sql.step( stmt_insert_chr_name );
+  sql.reset( stmt_insert_chr_name );
+  return;
+}
+
+bool VarDBase::chr_known( const std::string & n )
+{
+
+  // Note -- does not populate ploidy information here
+  // Note -- assumes that chr codes are not added after first query...
+
+  // cached? (if atleast one entry here, assume we've seen everything... see below)
+
+  if ( chr_code_map.size() > 0 ) 
+    return chr_code_map.find( n ) != chr_code_map.end() ;
+
+  // attempt to pull all from DB
+
+  while ( sql.step( stmt_fetch_chr_all_codes ) )
+    {      
+      std::string n = sql.get_text( stmt_fetch_chr_all_codes , 0 );
+      int c = sql.get_int( stmt_fetch_chr_all_codes , 1 );      
+      chr_code_map[n]=c;
+    }
+  sql.reset( stmt_fetch_chr_all_codes );
+
+  // also get code->name (1:1) mapping from chrcodes
+  while ( sql.step( stmt_fetch_chr_all_codes_2 ) )
+    {      
+      std::string n = sql.get_text( stmt_fetch_chr_all_codes_2 , 0 );
+      int c = sql.get_int( stmt_fetch_chr_all_codes_2 , 1 );
+      chr_name_map[c]=n;      
+    }
+  sql.reset( stmt_fetch_chr_all_codes_2 );
+
+  // now query cache again
+  return chr_code_map.find( n ) != chr_code_map.end() ;
 }
 
 int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy ) 
@@ -1890,26 +2072,12 @@ int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy )
 
   std::map<std::string,int>::iterator i = chr_code_map.find(n);
 
-  // "chr1" and "1" shouldn't return different results
-  if ( i == chr_code_map.end() && chr_code_map.find("chr" + n) != chr_code_map.end() )
-    {
-      i = chr_code_map.find("chr" + n);
-    }
-
   if ( i != chr_code_map.end() ) 
     {
       if ( ploidy ) *ploidy = chr_ploidy_map[ i->second ];
       return i->second;
     }
-
-
-     stmt_fetch_chr_code = 
-       sql.prepare( " SELECT chr_id , ploidy FROM chrcodes WHERE name == :name ; " );
   
-     stmt_fetch_chr_name = 
-       sql.prepare( " SELECT name , ploidy FROM chrcodes WHERE chr_id == :chr_id ; " );
-
-
   sql.bind_text( stmt_fetch_chr_code , ":name" , n );
   if ( sql.step( stmt_fetch_chr_code ) )
     {
@@ -1930,7 +2098,10 @@ int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy )
   sql.step( stmt_insert_chr_code );
   sql.reset( stmt_insert_chr_code );
   int c = sql.last_insert_rowid();
-    
+
+  // and add string-id --> code entry
+  chr_name( c , n );
+
   // and add to current map
   chr_name_map[c]=n;
   chr_code_map[n]=c;
@@ -1949,7 +2120,9 @@ ploidy_t VarDBase::ploidy( const int c )
 std::string VarDBase::chr_name( const int c ) 
 {
   std::map<int,std::string>::iterator i = chr_name_map.find(c);
-  if ( i != chr_name_map.end() ) return i->second;
+  if ( i != chr_name_map.end() ) 
+    return i->second;
+  
   sql.bind_int( stmt_fetch_chr_name , ":chr_id" , c );
   std::string n = ".";
   if ( sql.step( stmt_fetch_chr_name ) )

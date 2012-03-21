@@ -50,28 +50,37 @@ class RefVariant {
       rname = "";
       chr = 0;
       bp1 = bp2 = 0;
+      ref = alt = ".";
       rvalue = "";
       obs = false;
     }
   
-  RefVariant(int grp_id, std::string name, 
-	     int chr, int bp1, int bp2, std::string value)
+  RefVariant(int grp_id, 
+	     const std::string & name, 
+	     int chr, int bp1, int bp2, 
+	     const std::string & ref , 
+	     const std::string & alt , 
+	     const std::string & value)
     : grp_id(grp_id), rname(name), chr(chr) , 
-    bp1(bp1) , bp2(bp2), rvalue(value) 
+    bp1(bp1) , bp2(bp2), ref(ref) , alt(alt) , 
+    rvalue(value) 
     {	    
       obs = true;
     }
     
     bool operator<( const RefVariant & rhs ) const 
     {
-      if ( chr == rhs.chr )
-	{
-	  if ( bp1 == rhs.bp1 ) 
-	    return bp2 < rhs.bp2;
-	  else
-	    return bp1 < rhs.bp1;
-	}
-      else return chr < rhs.chr;
+      if ( chr < rhs.chr ) return true;
+      if ( chr > rhs.chr ) return false;
+      
+      if ( bp1 < rhs.bp1 ) return true;
+      if ( bp1 > rhs.bp1 ) return false;
+      
+      if ( bp2 < rhs.bp2 ) return true;
+      if ( bp2 > rhs.bp2 ) return false;
+      
+      return alt < rhs.alt;
+
     }
     
   std::string name() const { return rname; }
@@ -95,6 +104,11 @@ class RefVariant {
   int stop() const { return bp2; }
   void stop(const int p) { bp2 = p; }
   
+  std::string reference() const { return ref; }
+  void reference(const std::string & r ) { ref = r; } 
+
+  std::string alternate() const { return alt; }
+  void alternate(const std::string & a ) { alt = a; } 
   
   // But also allow more extensible meta-information
   
@@ -108,7 +122,7 @@ class RefVariant {
 	      << rv.bp1;
 	  if ( rv.bp2 > rv.bp1 ) 
 	    out << ".." << rv.bp2;	  
-	  out << ":" << rv.rname;
+	  out << ":" << rv.ref << "/" << rv.alt << ":" << rv.rname;
 	}	  
       else
 	out << ".";
@@ -121,6 +135,8 @@ class RefVariant {
     std::string rname;
     int chr;
     int bp1, bp2;
+    std::string ref;
+    std::string alt;
     std::string rvalue;
     bool obs;
     

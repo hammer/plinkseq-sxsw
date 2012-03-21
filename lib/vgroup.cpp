@@ -42,7 +42,14 @@ void VariantGroup::add(Variant &v )
       vars.push_back(v);
       return;
     }
- 
+
+  // in all-group mode, always add
+  if ( mask.all_grouping() )
+    {
+      vars.push_back(v);
+      return;
+    }
+
   // We should not have reached here, as some grouping function 
   // should have been specified in the mask in order to use 
   // a VariantGroup. 
@@ -52,7 +59,6 @@ void VariantGroup::add(Variant &v )
   return;
   
 }
-
 
 
 int VariantGroup::n_individuals() const

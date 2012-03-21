@@ -214,8 +214,7 @@ void  SeqDBase::loadFASTA( const std::string & filename ,
 	  
 	  if ( l.find("_") == std::string::npos ) 
 	    {
-	      // change "1" to "chr1", etc
-	      // std::string chr_str = Helper::defaultChrPrefix(l.substr( 1 ));
+
 	      c = chrCode( l.substr( 1 ) );
 	      
 	      if ( c > 0 ) 

@@ -38,6 +38,7 @@ class VCFReader {
      file_id = vardb->insert( f->name() , tag );
      version = VCF_UNKNOWN;
      pfilter = NULL;
+     using_idfilter = false;
      explicit_meta = false;
      current_format = "";
      refdb = NULL;
@@ -61,6 +62,7 @@ class VCFReader {
       file_id = refdb->insert( f->name() , tag );
       version = VCF_UNKNOWN;
       pfilter = NULL;
+      using_idfilter = false;
       explicit_meta = false;
       current_format = "";
       vardb = NULL;
@@ -98,6 +100,8 @@ class VCFReader {
    }
 	       
  void set_region_mask( const std::set<Region> * );
+
+ void add_id_filter( const std::set<std::string> & );
 
  void set_fixxy( Mask * mask , LocDBase * p , IndDBase * pi );
  
@@ -177,11 +181,17 @@ class VCFReader {
   std::set<std::string> meta_read_geno;
   std::set<std::string> meta_read_filter;
 
-  // Filter-group filter
+  // Filter-group filter ( --mask reg=)
 
   std::set<Region> * pfilter;
   int largest_region;
   bool contains( int chr , int bp1, int bp2 );
+
+  // ID-list filter (--mask id=)
+
+  bool using_idfilter;
+  std::set<std::string> idfilter;
+
 
   // File information
 

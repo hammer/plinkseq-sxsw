@@ -19,7 +19,7 @@ void R_init_Rplinkseq(DllInfo *info)
 {
   gp = new GStore;    
   gp->R_mode( true );
-  Rprintf("PLINK/Seq genetics library for R | v0.08-alpha | 4-Nov-2011\n");
+  Rprintf("PLINK/Seq genetics library for R | v0.08 | 15-Mar-2012\n");
 }
 
 

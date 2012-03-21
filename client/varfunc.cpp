@@ -1767,3 +1767,41 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
 }
 
 
+
+
+bool Pseq::VarDB::write_lookup_matrix(Mask & m , const std::string & filename, const std::vector<std::string> & regs )
+{
+
+  // replace this functionality with a mask option instead ( reg.force=... )
+
+//   // ultimately, might be better to adapt the reg mask function to
+//   // have an option to force a position even when not at all present
+//   // in the dataset?  For now, this will still be useful.
+  
+//   std::set<Region> lookups;
+//   if ( filename != "." && Helper::fileExists( filename ) )
+//     {
+//       InFile IN1( filename );
+//       while ( ! IN1.eof() )
+// 	{
+// 	  std::string s;
+// 	  IN1 >> s;
+// 	  bool okay = false;
+// 	  Region r( s , okay );
+// 	  if ( okay ) lookups.insert(r);
+// 	}
+//       IN1.close();
+//     }
+  
+//   for (int i=0;i<regs.size();i++)
+//     {
+//       bool okay = false;
+//       Region r( regs[i] , okay );
+//       if ( okay ) lookups.insert(r);
+//     }
+  
+//   std::cout << "found " << lookups.size() << " regions to lookup\n";
+ 
+
+return false;
+ }

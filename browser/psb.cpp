@@ -658,8 +658,7 @@ int main()
 									      ExomeBrowser::symbol, 
 									      loc_set );
 	  
-	  
-	  // If no matches, assume the original input was in
+	  	  // If no matches, assume the original input was in
 	  // transcript form, e.g. NA_12345
 
 	  if ( trans_names.size() == 0 ) 
@@ -687,7 +686,7 @@ int main()
   //
   
   std::vector<Region> trans = g.locdb.fetch( loc_set , tnames );
-  
+
   
   //
   // Will we be reporting on 1, or on multi transcripts (e.g. impacts display of exon #)
@@ -976,8 +975,8 @@ int main()
       
       // Optional case/control counts?
       
-      if ( a.show_phenotype && g.phmap.type() == PHE_DICHOT )
-	std::cout << "<th>C/C count</th>";
+      if ( a.show_phenotype && ( g.phmap.type() == PHE_DICHOT || g.phmap.type() == PHE_FACTOR ) )
+	std::cout << "<th>" << a.phenotype_name << "</th>";
       
   
       // Optional meta-fields?
@@ -1475,22 +1474,50 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 
   // Allele count?
   
-  if ( a->show_phenotype && a->g->phmap.type() == PHE_DICHOT )
+  if ( a->show_phenotype ) 
     {
-      int case_n = 0 , control_n = 0;
-      for (int j=0; j< var.size(); j++)
-	{
-	  affType aff = var.ind( j )->affected();
 
-	  if ( var(j).nonreference() )
+      // case/control count for dichotomous traits
+      if ( a->g->phmap.type() == PHE_DICHOT )
+	{
+	  int case_n = 0 , control_n = 0;
+	  for (int j=0; j< var.size(); j++)
 	    {
-	      if ( aff == CASE ) ++case_n;
-	      else if ( aff == CONTROL ) ++control_n;
+	      affType aff = var.ind( j )->affected();
+	      
+	      if ( var(j).nonreference() )
+		{
+		  if ( aff == CASE ) ++case_n;
+		  else if ( aff == CONTROL ) ++control_n;
+		}
 	    }
+	  o1 << "<td>A=" << case_n << ";U=" << control_n << "</td>";
 	}
-      o1 << "<td>" << case_n << "/" << control_n << "</td>";
+
+      // factor count 
+      if ( a->g->phmap.type() == PHE_FACTOR )
+	{
+	  std::map<std::string,int> cnt;
+	  for (int j=0; j< var.size(); j++)
+	    {
+	      Individual * person = var.ind(j);
+	      std::string l = ( person->missing() || person->group_label() == "." ) ? 
+		"&lt;?&gt;" : person->group_label() ;	      
+	      if ( var(j).nonreference() ) cnt[l]++;
+	    }
+	  o1 << "<td>";
+	  std::map<std::string,int>::iterator ii = cnt.begin();
+	  while ( ii != cnt.end() )
+	    {
+	      if ( ii != cnt.begin() ) o1 << "<br>";
+	      o1 << ii->first << "=" << ii->second ;
+	      ++ii;
+	    }
+	  o1<< "</td>";	  
+	}
+      
     }
-  
+
   // Optional meta-information?
   
   for (int m=0; m < a->mf.size(); m++)

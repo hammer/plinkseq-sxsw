@@ -131,18 +131,23 @@ class Token {
 
   Token operator!() const;
   Token & operator=(const Token & rhs);
+
   Token operator==(const Token & rhs) const;
   Token operator!=(const Token & rhs) const;
+
   Token operator+(const Token & rhs) const;
-  Token operator^(const Token & rhs) const;
   Token operator-(const Token & rhs) const;
   Token operator*(const Token & rhs) const;
   Token operator/(const Token & rhs) const;
+
+  Token operator^(const Token & rhs) const;
   Token operator%(const Token & rhs) const;
+
   Token operator<(const Token & rhs) const;
   Token operator>(const Token & rhs) const;
   Token operator>=(const Token & rhs) const;
   Token operator<=(const Token & rhs) const;
+
   Token operator&&(const Token & rhs) const;
   Token operator||(const Token & rhs) const;
     

@@ -14,6 +14,7 @@ bool Subregion::overlaps(const Region & b) const
 } 
 
 
+
 bool Region::within( std::set<Region> & s )
 {
     
@@ -58,25 +59,30 @@ Region::Region(const std::string & s, bool & flag)
       // is this a single chromosome?
       // set a large value (appropriate for human
       // chromosomes) to get whole thing...
-      
-      int chr = chrCode( s );
-      if ( chr == 0 ) return;
-      start.chromosome( chr );
-      start.position( 1 );
-      stop.chromosome( chr );
-      stop.position( 300000000 );      
-      flag = true;
-      return;
 
+      if ( Helper::chr_known( s ) ) 
+	{
+	  int chr = Helper::chrCode( s );
+	  if ( chr == 0 ) return; // should not happen, but in case
+	  start.chromosome( chr );
+	  start.position( 1 );
+	  stop.chromosome( chr );
+	  stop.position( 300000000 );      
+	  flag = true;
+	  return;
+	}
     }
 
+
   // Get chromosome 
-  int chr = chrCode( s.substr( 0,p ) );
+  if ( ! Helper::chr_known( s.substr( 0,p ) ) ) return;
+    
+  int chr = Helper::chrCode( s.substr( 0,p ) );
   if ( chr == 0 ) return;
   
   
   // In form chr1:1234:rs1234?  remove rs component
-
+  
   std::string r = s.substr(p+1);
   size_t w = r.find(":");
   std::string spos = w != string::npos ? r.substr(0,w) : r ;
@@ -93,15 +99,20 @@ Region::Region(const std::string & s, bool & flag)
       stop.position( str2int( spos ) );
       flag = true;
       return;
-    }
-
+	}
+  
   start.chromosome( chr );
   start.position( str2int(spos.substr(0,q)));
-
+  
   stop.chromosome( chr );
   stop.position( str2int(spos.substr(q+2)));
   flag = true;
   return;
+}
+
+bool Region::overlaps(const Region& b) const
+{ 
+  return stop >= b.start && start <= b.stop;
 }
 
 

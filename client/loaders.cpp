@@ -42,7 +42,7 @@ bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & g
   std::set<std::string> includes, excludes;
   if ( args.has( "format" , "include-meta" ) ) includes = args.get_set( "format" , "include-meta" );
   if ( args.has( "format" , "exclude-meta" ) ) excludes = args.get_set( "format" , "exclude-meta" );
-  
+
   std::string comment;
   if ( args.has( "description" ) ) comment = args.as_string( "description" );
   
@@ -334,10 +334,10 @@ bool Pseq::LocDB::load_segments( std::string filename , std::string label , Pseq
 
 	  mType mt = META_TEXT;
 
-	  if      ( args.has( "integer" , h[i] ) ) mt = META_INT;
-	  else if ( args.has( "float"   , h[i] ) ) mt = META_FLOAT;
-	  else if ( args.has( "flag"    , h[i] ) ) mt = META_FLAG;
-	  else if ( args.has( "bool"    , h[i] ) ) mt = META_BOOL;
+	  if      ( args.has( "format" , "integer" , h[i] ) ) mt = META_INT;
+	  else if ( args.has( "format" , "float"   , h[i] ) ) mt = META_FLOAT;
+	  else if ( args.has( "format" , "flag"    , h[i] ) ) mt = META_FLAG;
+	  else if ( args.has( "format" , "bool"    , h[i] ) ) mt = META_BOOL;
 	  
 	  // ignore description for now
 	  std::string desc = "";
@@ -434,10 +434,10 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
       else // a user-defined type
 	{
 	  mType mt = META_TEXT;
-	  if      ( args.has( "integer" , h[i] ) )  mt = META_INT;
-	  else if ( args.has( "float"   , h[i] ) )  mt = META_FLOAT;
-	  else if ( args.has( "flag"    , h[i] ) )  mt = META_FLAG;
-	  else if ( args.has( "bool"    , h[i] ) )  mt = META_BOOL;
+	  if      ( args.has( "format" , "integer" , h[i] ) )  mt = META_INT;
+	  else if ( args.has( "format" , "float"   , h[i] ) )  mt = META_FLOAT;
+	  else if ( args.has( "format" , "flag"    , h[i] ) )  mt = META_FLAG;
+	  else if ( args.has( "format" , "bool"    , h[i] ) )  mt = META_BOOL;
 
 	  // ignore description for now
 	  std::string desc = "";
@@ -496,62 +496,92 @@ bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
 
 
 
-
 struct aux_addvar  {
   std::string group;
+  std::string mtag;
   bool tagvalue;  
+  std::set<std::string> sets;
 };
+
 
 void f_add_to_varset( Variant & var , void * p )
 {
   aux_addvar * aux = (aux_addvar*)p;
-  std::string * group = (std::string*)p;
+  
   if ( aux->tagvalue )
     {
       // to to group-name defined by tag-value
       std::string val = "";
       
       // only allow this for text and integer tag values
-      meta_index_t midx = MetaInformation<VarMeta>::field( aux->group );
+      meta_index_t midx = MetaInformation<VarMeta>::field( aux->mtag );
       if ( !(  midx.mt == META_TEXT || midx.mt == META_INT ) ) return;
 
       MetaInformation<VarMeta> * m = NULL;
-      if ( var.meta.has_field( aux->group ) ) m = &var.meta;
-      else if ( var.consensus.meta.has_field( aux->group ) ) m = &var.consensus.meta;      
+      if ( var.meta.has_field( aux->mtag ) ) m = &var.meta;
+      else if ( var.consensus.meta.has_field( aux->mtag ) ) m = &var.consensus.meta; 
       if ( m == NULL ) return;
       
       if ( midx.mt == META_TEXT )
 	{
-	  std::vector<std::string> t = m->get_string( aux->group );
+	  std::vector<std::string> t = m->get_string( aux->mtag );
 	  for (int i=0; i<t.size(); i++ ) 
-	    g.vardb.add_var_to_set( t[i] , var  );
+	    {
+	      const std::string n = aux->mtag + "[" + t[i] + "]";
+	      g.vardb.add_var_to_set( n , var  );
+	      if ( aux->sets.find( n ) == aux->sets.end() )
+		{
+		  g.vardb.add_set_to_superset( aux->group , n );
+		  aux->sets.insert( n );
+		}
+	    }
 	}
       
       if ( midx.mt == META_INT )
 	{
-	  std::vector<int> t = m->get_int( aux->group );
+	  std::vector<int> t = m->get_int( aux->mtag );
 	  for (int i=0; i<t.size(); i++ ) 
-	    g.vardb.add_var_to_set( aux->group + "[" + Helper::int2str( t[i] ) + "]" , var  );
-	}      
+	    {
+	      const std::string n = aux->mtag + "[" + Helper::int2str( t[i] ) + "]";
+	      g.vardb.add_var_to_set( n , var  );
+	      if ( aux->sets.find( n ) == aux->sets.end() )
+		{
+		  g.vardb.add_set_to_superset( aux->group , n );
+		  aux->sets.insert( n );
+		}
+	    }
+	}
     }
   else
     g.vardb.add_var_to_set( aux->group , var );
 }
 
+
 bool Pseq::VarDB::add_to_varset( const std::string & group , Mask & mask , const std::string & mtag , const std::string & desc )
 {
 
-  // Create VarGroup if it does not exist
+  // Create set if it does not exist
 
-  g.vardb.add_set( group );
+  // if setting sets based on the value of a meta-field, then create an umbrella super-set 
+  // based on the --group given
+  
+  if ( mtag == "" ) g.vardb.add_set( group );
+  else g.vardb.add_superset( group );
+
   if ( desc != "." ) g.vardb.add_set_description( group , desc );
 
   // Add all mask-passing variants
 
-  g.vardb.iterate( f_add_to_varset , (void*)&group , mask );
+  aux_addvar av;
+  av.group = group;
+  if ( mtag != "" ) { av.tagvalue = true; av.mtag = mtag; } 
+  g.vardb.begin();
+  g.vardb.iterate( f_add_to_varset , &av , mask );
+  g.vardb.commit();
 
   return true;
 }
+
 
 bool Pseq::VarDB::add_to_varset( const std::string & filename  )
 {
@@ -586,10 +616,10 @@ bool Pseq::VarDB::add_to_varset( const std::string & filename  )
 	  Helper::str2upper( h[0] );
 	  
 	  if ( h[0].substr(0,3) == "REG" ) add_region = true;
-	  else if ( h[0].substr(0,3) == "SNP" ) add_region = false;
+	  else if ( h[0].substr(0,3) == "VAR" ) add_region = false;
 	  else 
 	    {
-	      plog.warn( "invalid region/snp code " , h[0] );
+	      plog.warn( "invalid region/variant code " , h[0] );
 	      continue; 
 	    }
 
@@ -677,8 +707,23 @@ bool Pseq::VarDB::add_superset_from_file( const std::string & filename )
 bool Pseq::VarDB::add_superset( const std::string & group , const std::vector<std::string> & members , const std::string & desc )
 {
   g.vardb.add_superset( group );
-  g.vardb.add_superset_description( group , desc );
+  
+  //  g.vardb.add_superset_description( group , desc );
+
   for (int m=0;m<members.size(); m++) g.vardb.add_set_to_superset( group , members[m] );
   return true;
+}
+
+
+// Insert meta-information, either from a file or from a new meta-tag created on-the-fly
+
+bool Pseq::VarDB::insert_meta_from_file( const std::string & filename )
+{
+
+}
+
+bool Pseq::VarDB::insert_meta_on_fly( const std::string & name )
+{
+
 }
 

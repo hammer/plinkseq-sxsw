@@ -353,6 +353,79 @@ bool Pseq::VarDB::write_lik(Mask & m)
 
 }
 
+
+
+//
+//  -------- WRITE HAPS -------------
+//
+
+struct aux_haps_filemap 
+{ 
+
+  aux_haps_filemap( const std::string & r ) { filename_root = r; } 
+  
+  std::ofstream * handle( const std::string & id, const std::string & chr , int hap )
+  {
+    const std::string corename = id + "-" + ( hap==1 ? "1" : "2" ) + "-" + chr;
+    std::map<std::string,std::ofstream*>::iterator ii = m.find( corename );
+    if ( ii != m.end() ) return ii->second;
+    std::ofstream * nf = new std::ofstream;
+    nf->open( ( filename_root + "-" + corename + ".haps" ).c_str() );
+    if ( ! nf->is_open() ) Helper::halt( "trouble opening file to write to : " + corename );
+    *nf << id << "\t" << "HAPLO" << hap << "\t";
+    m[corename] = nf;
+    return nf;
+  }
+  
+  ~aux_haps_filemap()
+  {
+    std::map<std::string,std::ofstream*>::iterator ii = m.begin();
+    while ( ii != m.end() )
+      {
+	if ( ii->second ) 
+	  {
+	    ii->second->close();
+	    delete ii->second;
+	  }
+	++ii;
+      }
+  }
+  
+  std::string filename_root;
+  std::map<std::string,std::ofstream*> m;
+
+};
+
+
+void f_write_haps( Variant & v , void * p )
+{
+  aux_haps_filemap * files = (aux_haps_filemap*)p;
+  const int n = v.size();
+  const std::string chr = Helper::chrCode( v.chromosome() );
+  for (int i=0;i<n;i++)
+    {
+      std::ofstream * f1 = files->handle( v.ind(i)->id() , chr , 1 ) ;
+      std::ofstream * f2 = files->handle( v.ind(i)->id() , chr , 2 );
+      const Genotype & g = v(i);
+      *f1 << v.allele1_label( v(i) );
+      *f2 << v.allele1_label( v(i) ); 
+      //      std::cout << "want to write " << v.allele1_label( v(i) ) << " and " << v.allele2_label( v(i) ) << "\n";
+    }
+}
+
+
+bool Pseq::VarDB::write_haps(Mask & m , const std::string & rt )
+{
+  // helper struct to organise filemap
+  aux_haps_filemap filemap( rt );
+  
+  // write
+  IterationReport report = g.vardb.iterate( f_write_haps , &filemap , m );
+  
+  plog << "done... now, for each chromosome, concatenate, e.g:\n  cat " << rt << "-*-chr1 > all-chr1.haps\n";
+}
+
+
 bool Pseq::VarDB::write_matrix(Mask & m)
 {
   std::vector<std::string> ids = g.indmap.ind_id();
@@ -817,7 +890,7 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
       if ( valid )
 	{
 	  
-	  set<Region> olaps = db.get_regions( group ,  r ) ;	  
+	  std::set<Region> olaps = db.get_regions( group ,  r ) ;	  
 
 	  plog << r.coordinate() << "\t";
 	  
@@ -829,8 +902,10 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
 	      genes.insert( i->altname );
 	      ++i;
 	    }	  
-	  
-	  
+
+	  // report # of loci overlapping
+	  plog << genes.size() << "\t";
+
 	  if ( genes.size() == 0 ) 
 	    plog << ".";
 	  else
@@ -852,7 +927,7 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
 	++inv;
     }
   
-  plog << "read " << regions.size() << " regions\n";
+  // plog << "read " << regions.size() << " regions\n";
   
   if( inv > 0 ) 
     plog.warn( "found " + Helper::int2str( inv ) +  " invalid regions" );
@@ -1293,7 +1368,7 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
   // Do we wish to count the instances of intersecting reference-group variants?
   //
 
-  bool refvars = refgroup != "";
+  bool refvars = ! ( refgroup == "" || refgroup == "." ) ;
   
   if ( refvars )
     {
@@ -1310,7 +1385,7 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
   // Header
   //
   
-  plog << "GROUP" << "\t"
+  plog << "LOCUS" << "\t"
        << "ALIAS" << "\t"
        << "NSUB" << "\t"
        << ( sub ? "SUB\t" : "" ) 
@@ -1406,12 +1481,22 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
 	      plog << stot << "\t"
 		   << "NA" << "\t";
 	      
-	      if ( okay ) 
-		plog 
-		  << (double)sgc/(double)(stot-sn) << "\t"
-		  << "NA" << "\t"
-		  << (double)sn/(double)stot << "\t"
-		  << "NA";
+	      if ( okay ) 		
+		{
+		  if ( stot-sn > 0 ) 
+		    plog << (double)sgc/(double)(stot-sn) << "\t";
+		  else 
+		    plog << "NA" << "\t";
+		  
+		  plog << "NA" << "\t";
+
+		  if ( stot > 0 ) 
+		    plog << (double)sn/(double)stot << "\t";
+		  else
+		    plog << "NA" << "\t";
+
+		  plog << "NA";
+		}
 	      else
 		plog << "NA\tNA\tNA\tNA";
 	    }

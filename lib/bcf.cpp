@@ -440,12 +440,12 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
   // Fill buffer as direct raw byte sequence from BCF, for later parsing
 
   // set 'target', so that VMETA is also appropriately not handled as a BLOB
-
+  
   // BCF::n (sample size) will have been populated already (from VARDB)
   //                      *but*, we might not want to read it all in... (Masks...)
   
   // but genotype specific info stays w/ genotypes
-
+  
 
   svar.set_pointer_to_bcf( this );
     
@@ -527,10 +527,8 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
 	  
 	}
       else if ( ii->second.type == BCF_genotype )
-	{
-	  
-	  // NOTE: currently, assume genotype is uint8_t
-	  
+	{	  
+	  // NOTE: currently, assume genotype is uint8_t	  
 	  buf_sz += n * nelem * sizeof(uint8_t);
 	  svar_g.bcf_genotype_buf_resize( buf_sz );
 	  read( svar_g.bcf_pointer(p) , n * nelem * sizeof(uint8_t) );	  
@@ -540,7 +538,7 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
   
   // now we've finished building the BCF genotype buffer; this may (or
   // may not) get expanded later, as needed given the Mask
-
+  
   return true;
 
 }

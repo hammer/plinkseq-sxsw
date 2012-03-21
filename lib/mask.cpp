@@ -96,6 +96,7 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "reg.ex" , "str-list" , "require regions(s)" ); 
   mask_add( s , g , c++ , gl , "reg.req" , "str-list" , "exclude regions(s)" ); 
   mask_add( s , g , c++ , gl , "reg.group" , "str-list" , "group variants by list of regions (not implemented)" ); 
+  //  mask_add( s , g , c++ , gl , "reg.force" , "str-list" , "force output on variants, whether present or not" ); 
 
   // variant-IDs
   ++g; c=0; gl="ids";
@@ -125,7 +126,7 @@ std::set<mask_command_t> populate_known_commands()
 
 //   mask_add( s , g , c++ , gl , "var.inc" , "str-list" , "variant include list(s)" , true ); // hidden
 
-   mask_add( s , g , c++ , gl , "var.group" , "str" , "group variants by VARDB sets" ); 
+//   mask_add( s , g , c++ , gl , "var.group" , "str" , "group variants by VARDB sets" ); 
    mask_add( s , g , c++ , gl , "var.append" , "str-list" , "append meta-information from VARDB" );
 
 //   mask_add( s , g , c++ , gl , "var.subset", "str-list" , "subsetted variants" , true ); 
@@ -188,6 +189,7 @@ std::set<mask_command_t> populate_known_commands()
   // variant meta-information
   ++g; c = 0 ; gl="vmeta";
   mask_add( s , g , c++ , gl , "include" , "expr" , "filter sample-variants based on logical expression" );
+  mask_add( s , g , c++ , gl , "eval" , "expr" , "evaluate sample-variants expression" );
   mask_add( s , g , c++ , gl , "v-include" , "expr" , "filter variants based on logical expression" );
   mask_add( s , g , c++ , gl , "meta" , "str-list" , "include variants passing any meta-field criterion" );
   mask_add( s , g , c++ , gl , "meta.req"  , "str-list" , "require variants passing all meta-field criteria" ); 
@@ -205,14 +207,17 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "monomorphic" , "flag" , "include only monomorphic sites" ); 
   mask_add( s , g , c++ , gl , "monomorphic.ex" , "flag" , "exclude monomorphic sites" );
   mask_add( s , g , c++ , gl , "hwe" , "float-range" , "include variants with HWE p-value in [n-m]" ); 
-
+  mask_add( s , g , c++ , gl , "indel" , "flag" , "only consider indels" );
+  mask_add( s , g , c++ , gl , "indel.ex" , "flag" , "exclude indels" );
+  mask_add( s , g , c++ , gl , "novel" , "flag" , "only novel SNPs (ID '.')" );
+  mask_add( s , g , c++ , gl , "novel.ex" , "flag" , "exclude novel SNPs (ID '.')" );
 
   // Genotype 
   ++g; c = 0 ; gl="genotype";
   mask_add( s , g , c++ , gl , "geno" , "str-list" , "retain genotypes passing any meta-field criterion" ); 
   mask_add( s , g , c++ , gl , "geno.req" , "str-list" , "retain genotypes passing all meta-field criteria" ); 
   mask_add( s , g , c++ , gl , "null" , "int-range" , "include variants with number of null genotypes in [n-m]" ); 
-  mask_add( s , g , c++ , gl , "null.prop" , "flost-range" , "include variants with proportion of null genotypes in [n-m]" ); 
+  mask_add( s , g , c++ , gl , "null.prop" , "float-range" , "include variants with proportion of null genotypes in [n-m]" ); 
   mask_add( s , g , c++ , gl , "assume-ref" , "flag" , "assume null/missing genotypes are reference" );
   mask_add( s , g , c++ , gl , "soft-ref" , "flag" , "0/REF allele initially implies only absence of ALT" );
   mask_add( s , g , c++ , gl , "hard-ref" , "flag" , "0/REF allele always implies presence of REF allele" );
@@ -259,15 +264,16 @@ std::set<mask_command_t> populate_known_commands()
   // Misc.
   ++g; c = 0 ; gl="misc-masks";
   mask_add( s , g , c++ , gl , "em" , "float" , "apply GL/PL-based EM; keep genotypes with prob > n" );
+  mask_add( s , g , c++ , gl , "all.group" , "flag" , "all filtered variants as a single group" );
   mask_add( s , g , c++ , gl , "empty.group" , "flag" , "in group-iteration, include groups with no variants" );
   mask_add( s , g , c++ , gl , "limit" , "int" , "limit iteration to first n results" );
 
-  mask_add( s , g , c++ , gl , "downcode" , "flag" , "represent multi-allelic variants as k-1 biallelic variants" );
-  mask_add( s , g , c++ , gl , "collapse" , "flag" , "represent multi-allelic variants as single biallelic variant" );
+  mask_add( s , g , c++ , gl , "downcode" , "flag" , "do not downcode multi-allelic variants as k-1 biallelic variants" );
+  mask_add( s , g , c++ , gl , "collapse" , "flag" , "represent multi-allelic variants as one REF/non-REF variant" );
   
-  mask_add( s , g , c++ , gl , "no-merge" , "flag" , "do not merge any sites at all" );
+  mask_add( s , g , c++ , gl , "no-merge" ,    "flag" , "do not merge any sites at all" );
   mask_add( s , g , c++ , gl , "exact-merge" , "flag" , "only merge variants with same REF/ALT alleles" );
-  mask_add( s , g , c++ , gl , "any-merge" , "flag" , "combine overlapping variants" );
+  mask_add( s , g , c++ , gl , "any-merge" ,   "flag" , "combine overlapping variants" );
   
   mask_add( s , g , c++ , gl , "ex-vcf" , "flag" , "name of external VCF" , true ); // hidden 
 
@@ -417,17 +423,22 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       
       if ( keys[i] != "" && known_commands.find( mask_command_t( keys[i] ) ) == known_commands.end() )
       {
+	
+	// always bail here, i.e. for reg=chr1 syntax rather than --mask chr1
+	Helper::halt("Mask option '" + keys[i] + "' not recognised.");
+	
+	// If we can interpret this as a region, do so
 
-	  // If we can interpret this as a region, do so
-	  bool okay = false;
-	  Region r( keys[i] , okay );	  
-	  if ( !okay ) Helper::halt("Mask option '" + keys[i] + "' not recognised.");
-	  else keys[i] = "reg=" + keys[i];
+// 	bool okay = false;
+// 	Region r( keys[i] , okay );	  
+// 	if ( !okay ) Helper::halt("Mask option '" + keys[i] + "' not recognised.");
+// 	else keys[i] = "reg=" + keys[i];
+
       }
   }
   
   if ( m.has_field( "v-include" ) )
-    {      
+    { 
       std::string k = m.get1_string( "v-include" );            
       var_set_filter_expression( k );
     }
@@ -829,6 +840,35 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     }
 
   //
+  // SNPs vs indels
+  //
+  
+  if ( m.has_field( "indel" ) )
+    {
+      only_indels( true );
+    }
+
+  if ( m.has_field( "indel.ex" ) )
+    {
+      skip_indels( true );
+    }
+
+  //
+  // Novel SNPs
+  //
+  
+  if ( m.has_field( "novel" ) )
+    {
+      only_novel( true );
+    }
+    
+  if ( m.has_field( "novel.ex" ) )
+    {
+      skip_novel( true );
+    }
+
+
+  //
   // Variant meta-information
   //
 
@@ -1166,19 +1206,23 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       else Helper::halt( "did not recognize genotype model" );
     }
   
+
   if ( m.has_field( "downcode" ) )
-      downcode( DOWNCODE_MODE_EACH_ALT );
+    downcode( DOWNCODE_MODE_EACH_ALT );
   else if ( m.has_field( "collapse" ) )
-      downcode( DOWNCODE_MODE_ALL_ALT );
-  else 
-      downcode( DOWNCODE_MODE_NONE );
+    downcode( DOWNCODE_MODE_ALL_ALT );
+  else     
+    downcode( DOWNCODE_MODE_NONE ); // default -- no downcoding
   
-  if ( m.has_field( "no-merge" ) )
-      mergemode( MERGE_MODE_NONE );
+  if ( m.has_field( "no-merge" ) )          // no merging, even if exact match
+    mergemode( MERGE_MODE_NONE );
+  else if ( m.has_field( "exact-merge" ) )  // only if size of ALTs is similar (is default)
+    mergemode( MERGE_MODE_EXACT );
   else if ( m.has_field( "any-merge" ) )
-      mergemode( MERGE_MODE_ANY_OVERLAP );
-  else if ( m.has_field( "exact-merge" ) )
-      mergemode( MERGE_MODE_EXACT );
+    mergemode( MERGE_MODE_ANY_OVERLAP );    // attempt to merge any calls
+  else
+    mergemode( MERGE_MODE_EXACT );  
+
 
   if ( m.has_field( "null" ) )
     {
@@ -1288,11 +1332,16 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       process_empty_groups( true );
     }
 
-  if ( m.has_field( "var.group" ) ) 
+  if ( m.has_field( "all.group" ) )
     {
-      std::vector<std::string> k = m.get_string( "var.group" );
-      if ( k.size() > 0 ) group_var( k[0] );
+      all_group = true;
     }
+
+//   if ( m.has_field( "var.group" ) ) 
+//     {
+//       std::vector<std::string> k = m.get_string( "var.group" );
+//       if ( k.size() > 0 ) group_var( k[0] );
+//     }
 
   if ( m.has_field( "varset.group" ) ) 
     {
@@ -1429,11 +1478,6 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       load_genotype_meta( false );
     }
 
-  if ( m.has_field( "load-vmeta" ) )
-    {
-      
-    }
-
   if ( m.has_field( "load-gmeta" ) )
     {
       std::vector<std::string> t = m.get_string( "load-gmeta" );
@@ -1552,19 +1596,19 @@ void Mask::include_reg( const std::vector<std::string> & k )
 
 void Mask::include_id( const std::vector<std::string> & r )
 {
-//   for (int i=0; i<r.size(); i++) in_ids.insert(r);
+  for (int i=0; i<r.size(); i++) in_ids.insert(r[i]);
 }
 
 
 void Mask::require_id( const std::vector<std::string> & r )
 {
-//   for (int i=0; i<r.size(); i++) req_ids.insert(r);
+  for (int i=0; i<r.size(); i++) req_ids.insert(r[i]);
 }
 
 
 void Mask::exclude_id( const std::vector<std::string> & r )
 {
-//   for (int i=0; i<r.size(); i++) ex_ids.insert(r);
+  for (int i=0; i<r.size(); i++) ex_ids.insert(r[i]);
 }
 
 
@@ -2165,23 +2209,24 @@ void Mask::group_var(const string & g)
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( g , "" , DO_NOT_ADD );
   if ( id > 0 ) group_var(id);
+  else Helper::halt("could not find var super-set " + g );
 }
 
-void Mask::group_var_set( const int g)
+void Mask::group_var_set( const int g )
 {
   group_variant = 0;
   group_variant_set = g;
   group_locus = 0;
   group_locus_set = 0;
-  include_varset(g);
 }
 
 void Mask::group_var_set( const std::string & g )
 {
   if ( ! vardb )return;
   include_varset(g);
-  int pid = vardb->add_superset( g );
-  if ( pid > 0 ) return group_loc_set(pid);  
+  const bool DO_NOT_ADD = true;
+  int pid = vardb->add_superset( g , "" , DO_NOT_ADD );
+  if ( pid > 0 ) return group_var_set(pid);  
   return;
 }
 
@@ -2376,6 +2421,7 @@ void Mask::group_loc_set(const int g)
   group_locus_set = g;
   group_locus = 0;
   group_variant = 0;
+  group_variant_set = 0;
   include_loc_set(g);
 }
 
@@ -2551,10 +2597,22 @@ bool Mask::eval_filters( const SampleVariant & v )
 
 bool Mask::polymorphism_filter( const Variant & v )
 {
+  // also include type of polymorphism here (indels vs snps, initially)
+  if ( req_indels || exc_indels )
+    {
+      bool is_indel = v.indel();
+      if ( req_indels && ! is_indel ) return false;
+      if ( exc_indels &&   is_indel ) return false;
+    }
+
+  if ( req_novel && v.name() != "." ) return false;
+  if ( exc_novel && v.name() == "." ) return false;
+
   if ( require_biallelic() && ! v.biallelic() ) return false;
   if ( exclude_biallelic() &&   v.biallelic() ) return false;
   if ( require_monomorphic() && ! v.monomorphic() ) return false;
   if ( exclude_monomorphic() &&   v.monomorphic() ) return false;
+  
   return true;
 }
 
@@ -4109,7 +4167,7 @@ bool Mask::in_all_segmask( const Region & var , const std::map<int,std::vector<R
   if ( segs.size() == 0 ) return true;  
   std::map<int,std::vector<Region> >::const_iterator g = segs.begin();
   while ( g != segs.end() )
-    {
+    {      
       if ( ! in_any_segmask( var , g->second ) ) return false;
       ++g;
     }
@@ -4120,16 +4178,50 @@ bool Mask::in_all_segmask( const Region & var , const std::map<int,std::vector<R
 bool Mask::eval_segmask( const int i , const Region & region )
 {
 
+  
   // excludes 
-  if ( in_any_segmask( region , ex_segs[i] ) ) return false;
+  if ( ex_segs.size() && ex_segs[i].size() ) 
+    {
+      if ( in_any_segmask( region , ex_segs[i] ) ) return false;
+    }
 
   // requires
-  if ( ! in_all_segmask( region , req_segs[i] ) ) return false;
+  if ( req_segs.size() ) 
+    {
+      if ( req_segs[i].size() )
+	return in_all_segmask( region , req_segs[i] );      
+      else 
+	return false;
+    }
 
   // includes 
-  if ( in_segset.size() == 0 ) return true;
+  if ( in_segset.size() == 0 ) return true;  
   if ( in_any_segmask( region , segs[i] ) ) return true;
 
   return false;
 }
 
+
+bool Mask::forced( int achr , int abp1, int abp2, 
+		   int bchr , int bbp1 , int bbp2 , 
+		   Region * next ) const 
+{
+  
+  // 'previous' variant is 'a'
+  // next in varbd iteration is 'b'
+
+  // just check whether or not we have another variant in the force list that 
+  // should come before this. 
+
+  // if a == b , implies that we are at the end of the list w.r.t. vardb variants. 
+  
+  // of course, could be the case that we have 1 or more force variants anyway
+  
+  std::set<Region>::iterator upr = force_vlist.upper_bound( Region(achr,abp1,abp2) );
+  if ( upr == force_vlist.end() ) return false;
+  if ( ! ( *upr < Region(bchr,bbp1,bbp2) ) ) return false;
+
+  // otherwise, implies that this next guy should be inserted
+  *next = *upr;
+  return true;
+}

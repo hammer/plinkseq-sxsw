@@ -134,6 +134,9 @@ class VarDBase {
   
   uint64_t add_superset( const std::string & name , const std::string & desc = "" , bool donotadd = false );
   bool add_set_to_superset( const std::string & , const std::string & );
+  
+  void drop_set( const std::string & );
+  void drop_superset( const std::string & );
 
   std::vector<std::string> get_sets();
   std::vector<std::string> get_supersets();
@@ -160,9 +163,12 @@ class VarDBase {
   //
 
   bool chr_code( const int , const std::string & , const ploidy_t ); 
+  void chr_name( const int , const std::string & );
   int chr_code( const std::string & , ploidy_t * p = NULL );
   std::string chr_name( const int ) ;
   ploidy_t ploidy( const int c );
+
+  bool chr_known( const std::string & n );
 
 
   //
@@ -343,8 +349,11 @@ class VarDBase {
   sqlite3_stmt * stmt_fetch_sets;
 
   sqlite3_stmt * stmt_insert_chr_code;
+  sqlite3_stmt * stmt_insert_chr_name;
   sqlite3_stmt * stmt_fix_chr_code;
   sqlite3_stmt * stmt_fetch_chr_code;
+  sqlite3_stmt * stmt_fetch_chr_all_codes;
+  sqlite3_stmt * stmt_fetch_chr_all_codes_2;
   sqlite3_stmt * stmt_fetch_chr_name;
 
   sqlite3_stmt * stmt_insert_file;

@@ -28,9 +28,9 @@ bool SQL::open(string n)
 void SQL::synchronous(bool b)
 {
   if ( !b ) 
-    query( "PRAGMA synchronous=OFF;" );
+    query( "PRAGMA synchronous=0;" ); // OFF
   else
-    query( "PRAGMA synchronous=FULL;" );
+    query( "PRAGMA synchronous=2;" ); // FULL
 }
 
 bool SQL::table_exists( const std::string & table_name )

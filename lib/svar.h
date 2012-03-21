@@ -346,6 +346,10 @@ class SampleVariant {
   /// Numeric (0/0, etc) encoding of a genotype
   std::string num_label( const Genotype & g ) const;
 
+  /// Similar to the above, but for individual alleles
+  std::string allele1_label( const Genotype & g ) const;
+  std::string allele2_label( const Genotype & g ) const;
+
 
   //
   // Allele/genotype count functions

@@ -256,7 +256,7 @@ bool BEDReader::read_bed()
       // Assign MAP information
       //
       
-      v.chromosome( locus[s].chr );
+      v.chromosome( Helper::chrCode( locus[s].chr ) ) ;
       v.position( locus[s].bp );
       v.name( locus[s].name );
 
@@ -274,7 +274,7 @@ bool BEDReader::read_bed()
       
       if ( seqdb )
 	{
-	  std::string ref = seqdb->lookup( locus[s].chr , locus[s].bp );
+	  std::string ref = seqdb->lookup( v.chromosome() , locus[s].bp );
 	  Helper::str2upper(ref);
 	  if ( ref != "N" ) 
 	    {

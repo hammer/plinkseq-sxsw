@@ -569,8 +569,8 @@ namespace Helper
   std::string chrCode(int c, bool prefix=true);
 
   int chrCode(const std::string & c);
-
-  std::string defaultChrPrefix(const std::string & s);
+  
+  bool chr_known( const std::string & c );
 
   std::string coordinate( const int chr, 
 			  const int bp1 = 0 , 
