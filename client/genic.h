@@ -64,7 +64,7 @@ namespace Pseq
                          Aux_prelim * ,
                          Aux_two_hit * ,
                          std::map<std::string,std::string> *  ,
-                         bool original, double);
+                         bool original, std::map< std::string, int >, double );
     
 
     struct AuxGenic 
@@ -74,7 +74,6 @@ namespace Pseq
       { 
 	g=NULL;
 	rseed=0; 
-	prev = 0.006;
 	fix_null_genotypes = true;
 	show_info = false; 
 	show_midbp = false;
@@ -104,7 +103,7 @@ namespace Pseq
 	  + calpha 
 	  + cancor 
 	  + hoffman_witte
-	  + kbac;
+	  + kbac
 	  + two_hit;
       }
       
@@ -128,7 +127,6 @@ namespace Pseq
       bool hoffman_witte;
       bool kbac;
       bool two_hit;
-      double prev;
     };
  
     

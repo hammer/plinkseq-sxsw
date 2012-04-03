@@ -305,7 +305,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name"
 	
-	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$no-burden$calpha$uniq$vt$fw$sumstat,info,fix-null,perm,midpoint"
+	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$no-burden$calpha$uniq$vt$fw$sumstat$two_hit,info,fix-null,perm,midpoint,prev,func"
     
 	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta"
 	
@@ -575,7 +575,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     keyword( "tests" , "cancor" , NONE , "canonical correlation test" );
     keyword( "tests" , "stepup" , NONE , "Hoffman-Witte step-up test" );
     keyword( "tests" , "kbac" , NONE , "KBAC test" );
-    keyword( "tests" , "two-hit" , NONE, "Recessive/compound het tests" );
+    keyword( "tests" , "two_hit" , NONE, "Recessive/compound het tests" );
 
     // de-novo scan
 
@@ -638,6 +638,8 @@ void Pseq::Util::Options::load( int n , char ** argv )
      reg( "report-all" , NONE , "" ); // concordance
      reg( "distance" , NONE , "" ); // ?     
      reg( "compact" , NONE , "compact seq-view output" );  // seq-view
+     reg( "prev" , STRING , "disease prevalence" ); // setting prevalence for recessive/compound het tests
+     reg( "func" , STRING_VECTOR , "included functional annotations" ); // get list of functional annotations to include
 
      Pseq::IBS::regargs( this );  // IBS tests (example
     

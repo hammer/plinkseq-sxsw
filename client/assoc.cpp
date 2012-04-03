@@ -9,7 +9,7 @@
 #include <sstream>
 
 extern GStore g;
-
+extern Pseq::Util::Options args;
 
 bool Pseq::Assoc::variant_assoc_test( Mask & m , 
 				      Pseq::Assoc::Aux_vassoc_options & aux , 
@@ -45,7 +45,7 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   // Use Yates-chisq (instead of standard, or instead of Fisher's exact if no perms)
 
   aux.yates_chisq = args.has( "yates" );
-  
+
 
   //
   // Header row
@@ -1264,6 +1264,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 
   if ( args.has( "midpoint" ) ) a.show_midbp = true;
   
+
   plog.data_reset();
   
   plog.data_group_header( "LOCUS" );
@@ -1292,7 +1293,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //
   // Which tests to apply?
   //
-  
+
   a.vanilla       =   args.has( "tests" , "sumstat" );
   a.burden        = ! args.has( "tests" , "no-burden" );
   a.uniq          =   args.has( "tests" , "uniq" );
@@ -1304,7 +1305,10 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   a.cancor        =   args.has( "tests" , "cancor" );
   a.hoffman_witte =   args.has( "tests" , "stepup" );
   a.kbac          =   args.has( "tests" , "kbac" );
-  a.two_hit       =   args.has( "tests" , "two-hit");
+  a.two_hit       =   args.has( "tests" , "two_hit");
+
+
+  //  std::cout << "Num tests: " << a.n_tests() << " " << a.two_hit << " " << a.burden << "\n";
 
   const int ntests = a.n_tests();
   
@@ -1401,6 +1405,7 @@ void g_set_association( VariantGroup & vars , void * p )
   // Metainfo transport structs
   //
 
+
   Pseq::Assoc::Aux_prelim aux_prelim;
   Pseq::Assoc::Aux_burden aux_burden(data->vanilla,data->burden,data->uniq,data->mhit,data->site_burden);
   Pseq::Assoc::Aux_fw_vt aux_fw_vt(data->fw,data->vt);
@@ -1422,6 +1427,22 @@ void g_set_association( VariantGroup & vars , void * p )
   std::vector<std::string> test_name;
   std::map<std::string,std::string> test_text;
   
+
+  double prev = .006;
+  if ( args.has( "prev" ) )
+    prev =  Helper::str2dbl(args.as_string( "prev" ));
+
+
+  std::map< std::string, int > var_class;
+
+  if( args.has( "func" ) ){
+    std::vector<std::string> inc = args.as_string_vector( "func" );
+    for( int i = 0; i < inc.size(); i++ )
+      var_class[inc[i]] = i;
+  }
+
+
+
   if ( data->vanilla || data->burden || data->uniq || data->mhit ) 
     {
       
@@ -1527,9 +1548,9 @@ void g_set_association( VariantGroup & vars , void * p )
   if ( data->two_hit )
     {
       test_name.push_back( "TWO-HIT" );
-      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true, data->prev );
+      
+      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true , var_class , prev );
       test_statistic.push_back( statistic );
-
     }
   
   
@@ -1538,7 +1559,8 @@ void g_set_association( VariantGroup & vars , void * p )
   //
   
   g->perm.score( test_statistic );
-  
+
+
     
   //
   // Begin permutations
@@ -1599,7 +1621,7 @@ void g_set_association( VariantGroup & vars , void * p )
 	}
       if ( data->two_hit )
         {
-	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false, data->prev );
+	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false , var_class , prev );
 	  test_statistic.push_back( statistic );
 	}
 
@@ -1617,6 +1639,7 @@ void g_set_association( VariantGroup & vars , void * p )
   // Output and return for next gene
   //
 
+  //std::cout << "CCC\n";
   plog.data_group( vars.name() );
   plog.data( vars.coordinate() );
   plog.data( g->locdb.alias( vars.name() , false ) );
