@@ -36,6 +36,14 @@ void Variant::init()
   is_multi_sample = false;
 }
 
+std::ostream & operator<<( std::ostream & out, const Variant & v )
+{ 
+  out << Helper::chrCode( v.chr ) << ":" << v.bp;
+  if ( v.bp2 != 0 && v.bp2 != v.bp ) out << ".." << v.bp2;
+  if ( GP->show_id() ) out << ":" << v.vname;
+  return out;
+}
+
 
 bool Variant::make_consensus( IndividualMap * a )
 {

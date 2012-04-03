@@ -26,7 +26,6 @@ class Genotype;
 class SampleVariant;
 
 
-
 class Variant {
   
   
@@ -571,14 +570,7 @@ class Variant {
     }
 
 
-
-  friend std::ostream & operator<<( std::ostream & out, const Variant & v)
-    { 
-      out << Helper::chrCode( v.chr ) << ":" << v.bp;
-      if ( v.bp2 != 0 && v.bp2 != v.bp ) out << ".." << v.bp2;
-      //      out << ":" << v.vname;
-      return out;
-    }
+  friend std::ostream & operator<<( std::ostream & out, const Variant & v);
   
   bool single_sample() const 
   {
