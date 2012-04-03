@@ -418,7 +418,8 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "options" , STRING_VECTOR, "context-specific options\n");
     reg( "output", STRING, "output folder\n" );
     reg( "whitespace", NONE , "allow whitespace delimited input" );
-    
+    reg( "show-id" , NONE , "use chr:position:id variant format in output");
+
     // write-vardb
     reg( "new-project" , STRING , "new project specification filename" );
     reg( "new-vardb" , STRING , "new VARDB name, for write-vardb" );
