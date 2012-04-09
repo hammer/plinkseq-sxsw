@@ -938,7 +938,7 @@ RefVariant RefDBase::lookup( const Variant & v , int grp_id )
 }
 
 
-std::set<RefVariant> RefDBase::lookup( const Region & region , const int grp_id )
+std::set<RefVariant> RefDBase::lookup( const Region & region , const int grp_id , const int limit )
 {
   
   // Search given chromosome position
@@ -947,22 +947,24 @@ std::set<RefVariant> RefDBase::lookup( const Region & region , const int grp_id 
   sql.bind_int( stmt_lookup_range , ":rstart" , region.start.position() );
   sql.bind_int( stmt_lookup_range , ":rend" , region.stop.position() );
   sql.bind_int( stmt_lookup_range , ":group_id" , grp_id );
-  
+
+  int cnt = 0;
   std::set<RefVariant> s;
   while ( sql.step( stmt_lookup_range ) )
     {      
       RefVariant r = construct( stmt_lookup_range );      
       if ( r.observed() ) s.insert( r );      
+      if ( limit ) { ++cnt; if ( cnt == limit ) break; } 
     }
   sql.reset( stmt_lookup_range );
   return s;  
 }
 
-std::set<RefVariant> RefDBase::lookup( const Region & region , const std::string & grp_name )
+std::set<RefVariant> RefDBase::lookup( const Region & region , const std::string & grp_name , const int limit )
 {
   std::set<RefVariant> empty;
   if ( ! attached() ) return empty;
-  return lookup( region, lookup_group_id( grp_name ) );
+  return lookup( region, lookup_group_id( grp_name ) , limit );
 }
 
 

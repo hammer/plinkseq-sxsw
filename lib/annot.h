@@ -170,7 +170,7 @@ class Annotate {
     static bool load_transcripts( uint64_t id );
 
     static bool load_transcripts( uint64_t id , const std::set<Region> & );
-    
+ 
  public:
     
     // AA names
@@ -193,6 +193,8 @@ class Annotate {
     // anything was added
 
     static bool load_transcripts( fType d , const std::string & );
+
+    static bool load_transcripts( const std::string &  , const std::set<Region> & );    
 
     static bool annotate(Variant & var , Region * pregion = NULL );
 

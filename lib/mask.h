@@ -1234,7 +1234,8 @@ class Mask {
   
   int loc_size() const { return in_locset.size(); }
   int var_size() const { return in_varset.size(); }
-  
+  int ref_size() const { return in_refset.size(); } 
+
   int variant_limit() const { return max_var_count; }
   
   

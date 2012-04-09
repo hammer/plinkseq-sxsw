@@ -2245,7 +2245,7 @@ void VarDBase::insert_bcf_index( uint64_t file_id , const Variant & var , int64_
   sql.bind_text( stmt_insert_bcf_idx , ":name" , var.name() );
   sql.bind_int( stmt_insert_bcf_idx , ":chr" , var.chromosome() );
   sql.bind_int( stmt_insert_bcf_idx , ":bp1" , var.position() );
-  sql.bind_int( stmt_insert_bcf_idx , ":bp2" , var.stop() == var.position() ? 0 : var.stop() );
+  sql.bind_int( stmt_insert_bcf_idx , ":bp2" , var.stop() );
   sql.bind_int64( stmt_insert_bcf_idx , ":offset" , offset );
   sql.step( stmt_insert_bcf_idx );
   sql.reset( stmt_insert_bcf_idx );  
