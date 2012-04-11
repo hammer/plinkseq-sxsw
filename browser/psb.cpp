@@ -23,8 +23,8 @@ int main()
   
   if ( cgi ) 
     cgivars = getcgivars() ;
-
-
+  
+  
   //
   // Define values
   //
@@ -62,6 +62,7 @@ int main()
 	      else if ( s == "i" ) q = Q_INDIV;
 	      else if ( s == "r" ) q = Q_REGION;
 	      else if ( s == "gview" ) q = Q_GRAPHICAL_VIEW;
+	      else if ( s == "indlist" ) q = Q_INDGRID;
 	      else if ( s == "glist" ) q = Q_GENELIST;
 	      else if ( s == "mflist" ) q = Q_METALIST;
 	      else if ( s == "plist" ) q = Q_PHELIST;
@@ -142,11 +143,15 @@ int main()
 	}
       
       
-      if ( from_top ) q = Q_REGION;
-      else if ( gview ) q = Q_GRAPHICAL_VIEW;
       
+      if ( from_top ) 
+	{
+	  if ( gview ) q = Q_GRAPHICAL_VIEW;
+	  else if ( index ) q = Q_INDGRID;
+	  else q = Q_REGION;
+	}
     }
-  
+          
   
   // ** Free anything that needs to be freed **/
   
@@ -329,7 +334,8 @@ int main()
 
   // collect all transcript ID here
 
-  std::vector<std::string> tnames;
+  std::vector<std::string> tnames; // transcript IDs
+  std::vector<std::string> snpids; // SNP IDs
   
   
   std::vector<std::string> tok = Helper::whitespace( a.reg_list );
@@ -363,6 +369,11 @@ int main()
 
 	  if ( trans_names.size() == 0 ) 
 	    {
+	      
+	      // this could be a SNP ID or a gene ID. Search for both	      
+	      snpids.push_back( tmp );
+	      
+	      // and search for a gene transcript
 	      tnames.push_back( tmp );
 	    }
 	  else 
@@ -380,7 +391,14 @@ int main()
 	}
     }
   
-  
+
+  //
+  // Add any rs-ID searchs
+  //
+
+  if ( snpids.size() > 0 ) 
+    m.include_id( snpids );
+
   //
   // Get genomic loci for transcripts
   //
@@ -644,7 +662,7 @@ int main()
       for (int r = 0 ; r < a.genes.size() ; r++) 
 	m.subset_loc( loc_set , a.genes[r] );	    
 	
-
+      
       // Get actual information from VARDB
       
       IterationReport irep = g.vardb.iterate( f_display , &a, m );
@@ -1729,16 +1747,18 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 
       if ( show_sequence ) ylines += 2;  // sequence line?
 
-      ylines += regions[r].size() < N_TOO_MANY_TRANS ? regions[r].size() : 1 ;  // number of transcripts (or collapsed if too many)
+      // number of transcripts (or collapsed if too many)
+      ylines += regions[r].size() < N_TOO_MANY_TRANS
+       	? regions[r].size() 
+	: 1 ;  
+
+      // ref and loc tracks (and a group spacer, if any)
+      ylines += a.ref_append.size() ? a.ref_append.size() + 1 : 0 ;   
+      ylines += a.loc_append.size() ? a.loc_append.size() + 1 : 0 ;  
       
-      ylines += a.ref_append.size();  
-
-      ylines += a.loc_append.size();  
-
       // Get list of individuals with 1+ *rare* variant
-
       std::vector<int> mac(nv);
-      std::vector<int> maf(nv);
+      std::vector<double> maf(nv);
       std::map<int,std::set<int> > sites; 
       
       if ( load_genotypes ) 
@@ -1765,8 +1785,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 	ylines += 1 + sites.size();
 
       
-      // and add 5 for luck (spacers that are introdued...)
-      
+      // add some more for luck (not everthing fully counted)
       ylines += 20;
 
 
@@ -2230,22 +2249,55 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 
 	  if ( case_control ) 
 	    {
-	      
+	    
+  	      for (int v=0;v<nv;v++)
+		{
+		  yoff += ystep;
+		  
+		  int p1 = border + ( ( vars(v).position() - min ) / (double)span ) * plotsize;
+
+		  cnv.line( p1, yoff - 5 , p1 , yoff + 5 , "black" ) ;
+
+		  // need to recalculate C/C frequencies
+
+		  // cases
+		  int c1 = 0 , c1_tot = 0;
+		  double maf1 = 0;
+		  bool altmin1 = vars(v).n_minor_allele( &c1 , &c1_tot , &maf1 , CASE );
+
+		  int c2 = 0 , c2_tot = 0;
+		  double maf2 = 0;
+		  bool altmin2 = vars(v).n_minor_allele( &c2 , &c2_tot , &maf2 , CONTROL );
+		  
+		  if ( altmin1 ) { c1 = c1_tot - c1; maf1 = 1 - maf1; }
+		  if ( altmin2 ) { c2 = c2_tot - c2; maf1 = 1 - maf2; }
+
+		  if ( maf1 > 0.01 || maf2 > 0.01 ) 
+		    cnv.text( p1 , yoff +5 , 
+			      "MAF=" + Helper::dbl2str( maf1 ) + "/" + Helper::dbl2str( maf2 ) , "gray" );
+		  else
+		    cnv.text( p1 , yoff +5 , 
+			      "AAC=" + Helper::int2str( c1 ) + "/" + Helper::int2str( c2 ) , "gray" );
+		  
+		}	      
+	    
 	    }
 	  else
 	    {
 	      for (int v=0;v<nv;v++)
 		{
 		  yoff += ystep;
+
 		  int p1 = border + ( ( vars(v).position() - min ) / (double)span ) * plotsize;
+
 		  cnv.line( p1, yoff - 5 , p1 , yoff + 5 , "black" ) ;
 		  
 		  if ( maf[v]>0.01 ) 
-		    cnv.text( p1+1 , yoff +5 , 
-			      Helper::int2str( mac[v] ) + " alt-alleles (MAF " + Helper::dbl2str( maf[v] ) + ")", "green" );
+		    cnv.text( p1 , yoff +5 , 
+			      "MAF=" + Helper::dbl2str( maf[v] ) , "gray" );
 		  else
-		    cnv.text( p1+1 , yoff +5 , 
-			      Helper::int2str( mac[v] ) + " alt-alleles (MAF " + Helper::dbl2str( maf[v] ) + ")", "green" );
+		    cnv.text( p1 , yoff +5 , 
+			      "AAC=" + Helper::int2str( mac[v] ) , "gray" );
 		 		 
 		  //   cnv.text( p1+1 , yoff +5 , Helper::int2str( mac[v] ) + " alt-alleles", "green" );
 		}	      
@@ -2787,8 +2839,8 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   // Query
   //
 
-  std::cout << "<p><b>Gene ID</b> (symbol or NM_012345) ";
-  std::cout << "(" << a.getURL()->addField("q", "glist")->addField("pheno", pheno)->printLink("list") << ")<br>";
+  std::cout << "<p><b>Variants</b>: gene symbol/transcript ID (" 
+	    << a.getURL()->addField("q", "glist")->addField("pheno", pheno)->printLink("list") << "),<br>region or variant ID";
 
   
   //
@@ -2935,6 +2987,15 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   std::cout << "</td><td width=22% valign=top>";
 
 
+  //
+  // Variant set filters
+  //
+  
+  std::cout << "<p>Variant sets/superset filters";
+  std::cout << "<br><input type=\"text\" size=\"45\" name=\"varset\"";
+  std::cout << " value=\""<< Helper::html_encode( a.varset_url ) << "\"";  
+  std::cout << ">";
+  std::cout << "</p>";
 
   //
   // Reference appends

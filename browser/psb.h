@@ -14,16 +14,17 @@ namespace ExomeBrowser {
   //
   
   enum QType { Q_ERROR    = 0 ,
-	       Q_VARIANT  = 1 , 
-	       Q_INDIV    = 2 , 
-	       Q_GENE     = 3 , 
-	       Q_REGION   = 4 ,
-	       Q_GENELIST = 5 ,
-	       Q_METALIST = 6 ,
-	       Q_PHELIST  = 7 , 
-	       Q_LOCSETLIST = 8 , 
-	       Q_PROJSUMMARY = 9 , 
-               Q_GRAPHICAL_VIEW = 10 };
+	       Q_VARIANT  ,
+	       Q_INDIV    ,
+	       Q_GENE     ,
+	       Q_REGION   ,
+	       Q_INDGRID  ,
+	       Q_GENELIST ,
+	       Q_METALIST ,
+	       Q_PHELIST  ,
+	       Q_LOCSETLIST ,
+	       Q_PROJSUMMARY ,
+               Q_GRAPHICAL_VIEW };
   
   //
   // 
@@ -95,9 +96,9 @@ namespace ExomeBrowser {
         std::string meta="",
         std::string pheno="",
         std::string regs="",
+	std::string varset="",
 	std::string ref_append="",
-	std::string loc_append=""
-    )
+	std::string loc_append="" )
     {
       fields["proj"] = project;
       fields["q"] = q;
@@ -108,6 +109,7 @@ namespace ExomeBrowser {
       fields["regs"] = regs;
       fields["ref_append"] = ref_append;
       fields["loc_append"] = loc_append;
+      fields["varset"] = varset;
     }
 
 
@@ -228,6 +230,11 @@ namespace ExomeBrowser {
     
     std::string ref_append_url;
     std::string loc_append_url;
+
+    // Variant sets
+    
+    std::string varset_url;
+    std::vector<std::string> varset;
     
     bool add_annot;
 
