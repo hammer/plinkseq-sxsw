@@ -14,16 +14,22 @@ namespace ExomeBrowser {
   //
   
   enum QType { Q_ERROR    = 0 ,
-	       Q_VARIANT  = 1 , 
-	       Q_INDIV    = 2 , 
-	       Q_GENE     = 3 , 
-	       Q_REGION   = 4 ,
-	       Q_GENELIST = 5 ,
-	       Q_METALIST = 6 ,
-	       Q_PHELIST  = 7 , 
-	       Q_LOCSETLIST = 8 , 
-	       Q_PROJSUMMARY = 9 };
+	       Q_VARIANT  ,
+	       Q_INDIV    ,
+	       Q_GENE     ,
+	       Q_REGION   ,
+	       Q_INDGRID  ,
+	       Q_GENELIST ,
+	       Q_METALIST ,
+	       Q_PHELIST  ,
+	       Q_LOCSETLIST ,
+	       Q_PROJSUMMARY ,
+               Q_GRAPHICAL_VIEW };
   
+  //
+  // 
+  //
+
 
   //
   // Core iteration functions
@@ -35,11 +41,37 @@ namespace ExomeBrowser {
   
   void g_display_indiv(VariantGroup & vars, void *p);
 
+  struct Aux;
   
+  void show_graphical_view( GStore & g , 
+			    const std::string & loc_set,
+			    const QType & q, 
+			    Aux & a, 
+			    const std::string & pheno,
+			    const std::string & pwd , 
+			    const std::string & project_path , 
+			    Mask & );
+
+
   //
   // Helper functions
   //
   
+  // Write HTML head
+
+  void write_html_header( const std::string & head_preamble ="" );
+
+  // Write top panel for browser page
+
+  void write_start_page( const GStore & g , 
+			 const std::string & loc_set,
+			 const QType & q, 
+			 Aux & a, 
+			 const std::string & pheno,
+			 const std::string & pwd , 
+			 const std::string & project_path );
+
+
   // Indicate which exon a variant is in
   
   int exon_overlap( const Region & reg , int pos );
@@ -51,6 +83,8 @@ namespace ExomeBrowser {
   // Pretty print long strings
 
   std::string pp( const std::string & str , const int len = 15 );
+
+
   
   struct BrowserURL {
 
@@ -61,8 +95,10 @@ namespace ExomeBrowser {
         std::string masks="",
         std::string meta="",
         std::string pheno="",
-        std::string regs=""
-    )
+        std::string regs="",
+	std::string varset="",
+	std::string ref_append="",
+	std::string loc_append="" )
     {
       fields["proj"] = project;
       fields["q"] = q;
@@ -71,18 +107,11 @@ namespace ExomeBrowser {
       fields["meta"] = meta;
       fields["pheno"] = pheno;
       fields["regs"] = regs;
-
+      fields["ref_append"] = ref_append;
+      fields["loc_append"] = loc_append;
+      fields["varset"] = varset;
     }
 
-    // todo: why doesn't this work?
-//    BrowserURL(Aux * a)
-//    {
-//      fields["project"] = a->print_form_value("proj");
-//      fields["meta"] = a->mf_print();
-//      fields["masks"] = a->msk_print();
-//      fields["pheno"] = a->phenotype_name;
-//      fields["project"] = a->reg_list_url;
-//    }
 
     std::map<std::string, std::string> fields;
 
@@ -107,9 +136,9 @@ namespace ExomeBrowser {
       return s;
     }
 
-    std::string printLink(std::string text)
+    std::string printLink(const std::string & text = "" )
     {
-      return "<a href=\"" + printURL() + "\">" + text + "</a>";
+      return text == "" ? printURL() : "<a href=\"" + printURL() + "\">" + text + "</a>";
     }
   
   };
@@ -132,9 +161,13 @@ namespace ExomeBrowser {
       reg_list = reg_list_url = "";
       url = NULL;
     }
-
+    
     ~Aux() {
-      delete url;
+      if ( url ) 
+	{
+	  delete url;
+	  url = NULL;
+	}
     }
 
     GStore * g;
@@ -188,7 +221,21 @@ namespace ExomeBrowser {
     std::string vinc_fltr;
 
 
+    //
+    // Appends
+    //
 
+    std::vector<std::string> ref_append;
+    std::vector<std::string> loc_append;
+    
+    std::string ref_append_url;
+    std::string loc_append_url;
+
+    // Variant sets
+    
+    std::string varset_url;
+    std::vector<std::string> varset;
+    
     bool add_annot;
 
     // Regions, and other genes to add
@@ -226,17 +273,19 @@ namespace ExomeBrowser {
     BrowserURL * url;
     BrowserURL * getURL()
     {
-      if ( url == NULL)
+      if ( url == NULL )
         {
           url = new BrowserURL(
-              has_form_value("proj") ? form["proj"] : "",
-              "",
-              "",
-              msk_print(),
-              mf_print(),
-              phenotype_name,
-              reg_list_url
-              );
+			       has_form_value("proj") ? form["proj"] : "",
+			       "",
+			       "",
+			       msk_print(),
+			       mf_print(),
+			       phenotype_name,
+			       reg_list_url,
+			       ref_append_url,
+			       loc_append_url
+			       );
         }
       return url;
     }

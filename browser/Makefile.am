@@ -9,6 +9,8 @@ main.c
 pbrowse_cgi_SOURCES = \
 psb.cpp \
 psb.h \
+lines.cpp \
+lines.h \
 cgi.h
 
 pbrowse_cgi_LDADD = ../lib/libplinkseq.la -ldl -lpthread -lz

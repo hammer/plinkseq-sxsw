@@ -240,8 +240,8 @@ class RefDBase {
     RefVariant lookup( const Variant & , const int grp_id );
     RefVariant lookup( const Variant & , const std::string &  );
 
-    std::set<RefVariant> lookup( const Region & , const int );
-    std::set<RefVariant> lookup( const Region & , const std::string & );
+    std::set<RefVariant> lookup( const Region & , const int , const int limit = 0 );
+    std::set<RefVariant> lookup( const Region & , const std::string & , const int limit = 0 );
 
     bool annotate( Variant & , const std::string & );
     bool annotate( Variant & , const int grp_id );

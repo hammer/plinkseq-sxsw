@@ -61,7 +61,7 @@ class VarDBase {
     downcode_mode = DOWNCODE_MODE_ALL_ALT;
 
     // track explicitly whether temporary databases are attached
-    tmpdb_attached = locdb_attached = false;
+    tmpdb_attached = locdb_attached = refdb_attached = false;
     
   }
   
@@ -314,6 +314,7 @@ class VarDBase {
 
   bool tmpdb_attached;
   bool locdb_attached;
+  bool refdb_attached;
 
   bool using_compression; 
 

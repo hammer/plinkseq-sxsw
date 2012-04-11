@@ -150,23 +150,28 @@ bool VCFZ::index_record( )
 
   Variant var; 
  
-  // Need to read chr and bp and put into the Variant
-  // rather than parse the whole line, just use a simple search for the first two tabs
+  // Need to read chr and bp and ID and put into the Variant
+  // rather than parse the whole line, just use a simple search for the first three tabs
   
   int tab1 = 0;
   while ( tab1 < line.size() ) { if ( line[tab1] == '\t' ) break; else ++tab1; }
   int tab2 = tab1 + 1;
   while ( tab2 < line.size() ) { if ( line[tab2] == '\t' ) break; else ++tab2; }
-  
+
   if ( tab1 == 0 || tab2 - tab1 == 1 ) Helper::halt( "problem with VCF chr/bp fields" );
   
+  int tab3 = tab2 + 1;
+  while ( tab3 < line.size() ) { if ( line[tab3] == '\t' ) break; else ++tab3; }
+
   std::string c1( line.begin() , line.begin() + tab1 ) ;
   std::string c2( line.begin() + tab1 + 1 , line.begin() + tab2 ) ;
+  std::string c3( line.begin() + tab2 + 1 , line.begin() + tab3 ) ;
 
   int bp;
   if ( ! Helper::str2int( c2 , bp ) ) Helper::halt( "could not parse POS field" );
 
   var.chromosome( Helper::chrCode( c1 ) );
+  var.name( c3 );
   var.position( bp );
 
   // Add offset to DB (can use 'BCF' function, does same thing; file_id

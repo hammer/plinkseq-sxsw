@@ -174,6 +174,16 @@ bool Annotate::load_transcripts( uint64_t id )
   return true;
 }
 
+bool Annotate::load_transcripts( const std::string & grp , const std::set<Region> & regions )
+{
+  init();
+  setDB( LOCDB );
+  if ( ( ! db ) || ( ! db->attached() ) ) return false;
+  uint64_t id = db->lookup_group_id( grp );
+  if ( id == 0 ) return false;
+  return load_transcripts( id , regions );
+}
+
 bool Annotate::load_transcripts( uint64_t id , const std::set<Region> & regions )
 {
   init();

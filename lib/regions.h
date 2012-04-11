@@ -143,6 +143,16 @@ class Subregion {
       return out;
     }
   
+  std::string coordinate() const 
+    {
+      std::stringstream ss;
+      ss << Helper::chrCode( start.chromosome() ) << ":" 
+	 << start.position() << ".."
+	 << stop.position();
+      return ss.str();
+    }
+  
+
 };
 
 
