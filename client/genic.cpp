@@ -513,7 +513,7 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
 	  std::vector<std::string> transcript = vars(v).consensus.meta.get_string( "transcript");
 	  std::vector<std::string> func_split;
 	  std::vector<std::string> trans_split;
-          
+
 	  std::string::size_type i1 = 0;
 	  std::string::size_type i2 = transcript[0].find(",");
           while (i2 != std::string::npos) {
