@@ -1,12 +1,14 @@
 #include "genic.h"
 
 #include <iostream>
+#include "util.h"
+
 
 extern GStore g;
 
 void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )  
 {
-  
+
   // Track observed min/max minor allele counts
   
   aux->minm = -1;

@@ -1449,9 +1449,12 @@ void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id
 	      else if ( mt == META_BOOL )      parent->meta.set( str , meta.get_bool( str ) );
 	  }
 	  
-	  delete ptoks[i];
+
       }
   }
+  
+  for (int i=0; i<ptoks.size(); i++)
+    delete ptoks[i];
 
 }
 
