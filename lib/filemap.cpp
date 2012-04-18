@@ -59,6 +59,8 @@ void FileMap::setTypes()
   // project password
   fTypeMap["PASSWD"] = PWD;
 
+  fTypeMap["PARAM"] = PARAM;
+
 }
 
 
@@ -111,7 +113,7 @@ void FileMap::setCoreFiles( const std::string & f )
   //
   // Read a user-specified main file index  
   //
-
+  
   reset();
   
   checkFileExists( f );
@@ -119,17 +121,51 @@ void FileMap::setCoreFiles( const std::string & f )
   addSpecial( FIDX , f );
   
   InFile fidx( f.c_str(), std::ios::in );
+
+  // Old, default mode is in format   {file-name}  {type}   {description}
+
+  // New (proj 1+) is                 {key}       {value}   {ignored comments}
+  // and has first line               PROJN       1  
   
+  int project_file_mode = 0;
+
+  bool firstline = true;
+
   while ( ! fidx.eof() )
     {
       
       std::vector<std::string> names = fidx.tokenizeLine( );
-      
+            
       if ( names.size() == 0 ) continue;
       
-      if ( parse_for_variable( names[0] ) ) continue;
-      else names[0] = replace_variable( names[0] );
+      if ( firstline ) 
+	{
+	  if ( names[0] == "PROJN" )
+	    {
+	      if ( names.size() < 2 ) Helper::halt("invalid PROJN line in project file");
+	      if ( ! Helper::str2int( names[1] , project_file_mode ) )
+		Helper::halt("invalid PROJN line in project file");
+	    }
+	  firstline = false;
+	}
 
+      // Swap names around from old mode
+      if ( project_file_mode == 0 )
+	{
+	  if ( names.size() > 1 ) 
+	    {
+	      std::string tmp = names[0];
+	      names[0] = names[1];
+	      names[1] = tmp;
+	    }	  
+	}
+
+      std::string & value = names[1];
+      std::string & key   = names[0];
+
+      if ( parse_for_variable( value ) ) continue;
+      else names[1] = replace_variable( value );
+      
       if ( names.size() < 2 ) 
 	{
 	  plog.warn("invalid row in project file (should be tab-delimited)",
@@ -137,15 +173,15 @@ void FileMap::setCoreFiles( const std::string & f )
 	  continue;
 
 	}
-      fType ft = FileMap::type( names[1] );
+      fType ft = FileMap::type( key );
       
       if ( ft == INVALID ) continue;
       
       if ( ft == OUTPUT ) 
 	{
 	  // ensure specifies a directory w/ trailing "/"
-	  std::string folder = names[0];
-
+	  std::string folder = value;
+	  
 	  if ( folder.substr( folder.size()-1,1 ) != "/" )
 	    folder += "/";
 	  addSpecial( OUTPUT , folder );
@@ -153,31 +189,35 @@ void FileMap::setCoreFiles( const std::string & f )
       else if ( ft == RESOURCES )
 	{
 	  // ensure specifies a directory w/ trailing "/"
-	  std::string folder = names[0];
+	  std::string folder = value;
 	  if ( folder.substr( folder.size()-1,1 ) != "/" )
 	    folder += "/";
 	  addSpecial( RESOURCES , folder );
 	}
       else if ( ft == METAMETA )
 	{
-	  MetaMeta::load( names[0] );
+	  MetaMeta::load( value );
 	}
       else if ( ft == TEMP )
 	{	    
-	  PLINKSeq::SQLITE_SCRATCH_FOLDER() = names[0];
+	  PLINKSeq::SQLITE_SCRATCH_FOLDER() = value;
 	}
-      else if ( ft == LOG ) addSpecial( LOG , names[0] );
-      else if ( ft == VARDB ) addSpecial( VARDB , names[0] );
-      else if ( ft == INDDB ) addSpecial( INDDB , names[0] );
-      else if ( ft == SEGDB ) addSpecial( SEGDB , names[0] );
-      else if ( ft == LOCDB ) addSpecial( LOCDB , names[0] );
-      else if ( ft == NETDB ) addSpecial( NETDB , names[0] );
-      else if ( ft == WGTDB ) addSpecial( WGTDB , names[0] );
-      else if ( ft == REFDB ) addSpecial( REFDB , names[0] );
-      else if ( ft == SEQDB ) addSpecial( SEQDB , names[0] );
-      else if ( ft == PWD ) GP->set_pwd( names[0] ); 
-      else if ( ft == BCF_FILE )   add_BCF( names[0] );
-      else if ( ft == BGZF_VCF )   add_VCFZ( names[0] );
+      else if ( ft == LOG ) addSpecial( LOG , value );
+      else if ( ft == VARDB ) addSpecial( VARDB , value );
+      else if ( ft == INDDB ) addSpecial( INDDB , value );
+      else if ( ft == SEGDB ) addSpecial( SEGDB , value );
+      else if ( ft == LOCDB ) addSpecial( LOCDB , value );
+      else if ( ft == NETDB ) addSpecial( NETDB , value );
+      else if ( ft == WGTDB ) addSpecial( WGTDB , value );
+      else if ( ft == REFDB ) addSpecial( REFDB , value );
+      else if ( ft == SEQDB ) addSpecial( SEQDB , value );
+      else if ( ft == BCF_FILE )   add_BCF( value );
+      else if ( ft == BGZF_VCF )   add_VCFZ( value );
+
+      // non-file operations
+      else if ( ft == PWD ) GP->set_pwd( value ); 
+      else if ( ft == PARAM ) GP->set_param( value );
+      
     }    
   
   fidx.close();
@@ -238,9 +278,12 @@ bool FileMap::readFileIndex( const std::string & f )
   // FORMAT: uncompressed, plain text
   //         1 line per file; 2 fields
   //         fullpath/name    filetype    comments
+
   
   InFile fidx( f , std::ios::in );
 
+  int project_file_mode = 0;
+  bool firstline = true;
   
   while ( ! fidx.eof() ) 
     {
@@ -249,7 +292,33 @@ bool FileMap::readFileIndex( const std::string & f )
 
       if ( names.size() == 0 ) continue;      
       
-      std::string filename = names[0];
+      if ( firstline ) 
+	{
+	  if ( names[0] == "PROJN" )
+	    {
+	      if ( names.size() < 2 ) Helper::halt("invalid PROJN line in project file");
+	      if ( ! Helper::str2int( names[1] , project_file_mode ) )
+		Helper::halt("invalid PROJN line in project file");
+	    }
+	  firstline = false;
+	}
+
+      // Swap names around from old mode
+      if ( project_file_mode == 0 )
+	{
+	  if ( names.size() > 1 ) 
+	    {
+	      std::string tmp = names[0];
+	      names[0] = names[1];
+	      names[1] = tmp;
+	    }	  
+	}
+
+      std::string & value = names[1];
+      std::string & key   = names[0];
+
+      
+      std::string filename = value;
       
       if ( parse_for_variable( filename ) )
 	  continue;
@@ -266,7 +335,7 @@ bool FileMap::readFileIndex( const std::string & f )
       // Check a legal type has been specified
       //
       
-      fType ft = FileMap::type( names[1] );
+      fType ft = FileMap::type( key );
 
       if ( ft == INVALID ) continue;
 
@@ -274,14 +343,10 @@ bool FileMap::readFileIndex( const std::string & f )
       // Replace variables
       //
 
-      // 0          1       2      3,4,...
-      // file-name  TYPE    TAG    COMMENT... 
-      
       std::string file_tag;
       
-      if ( names.size() > 2 ) 
-	file_tag = names[2];
-
+      if ( names.size() > 2 ) file_tag = names[2];
+      
       // Compile any comment
       
       std::string comment = "";
@@ -292,7 +357,7 @@ bool FileMap::readFileIndex( const std::string & f )
       // Only insert non-core file
       
       if ( special_files.find( ft ) == special_files.end() )
-	add( names[0] , ft , file_tag , comment );
+	add( value , ft , file_tag , comment );
       
     }  
   
@@ -569,7 +634,7 @@ bool FileMap::append_to_projectfile( const std::string & s , const std::string &
         
   // open in append-to-end mode
   std::ofstream O1( projectfile.c_str() , std::ios::out | std::ios::app );
-  O1 << s << "\t" << t << "\n";
+  O1 << t << "\t" << s << "\n";
   O1.close();
   
   // add to internal map
@@ -579,6 +644,7 @@ bool FileMap::append_to_projectfile( const std::string & s , const std::string &
 
 bool FileMap::remove_from_projectfile( const std::string & s )
 {
+  // this function okay for either v1 or v2 format (value/key vs key/value)
   std::string projectfile = special_files.find( FIDX )->second->name();
   if ( projectfile == "." ) return false;
   if ( ! Helper::fileExists( projectfile ) )
@@ -611,12 +677,14 @@ bool FileMap::write_new_projectfile( const std::string & filename )
 {
   
   std::ofstream O2( filename.c_str() );
-  
+
+  O2 << "PROJN\t2\n";
+
   std::map< std::string, File* >::const_iterator f = fmap.begin();
   while ( f != fmap.end() )
     {
-      O2 << f->second->name() << "\t" 
-	 << FileMap::typeName( f->second->type() ) << "\n";
+      O2 << FileMap::typeName( f->second->type() ) << "\t" 
+	 << f->second->name() << "\n";
       ++f;
     }
   
@@ -624,8 +692,8 @@ bool FileMap::write_new_projectfile( const std::string & filename )
   while ( i != special_files.end() )
     {
       if ( i->first != FIDX ) // not needed
-	O2 << i->second->name() << "\t"
-	   << FileMap::typeName( i->first )  << "\n";
+	O2 << FileMap::typeName( i->first ) << "\t"
+	   << i->second->name() << "\n";
       ++i;
     }
   

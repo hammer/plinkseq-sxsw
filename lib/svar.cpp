@@ -1394,7 +1394,7 @@ void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id
 
   for (int i=0; i<f.size(); i++)
   {      
-      
+    
     int ntok2;
     Helper::char_tok * k = new Helper::char_tok( f(i) , &ntok2 , '=' , true );
     ptoks.push_back( k );
@@ -1448,13 +1448,11 @@ void SampleVariant::info( const std::string & s , VarDBase * vardb , int file_id
 	      else if ( mt == META_TEXT )      parent->meta.set( str , meta.get_string( str ) );
 	      else if ( mt == META_BOOL )      parent->meta.set( str , meta.get_bool( str ) );
 	  }
-	  
-
       }
   }
   
-  for (int i=0; i<ptoks.size(); i++)
-    delete ptoks[i];
+  // clean up
+  for (int i=0; i<ptoks.size(); i++) delete ptoks[i];
 
 }
 

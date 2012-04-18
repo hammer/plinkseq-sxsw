@@ -169,9 +169,10 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
   
   if  ( mask.ref_any() )
     {
-      // do we use this?? I don't think so.
+      if ( refdb_attached ) sql.query(" DETACH DATABASE refdb; " );
       sql.query(" ATTACH \"" + mask.refdb_name() + "\" AS refdb; " );
-    }  
+      refdb_attached = true;
+    }
   
 
 
@@ -882,6 +883,8 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	locdb_attached = false;
 	sql.query("DETACH DATABASE locdb; ");
       }
+
+    
 
     //
     // Return report of how many variants considered, etc
@@ -1783,11 +1786,11 @@ void VarDBase::build_temporary_db( Mask & mask )
 	}
 
       
-      // TODO: Think this is ~okay, but at some point check whethe
-      // this can be done more efficiently in the main SELECT
-      // (i.e. and then remove all file-specific filters from this
-      // part).  Have a feeling it needs to stay here but can't recall
-      // why right now.
+      // TODO: Should be ~okay, but at some point check whethe this
+      // can be done more efficiently in the main SELECT (i.e. and
+      // then remove all file-specific filters from this part).  Have
+      // a feeling it needs to stay here but can't recall why right
+      // now.
       
       // TODO: remind oneself how tmp_reg() is meant to work
       

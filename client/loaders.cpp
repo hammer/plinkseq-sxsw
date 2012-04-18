@@ -501,6 +501,11 @@ struct aux_addvar  {
   std::string mtag;
   bool tagvalue;  
   std::set<std::string> sets;
+  aux_addvar() {
+    tagvalue = false;
+    mtag = "";
+    group = "";
+  }
 };
 
 
@@ -554,6 +559,7 @@ void f_add_to_varset( Variant & var , void * p )
     }
   else
     g.vardb.add_var_to_set( aux->group , var );
+
 }
 
 
@@ -574,11 +580,8 @@ bool Pseq::VarDB::add_to_varset( const std::string & group , Mask & mask , const
 
   aux_addvar av;
   av.group = group;
-  if ( mtag != "" ) { av.tagvalue = true; av.mtag = mtag; } 
-  g.vardb.begin();
-  g.vardb.iterate( f_add_to_varset , &av , mask );
-  g.vardb.commit();
-
+  if ( mtag != "" ) { av.tagvalue = true; av.mtag = mtag; }   
+  g.vardb.iterate( f_add_to_varset , &av , mask );  
   return true;
 }
 

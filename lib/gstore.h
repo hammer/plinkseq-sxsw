@@ -110,6 +110,14 @@ class GStore {
   bool pwd( const std::string & p) const { return _pwd == "" || _pwd == p; }
   
 
+  // Other misc. params set/get functions go here
+
+  void show_id( const bool b ) { param_var_show_ids = b; } 
+  bool show_id() const { return param_var_show_ids; }
+
+  void set_param( const std::string & );
+
+
   /////////////////////////////////////////////////
   // Initialise a genotype store
 
@@ -290,6 +298,9 @@ class GStore {
   bool has_projfile;
 
   std::string _pwd;
+
+  bool param_var_show_ids;
+
 };
 
 

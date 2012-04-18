@@ -13,6 +13,7 @@ struct PLINKSeq {
 
   static std::string & VERSION_NUMBER();
 
+  static int         & PROJECT_VERSION_NUMBER();
   static int         & VARDB_VERSION_NUMBER();
   static int         & LOCDB_VERSION_NUMBER();
 
@@ -174,7 +175,8 @@ enum fType { INVALID,
 	     FIDX ,    // Main file index (input)
 	     SEQDB,    // Human genome reference database
 	     REFDB,
-	     PWD  } ;  // not a file, special code for project pasword
+	     PWD ,      // not a file, special code for project pasword
+             PARAM } ;  // not a file, special code for any parameter setting
 
 	         
 

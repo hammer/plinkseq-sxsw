@@ -513,6 +513,9 @@ bool VarDBase::init()
     stmt_fetch_variant_key = 
 	sql.prepare(" SELECT * FROM variants WHERE var_id == :var_id ; " );
 
+    stmt_fetch_variant_key_from_id = 
+	sql.prepare(" SELECT chr,bp1,bp2 FROM variants WHERE name == :name ; " );
+
     stmt_fetch_variant_pos = 
       sql.prepare(" SELECT * FROM variants WHERE chr == :chr AND bp1 == :bp1 ;" );
 
@@ -722,6 +725,7 @@ bool VarDBase::release()
   sql.finalise( stmt_fetch_headers ); 
   sql.finalise( stmt_fetch_metatypes ); 
   sql.finalise( stmt_fetch_variant_key ); 
+  sql.finalise( stmt_fetch_variant_key_from_id ); 
   sql.finalise( stmt_fetch_variant_pos ); 
   sql.finalise( stmt_fetch_variant_range ); 
 
@@ -2245,10 +2249,17 @@ void VarDBase::insert_bcf_index( uint64_t file_id , const Variant & var , int64_
   sql.bind_text( stmt_insert_bcf_idx , ":name" , var.name() );
   sql.bind_int( stmt_insert_bcf_idx , ":chr" , var.chromosome() );
   sql.bind_int( stmt_insert_bcf_idx , ":bp1" , var.position() );
-  sql.bind_int( stmt_insert_bcf_idx , ":bp2" , var.stop() == var.position() ? 0 : var.stop() );
+  sql.bind_int( stmt_insert_bcf_idx , ":bp2" , var.stop() );
   sql.bind_int64( stmt_insert_bcf_idx , ":offset" , offset );
   sql.step( stmt_insert_bcf_idx );
   sql.reset( stmt_insert_bcf_idx );  
 }
 
 
+Region VarDBase::get_position_from_id( const std::string & id1 , const std::string & id2 ) 
+{
+  Region region;
+  
+  //  sql.
+  return region;
+}

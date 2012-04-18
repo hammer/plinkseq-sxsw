@@ -315,6 +315,11 @@ int main(int argc, char ** argv)
       PLINKSeq::DELIM() = " \t\n";
     }
 
+  if ( args.has( "show-id" ) )
+    {
+      g.show_id( true );
+    }
+
   if ( args.has("hide"))
     {
       std::vector<std::string> s = args.as_string_vector( "hide" );

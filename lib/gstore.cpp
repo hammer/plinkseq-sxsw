@@ -46,7 +46,10 @@ GStore::GStore(bool r)
 
   // by default, no password
   _pwd = "";
-  
+ 
+  // Various global-level parameters
+  param_var_show_ids = false;
+ 
 }
 
 bool GStore::set_project( const std::string & filename, bool verbose)
@@ -310,4 +313,11 @@ LocDBase * GStore::resolve_locgroup( const std::string & g )
   return NULL;
 }
 
+
+void GStore::set_param( const std::string & p )
+{
+  // known flags 
+  if ( p == "SHOW_ID" ) show_id( true );
+  
+}
 

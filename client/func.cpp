@@ -51,7 +51,13 @@ bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
   // --refdb  default {output}/locdb
   // --seqdb  default {output}/locdb
   
-
+  
+  // As of 0.09, use KEY  VALUE  ordering 
+  // and specify PROJN
+  
+  P << "PROJN\t" << PLINKSeq::PROJECT_VERSION_NUMBER() << "\n";
+  
+  
   //
   // Core folders, for output and input
   //
@@ -63,7 +69,7 @@ bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
   output_folder = Helper::fullpath( output_folder );
   Helper::ensure_folder( output_folder );
   
-  P << output_folder << "\tOUTPUT\n";
+  P << "OUTPUT\t" << output_folder << "\n";
   
   //
   // Resources folder
@@ -76,7 +82,7 @@ bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
   resources_folder = Helper::fullpath( resources_folder );
   Helper::ensure_folder( resources_folder );
   
-  P << resources_folder << "\tRESOURCES\n";
+  P << "RESOURCES\t" << resources_folder << "\n";
   
   //
   // Scratch files
@@ -87,7 +93,7 @@ bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
       std::string scratch_folder = args.as_string( "scratch" );
       scratch_folder = Helper::fullpath( scratch_folder );
       Helper::ensure_folder( scratch_folder );
-      P << scratch_folder << "\tTEMP\n";
+      P << "TEMP\t" << scratch_folder << "\n";
     }
 
 
@@ -99,7 +105,7 @@ bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
     {
       std::string metameta = args.as_string( "metameta" );
       metameta = Helper::fullpath( metameta );
-      P << metameta << "\tMETAMETA\n";
+      P << "METAMETA\t" << metameta << "\n";
     }
 
 
@@ -115,38 +121,38 @@ bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
 	  t[i] = Helper::fullpath( t[i] );
 	  if ( ! Helper::fileExists( t[i] ) )
 	    plog.warn( "VCF file " + t[i] + " does not exist" );	  
-	  P << t[i] << "\tVCF\n";      
+	  P << "VCF\t" << t[i] << "\n";      
 	}
     }
   
   //
   // Databases
   //
-  
+
   if ( args.has( "vardb" ) ) 
-    P << Helper::fullpath( args.as_string( "vardb" ) ) << "\tVARDB\n";
+    P << "VARDB\t" << Helper::fullpath( args.as_string( "vardb" ) ) << "\n";
   else
-    P << output_folder << "vardb\tVARDB\n";
+    P << "VARDB\t" << output_folder << "vardb\n";
   
   if ( args.has( "inddb" ) ) 
-    P << Helper::fullpath( args.as_string( "inddb" ) )<< "\tINDDB\n";
+    P << "INDDB\t" << Helper::fullpath( args.as_string( "inddb" ) ) << "\n";
   else
-    P << output_folder << "inddb\tINDDB\n";
+    P << "INDDB\t"<< output_folder << "inddb\n";
   
   if ( args.has( "locdb" ) ) 
-    P << Helper::fullpath( args.as_string( "locdb" ) ) << "\tLOCDB\n";
+    P << "LOCDB\t" << Helper::fullpath( args.as_string( "locdb" ) ) << "\n";
   else
-    P << resources_folder << "locdb\tLOCDB\n";
+    P << "LOCDB\t" << resources_folder << "locdb\n";
   
   if ( args.has( "refdb" ) ) 
-    P << Helper::fullpath( args.as_string( "refdb" ) ) << "\tREFDB\n";
+    P << "REFDB\t" << Helper::fullpath( args.as_string( "refdb" ) ) << "\n";
   else
-    P << resources_folder << "refdb\tREFDB\n";
+    P << "REFDB\t" << resources_folder << "refdb\n";
   
   if ( args.has("seqdb") )
-    P << Helper::fullpath( args.as_string( "seqdb" ) ) << "\tSEQDB\n";
+    P << "SEQDB\t" << Helper::fullpath( args.as_string( "seqdb" ) ) << "\n";
   else
-    P << resources_folder << "seqdb\tSEQDB\n";
+    P << "SEQDB\t" << resources_folder << "seqdb\n";
   
   P.close();
   
