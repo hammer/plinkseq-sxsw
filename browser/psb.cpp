@@ -123,6 +123,7 @@ int main()
 	    {
 	      a.varset_url = cgivars[i+1];
 	      a.varset = Helper::parse( a.varset_url , ", " );
+	      for (int i=0;i<a.varset.size();i++) a.varset_set.insert( a.varset[i] );
 	    }
 	  
 	  
@@ -2377,7 +2378,12 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 
 	  for (int i=0;i<a.loc_append.size();i++)
 	    {
+
 	      std::set<Region> aloc = g.locdb.get_regions( a.loc_append[i] , Region(chr,min,max) );
+	      
+	      cnv.box( 2 , yoff , border , yoff+20 , "white" , "white" );
+	      cnv.box(xsize - rborder + 1 , yoff , xsize - 1 , yoff+20 , "white" , "white" );
+	      cnv.text( 10 ,yoff,a.loc_append[i] + " (" + Helper::int2str( aloc.size() ) + " intervals)", "gray" );
 	      
 	      std::set<Region>::iterator ii = aloc.begin();
 	      while ( ii != aloc.end() ) 
@@ -2387,13 +2393,13 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 		  cnv.line( p1 , yoff + 5 , p1 , yoff + 15 , "black" , 1 ); 
 		  cnv.line( p1 , yoff + 10 , p2 , yoff + 10 , "black" , 1 ); 
 		  cnv.line( p2 , yoff + 5 , p2 , yoff + 15 , "black" , 1 ); 
+		  std::stringstream ss;
+		  ss << ii->name;
+		  cnv.text( p2 + 2 , yoff + 15 , ss.str() , "gray" );
+
+		  yoff += ystep;
 		  ++ii;
 		}
-
-
-	      cnv.box( 2 , yoff , border , yoff+20 , "white" , "white" );
-	      cnv.box(xsize - rborder + 1 , yoff , xsize - 1 , yoff+20 , "white" , "white" );
-	      cnv.text( 10 ,yoff,a.loc_append[i] + " (" + Helper::int2str( aloc.size() ) + " intervals)", "gray" );
 
 	      yoff += ystep;
 	    }
@@ -3179,7 +3185,7 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   //
 
   std::cout << "<p>Individuals include "
-	    << "(" << a.getURL()->addField("q", "pgrid")->printLink("list all") << ")";	
+	    << "(" << a.getURL()->addField("q", "pgrid")->printLink("list") << ")";	
   std::cout << "<br><input type=\"text\" size=\"45\" name=\"indiv_list\"";
   std::cout << " value=\""<< Helper::html_encode( a.indiv_list_url ) << "\"";  
   std::cout << ">";
@@ -3445,25 +3451,61 @@ void ExomeBrowser::show_indiv( Aux & a )
 void ExomeBrowser::show_varsets( Aux & a )
 {
 
-  std::cout << "<h2>Variant sets</h2>";
+  std::cout << "<h3>Variant sets</h3>";
 
   std::vector<std::string> sets = a.g->vardb.get_sets();
+  
+  std::cout << "<table border=1><tr><th>Selected</th><th>Set</th><th>Number of variants</th><th>Description</th></tr>";
 
   for (int s = 0 ; s < sets.size(); s++)
-    std::cout << sets[s] << " " << a.g->vardb.get_set_size( sets[s] ) << "<br>";
-  std::cout << "<hr>";
-  
+    {
+      std::cout << ( a.varset_set.find( sets[s] ) != a.varset_set.end() ? 
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"setsel\" value=\""+sets[s]+"\" checked></td>" :
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"setsel\" value=\""+sets[s]+"\"></td>" );
+      
+      std::cout << "<td>" 
+		<< a.getURL()->addField("q", "varsetlist")
+	->addField("varset", a.varset_url == "" ? sets[s] : a.varset_url + " " + sets[s] )
+	->printLink( sets[s] ) 	
+		<< "</td>";
+      
+      std::cout << "<td>" << a.g->vardb.get_set_size( sets[s] ) << "</td><td>" 
+		<< a.g->vardb.get_set_description( sets[s] ) << "</td></tr>";
+    }
+
+  std::cout << "</table>";
+
+  //
+  // Variant super-sets
+  //
+
   std::cout << "<h3>Variant super-sets</h3>";
 
   std::vector<std::string> ss = a.g->vardb.get_supersets();
-  for (int s = 0 ; s < ss.size(); s++)
+  if ( ss.size() == 0 ) std::cout << "<br><em>none</em><br>";
+  else
+    {
+      std::cout << "<table border=1><tr><th>Selected</th><th>Set</th><th>Number of sets</th><th>Sets</th><th>Description</th></tr>";
+            
+      for (int s = 0 ; s < ss.size(); s++)
 	{
-	  std::cout << "<b>" << ss[s] << "</b> : ";
 	  std::vector<std::string> sets = a.g->vardb.get_sets( ss[s] );
+	  
+	  std::cout << "<tr><td>" ;
+
+	  std::cout << "<td>" 
+		    << a.getURL()->addField("q", "varsetlist")
+	    ->addField("varset", a.varset_url == "" ? ss[s] : a.varset_url + " " + ss[s] )
+	    ->printLink( ss[s] ) 	
+		    << "</td>";
+     	
+	  std::cout << "<td>" << sets.size() << "</td>";
+
 	  for (int t = 0 ; t < sets.size(); t++)
-	    std::cout << " " << sets[t] ;
-	  std::cout << "<br>";
+	    std::cout << sets[t] << "<br>";
+	  std::cout << "</td>" << a.g->vardb.get_superset_description( ss[s] ) << "</td>";
+	  std::cout << "</tr>";
 	}
-  std::cout << "<hr>";
-    
+      std::cout << "</table>";
+    }
 }

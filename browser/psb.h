@@ -255,7 +255,8 @@ namespace ExomeBrowser {
     
     std::string varset_url;
     std::vector<std::string> varset;
-    
+    std::set<std::string> varset_set;
+
     bool add_annot;
 
     // Regions, and other genes to add
