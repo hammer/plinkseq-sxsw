@@ -18,7 +18,8 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
   aux->fweights.resize( vars.size() , 0 );  
   aux->acounts.resize( vars.size() , 0 );
   aux->altmin.resize( vars.size() , true );
-  
+  aux->maf.resize( vars.size() , 0 );
+
   for ( int v = 0 ; v < vars.size(); v++ )
     {
       
@@ -34,6 +35,7 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
       // Frequency weights
       double f = (double)( 1 + c ) / (double)( 2 + c_tot );
       aux->fweights[ v ] = f > 0 && f < 1 ? 1.0 / sqrt( f * (1-f) ) : 0 ;
+      aux->maf[ v ] = f ;
       aux->acounts[ v ] = c;      
 
       // Track # of case/control-alleles (for output)

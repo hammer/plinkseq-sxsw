@@ -28,6 +28,7 @@ individual.h \
 indmap.h \
 ipmpar.h \
 iterrep.h \
+prob.h \
 khash.h \
 locdb.h \
 mask.h \
@@ -97,6 +98,7 @@ varmeta.cpp \
 pp.cpp \
 pp.pb.cpp \
 statistics.cpp \
+prob.cpp \
 dcdflib.cpp \
 bgzf.cpp \
 fisher.cpp \

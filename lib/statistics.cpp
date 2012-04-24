@@ -1842,3 +1842,8 @@ double Statistics::factln(int n)
   if (n <= 100) return a[n] ? a[n] : (a[n]=gammln(n+1.0));
   else return gammln(n+1.0);
 }
+
+double Statistics::beta( double x , double a1 , double a2 )
+{
+
+}

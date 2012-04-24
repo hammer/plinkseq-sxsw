@@ -730,3 +730,23 @@ bool Pseq::VarDB::insert_meta_on_fly( const std::string & name )
 
 }
 
+
+// ID swaps
+
+bool Pseq::VarDB::swap_ids( const std::string & filename )
+{
+  // swap VARDB IDs
+  Helper::checkFileExists( filename );
+  InFile F( filename );  
+  while ( ! F.eof() ) 
+    {
+      std::vector<std::string> h = F.tokenizeLine("\t");
+      if ( h.size() == 0 ) continue;
+      if ( h.size() != 2 ) plog.warn( "encountered row without 2 tab-delimited fields" );
+      g.vardb.replace_individual_id( h[0] , h[1] );
+      g.inddb.replace_individual_id( h[0] , h[1] );
+    }
+  F.close();
+  return false;
+}
+
