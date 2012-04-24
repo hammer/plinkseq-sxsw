@@ -321,6 +321,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 
 	  << "*denovo|views|filter for de-novo mutations|VCF|ARG:param"
+	  << "CNV-denovo|views|filter for de-novo CNV mutations|VCF|ARG:param"
 
     //
     // IBD database 

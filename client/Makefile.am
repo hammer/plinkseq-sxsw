@@ -32,7 +32,9 @@ stepup.cpp \
 kbac.cpp \
 netassoc.cpp \
 gseq.cpp \
-extra.cpp
+extra.cpp \
+cnv.h \
+cnv.cpp
 
 # note that we don't need to link to any shared libs here
 # they are all linked transitively from libplinkseq
