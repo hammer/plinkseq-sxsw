@@ -469,7 +469,10 @@ bool VarDBase::init()
 		  "          ( file_id, indiv_id, name ) "
 		  "   values ( :file_id, :indiv_id, :name ); " );
     
-    
+    stmt_replace_individual_id = 
+      sql.prepare( "UPDATE individuals SET name = :new_id WHERE name == :old_id;" );
+
+
     //
     // Queries
     //
@@ -751,6 +754,8 @@ bool VarDBase::release()
 
   sql.finalise( stmt_fetch_individual ); 
   sql.finalise( stmt_fetch_individuals ); 
+  sql.finalise( stmt_replace_individual_id );
+
   sql.finalise( stmt_iterate_variants ); 
   
   sql.finalise( stmt_insert_set );
@@ -2263,3 +2268,14 @@ Region VarDBase::get_position_from_id( const std::string & id1 , const std::stri
   //  sql.
   return region;
 }
+
+
+bool VarDBase::replace_individual_id( const std::string & old_id , const std::string & new_id )
+{
+  sql.bind_text( stmt_replace_individual_id , ":old_id" , old_id );
+  sql.bind_text( stmt_replace_individual_id , ":new_id" , new_id );
+  sql.step( stmt_replace_individual_id );
+  sql.reset( stmt_replace_individual_id );
+  return true;
+}
+

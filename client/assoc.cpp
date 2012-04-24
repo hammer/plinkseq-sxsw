@@ -1304,7 +1304,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   a.cancor        =   args.has( "tests" , "cancor" );
   a.hoffman_witte =   args.has( "tests" , "stepup" );
   a.kbac          =   args.has( "tests" , "kbac" );
-
+  a.skat          =   args.has( "tests" , "skat" );
 
   const int ntests = a.n_tests();
   
@@ -1321,6 +1321,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //          cancor   CANCOR
   //          stepup   STEPUP
   //          kbac     KBAC 
+  //          skat     SKAT
 
   //
   // Set up permutation class
@@ -1330,6 +1331,28 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   a.fix_null_genotypes = args.has("fix-null");
  
   
+  //
+  // Covariates (for SKAT)
+  //
+  
+  if ( args.has( "covar" ) )
+    {
+      Pseq::Assoc::Aux_skat::has_covar = true;
+      Pseq::Assoc::Aux_skat::covars = args.as_string_vector( "covar" );
+    }
+
+
+  //
+  // Weights?
+  //
+  
+  if ( args.has( "weights" ) )
+    {
+      Pseq::Assoc::Aux_skat::has_weights = true;
+      Pseq::Assoc::Aux_skat::weights = args.as_string( "weights" );
+    }
+  
+
   //
   // Apply tests to dataset
   //
@@ -1402,21 +1425,26 @@ void g_set_association( VariantGroup & vars , void * p )
 
   Pseq::Assoc::Aux_prelim aux_prelim;
   Pseq::Assoc::Aux_burden aux_burden(data->vanilla,data->burden,data->uniq,data->mhit,data->site_burden);
-  Pseq::Assoc::Aux_fw_vt aux_fw_vt(data->fw,data->vt);
+  Pseq::Assoc::Aux_fw_vt  aux_fw_vt(data->fw,data->vt);
   Pseq::Assoc::Aux_calpha aux_calpha;
   Pseq::Assoc::Aux_cancor aux_cancor( 1 , vars.size() , vars.n_individuals() ) ;
+
   Pseq::Assoc::prelim( vars , &aux_prelim );
-  
+
+
+  //  
   // External tests
+  //
+
   Pseq::Assoc::Aux_hoffman_witte aux_hoffman_witte( vars, &aux_prelim );
   Pseq::Assoc::Aux_kbac aux_kbac;
+  Pseq::Assoc::Aux_skat aux_skat;
 
 
   //
   // Apply tests to original dataset
   //
   
-
   std::vector<double> test_statistic;
   std::vector<std::string> test_name;
   std::map<std::string,std::string> test_text;
@@ -1523,6 +1551,14 @@ void g_set_association( VariantGroup & vars , void * p )
     }
   
   
+  if ( data->skat ) 
+    {
+      test_name.push_back( "SKAT" );
+      double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , &test_text , true ); 
+      test_statistic.push_back( statistic );
+    }
+
+
   //
   // Register original test statistics with the permutation class
   //
@@ -1585,6 +1621,12 @@ void g_set_association( VariantGroup & vars , void * p )
       if ( data->kbac )
 	{
 	  double statistic = Pseq::Assoc::stat_kbac( vars , &aux_prelim , &aux_kbac , NULL , false );
+	  test_statistic.push_back( statistic );
+	}
+
+      if ( data->skat )
+	{	  
+	  double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , NULL , false  );
 	  test_statistic.push_back( statistic );
 	}
 

@@ -13,7 +13,6 @@
 #include "ibs.h"
 #include "extra.h"
 
-
 using namespace std;
 
 GStore g;
@@ -1070,7 +1069,15 @@ int main(int argc, char ** argv)
 	  Pseq::IndDB::load_ped_info( s[f] );
 	Pseq::finished();
       }
+
     
+    if ( command == "swap-ids" )
+      {
+	if ( !args.has( "file" ) )
+	  Helper::halt( "no file specified" );
+	Pseq::VarDB::swap_ids( args.as_string( "file" ) );	
+	Pseq::finished();
+      }
 
     //
     // Any annotation specified? If so, must load transcripts 

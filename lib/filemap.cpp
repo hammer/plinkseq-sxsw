@@ -620,18 +620,18 @@ VCFZ * FileMap::add_VCFZ( const std::string & f )
 bool FileMap::append_to_projectfile( const std::string & s , const std::string & t )
 {
 
-    if ( exists( s ) ) return false; // already present, nothing to do
+  if ( exists( s ) ) return false; // already present, nothing to do
     
-    std::string projectfile = special_files.find( FIDX )->second->name();
+  std::string projectfile = special_files.find( FIDX )->second->name();
+  
+  if ( projectfile == "." ) return false;
     
-    if ( projectfile == "." ) return false;
-    
-    if ( ! Helper::fileExists( projectfile ) )
+  if ( ! Helper::fileExists( projectfile ) )
     {
-	plog.warn("could not find projectfile",projectfile);
-	return false;
+      plog.warn("could not find projectfile",projectfile);
+      return false;
     }
-        
+  
   // open in append-to-end mode
   std::ofstream O1( projectfile.c_str() , std::ios::out | std::ios::app );
   O1 << t << "\t" << s << "\n";
