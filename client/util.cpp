@@ -303,7 +303,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 
 
-	  << "counts|views,tests|summary/count statistics|VCF|ARG:output-vcf,name"
+	  << "counts|views,tests|summary/count statistics|VCF|ARG:output-vcf,name,annotate,full-annotate,show-filters,meta,phenotype"
 	
 	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name"
 	
