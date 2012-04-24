@@ -3002,7 +3002,7 @@ void ExomeBrowser::write_start_page( const GStore & g ,
 				     const std::string & project_path )
 {
 
-  std::cout << "<form name=\"myform\" action=\"pbrowse.cgi\" method=\"GET\"> ";
+  std::cout << "<form name=\"myform\" action=\"gpbrowse.cgi\" method=\"GET\"> ";
   
   std::cout << "<table width=100% CELLPADDING=0 CELLSPACING=0>"
 	    << "<tr><td width=50% valign=center align=left>"

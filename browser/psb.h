@@ -139,7 +139,7 @@ namespace ExomeBrowser {
 
     std::string printURL()
     {
-      std::string s = "pbrowse.cgi?";
+      std::string s = "gpbrowse.cgi?";
       for (std::map<std::string, std::string>::iterator i = fields.begin(); i != fields.end(); i++)
         {
           if (i->second != "")
