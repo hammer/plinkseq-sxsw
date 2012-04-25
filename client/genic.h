@@ -21,7 +21,8 @@ namespace Pseq
     struct Aux_hoffman_witte;
     struct Aux_kbac;
     struct Aux_two_hit;
-     
+    struct Aux_skat;
+
     void  prelim( const VariantGroup & vars , Aux_prelim * aux );
     
     void stat_burden( const VariantGroup & vars , 
@@ -66,7 +67,13 @@ namespace Pseq
                          std::map<std::string,std::string> *  ,
                          bool original, std::map< std::string, int >, double, bool );
     
-
+    
+    double stat_skat( const VariantGroup & , 
+		      Aux_prelim * , 
+		      Aux_skat * , 
+		      std::map<std::string,std::string> *  , 
+		      bool original );
+    
     struct AuxGenic 
     {
       
@@ -89,6 +96,7 @@ namespace Pseq
 	hoffman_witte = false;
 	kbac = false;
 	two_hit = false;
+	skat = false;
       }
       
 
@@ -104,7 +112,8 @@ namespace Pseq
 	  + cancor 
 	  + hoffman_witte
 	  + kbac
-	  + two_hit;
+	  + two_hit
+	  + skat;
       }
       
       GStore * g;
@@ -127,6 +136,7 @@ namespace Pseq
       bool hoffman_witte;
       bool kbac;
       bool two_hit;
+      bool skat;
     };
  
     
@@ -147,7 +157,8 @@ namespace Pseq
       std::map<std::string,int> mc_a;  // count in affecteds
       
       std::vector<double> wgt;         // generic weights
-      
+
+      std::vector<double> maf;         // MAF (of minor allele always)
       std::vector<double> fweights;    // frequency weights
       std::vector<int> acounts;        // allele counts (used in VT)
       
@@ -238,10 +249,59 @@ namespace Pseq
       double gw_ln_factorial( const double ) const;
       double gw_lnchoose( const double , const double ) const;
       double gw_hypergeometric_pmf(const unsigned int , const unsigned int , const unsigned int , const unsigned int ) const;
-      double gw_hypergeometric_cmf(const unsigned int , const unsigned int , const unsigned int , const unsigned int ) const;
-      
+      double gw_hypergeometric_cmf(const unsigned int , const unsigned int , const unsigned int , const unsigned int ) const;      
     };
 
+
+    //
+    // SKAT test
+    //
+    struct Aux_skat 
+    {
+
+      Aux_skat() 
+      {
+	has_covar = false;
+	has_weights = false;
+      }
+
+      // when first run, precalculate (only ever once) the 
+      // adjust phenotypic expected values for each individual.
+
+      static bool precalculated;
+
+      static Data::Vector<double> y; // phenotype --> modified (y_i - u_i)
+      static Data::Vector<double> u; // phenotype --> modified (u_i)
+      static Data::Matrix<double> X; // covariates
+      static std::vector<bool> mask; // included? (i.e. non-missing pheno/covar?)
+      static int n_actual; 
+      static bool logistic_model;   
+
+      // main functions
+      static void fit_null();
+      
+      void populate_G( const VariantGroup & , Aux_prelim * );
+      void populate_K();
+      double calculate_Q();
+
+      //
+
+      static bool has_covar;
+      static std::vector<std::string> covars;
+
+      static bool has_weights;
+      static std::string weights;
+
+      // Beta-MAF weight parameters      
+      static bool use_freq_weights;
+      static int a1;
+      static int a2;
+
+      Data::Vector<double> w; // weights
+      Data::Matrix<double> G; // genotype-data
+      Data::Matrix<double> K; // keneral
+
+    };
     struct Aux_two_hit {
       Aux_two_hit(int np, int ng, int ni) : P(ni,np) , G(ni,ng), LD(ng, ng) { }
       double stat;
@@ -249,9 +309,6 @@ namespace Pseq
       Data::Matrix<double> G; // genotypes of each individual
       Data::Matrix<double> LD; // LD matrix (num genotypes x num genotypes)
     };
-
-    
-
   }  
   
 }

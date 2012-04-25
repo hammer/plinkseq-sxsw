@@ -19,9 +19,12 @@ namespace ExomeBrowser {
 	       Q_GENE     ,
 	       Q_REGION   ,
 	       Q_INDGRID  ,
+	       Q_PHENOGRID,
 	       Q_GENELIST ,
 	       Q_METALIST ,
 	       Q_PHELIST  ,
+	       Q_VARSETLIST , 
+	       Q_INDPHENO , 
 	       Q_LOCSETLIST ,
 	       Q_PROJSUMMARY ,
                Q_GRAPHICAL_VIEW };
@@ -52,6 +55,13 @@ namespace ExomeBrowser {
 			    const std::string & project_path , 
 			    Mask & );
 
+  // correspnds to "pgrid"
+  void show_indiv( Aux & a );
+
+  void show_varsets( Aux & a );
+
+  // corresponds to indgrid;
+  void index_grid( Aux & a );
 
   //
   // Helper functions
@@ -98,7 +108,8 @@ namespace ExomeBrowser {
         std::string regs="",
 	std::string varset="",
 	std::string ref_append="",
-	std::string loc_append="" )
+	std::string loc_append="",
+	std::string indiv_list="")
     {
       fields["proj"] = project;
       fields["q"] = q;
@@ -110,6 +121,7 @@ namespace ExomeBrowser {
       fields["ref_append"] = ref_append;
       fields["loc_append"] = loc_append;
       fields["varset"] = varset;
+      fields["indiv_list"] = indiv_list;
     }
 
 
@@ -127,7 +139,7 @@ namespace ExomeBrowser {
 
     std::string printURL()
     {
-      std::string s = "pbrowse.cgi?";
+      std::string s = "gpbrowse.cgi?";
       for (std::map<std::string, std::string>::iterator i = fields.begin(); i != fields.end(); i++)
         {
           if (i->second != "")
@@ -159,7 +171,9 @@ namespace ExomeBrowser {
       single_transcript = false;
       region_search = false;
       reg_list = reg_list_url = "";
+      indiv_list_url = "";
       url = NULL;
+      indiv_genogrid = false;
     }
     
     ~Aux() {
@@ -178,6 +192,7 @@ namespace ExomeBrowser {
     std::string phenotype_name;
     bool show_phenotype;
     
+    bool indiv_genogrid;
     
     // Gene info
 
@@ -187,6 +202,11 @@ namespace ExomeBrowser {
     std::string genename;
     std::string reg_list;
     std::string reg_list_url;
+    
+    // Individual includes
+    std::set<std::string> indiv_list;
+    std::vector<std::string> indiv_list_vec;
+    std::string indiv_list_url;
     
     // Optional variant meta-fields
     
@@ -235,7 +255,8 @@ namespace ExomeBrowser {
     
     std::string varset_url;
     std::vector<std::string> varset;
-    
+    std::set<std::string> varset_set;
+
     bool add_annot;
 
     // Regions, and other genes to add
@@ -276,16 +297,20 @@ namespace ExomeBrowser {
       if ( url == NULL )
         {
           url = new BrowserURL(
-			       has_form_value("proj") ? form["proj"] : "",
-			       "",
-			       "",
-			       msk_print(),
-			       mf_print(),
-			       phenotype_name,
-			       reg_list_url,
-			       ref_append_url,
-			       loc_append_url
+			       has_form_value("proj") ? form["proj"] : "", // project
+			       "", // q
+			       "", // gene (?redundant?)
+			       msk_print(), // mask 
+			       mf_print(),  // meta-inf
+			       phenotype_name, // pheno
+			       reg_list_url,   // main region list
+			       varset_url,     // variant sets
+			       ref_append_url, // ref-appends
+			       loc_append_url, // loc-appends
+			       indiv_list_url  // indiv mask
 			       );
+
+
         }
       return url;
     }

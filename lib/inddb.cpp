@@ -147,6 +147,9 @@ bool IndDBase::init()
 		    " SET fam_id = :fid, ind_id = :iid, pat_id = :pat, mat_id = :mat , sex = :sex "
 		    " WHERE name == :name ; ");
 
+    stmt_replace_individual_id = 
+      sql.prepare( "UPDATE individuals SET name = :new_id WHERE name == :old_id; ");
+    
     stmt_insert_phenotype = 
 	sql.prepare(" INSERT OR REPLACE INTO phenotypes ( indiv_id , pheno_id , value ) "
 		    " values ( :indiv_id , :pheno_id , :value ); " );
@@ -193,6 +196,8 @@ bool IndDBase::release()
     
   sql.finalise( stmt_insert_individual  ); 
   sql.finalise( stmt_update_individual  ); 
+  sql.finalise( stmt_replace_individual_id );
+
   sql.finalise( stmt_insert_phenotype  ); 
   sql.finalise( stmt_insert_metaphenotype  );
   
@@ -464,14 +469,14 @@ bool IndDBase::load_phenotypes( const std::string & filename )
 	  if ( tok.size() >= 4 ) desc = tok[3];
 	  
 	  int code = insert_phenotype( name, type, miss, desc );
-	  
+
 	  phe_codes1[ name ] = code;
-	  mis_codes[ name ] = tok[2];
+	  mis_codes[ name ] = miss;
 	  
 	  if ( Helper::is_int( type ) ) type_codes[ name ] = META_INT;
 	  else if ( Helper::is_float( type ) ) type_codes[ name ] = META_FLOAT;
 	  else type_codes[ name ] = META_TEXT;
-	  
+
 	}
 
       // Or header line?
@@ -507,7 +512,8 @@ bool IndDBase::load_phenotypes( const std::string & filename )
 	  
 	  // Skip, if we haven't seen a header
 	  if ( expected_col_count == -1 ) continue;
-	  
+	 
+
 	  std::vector<std::string> tok = Helper::parse( s , " \t");
 	  
 	  if ( tok.size() != expected_col_count ) 
@@ -588,7 +594,8 @@ bool IndDBase::load_phenotypes( const std::string & filename )
 
   plog << "Processed " << inserted << " rows\n";
   
-  if ( inserted ) GP->fIndex.append_to_projectfile( Helper::fullpath( filename ) , "PHE" );
+  if ( inserted && GP && GP->has_project_file() ) 
+    GP->fIndex.append_to_projectfile( Helper::fullpath( filename ) , "PHE" );
     
   return true;
 }
@@ -802,3 +809,12 @@ sType IndDBase::sex( const std::string & id )
   return UNKNOWN_SEX;
 }
 
+
+bool IndDBase::replace_individual_id( const std::string & old_id , const std::string & new_id )
+{
+  sql.bind_text( stmt_replace_individual_id , ":old_id" , old_id );
+  sql.bind_text( stmt_replace_individual_id , ":new_id" , new_id );
+  sql.step( stmt_replace_individual_id );
+  sql.reset( stmt_replace_individual_id );
+  return true;
+}

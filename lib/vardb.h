@@ -190,6 +190,8 @@ class VarDBase {
   std::map<int,std::string> fetch_files( Mask * mask = NULL );
   int n_files( Mask * mask = NULL );
   int fileID(const std::string & );
+
+  bool replace_individual_id( const std::string & old_id , const std::string & new_id );
   
   // Fetch single variant at single (1bp) position 
   
@@ -220,6 +222,12 @@ class VarDBase {
   std::set<Variant> key_fetch( const Region & region );
 
   std::set<Variant> fetch( const Region & );
+
+  //
+  // Fetch a single Region/Variant, given it's ID
+  //
+
+  Region get_position_from_id( const std::string & id1 , const std::string & id2 ) ;
 
   //
   // Deletions
@@ -362,6 +370,7 @@ class VarDBase {
   sqlite3_stmt * stmt_insert_individual;
   sqlite3_stmt * stmt_fetch_individual;
   sqlite3_stmt * stmt_fetch_individuals;
+  sqlite3_stmt * stmt_replace_individual_id;
 
   sqlite3_stmt * stmt_fetch_file_from_tag;
   sqlite3_stmt * stmt_fetch_tag_from_file;
@@ -373,6 +382,7 @@ class VarDBase {
   sqlite3_stmt * stmt_insert_variant_data; 
 
   sqlite3_stmt * stmt_fetch_variant_key;
+  sqlite3_stmt * stmt_fetch_variant_key_from_id;
   sqlite3_stmt * stmt_fetch_variant_pos;
   sqlite3_stmt * stmt_fetch_variant_range;
 	

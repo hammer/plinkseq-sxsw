@@ -41,6 +41,7 @@ int main()
   std::string pheno = "";
   bool from_top = false;
   bool gview = false;
+  bool index = false;
 
   // Auxilliary information to send to variant printing functions
 
@@ -61,7 +62,9 @@ int main()
 	      if ( s == "v" ) q = Q_VARIANT;
 	      else if ( s == "i" ) q = Q_INDIV;
 	      else if ( s == "r" ) q = Q_REGION;
-	      else if ( s == "gview" ) q = Q_GRAPHICAL_VIEW;
+	      else if ( s == "gview" ) { gview = true; q = Q_GRAPHICAL_VIEW; } 
+	      else if ( s == "varsetlist" ) q = Q_VARSETLIST;
+	      else if ( s == "pgrid" )  q = Q_PHENOGRID;
 	      else if ( s == "indlist" ) q = Q_INDGRID;
 	      else if ( s == "glist" ) q = Q_GENELIST;
 	      else if ( s == "mflist" ) q = Q_METALIST;
@@ -80,6 +83,12 @@ int main()
 	  if ( str == "gview" ) 
 	    gview = true;
 
+	  if ( str == "indgrid" ) 
+	    index = true;
+	  
+	  if ( str == "pgrid" ) 
+	    q = Q_PHENOGRID;
+
 	  if ( str == "val" ) 
 	    var_value = cgivars[i+1];
 	  
@@ -97,7 +106,26 @@ int main()
 	      pwd = cgivars[i+1];	      
 	    }
 
+
 	  if ( str == "loc" ) loc_set = cgivars[i+1];
+
+	  
+	  if ( str == "indiv_list" ) 
+	    {
+	      a.indiv_list_url = cgivars[i+1];
+	      a.indiv_list_vec = Helper::parse( a.indiv_list_url , " ," );
+	      for (int i=0;i<a.indiv_list_vec.size();i++)
+		a.indiv_list.insert( a.indiv_list_vec[i] );
+	    }
+	  
+
+	  if ( str == "varset" ) 
+	    {
+	      a.varset_url = cgivars[i+1];
+	      a.varset = Helper::parse( a.varset_url , ", " );
+	      for (int i=0;i<a.varset.size();i++) a.varset_set.insert( a.varset[i] );
+	    }
+	  
 	  
 	  if ( str == "regs" )
 	    {
@@ -112,30 +140,38 @@ int main()
 	      std::replace( a.reg_list_url.begin(), a.reg_list_url.end() , '\n' , ',' );
 	    }
 
+
 	  if ( str == "masks" )
 	    a.msk = Helper::parse( cgivars[i+1] , " " );
+
 	  
 	  if ( str == "inc_fltr" )
 	    a.inc_fltr = cgivars[i+1] ;
 
+
 	  if ( str == "vinc_fltr" )
 	    a.vinc_fltr = cgivars[i+1];
+
 
 	  if ( str == "meta" ) 
 	    {
 	      a.mf = Helper::parse( cgivars[i+1] , " ," );
 	    }
 
+
 	  if ( str == "ref_append" ) 
 	    {
 	      a.ref_append_url = cgivars[i+1];
 	      a.ref_append = Helper::parse( cgivars[i+1] , " ," );
 	    }
+
+
 	  if ( str == "loc_append" ) 
 	    {
 	      a.loc_append_url = cgivars[i+1];
 	      a.loc_append = Helper::parse( cgivars[i+1] , " ," );
 	    }
+
 
 	  if ( str == "pheno" )
 	    pheno = cgivars[i+1];
@@ -143,15 +179,14 @@ int main()
 	}
       
       
-      
-      if ( from_top ) 
-	{
-	  if ( gview ) q = Q_GRAPHICAL_VIEW;
-	  else if ( index ) q = Q_INDGRID;
-	  else q = Q_REGION;
-	}
+      // ensure correct mode
+      if      ( from_top ) q = Q_REGION;
+      else if ( gview )    q = Q_GRAPHICAL_VIEW;
+      else if ( index )    q = Q_INDGRID;
+	
     }
           
+  
   
   // ** Free anything that needs to be freed **/
   
@@ -162,7 +197,17 @@ int main()
     }
 
 
-  
+  //
+  // The 'index' Q_INDGRID uses Q_REGION's code
+  //
+
+  if ( q == Q_INDGRID )
+    {
+      a.indiv_genogrid = true;
+      q = Q_REGION;
+    }
+
+
   //
   // Start HTML form and any output (unless we are deferring this 
   // because we need to populate the functions for a graphical view, 
@@ -206,16 +251,13 @@ int main()
   //
 
 
-//   GStore g;
-//   a.g = &g;
-//   a.loc_set = loc_set;
-//   g.set_project( project_path );
-  
-  
   if ( ! g.pwd(pwd) ) 
     Helper::halt("<b>access denied: password does not match</b>");
   
+
+  //
   // Initial Mask objects
+  //
 
   std::string mstr;
   for (int i = 0 ; i < a.msk.size(); i++)
@@ -233,7 +275,7 @@ int main()
       // if no mask, safe to add 'no-geno', otherwise, we should keep in case
       // and no dichot phenotype (i.e. for C/C counts)
       
-      if ( mstr == "" && pheno == "" && a.inc_fltr == "" && a.vinc_fltr == "" ) 
+      if ( mstr == "" && pheno == "" && a.inc_fltr == "" && a.vinc_fltr == "" && ! a.indiv_genogrid ) 
 	mstr = "limit=1000 no-geno " + mstr;
       else
 	mstr = "limit=1000 " + mstr;      
@@ -244,10 +286,41 @@ int main()
       mstr += " v-include=\"" + a.vinc_fltr + "\"";
     }
   
-
-  Mask m( mstr , a.inc_fltr , a.inc_fltr != "" );
   
+  //
+  // Create mask
+  //
+  
+  Mask m( mstr , a.inc_fltr , a.inc_fltr != "" );
+
+  
+  //
+  // Add an individual inclusions/exclusions
+  //
+
+  if ( a.indiv_list.size() > 0 ) 
+    {
+      m.include_indiv( a.indiv_list_vec );
+    }
+  
+  
+  //
+  // Create/populate individual-map
+  //
+
   g.indmap.populate( g.vardb, g.phmap, m );
+
+  
+  //
+  // Sanity check
+  //
+
+  if ( g.indmap.size() > 50 && a.indiv_genogrid ) 
+    {
+      std::cout << "Genotype grid mode designed for small (sub)samples (50 or fewer individuals)"
+		<< "</BODY></HTML>";
+      exit(0);
+    }
 
 
   //
@@ -398,6 +471,55 @@ int main()
 
   if ( snpids.size() > 0 ) 
     m.include_id( snpids );
+
+
+  //
+  // Variant sets
+  //
+
+  if ( a.varset.size() > 0 ) 
+    {
+      for (int i=0;i<a.varset.size(); i++)
+	{
+	  if ( a.varset[i][0] == '-' )
+	    m.exclude_varset( a.varset[i].substr(1) );
+	  else
+	    m.require_varset( a.varset[i] );
+	}
+    }
+
+
+  // 
+  // Reference/Locus filters (if in non GUI mode)
+  // 
+
+  //  dbsnp    require dbsnp membership
+  //  +dbsnp   append this track
+  //  -dbsnp   exclude this track
+  
+  if ( q == Q_REGION ) 
+    {
+      for (int i=0; i<a.ref_append.size(); i++) 
+	{
+	  if ( a.ref_append[i][0] == '-' ) 
+	    m.exclude_ref( a.ref_append[i].substr(1) );
+	  else if ( a.ref_append[i][0] == '+' ) 
+	    m.append_ref( a.ref_append[i].substr(1) );
+	  else
+	    m.require_ref( a.ref_append[i] );
+	}
+
+      for (int i=0; i<a.loc_append.size(); i++) 
+	{
+	  if ( a.loc_append[i][0] == '-' )
+	    m.exclude_loc( a.loc_append[i].substr(1) );
+	  else if ( a.loc_append[i][0] == '+' ) 
+	    m.append_loc( a.ref_append[i].substr(1) );	  
+	  else
+	    m.require_loc( a.loc_append[i] );
+	}
+    }
+  
 
   //
   // Get genomic loci for transcripts
@@ -681,14 +803,14 @@ int main()
       // LINKS CHR POS NAME ALT/REF FileID QUAL INFO(filter) SAMPLE_CNT VMETA(compressed)
       
       std::cout << "<table border=1>"
-	   << "<tr><th>#</th><th>Indiv</th><th>Chr</th><th>Pos</th>";
+		<< "<tr><th>#</th><th>Indiv</th><th>Chr</th><th>Pos</th>";
       
       if ( a.single_transcript )
 	std::cout << "<th>Exon</th>";
       
       std::cout << "<th>ID</th><th>Ref/Alt</th>"
-	   << "<th># samples</th>"      
-	   << "<th>Filter</th>";      
+		<< "<th># samples</th>"      
+		<< "<th>Filter</th>";      
       
       
       // Optional case/control counts?
@@ -705,11 +827,55 @@ int main()
       if ( a.region_search ) 
 	std::cout << "<th>Locus</th>";
       
+      // Optional genotype-grid?
+      
+      if ( a.indiv_genogrid ) 
+	{
+	  const int n = g.indmap.size();
+	  for (int i=0;i<n;i++) std::cout << "<th align=\"center\">" << g.indmap(i)->id() << "</th>";
+	}
+
      
       // End of header row
       
       std::cout << "</tr>";
       
+
+      // in 'index' mode, show phenotypes
+
+      if ( a.indiv_genogrid )
+	{
+	  
+	  std::cout << "<tr><td>.</td><td>.</td><td>.</td><td>.</td>";
+
+	  if ( a.single_transcript )
+	    std::cout << "<td>.</td>";
+
+	  std::cout << "<td>.</td><td>.</td><td>.</td><td>.</td>";
+	  
+	  if ( a.region_search ) 
+	    std::cout << "<th>.</th>";
+
+	  if ( a.show_phenotype && ( g.phmap.type() == PHE_DICHOT || g.phmap.type() == PHE_FACTOR ) )
+	    std::cout << "<td>.</td>";
+
+	  for (int m=0; m< a.mf.size(); m++)
+	    std::cout << "<td>.</td>";
+	  
+      	  const int n = g.indmap.size();
+	  for (int i=0;i<n;i++) 
+	    {
+	      std::cout << "<td align=\"center\">";
+	      std::stringstream ss;
+	      ss << g.indmap.ind(i)->meta;
+	      std::vector<std::string> c = Helper::parse( ss.str() , ";" );
+	      for (int k=0;k<c.size(); k++) std::cout << c[k] << "<br>";
+	      std::cout << "</td>";      
+	    } // next indiv
+	  std::cout << "</tr>";
+	}
+
+
       // Rows
 
       std::map<int,std::string>::iterator k= a.table_row.begin();
@@ -720,7 +886,7 @@ int main()
 	}
       std::cout << "</table>";
 
-    }  
+    }
 
 
   //
@@ -1024,8 +1190,9 @@ int main()
     }
 
 
+
   //
-  //
+  // Individua report
   //
 
   if ( q == Q_INDIV )
@@ -1118,6 +1285,40 @@ int main()
 
     }
 
+
+
+  //
+  // Misc reports
+  //
+
+  // 1) Enumerate all variant sets/supersets
+
+  if ( q == Q_VARSETLIST )
+    {
+      show_varsets( a ) ;
+    }
+
+  
+  // 2) Enumerate all genes 
+
+  
+  // 3) Tablulate all individuals and phenotypes
+
+  if ( q == Q_PHENOGRID )
+    {
+      show_indiv(a);      
+    }
+
+
+  //
+  // 'Index' (individual-grid) view
+  //
+  
+
+
+  //
+  // Graphical view
+  //
   
   if ( q == Q_GRAPHICAL_VIEW ) 
     {
@@ -1267,6 +1468,50 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 	}
       else
 	o1 << "<td>" << "n/a" << "</td>";
+    }
+
+  // In 'index' / geno-grid mode, add extra colums for individual genotypes
+
+  if ( a->indiv_genogrid ) 
+    {
+      
+      const int n = var.size();
+
+      for (int i=0; i<n; i++)
+	{
+
+	  Genotype & g = var(i);
+	  
+	  // color-coding
+	  if ( g.null() ) o1 << "<td align=\"center\" bgcolor=\"gray\">";
+	  else if ( g.reference() ) o1 << "<td align=\"center\" bgcolor=\"lightgreen\">";
+	  else if ( g.heterozygote() ) o1 << "<td align=\"center\" bgcolor=\"red\">";
+	  else if ( g.alternate_homozygote() ) o1 << "<td align=\"center\" bgcolor=\"yellow\">";
+	  
+	  // actual genotype
+	  o1 << "<b>" << ( var.flat() ? var.geno_label( var(i) ) : var.label(i) ) << "</b><br>";
+	  
+	  // genotype meta-information?
+
+	  if ( var.flat() )
+	    {	      
+	      std::stringstream ss;
+	      ss << g.meta;
+	      std::vector<std::string> c = Helper::parse( ss.str() , ";" );
+	      for (int k=0;k<c.size(); k++) o1 << c[k] << "<br>";
+	    }
+	  else
+	    {
+	      std::cout << "pbrowse does not currently handle projects in which individuals feature more than once"
+			<< "</p></body></html>";
+	      exit(1);
+	      
+	    }
+
+	  // done
+	  o1 << "</td>";
+	}
+
     }
 
   o1 << "</tr>";
@@ -2133,7 +2378,12 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 
 	  for (int i=0;i<a.loc_append.size();i++)
 	    {
+
 	      std::set<Region> aloc = g.locdb.get_regions( a.loc_append[i] , Region(chr,min,max) );
+	      
+	      cnv.box( 2 , yoff , border , yoff+20 , "white" , "white" );
+	      cnv.box(xsize - rborder + 1 , yoff , xsize - 1 , yoff+20 , "white" , "white" );
+	      cnv.text( 10 ,yoff,a.loc_append[i] + " (" + Helper::int2str( aloc.size() ) + " intervals)", "gray" );
 	      
 	      std::set<Region>::iterator ii = aloc.begin();
 	      while ( ii != aloc.end() ) 
@@ -2143,13 +2393,13 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 		  cnv.line( p1 , yoff + 5 , p1 , yoff + 15 , "black" , 1 ); 
 		  cnv.line( p1 , yoff + 10 , p2 , yoff + 10 , "black" , 1 ); 
 		  cnv.line( p2 , yoff + 5 , p2 , yoff + 15 , "black" , 1 ); 
+		  std::stringstream ss;
+		  ss << ii->name;
+		  cnv.text( p2 + 2 , yoff + 15 , ss.str() , "gray" );
+
+		  yoff += ystep;
 		  ++ii;
 		}
-
-
-	      cnv.box( 2 , yoff , border , yoff+20 , "white" , "white" );
-	      cnv.box(xsize - rborder + 1 , yoff , xsize - 1 , yoff+20 , "white" , "white" );
-	      cnv.text( 10 ,yoff,a.loc_append[i] + " (" + Helper::int2str( aloc.size() ) + " intervals)", "gray" );
 
 	      yoff += ystep;
 	    }
@@ -2269,14 +2519,14 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 		  double maf2 = 0;
 		  bool altmin2 = vars(v).n_minor_allele( &c2 , &c2_tot , &maf2 , CONTROL );
 		  
-		  if ( altmin1 ) { c1 = c1_tot - c1; maf1 = 1 - maf1; }
-		  if ( altmin2 ) { c2 = c2_tot - c2; maf1 = 1 - maf2; }
+		  if ( !altmin1 ) { c1 = c1_tot - c1; maf1 = 1 - maf1; }
+		  if ( !altmin2 ) { c2 = c2_tot - c2; maf2 = 1 - maf2; }
 
 		  if ( maf1 > 0.01 || maf2 > 0.01 ) 
 		    cnv.text( p1 , yoff +5 , 
-			      "MAF=" + Helper::dbl2str( maf1 ) + "/" + Helper::dbl2str( maf2 ) , "gray" );
+			      "MAF=" + Helper::dbl2str( maf1 , 3 ) + "/" + Helper::dbl2str( maf2 , 3) , "gray" );
 		  else
-		    cnv.text( p1 , yoff +5 , 
+		    cnv.text( p1 + 2 , yoff +5 , 
 			      "AAC=" + Helper::int2str( c1 ) + "/" + Helper::int2str( c2 ) , "gray" );
 		  
 		}	      
@@ -2294,7 +2544,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 		  
 		  if ( maf[v]>0.01 ) 
 		    cnv.text( p1 , yoff +5 , 
-			      "MAF=" + Helper::dbl2str( maf[v] ) , "gray" );
+			      "MAF=" + Helper::dbl2str( maf[v] , 3 ) , "gray" );
 		  else
 		    cnv.text( p1 , yoff +5 , 
 			      "AAC=" + Helper::int2str( mac[v] ) , "gray" );
@@ -2468,9 +2718,15 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 		}
 	    }
 
-	}     
+	}
 
       
+      // re-write box around edge
+      cnv.line( 1, 1 , xsize , 1 );
+      cnv.line( xsize , 1 , xsize , ysize );
+      cnv.line( xsize , ysize , 1 , ysize );
+      cnv.line( 1  , ysize , 1 , 1 );
+
     }
 
   
@@ -2715,6 +2971,16 @@ void ExomeBrowser::write_html_header( const std::string & head_preamble )
 	    << "}"
 	    << "</style>";
 
+  // some basic JavaScript functions
+
+  std::cout << "<SCRIPT LANGUAGE=\"JavaScript\">"
+	    << " function checkAll(field) {"
+	    << " for (i = 0; i < field.length; i++)"
+	    << " field[i].checked = true ; }"
+	    << " function uncheckAll(field) { for (i = 0; i < field.length; i++) field[i].checked = false ; }"
+	    << "</script>";
+
+
   // any on-the-fly-defined functions related to the graphical 
   // views
 
@@ -2736,7 +3002,7 @@ void ExomeBrowser::write_start_page( const GStore & g ,
 				     const std::string & project_path )
 {
 
-  std::cout << "<form name=\"myform\" action=\"pbrowse.cgi\" method=\"GET\"> ";
+  std::cout << "<form name=\"myform\" action=\"gpbrowse.cgi\" method=\"GET\"> ";
   
   std::cout << "<table width=100% CELLPADDING=0 CELLSPACING=0>"
 	    << "<tr><td width=50% valign=center align=left>"
@@ -2839,8 +3105,15 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   // Query
   //
 
-  std::cout << "<p><b>Variants</b>: gene symbol/transcript ID (" 
+  std::cout << "<p><b>Variants</b>: gene/transcript ID (" << loc_set << " " 
+	    << a.getURL()->addField("q", "lslist")->printLink("change") << "|"
 	    << a.getURL()->addField("q", "glist")->addField("pheno", pheno)->printLink("list") << "),<br>region or variant ID";
+
+  // add separate page to change this (on lslist page)
+//   std::cout << "<br><input type=\"text\" size=\"45\" ";  
+//   if ( loc_set != "" ) 
+//     std::cout << " value=\"" << Helper::html_encode(loc_set) << "\"";
+//   std::cout << " name=\"loc\"></p>";
 
   
   //
@@ -2853,14 +3126,6 @@ void ExomeBrowser::write_start_page( const GStore & g ,
 	    << a.reg_list 
     //	    << Helper::html_encode( a.reg_list )
 	    << "</textarea></p>";
-
-  //
-  // Submit buttons
-  //
-  
-  std::cout << " <br> <input type=\"submit\" name=\"getgene\" value=\"Table\"> "
-	    << " <input type=\"submit\" name=\"gview\" value=\"Figure\"> "
-	    << " <input type=\"reset\" value=\"Reset\"> ";
 
   
   //
@@ -2915,17 +3180,17 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   std::cout << "</p>";
 
 
-  // Gene-set
-  std::cout << "<p>Gene set ";
-  std::cout << "(" << a.getURL()->addField("q", "lslist")->printLink("list") << ")";
+  //
+  // Individual list/mask
+  //
 
-
-  std::cout << "<br><input type=\"text\" size=\"45\" ";  
-  if ( loc_set != "" ) 
-    std::cout << " value=\"" << Helper::html_encode(loc_set) << "\"";
-  std::cout << " name=\"loc\"></p>";
-    
-
+  std::cout << "<p>Individuals include "
+	    << "(" << a.getURL()->addField("q", "pgrid")->printLink("list") << ")";	
+  std::cout << "<br><input type=\"text\" size=\"45\" name=\"indiv_list\"";
+  std::cout << " value=\""<< Helper::html_encode( a.indiv_list_url ) << "\"";  
+  std::cout << ">";
+  std::cout << "</p>";
+  
 
 
   //
@@ -2935,6 +3200,48 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   std::cout << "</td><td width=4% valign=top> &nbsp ";
   std::cout << "</td><td width=22% valign=top>";
   
+  //
+  // Variant set filters
+  //
+  
+  std::cout << "<p>Variant sets/superset filters "
+	    << "(" << a.getURL()->addField("q", "varsetlist")->printLink("list") << ")";	
+  std::cout << "<br><input type=\"text\" size=\"45\" name=\"varset\"";
+  std::cout << " value=\""<< Helper::html_encode( a.varset_url ) << "\"";  
+  std::cout << ">";
+  std::cout << "</p>";
+
+  //
+  // Reference appends
+  //
+  
+  std::cout << "<p>Reference DB filters/appends";
+  std::cout << "<br><input type=\"text\" size=\"45\" name=\"ref_append\"";
+  std::cout << " value=\""<< Helper::html_encode( a.ref_append_url ) << "\"";  
+  std::cout << ">";
+  std::cout << "</p>";
+  
+
+  //
+  // Locus DB appends
+  //
+
+  std::cout << "<p>Locus DB filters/appends";
+  std::cout << "<br><input type=\"text\" size=\"45\" name=\"loc_append\"";
+  std::cout << " value=\""<< Helper::html_encode( a.loc_append_url ) << "\"";  
+  std::cout << ">";
+  std::cout << "</p>";
+
+
+
+
+  //
+  // Fourth table column
+  //
+
+  std::cout << "</td><td width=4% valign=top> &nbsp ";
+  std::cout << "</td><td width=22% valign=top>";
+
 
   //
   // Mask specification
@@ -2979,46 +3286,6 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   std::cout << "</p>";
 
 
-  //
-  // Fourth table column
-  //
-
-  std::cout << "</td><td width=4% valign=top> &nbsp ";
-  std::cout << "</td><td width=22% valign=top>";
-
-
-  //
-  // Variant set filters
-  //
-  
-  std::cout << "<p>Variant sets/superset filters";
-  std::cout << "<br><input type=\"text\" size=\"45\" name=\"varset\"";
-  std::cout << " value=\""<< Helper::html_encode( a.varset_url ) << "\"";  
-  std::cout << ">";
-  std::cout << "</p>";
-
-  //
-  // Reference appends
-  //
-  
-  std::cout << "<p>Reference DB appends";
-  std::cout << "<br><input type=\"text\" size=\"45\" name=\"ref_append\"";
-  std::cout << " value=\""<< Helper::html_encode( a.ref_append_url ) << "\"";  
-  std::cout << ">";
-  std::cout << "</p>";
-  
-
-  //
-  // Locus DB appends
-  //
-
-  std::cout << "<p>Locus DB appends";
-  std::cout << "<br><input type=\"text\" size=\"45\" name=\"loc_append\"";
-  std::cout << " value=\""<< Helper::html_encode( a.loc_append_url ) << "\"";  
-  std::cout << ">";
-  std::cout << "</p>";
-
-
 
   //
   // End of table
@@ -3026,7 +3293,15 @@ void ExomeBrowser::write_start_page( const GStore & g ,
 
   std::cout << "</td></tr></table>";
 
-
+  //
+  // Submit buttons
+  //
+  
+  std::cout << " <br> <input type=\"submit\" name=\"getgene\" value=\"Variant table\"> "
+	    << " <input type=\"submit\" name=\"gview\" value=\"Regional Figure\"> "
+	    << " <input type=\"submit\" name=\"indgrid\" value=\"Genotype Grid\"> "
+	    << " <input type=\"submit\" name=\"pgrid\" value=\"Individual table\"> ";
+    
   std::cout << " </form> ";
   std::cout << "<hr> ";
 
@@ -3057,4 +3332,180 @@ void ExomeBrowser::write_start_page( const GStore & g ,
 }
 
 
+void ExomeBrowser::index_grid( Aux & a )
+{
+  // show multiple individuals (presumably a smallish number) for selected genotypes in a table
 
+
+
+}
+
+
+void ExomeBrowser::show_indiv( Aux & a )
+{
+
+
+  // Get *all* individuals from the VARDB
+  
+  std::map<std::string,std::set<std::string> > ind2file;
+
+  int cnt = 0;
+  if ( ! a.g->vardb.attached() ) return;
+
+  std::map<int,std::string> files = a.g->vardb.fetch_files();
+  std::map<int,std::string>::iterator i = files.begin();
+  while ( i != files.end() )
+    {
+      std::vector<std::string> inds = a.g->vardb.fetch_individuals( i->first );
+      for (int j = 0 ; j < inds.size(); j++)
+	ind2file[ inds[j] ].insert( a.g->vardb.file_tag( i->first ) + " : " + i->second );
+      ++i;
+    }
+  
+  const int n = ind2file.size();
+  
+  if ( a.indiv_list.size() == 0 ) 
+    std::cout << "All " << n << " individuals selected<br>";
+  else 
+    std::cout << a.indiv_list.size() << " of " << n << " individuals selected ("
+	      << a.getURL()->addField("q", "pgrid")
+      ->addField("indiv_list", "" )
+      ->printLink( "clear list" )
+	      << ")<br>";
+      
+  // make table
+  
+  std::cout << "<table border=1><tr>"
+	    << "<th>Selected</th>"
+	    << "<th>Primary ID</th>"
+	    << "<th>FID</th>"
+	    << "<th>IID</th>"
+	    << "<th>Paternal ID</th>"
+	    << "<th>Maternal ID</th>"
+	    << "<th>Sex</th>"
+	    << "<th>Phenotype(s)</th>"
+	    << "</tr>";
+  
+
+  std::map<std::string,std::set<std::string> >::iterator ii = ind2file.begin();
+
+  while ( ii != ind2file.end() )
+    {
+
+      std::string id = ii->first;
+
+      // get sex of a particular individual
+      sType s = a.g->inddb.sex( id );
+
+      Individual person = a.g->inddb.fetch( id );
+      
+      // checked?
+
+      if ( a.indiv_list.size() == 0 || a.indiv_list.find(id) != a.indiv_list.end() )
+	std::cout << "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"indsel\" value=\""<<id<<"\" checked></td>";
+      else
+	std::cout << "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"indsel\" value=\""<<id<<"\"></td>";
+
+      // ID
+      
+      std::cout << "<td>" 
+		<< a.getURL()->addField("q", "pgrid")
+	->addField("indiv_list", a.indiv_list_url == "" ? id : a.indiv_list_url + " " + id )
+	->printLink( id ) 	
+		<< "</td>";
+      
+       
+      // IID/FID
+      std::cout << "<td>" << person.fid() << "</td>"
+		<< "<td>" << person.iid() << "</td>";
+
+      // Paternal/maternal ID
+      std::cout << "<td>" << person.father() << "</td>"
+		<< "<td>" << person.mother() << "</td>";
+      
+      // Sex
+
+      if ( s == MALE ) std::cout << "<td>Male</td>";
+      else if ( s == FEMALE ) std::cout << "<td>Female</td>";
+      else std::cout << "<td>.</td>";
+
+      // Phenotypes
+      std::cout << "<td>";
+      std::stringstream ss;
+      ss << person.meta;
+      std::vector<std::string> c = Helper::parse( ss.str() , ";" );
+      for (int k=0;k<c.size(); k++) std::cout << c[k] << "<br>";
+      std::cout << "</td>";      
+      
+      // Done
+      std::cout << "</tr>";
+      ++ii;
+    }
+              
+  std::cout << "</table>";
+    
+  
+}
+
+
+void ExomeBrowser::show_varsets( Aux & a )
+{
+
+  std::cout << "<h3>Variant sets</h3>";
+
+  std::vector<std::string> sets = a.g->vardb.get_sets();
+  
+  std::cout << "<table border=1><tr><th>Selected</th><th>Set</th><th>Number of variants</th><th>Description</th></tr>";
+
+  for (int s = 0 ; s < sets.size(); s++)
+    {
+      std::cout << ( a.varset_set.find( sets[s] ) != a.varset_set.end() ? 
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"setsel\" value=\""+sets[s]+"\" checked></td>" :
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"setsel\" value=\""+sets[s]+"\"></td>" );
+      
+      std::cout << "<td>" 
+		<< a.getURL()->addField("q", "varsetlist")
+	->addField("varset", a.varset_url == "" ? sets[s] : a.varset_url + " " + sets[s] )
+	->printLink( sets[s] ) 	
+		<< "</td>";
+      
+      std::cout << "<td>" << a.g->vardb.get_set_size( sets[s] ) << "</td><td>" 
+		<< a.g->vardb.get_set_description( sets[s] ) << "</td></tr>";
+    }
+
+  std::cout << "</table>";
+
+  //
+  // Variant super-sets
+  //
+
+  std::cout << "<h3>Variant super-sets</h3>";
+
+  std::vector<std::string> ss = a.g->vardb.get_supersets();
+  if ( ss.size() == 0 ) std::cout << "<br><em>none</em><br>";
+  else
+    {
+      std::cout << "<table border=1><tr><th>Selected</th><th>Set</th><th>Number of sets</th><th>Sets</th><th>Description</th></tr>";
+            
+      for (int s = 0 ; s < ss.size(); s++)
+	{
+	  std::vector<std::string> sets = a.g->vardb.get_sets( ss[s] );
+	  
+	  std::cout << "<tr><td>" ;
+
+	  std::cout << "<td>" 
+		    << a.getURL()->addField("q", "varsetlist")
+	    ->addField("varset", a.varset_url == "" ? ss[s] : a.varset_url + " " + ss[s] )
+	    ->printLink( ss[s] ) 	
+		    << "</td>";
+     	
+	  std::cout << "<td>" << sets.size() << "</td>";
+
+	  for (int t = 0 ; t < sets.size(); t++)
+	    std::cout << sets[t] << "<br>";
+	  std::cout << "</td>" << a.g->vardb.get_superset_description( ss[s] ) << "</td>";
+	  std::cout << "</tr>";
+	}
+      std::cout << "</table>";
+    }
+}

@@ -1,4 +1,7 @@
 #include "regions.h"
+#include "gstore.h"
+
+extern GStore * GP;
 
 using namespace std;
 using namespace Helper;
@@ -37,6 +40,20 @@ bool Region::within( std::set<Region> & s )
 Region::Region(const std::string & s, bool & flag)
 {
 
+  // Parse a region string into a Region class
+  
+  // chr1
+  // chr1:100
+  // 1:100
+  // chr1:100..200
+  // chr1:100-200
+  // chr1:150+50  --> chr1:100..200
+
+  // lookup from VARDB if can't interpret as a number (or chromosome)
+  // rs12345      
+  // rs12345+50
+  // rs12345..rs67890
+
   id = 0;
   group = 0;
   name = "";
@@ -50,7 +67,7 @@ Region::Region(const std::string & s, bool & flag)
   // *or* whitespace delimited, e.g. chr1 100 200
     
   flag = false;
-
+  
   size_t p = s.find(":");
   
   if ( p == string::npos ) 
@@ -75,8 +92,23 @@ Region::Region(const std::string & s, bool & flag)
 
 
   // Get chromosome 
-  if ( ! Helper::chr_known( s.substr( 0,p ) ) ) return;
-    
+  if ( ! Helper::chr_known( s.substr( 0,p ) ) ) 
+    {
+      // is this a rs-ID (or two rs-IDs) instead?
+      if  ( GP->vardb.attached() ) 
+	{
+	  // could be in one of four forms:
+	  // rs1234
+	  // rs1234..rs5678
+	  // rs1234-rs5678
+	  
+	  // what of mixture? :  rs1234..200000  // NO, do not allow (as we have no specified a chr, could cause problems)
+
+	}
+      
+      return;
+    }
+  
   int chr = Helper::chrCode( s.substr( 0,p ) );
   if ( chr == 0 ) return;
   
@@ -89,23 +121,59 @@ Region::Region(const std::string & s, bool & flag)
   
   // Are one or two positions specified?
   
-  size_t q = spos.find("..");
-  
-  if ( q == string::npos )
+  size_t q1 = spos.find("..");
+  size_t q2 = spos.find("-");
+  size_t q3 = spos.find("+");
+
+  // Single position, e.g. chr1:12345 
+  if ( q1 == string::npos && q2 == std::string::npos && q3 == std::string::npos )
     {
+      int pstart = 0;
+      if ( ! Helper::str2int( spos , pstart ) ) return;
       start.chromosome( chr );
-      start.position( str2int( spos ) );
+      start.position( pstart );
       stop.chromosome( chr );
-      stop.position( str2int( spos ) );
+      stop.position( pstart );
       flag = true;
       return;
-	}
+    }
+
+  if       ( q1 != std::string::npos ) // '..'
+    { 
+      int pstart = 0, pend = 0;
+      if ( ! Helper::str2int( spos.substr(0,q1) , pstart ) ) return; 
+      if ( ! Helper::str2int( spos.substr( q1+2 ) , pend ) ) return;
+      if ( pend < pstart ) return;
+      start.chromosome( chr );
+      start.position( pstart );
+      stop.chromosome( chr );
+      stop.position( pend );
+    } 
+  else if  ( q2 != std::string::npos )   // '-'
+    { 
+      int pstart = 0, pend = 0;
+      if ( ! Helper::str2int( spos.substr(0,q2) , pstart ) ) return; 
+      if ( ! Helper::str2int( spos.substr( q2+1 ) , pend ) ) return;
+      if ( pend < pstart ) return;
+      start.chromosome( chr );
+      start.position( pstart );
+      stop.chromosome( chr );
+      stop.position( pend );    
+    } 
+  else if  ( q3 != std::string::npos )  // '+'
+    { 
+      int pmid = 0, w = 0;
+      if ( ! Helper::str2int( spos.substr(0,q3) , pmid ) ) return; 
+      if ( ! Helper::str2int( spos.substr( q3+1 ) , w ) ) return;
+
+      start.chromosome( chr );
+      start.position( pmid - w < 0 ? 0 : pmid - w );  // impose positive bounds
+      stop.chromosome( chr );
+      stop.position( pmid + w );          
+    }
   
-  start.chromosome( chr );
-  start.position( str2int(spos.substr(0,q)));
-  
-  stop.chromosome( chr );
-  stop.position( str2int(spos.substr(q+2)));
+  //  std::cout << "region = [" << *this << "] \n";
+
   flag = true;
   return;
 }

@@ -469,7 +469,10 @@ bool VarDBase::init()
 		  "          ( file_id, indiv_id, name ) "
 		  "   values ( :file_id, :indiv_id, :name ); " );
     
-    
+    stmt_replace_individual_id = 
+      sql.prepare( "UPDATE individuals SET name = :new_id WHERE name == :old_id;" );
+
+
     //
     // Queries
     //
@@ -512,6 +515,9 @@ bool VarDBase::init()
         
     stmt_fetch_variant_key = 
 	sql.prepare(" SELECT * FROM variants WHERE var_id == :var_id ; " );
+
+    stmt_fetch_variant_key_from_id = 
+	sql.prepare(" SELECT chr,bp1,bp2 FROM variants WHERE name == :name ; " );
 
     stmt_fetch_variant_pos = 
       sql.prepare(" SELECT * FROM variants WHERE chr == :chr AND bp1 == :bp1 ;" );
@@ -722,6 +728,7 @@ bool VarDBase::release()
   sql.finalise( stmt_fetch_headers ); 
   sql.finalise( stmt_fetch_metatypes ); 
   sql.finalise( stmt_fetch_variant_key ); 
+  sql.finalise( stmt_fetch_variant_key_from_id ); 
   sql.finalise( stmt_fetch_variant_pos ); 
   sql.finalise( stmt_fetch_variant_range ); 
 
@@ -747,6 +754,8 @@ bool VarDBase::release()
 
   sql.finalise( stmt_fetch_individual ); 
   sql.finalise( stmt_fetch_individuals ); 
+  sql.finalise( stmt_replace_individual_id );
+
   sql.finalise( stmt_iterate_variants ); 
   
   sql.finalise( stmt_insert_set );
@@ -2251,4 +2260,22 @@ void VarDBase::insert_bcf_index( uint64_t file_id , const Variant & var , int64_
   sql.reset( stmt_insert_bcf_idx );  
 }
 
+
+Region VarDBase::get_position_from_id( const std::string & id1 , const std::string & id2 ) 
+{
+  Region region;
+  
+  //  sql.
+  return region;
+}
+
+
+bool VarDBase::replace_individual_id( const std::string & old_id , const std::string & new_id )
+{
+  sql.bind_text( stmt_replace_individual_id , ":old_id" , old_id );
+  sql.bind_text( stmt_replace_individual_id , ":new_id" , new_id );
+  sql.step( stmt_replace_individual_id );
+  sql.reset( stmt_replace_individual_id );
+  return true;
+}
 

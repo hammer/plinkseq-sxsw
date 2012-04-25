@@ -501,6 +501,11 @@ struct aux_addvar  {
   std::string mtag;
   bool tagvalue;  
   std::set<std::string> sets;
+  aux_addvar() {
+    tagvalue = false;
+    mtag = "";
+    group = "";
+  }
 };
 
 
@@ -554,6 +559,7 @@ void f_add_to_varset( Variant & var , void * p )
     }
   else
     g.vardb.add_var_to_set( aux->group , var );
+
 }
 
 
@@ -574,11 +580,8 @@ bool Pseq::VarDB::add_to_varset( const std::string & group , Mask & mask , const
 
   aux_addvar av;
   av.group = group;
-  if ( mtag != "" ) { av.tagvalue = true; av.mtag = mtag; } 
-  g.vardb.begin();
-  g.vardb.iterate( f_add_to_varset , &av , mask );
-  g.vardb.commit();
-
+  if ( mtag != "" ) { av.tagvalue = true; av.mtag = mtag; }   
+  g.vardb.iterate( f_add_to_varset , &av , mask );  
   return true;
 }
 
@@ -725,5 +728,25 @@ bool Pseq::VarDB::insert_meta_from_file( const std::string & filename )
 bool Pseq::VarDB::insert_meta_on_fly( const std::string & name )
 {
 
+}
+
+
+// ID swaps
+
+bool Pseq::VarDB::swap_ids( const std::string & filename )
+{
+  // swap VARDB IDs
+  Helper::checkFileExists( filename );
+  InFile F( filename );  
+  while ( ! F.eof() ) 
+    {
+      std::vector<std::string> h = F.tokenizeLine("\t");
+      if ( h.size() == 0 ) continue;
+      if ( h.size() != 2 ) plog.warn( "encountered row without 2 tab-delimited fields" );
+      g.vardb.replace_individual_id( h[0] , h[1] );
+      g.inddb.replace_individual_id( h[0] , h[1] );
+    }
+  F.close();
+  return false;
 }
 

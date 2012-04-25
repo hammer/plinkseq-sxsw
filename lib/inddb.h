@@ -94,7 +94,13 @@ class IndDBase {
   void load_meta(std::vector<Individual> &, const std::string & ) ;
   
   int size();
+
+  //
+  // Individuals
+  //
   
+  bool replace_individual_id( const std::string & old_id , const std::string & new_id );
+
   //
   // Helpers
   //
@@ -119,6 +125,7 @@ class IndDBase {
   
   sqlite3_stmt * stmt_insert_individual;
   sqlite3_stmt * stmt_update_individual;
+  sqlite3_stmt * stmt_replace_individual_id;
 
   sqlite3_stmt * stmt_lookup_id;
   sqlite3_stmt * stmt_lookup_pheno_id;

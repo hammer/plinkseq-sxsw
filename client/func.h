@@ -38,6 +38,8 @@ namespace Pseq
       
       bool load_PLINK( const std::vector<std::string> & , const Pseq::Util::Options & , const std::string & );
       
+      bool swap_ids( const std::string & );
+
       bool flush( const std::vector<int> & );
       
       bool vacuum();
@@ -188,6 +190,8 @@ namespace Pseq
       
       bool load_phenotypes( std::string );
       
+      bool swap_ids( const std::string & );
+
       bool dump_table(Mask &);
       
     }

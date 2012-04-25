@@ -197,7 +197,10 @@ namespace Data {
     
     Matrix<T> operator*( const Data::Matrix<T> & rhs ) const;
     Vector<T> operator*( const Data::Vector<T> & rhs ) const;
-    
+
+    Matrix<T> operator+( const Data::Matrix<T> & rhs ) const;
+    Matrix<T> operator-( const Data::Matrix<T> & rhs ) const;    
+
     private:
     
     std::vector< Vector<T> > data;

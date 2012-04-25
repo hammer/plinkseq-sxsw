@@ -28,7 +28,10 @@ namespace Statistics {
   double chi2_prob( double x, double df );
   double t_prob( double x, double df );
   double ltqnorm( double p );
-  
+
+  // Beta distribution density probability function
+  double beta( double , double , double );
+
   // mainly helper functions for the above
   double factln(int);
   double factrl(int);
