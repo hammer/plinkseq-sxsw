@@ -441,14 +441,10 @@ void Pseq::Assoc::stat_cancor( const VariantGroup & vars ,
 }
 
 double
-Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_hit * aux, std::map<std::string, std::string> * output, bool original, std::map<std::string, int> var_class, double prev)
+Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_hit * aux, std::map<std::string, std::string> * output, bool original, std::map<std::string, int> var_class, double prev, bool mhit)
 {
 
   const int n = vars.n_individuals();
-  /*  double prev = .006;
-  if ( args.has( "prev" ) )
-    prev =  Helper::str2dbl(args.as_string( "prev" ));
-  */
 
   // see stat_cancor above - you may be able to just copy that code for P and G
   // populate P and G matrices
@@ -508,7 +504,7 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
 	std::string annot = "";
 
         if( vars(v).consensus.meta.has_field( "transcript" ) && vars(v).consensus.meta.has_field( "func" )){
-	  //std::cout << "c\n";
+
 	  std::vector<std::string> func = vars(v).consensus.meta.get_string( "func" );
 	  std::vector<std::string> transcript = vars(v).consensus.meta.get_string( "transcript");
 	  std::vector<std::string> func_split;
@@ -543,20 +539,31 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
               if( trans_split[ti].compare(vars.name()) == 0 ){
                 if( annot.compare("") == 0 ){
                   annot = func_split[ti];
-                }
+		}
                 else{
 		  std::string test = func_split[ti].substr(0,7);
-                  if( test.compare("esplice") == 0  && annot.compare("nonsense") != 0 )
-                    annot = func_split[ti];             
-                }
+		  std::string test1 = func_split[ti].substr(0,6);
+
+                  // if esplice or nonsense doesn't matter what previous annotation is (can't be both) 
+		  if( func_split[ti].compare("nonsense") == 0 || func_split[ti].compare("esplice3") == 0 || func_split[ti].compare("esplice5") == 0)
+                    annot = func_split[ti];
+
+		  // if splice site and not nonsense
+		  if( ( func_split[ti].compare("splice3") == 0 || func_split[ti].compare("splice5") == 0 ) && annot.compare("nonsense") != 0  )
+                    annot = func_split[ti];
+		  
+		  // if missense and not nonsense or splice
+		  if( func_split[ti].compare("missense") == 0 && annot.compare("nonsense") != 0 && annot.compare("splice3") != 0 && annot.compare("splice5") != 0 )
+                    annot = func_split[ti];
+
+		  // if silent and not nonsense, missense or splice
+                  if( func_split[ti].compare("silent") == 0 && annot.compare("nonsense") != 0 && annot.compare("missense") != 0 && annot.compare("splice3") != 0 && annot.compare("splice5") != 0 )
+                    annot = func_split[ti];
+                
+		}
               }
           }
         }
-
-	//        bool pass = false;
-	//        if( annot.compare("esplice3") == 0 || annot.compare("esplice5") == 0 || annot.compare("nonsense") == 0 ) // || annot.compare("missense") == 0 )
-	//          pass = true;
-
 
 	bool pass = true;
 	if( var_class.size() > 0 ){
@@ -597,6 +604,11 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
       if( hets.size() > 0 ){
         for(int z = 0; z < hets.size()-1; z++){
           for(int k = z+1; k < hets.size(); k++){
+	    
+	    for( int u = 0; u < 3; u++ )
+	      for( int v = 0; v < 3; v++ )
+		mat[u][v] = 0;
+
 
             // fill in genotype matrix to test two hits
             for (int l = 0; l < n; l++){
@@ -606,9 +618,8 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
             }
             
             // test two hit
-            int rest = mat[0][1] + mat[0][2] + mat[1][0] + mat[1][2] + mat[2][0] + mat[2][1] + mat[2][2];
-            
-            if( ((mat[0][1] + mat[0][2]) > 0 && (mat[1][0] + mat[2][0]) > 0 && (mat[1][2] + mat[2][1] + mat[2][2]) == 0) || (mat[1][1] == 1 && rest == 0)){
+            int rest = mat[0][1] + mat[0][2] + mat[1][0] + mat[1][2] + mat[2][0] + mat[2][1] + mat[2][2];            
+            if( ((mat[0][1] + mat[0][2]) > 0 && (mat[1][0] + mat[2][0]) > 0 && ( mat[1][2] + mat[2][1] + mat[2][2] == 0 ) ) || (mat[1][1] == 1 && rest == 0) || mhit ){
               if(vars.ind(j)->affected() == CASE){
                 if(original)
 		  std::cout << "CHET: " << vars(hets[z]).chromosome() << ":" << vars(hets[z]).position() << "-" << vars(hets[k]).chromosome() << ":" << vars(hets[k]).position() << " " << id << " case " << ann[z] << "-" << ann[k] << "\n";

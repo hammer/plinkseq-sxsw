@@ -64,7 +64,7 @@ namespace Pseq
                          Aux_prelim * ,
                          Aux_two_hit * ,
                          std::map<std::string,std::string> *  ,
-                         bool original, std::map< std::string, int >, double );
+                         bool original, std::map< std::string, int >, double, bool );
     
 
     struct AuxGenic 

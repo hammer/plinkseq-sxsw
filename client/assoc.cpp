@@ -1432,6 +1432,8 @@ void g_set_association( VariantGroup & vars , void * p )
   if ( args.has( "prev" ) )
     prev =  Helper::str2dbl(args.as_string( "prev" ));
 
+  bool mhit = args.has( "mhit" );
+
 
   std::map< std::string, int > var_class;
 
@@ -1549,7 +1551,7 @@ void g_set_association( VariantGroup & vars , void * p )
     {
       test_name.push_back( "TWO-HIT" );
       
-      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true , var_class , prev );
+      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true , var_class , prev, mhit );
       test_statistic.push_back( statistic );
     }
   
@@ -1621,7 +1623,7 @@ void g_set_association( VariantGroup & vars , void * p )
 	}
       if ( data->two_hit )
         {
-	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false , var_class , prev );
+	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false , var_class , prev, mhit );
 	  test_statistic.push_back( statistic );
 	}
 
