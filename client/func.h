@@ -193,7 +193,10 @@ namespace Pseq
       bool swap_ids( const std::string & );
 
       bool dump_table(Mask &);
+
+      bool make_residuals( const std::vector<std::string> & );
       
+      bool dump_phenotypes( const std::vector<std::string> & );
     }
   
   

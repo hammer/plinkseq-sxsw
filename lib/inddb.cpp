@@ -346,6 +346,8 @@ void IndDBase::insert( const uint64_t i, const uint64_t p , const std::string & 
 
 bool IndDBase::load_ped_info( const std::string & filename )
 {
+
+  if ( ! attached() ) Helper::halt( "no attached INDDB" );
   
   if ( ! Helper::fileExists(filename) ) 
     {
@@ -417,6 +419,8 @@ bool IndDBase::load_ped_info( const std::string & filename )
 
 bool IndDBase::load_phenotypes( const std::string & filename )
 {
+
+  if ( ! attached() ) Helper::halt( "no attached INDDB" );
 
   if ( ! Helper::fileExists(filename) ) 
     {

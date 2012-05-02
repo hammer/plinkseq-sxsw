@@ -14,6 +14,7 @@ netassoc.h \
 summaries.h \
 util.h \
 views.h \
+davies.h \
 util.cpp \
 ibs.cpp \
 main.cpp \
@@ -32,6 +33,7 @@ stepup.cpp \
 kbac.cpp \
 netassoc.cpp \
 skat.cpp \
+davies.cpp \
 gseq.cpp \
 extra.cpp
 

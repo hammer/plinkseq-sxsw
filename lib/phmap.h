@@ -12,6 +12,7 @@
 class IndDBase;
 class Individual;
 class IndividualMap;
+class VarDBase;
 
 // The PhenotypeMap is a helper class responsible for knowing and 
 // setting the current phenotype, and for all transactions with the
@@ -86,6 +87,8 @@ class PhenotypeMap {
 
   int attach_dichot_phenotype( const std::string & pname , const std::vector<int> & phe , const IndividualMap & );
 
+  int attach_qt_phenotype( const std::string & pname , const std::vector<bool> & missing , const std::vector<double> & phe , const IndividualMap & imap );  
+
   int make_phenotype( const std::string & make_phenotype );
 
   int set_strata( const std::string & s );
@@ -96,9 +99,12 @@ class PhenotypeMap {
   
   pType type() const { return phenotype_type; }
 
+  pType type( const std::string & ) const ;
+
   //int attach_covariates( const std::string & );
   
-  Data::Matrix<double> covariates( const std::vector<std::string> & c , const IndividualMap & indmap );
+  Data::Matrix<double> covariates( const std::vector<std::string> & c , const IndividualMap & indmap , 
+				   VarDBase * vardb = NULL );
 
 
   //

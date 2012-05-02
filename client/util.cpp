@@ -148,7 +148,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     
 	  << "*gs-view|views|view gene variants in sequence|GRP|ARG:ref-variants"
 	
-	  << "i-view|views|individuals in project/file|VCF|ARG:pheno,from-vardb"
+	  << "i-view|views|individuals in project/file|VCF|ARG:phenotype,from-vardb"
+
+	  << "write-phe|views|dump phenotypes in .phe file format|ARG:name"
 
 	  << "v-matrix|output|write a matrix of allele counts|VCF"
 
@@ -311,7 +313,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     
 	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta"
 	
-	  << "glm|tests|general linear models|VCF|ARG:phenotype,perm,vmeta,use-postprobs,use-dosages,covar,show-covar"
+	  << "glm|tests|general linear models|VCF|ARG:phenotype,perm,vmeta,use-postprobs,use-dosages,covar,show-covar,show-intercept,residuals,file"
 
 	  << "unique|views,tests|view variants specific to individual groups|VCF|ARG:indiv,require,allow"
 
@@ -493,8 +495,9 @@ void Pseq::Util::Options::load( int n , char ** argv )
 
     reg( "strata" , STRING,"stratifier variable");
     reg( "covar" , STRING_VECTOR , "covariate(s)");
+    reg( "residuals" , STRING_VECTOR , "residualize phenotype by these covariates" );
     reg( "weights" , STRING , "name of variant weights tag");
-
+    reg( "skat-weights" , FLOAT_VECTOR , "Beta(a,b); a=1,b=25 default");
 
     // Input modifiers 
     
@@ -565,6 +568,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "use-postprobs" , STRING , "genotype are posterior probabilities in specified tag" );
 
     reg( "show-covar" , NONE, "list coefficients for covariates" );
+    reg( "show-intercept" , NONE, "list coefficients for b0 term in GLM");
     
     reg( "tests" , KEYWORD , "gene-based tests" );
     keyword( "tests" , "sumstat" , NONE , "sum-statistic test" );

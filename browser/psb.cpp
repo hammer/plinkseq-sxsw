@@ -1986,7 +1986,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 
       // each line is exactly 20 pixels
 
-      const int ystep = 20; 
+      const int ystep = 15; 
       
       int ylines = 7;  // ( defaults from above)
 
@@ -2251,7 +2251,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
       // Transcripts
       //
       
-      cnv.text( 5 , yoff , "Transcripts" , "gray" ) ;   
+      cnv.text( 5 , yoff , "Transcripts" , "blue" ) ;   
 
       yoff += ystep;
 
@@ -2267,39 +2267,75 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 
 	  // either link to make full transcript
 	  if ( show_full_transcript )
-	    cnv.box( p1 , yoff , p2 , yoff+10 , "white","white",1,
+	    cnv.box( p1 , yoff-5 , p2 , yoff+5 , "white","white",1,
 		     "trans_link_" + Helper::int2str(tr) , 		
 		     a.getURL()->addField("q", "gview")
 		     ->addField("regs", reg.name )
 		     ->addField("inc_fltr", a.inc_fltr )
 		     ->addField("vinc_fltr", a.vinc_fltr )->printLink() );
    
-	  cnv.line( p1 , yoff+5 , p2 , yoff+5 , "black" , 1 ) ;
+	  cnv.line( p1 , yoff , p2 , yoff , "gray" , 1 ) ;
 
 	  
 	  const int s = reg.subregion.size();
+
+	  // exons first, then CDS
 	  for (int ss=0;ss<s;ss++)
 	    {
+	      
 	      int p1 = border + ( ( reg.subregion[ss].start.position() - min) / (double)span ) * plotsize;
 	      int p2 = border + ( ( reg.subregion[ss].stop.position() - min) / (double)span ) * plotsize;
+	      
+	      int w = 1;
+	      std::string bgcol = "gray";
+	      std::string fgcol = "gray";
+	      
+	      if ( ! reg.subregion[ss].exon() ) continue;
+	      
 	      if ( show_full_transcript ) 
-		cnv.box( p1, yoff , p2 , yoff + 10 , "lightblue" , "black" , 1, 
+		cnv.box( p1, yoff-w , p2 , yoff+w , bgcol , fgcol , 1, 
 			 "el_" + Helper::int2str(tr) + "_" + Helper::int2str(ss) , 
 			 a.getURL()->addField("q", "gview")
 			 ->addField("regs", reg.subregion[ss].coordinate() )
 			 ->addField("inc_fltr", a.inc_fltr )
 			 ->addField("vinc_fltr", a.vinc_fltr )->printLink() );
 	      else
-		cnv.box( p1, yoff , p2 , yoff + 10 , "lightblue" , "black" );
+		cnv.box( p1, yoff - w , p2 , yoff + w , bgcol , fgcol );
 	    }
 	  
+	  // CDS 
+	  for (int ss=0;ss<s;ss++)
+	    {
+	      
+	      int p1 = border + ( ( reg.subregion[ss].start.position() - min) / (double)span ) * plotsize;
+	      int p2 = border + ( ( reg.subregion[ss].stop.position() - min) / (double)span ) * plotsize;
+	      
+	      int w = 4;
+	      std::string bgcol = "lightblue";
+	      std::string fgcol = "black";
+
+	      if      ( reg.subregion[ss].start_codon() ) { bgcol = fgcol = "red";w=7; } 
+	      else if ( ! reg.subregion[ss].CDS() ) continue;
+		   
+	      if ( show_full_transcript ) 
+		cnv.box( p1, yoff-w , p2 , yoff+w , bgcol , fgcol , 1, 
+			 "el_" + Helper::int2str(tr) + "_" + Helper::int2str(ss) , 
+			 a.getURL()->addField("q", "gview")
+			 ->addField("regs", reg.subregion[ss].coordinate() )
+			 ->addField("inc_fltr", a.inc_fltr )
+			 ->addField("vinc_fltr", a.vinc_fltr )->printLink() );
+	      else
+		cnv.box( p1, yoff - w , p2 , yoff + w , bgcol , fgcol );
+	    }
+
+
 	  // transcript name in left 
 
 	  if ( show_full_transcript ) 
 	    {
-	      cnv.box(2 , yoff-1 , border , yoff+11 , "white" , "white" );
-	      cnv.box(xsize - rborder + 1 , yoff-1 , xsize - 1 , yoff+11 , "white" , "white" );
-	      cnv.text( 5,yoff+10 , 
+	      cnv.box(2 , yoff-5 , border , yoff+5 , "white" , "white" );
+	      cnv.box(xsize - rborder + 1 , yoff-5 , xsize - 1 , yoff+5 , "white" , "white" );
+	      cnv.text( 5,yoff+3 , 
 			reg.altname != reg.name && reg.altname != "" && reg.altname != "." 
 			? reg.altname + "(" + reg.name + ")" 
 			: reg.name  );	  
@@ -2319,7 +2355,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 	{
 
 	  // get reference variants in this region	  
-	  cnv.text( 5 , yoff , "Reference variants" , "gray" ) ;   
+	  cnv.text( 5 , yoff , "Reference variants" , "blue" ) ;   
 	  yoff += ystep;
 
 	  for (int i=0;i<a.ref_append.size();i++)
@@ -2333,7 +2369,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 		}
 	      else
 		cnv.text(5,yoff,a.ref_append[i] + " (" + Helper::int2str(rvar.size()) + " items)" , "gray" );
-	
+	      
 	      bool show_meta =  rvar.size() < 20 ;
 	      std::set<RefVariant>::iterator ii = rvar.begin();
 	      while ( ii != rvar.end() )
@@ -2341,20 +2377,20 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 		  int p1 = border + ( ( ii->start() - min ) / (double)span ) * plotsize; 
 		  int p2 = border + ( ( ii->stop() - min ) / (double)span ) * plotsize; 
 		  
- 		  cnv.line( p1 , yoff , 
-			    p1 , yoff+10 , 
-			    "gray" ); 
+ 		  cnv.line( p1 , yoff-5 , 
+			    p1 , yoff+5 , 
+			    "black" ); 
 		  
 
 		  if ( show_meta ) 
 		    {
 		      std::stringstream ss ;
-		      ss << *ii << "; " << ii->meta ;
-		      cnv.text( p1 + 3 , yoff , ss.str() );
+		      ss << *ii << "; " << ii->value() ;
+		      cnv.text( p1 + 3 , yoff+5 , ss.str() , "gray");
 		      yoff += ystep;
 		    }
 		  
-		  cnv.box(2 , yoff-1 , border , yoff+11 , "white" , "white" );
+		  //cnv.box(2 , yoff-1 , border , yoff+11 , "white" , "white" );
 		  
 		  ++ii;
 		}
@@ -2372,7 +2408,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
       if ( add_loc ) 
 	{
 	  
-	  cnv.text( 5 , yoff , "Reference intervals/loci" , "gray" ) ;   
+	  cnv.text( 5 , yoff , "Reference intervals/loci" , "blue" ) ;   
 	  
 	  yoff += ystep;
 
@@ -2413,7 +2449,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
       // Variant ticks
       //
       
-      cnv.text( 5 , yoff , "Variants" , "gray" ) ;   
+      cnv.text( 5 , yoff , "Variants" , "blue" ) ;   
       yoff += ystep;
       cnv.text( 5 , yoff , " (" + Helper::int2str( nv ) + " in region)" , "gray" ) ;   
       for (int v=0;v<nv;v++)
@@ -2494,7 +2530,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 
 	  yoff += ystep;
 
-	  cnv.text( 5 , yoff , "Minor allele count/frequency" , "gray" );
+	  cnv.text( 5 , yoff , "Minor allele count/frequency" , "blue" );
 
 
 	  if ( case_control ) 
@@ -2523,10 +2559,10 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 		  if ( !altmin2 ) { c2 = c2_tot - c2; maf2 = 1 - maf2; }
 
 		  if ( maf1 > 0.01 || maf2 > 0.01 ) 
-		    cnv.text( p1 , yoff +5 , 
+		    cnv.text( p1 + 4, yoff +5 , 
 			      "MAF=" + Helper::dbl2str( maf1 , 3 ) + "/" + Helper::dbl2str( maf2 , 3) , "gray" );
 		  else
-		    cnv.text( p1 + 2 , yoff +5 , 
+		    cnv.text( p1 + 4 , yoff +5 , 
 			      "AAC=" + Helper::int2str( c1 ) + "/" + Helper::int2str( c2 ) , "gray" );
 		  
 		}	      
@@ -2564,7 +2600,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
       //
       
       yoff += ystep;
-      cnv.text( 5 , yoff , "Individuals (rare variant genotypes)" , "gray" ) ;   
+      cnv.text( 5 , yoff , "Individuals (rare variant genotypes)" , "blue" ) ;   
       yoff += ystep;
 
       
@@ -3002,7 +3038,7 @@ void ExomeBrowser::write_start_page( const GStore & g ,
 				     const std::string & project_path )
 {
 
-  std::cout << "<form name=\"myform\" action=\"gpbrowse.cgi\" method=\"GET\"> ";
+  std::cout << "<form name=\"myform\" action=\"pbrowse.cgi\" method=\"GET\"> ";
   
   std::cout << "<table width=100% CELLPADDING=0 CELLSPACING=0>"
 	    << "<tr><td width=50% valign=center align=left>"

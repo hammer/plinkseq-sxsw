@@ -26,6 +26,7 @@ namespace Statistics {
   
   double dbinom( const int k , const int n , double p );
   double chi2_prob( double x, double df );
+  double noncentral_chi2_prob( double x, double df , double  );
   double t_prob( double x, double df );
   double ltqnorm( double p );
 
