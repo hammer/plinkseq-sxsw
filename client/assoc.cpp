@@ -1323,12 +1323,31 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //          kbac     KBAC 
   //          skat     SKAT
 
+
+  //
+  // Do we have an appropriate pheotype specified?
+  //
+  
+  if ( g.phmap.type() == PHE_DICHOT )
+    { 
+      // fine for now
+    }
+  else if ( g.phmap.type() == PHE_QT )
+    {
+      // for now, only SKAT can handle QTs
+      if ( ntests > 1 || ! a.skat ) 
+	Helper::halt( "only SKAT can handle quantitative traits" );      
+    }
+  else      
+    Helper::halt("no dichotomous phenotype specified");
+
+
   //
   // Set up permutation class
   //
    
   g.perm.initiate( nrep , ntests );
-  a.fix_null_genotypes = args.has("fix-null");
+  a.fix_null_genotypes = args.has( "fix-null" );
  
   
   //
@@ -1349,9 +1368,18 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   if ( args.has( "weights" ) )
     {
       Pseq::Assoc::Aux_skat::has_weights = true;
+      Pseq::Assoc::Aux_skat::use_freq_weights = false;
       Pseq::Assoc::Aux_skat::weights = args.as_string( "weights" );
     }
   
+  else if ( args.has( "skat-weights" ) )
+    {
+      Pseq::Assoc::Aux_skat::use_freq_weights = true;
+      std::vector<double> w = args.as_float_vector( "skat-weights" );
+      if ( w.size() != 2 ) Helper::halt( "expecting --skat-weights a b" );
+      Pseq::Assoc::Aux_skat::a1 = w[0];
+      Pseq::Assoc::Aux_skat::a2 = w[1]; 
+    }
 
   //
   // Apply tests to dataset
@@ -1436,7 +1464,7 @@ void g_set_association( VariantGroup & vars , void * p )
   // External tests
   //
 
-  Pseq::Assoc::Aux_hoffman_witte aux_hoffman_witte( vars, &aux_prelim );
+  Pseq::Assoc::Aux_hoffman_witte aux_hoffman_witte( data->hoffman_witte , vars, &aux_prelim );
   Pseq::Assoc::Aux_kbac aux_kbac;
   Pseq::Assoc::Aux_skat aux_skat;
 
@@ -1636,7 +1664,7 @@ void g_set_association( VariantGroup & vars , void * p )
       //      
 
       if ( ! g->perm.score( test_statistic ) ) break;
-      
+    
       
     } // Next permutation
   
@@ -1648,9 +1676,9 @@ void g_set_association( VariantGroup & vars , void * p )
   plog.data_group( vars.name() );
   plog.data( vars.coordinate() );
   plog.data( g->locdb.alias( vars.name() , false ) );
-    //plog.data( "." );
+  //plog.data( "." );
   plog.data( vars.size() );
-
+  
   if ( data->show_midbp)
     {
       plog.data( vars.midposition() );
@@ -1661,8 +1689,16 @@ void g_set_association( VariantGroup & vars , void * p )
     {      
       std::string output = test_text[ test_name[t] ];      
       plog.data( test_name[t] , "TEST" , test_name[t] );      
-      plog.data( g->perm.pvalue(t) , "P", test_name[t] );
-      plog.data( g->perm.min_pvalue(t) , "I" , test_name[t] ); 
+      if ( R != 1 ) 
+	{
+	  plog.data( g->perm.pvalue(t) , "P", test_name[t] );
+	  plog.data( g->perm.min_pvalue(t) , "I" , test_name[t] ); 
+	}
+      else // asymptotic p-values
+	{ 
+	  plog.data( "." , "P", test_name[t] );
+	  plog.data( "." , "I" , test_name[t] ); 
+	}
       plog.data( output == "" ? "." : output , "DESC" , test_name[t] );
     }
   

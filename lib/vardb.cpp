@@ -2261,12 +2261,47 @@ void VarDBase::insert_bcf_index( uint64_t file_id , const Variant & var , int64_
 }
 
 
-Region VarDBase::get_position_from_id( const std::string & id1 , const std::string & id2 ) 
+Region VarDBase::get_position_from_id( const std::string & id1 , const std::string & id2 , bool * okay ) 
 {
-  Region region;
-  
-  //  sql.
-  return region;
+
+  if ( okay ) * okay = true;
+
+  int chr = 0 ;
+  int bp1 = 0 ;
+
+  sql.bind_text( stmt_fetch_variant_key_from_id , ":name" , id1 );
+
+  if ( sql.step( stmt_fetch_variant_key_from_id ) ) 
+    {
+      // only use BP1 for Variant 1 
+      chr = sql.get_int( stmt_fetch_variant_key_from_id , 0 ) ; 
+      bp1 = sql.get_int( stmt_fetch_variant_key_from_id , 1 ) ;             
+      sql.reset( stmt_fetch_variant_key_from_id );
+      if ( id2 == "" || id2 == id1 ) return Region(chr,bp1,bp1);
+      
+      sql.bind_text( stmt_fetch_variant_key_from_id , ":name" , id2 );
+
+      if ( sql.step( stmt_fetch_variant_key_from_id ) ) 
+	{
+	  // only use BP1 for Variant 1 
+	  int chr2 = sql.get_int( stmt_fetch_variant_key_from_id , 0 ) ; 
+	  int bp2 = sql.get_int( stmt_fetch_variant_key_from_id , 1 ) ;             
+	  sql.reset( stmt_fetch_variant_key_from_id );
+	  if ( chr2 != chr ) chr = 0;
+	  if ( bp2 < bp1 ) 
+	    {
+	      int tmp = bp1;
+	      bp1 = bp2;
+	      bp2 = tmp;
+	    }
+	  return Region(chr,bp1,bp2);
+	}
+    }
+
+  if ( okay ) *okay = false;
+
+  return Region();
+
 }
 
 

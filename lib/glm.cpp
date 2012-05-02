@@ -128,6 +128,7 @@ bool GLM::check_VIF()
   // Calculate correlation matrix for X
   // Skip intercept (first term, X[,0]
 
+
   int p = nind;
   int q = np - 1 ;
 
@@ -195,19 +196,20 @@ bool GLM::fit_linear()
   
   // if only intercept + term, use a quicker
   // version
-  
+
   if ( np == 2 && ! cluster ) return fit_univariate_linear();
   
   all_valid = true;  // replace with checkVIF etc
-
+  
   if ( np == 0 || nind == 0 || ! all_valid )
     {
       all_valid = false;
       return false;
     }
-  
-  // Allocate space
 
+
+  // Allocate space
+ 
   coef.resize( np );  
   S.resize( np, np );
   
@@ -375,9 +377,12 @@ bool GLM::fit_univariate_linear()
 {
 
   // Speed-up version for univariate case has set coef and S
-  
+
   if ( np != 2 || nind == 0 )
-    return false;
+    {
+      all_valid = false;
+      return false;
+    }
 
   coef.resize(2);
   S.resize(2,2);
@@ -407,10 +412,20 @@ bool GLM::fit_univariate_linear()
   y_var /= (double)nind - 1;
   x_var /= (double)nind - 1;
   y_x_covar /= (double)nind - 1;
-
-  // Do not set intercept; only the univariate coefficient
+  
+  // b_1 term and SE
   coef(1) = y_x_covar / x_var;
   S(1,1) = (y_var/x_var - (y_x_covar*y_x_covar)/(x_var*x_var) ) / (double)( nind - 2 ) ;  
+  
+  // also populate for the intercept
+  double sse = 0;
+  for (int i=0;i<nind;i++)
+    {
+      double e = Y(i) - coef(1) * X(i,1) ;
+      sse += e * e;
+    }
+  coef(0) = y_mean - coef(1) * x_mean;
+  S(0,0) = sqrt(sse/(double)(nind-2.0)) * sqrt( (1/(double)nind ) + ( ( x_mean*x_mean ) / ( S(1,1) ) ) ) ;
 
   return true;
 }
@@ -483,7 +498,8 @@ double GLM::test_var() const
 
 double GLM::test_coef() const
 {
-  return model == LINEAR ? coef[t] : exp( coef[t] );
+  
+  return all_valid ? ( model == LINEAR ? coef[t] : exp( coef[t] ) ) : 0 ;
 }
 
 double GLM::test_se() const
@@ -493,28 +509,28 @@ double GLM::test_se() const
 
 double GLM::test_pval() const
 {
-  return model == LINEAR ? 
-    Statistics::t_prob( test_statistic() , Y.size()-np ) :
-    Statistics::chi2_prob( Statistics::SQR( test_statistic() ) , 1 );
+  return all_valid ? ( model == LINEAR ? 
+		       Statistics::t_prob( test_statistic() , Y.size()-np ) :
+		       Statistics::chi2_prob( Statistics::SQR( test_statistic() ) , 1 ) ) : 1.0 ;
 }
 
 double GLM::test_statistic() const
-{
-  return coef[t] / test_se();
+{  
+  return all_valid ? coef[t] / test_se() : 0 ;
 }
 
 double GLM::test_lower_ci() const
 {
-  return model == LINEAR ? 
-    coef[t] - ci_zt * test_se() :
-    exp( coef[t] - ci_zt * test_se() );
+  return all_valid ? ( model == LINEAR ? 
+		       coef[t] - ci_zt * test_se() :
+		       exp( coef[t] - ci_zt * test_se() ) ) : 0 ; 
 }
 
 double GLM::test_upper_ci() const
 {
-  return model == LINEAR ? 
-    coef[t] + ci_zt * test_se() :
-    exp( coef[t] + ci_zt * test_se() );
+  return all_valid ? ( model == LINEAR ? 
+		       coef[t] + ci_zt * test_se() :
+		       exp( coef[t] + ci_zt * test_se() ) ) : 0 ;
 }
 
 
@@ -541,6 +557,7 @@ bool GLM::display( Data::Vector<double> * beta ,
   
   for (int p = 0; p < np ; p++) 
     {
+
       bool okay = var[p] < 1e-20 || ! Helper::realnum( var[p] ) ? false : all_valid;
       
       if ( mask ) (*mask)[p] = okay;
@@ -548,6 +565,7 @@ bool GLM::display( Data::Vector<double> * beta ,
       if ( okay )
         {	  
 	  double sderr = sqrt( var[p] );
+
 	  double Z = coef[p] / sderr;
 	 
 	  if ( se ) (*se)(p) = sderr;  

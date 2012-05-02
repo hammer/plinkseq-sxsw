@@ -495,9 +495,21 @@ namespace Helper
   std::vector<std::string> whitespace(const std::string & sline);
   std::map<std::string,std::string> quoted_comma_keypair_split( const std::string & item );
   std::string stringizeKeyPairList( const std::map<std::string,std::string> & , bool show_keys = true );
-  std::string stringize( const std::set<std::string> & , const std::string & delim = "," );
-  std::string stringize( const std::vector<std::string> & , const std::string & delim = "," );
 
+
+  template<typename T> std::string stringize( const T & s , const std::string & delim = "," )
+    {
+      typename T::const_iterator i = s.begin();
+      std::stringstream r;
+      while ( i != s.end() )
+	{
+	  if ( i != s.begin() ) r << delim;
+	  r << *i;
+	  ++i;
+	}
+      return r.str();
+    }
+  
   std::vector<std::string> char_split( const std::string & , const char , bool empty = true );
   std::vector<std::string> char_split( const std::string & , const char , const char , bool empty = true );
   std::vector<std::string> char_split( const std::string & , const char , const char , const char , bool empty = true );

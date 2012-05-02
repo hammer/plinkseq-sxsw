@@ -166,8 +166,9 @@ Data::Matrix<double> Statistics::inverse( const Data::Matrix<double> & u_orig, b
 Data::Matrix<double> Statistics::matrix_sqrt( const Data::Matrix<double> & u_orig )
 {
   
-  Data::Matrix<double> u = u_orig;
 
+  Data::Matrix<double> u = u_orig;
+  
   // Using SVD, square root is U . sqrt(D) . V_T
   //  msqrt <- function(m) { m <- svd(m); m$u %*% sqrt(diag(m$d)) %*% t(m$v) }  
 
@@ -183,10 +184,8 @@ Data::Matrix<double> Statistics::matrix_sqrt( const Data::Matrix<double> & u_ori
   // Take square root of diagonal values                                                                                                                                                                                                                                                                          
   for (int i=0; i<n; i++)
     d[i] = sqrt(d[i]);
-  
-  
-  // Multiplication to reconstruct original                                                                                                                                                                                                                                                                             
 
+  // Multiplication to reconstruct original                                                                                                                                                                                                                                                                             
   Data::Matrix<double> r(n,n);
   Data::Matrix<double> r2(n,n);
 
@@ -544,6 +543,18 @@ double Statistics::chi2_prob(double x, double df)
   return q;
   
 }
+
+
+double Statistics::noncentral_chi2_prob( double x , double df , double ncp )
+{
+  int w = 1;
+  double bnd = 1;
+  int st = 0;
+  double p, q;  
+  cdfchn(&w,&p,&q,&x,&df,&ncp,&st,&bnd);
+  return q;
+}
+
 
 // Inverse normal distribution
 

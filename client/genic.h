@@ -208,7 +208,7 @@ namespace Pseq
     struct Aux_hoffman_witte 
     {      
       
-      Aux_hoffman_witte( const VariantGroup & vars, Aux_prelim * p );      
+      Aux_hoffman_witte( bool , const VariantGroup & vars, Aux_prelim * p );      
       
       std::vector<int> piece_begin; // cutpoint begin points
       std::vector<int> piece_end;   // cutpoint end points
@@ -251,8 +251,6 @@ namespace Pseq
 
       Aux_skat() 
       {
-	has_covar = false;
-	has_weights = false;
       }
 
       // when first run, precalculate (only ever once) the 
@@ -260,8 +258,18 @@ namespace Pseq
 
       static bool precalculated;
 
+      // note -- having both 'y' and 'Y' is redundant
+      //     Y only exists because don't have a vector * matrix operation...
+
       static Data::Vector<double> y; // phenotype --> modified (y_i - u_i)
+      static Data::Matrix<double> Y; // phenotype --> modified (y_i - u_i) (KLUDGE for matrix mult)
       static Data::Vector<double> u; // phenotype --> modified (u_i)
+      
+      // original values (for permutation)
+      static Data::Vector<double> y_orig; // phenotype --> modified (y_i - u_i)
+      static Data::Matrix<double> Y_orig; // phenotype --> modified (y_i - u_i) (KLUDGE for matrix mult)
+      static Data::Vector<double> u_orig; // phenotype variance --> modified (u_i)
+
       static Data::Matrix<double> X; // covariates
       static std::vector<bool> mask; // included? (i.e. non-missing pheno/covar?)
       static int n_actual; 
@@ -271,9 +279,21 @@ namespace Pseq
       static void fit_null();
       
       void populate_G( const VariantGroup & , Aux_prelim * );
-      void populate_K();
-      double calculate_Q();
 
+      void populate_K();
+
+      double calculate_Q( Data::Matrix<double> * );
+      
+      double calculate_pvalue( double , Data::Matrix<double> & );
+
+      double get_liu_pval( double , Data::Matrix<double> & );
+
+      void get_liu_param( double c1 , double c2 , double c3 , double c4 , 
+			  double * muX , double * sigmaX , 
+			  double * muQ , double * sigmaQ , 
+			  double * l , double * d ) ;
+
+      
       //
 
       static bool has_covar;
@@ -284,12 +304,13 @@ namespace Pseq
 
       // Beta-MAF weight parameters      
       static bool use_freq_weights;
-      static int a1;
-      static int a2;
+      static double a1;
+      static double a2;
 
       Data::Vector<double> w; // weights
       Data::Matrix<double> G; // genotype-data
-      Data::Matrix<double> K; // keneral
+      Data::Matrix<double> K; // kernel
+      
 
     };
 

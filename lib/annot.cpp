@@ -22,18 +22,18 @@ std::map<seq_annot_t,std::string> populate_seqinfo()
   std::map<seq_annot_t,std::string> m;
   m[UNDEF]    = ".";
   m[MONO]     = "monomorhpic";
-  m[IGR]      = "intergenic-region";
+  m[IGR]      = "intergenic";
   m[INTRON]   = "intronic";
-  m[UTR5]     = "5-UTR";
-  m[UTR3]     = "3-UTR";
+  m[UTR5]     = "UTR-5";
+  m[UTR3]     = "UTR-3";
   m[SYN]      = "silent";
   m[MIS]      = "missense";
   m[NON]      = "nonsense";
   m[PART]     = "partial-codon";
-  m[SPLICE5]  = "splice5";
-  m[SPLICE3]  = "splice3";
-  m[ESPLICE3] = "esplice3";
-  m[ESPLICE5] = "esplice5"; 
+  m[SPLICE5]  = "splice-5";
+  m[SPLICE3]  = "splice-3";
+  m[ESPLICE5] = "esplice-5"; 
+  m[ESPLICE3] = "esplice-3";
   m[FS]       = "frameshift";
   m[RT]       = "readthrough";
   return m;
@@ -92,32 +92,32 @@ void Annotate::setDB( LocDBase * p , SeqDBase * s )
 
 std::string Annotate::translate(std::string & seq, int frame , std::vector<std::string> & codons )
 {
-    
-    Helper::str2upper(seq);
-    
-    if ( seq.size() - frame == 1 ) seq += "-";
-    else if ( seq.size() - frame == 2 ) seq += "--";
-    
-    std::string trans = "";
-    codons.clear();
-    
-    for (unsigned int i = frame; i<seq.size(); i+=3)
+  
+  Helper::str2upper(seq);
+  
+  if ( seq.size() - frame == 1 ) seq += "-";
+  else if ( seq.size() - frame == 2 ) seq += "--";
+  
+  std::string trans = "";
+  codons.clear();
+  
+  for (unsigned int i = frame; i<seq.size(); i+=3)
     {
-
-	std::string codon = seq.substr( i,3 );
-
-	codons.push_back( codon );
-	
-	if ( codon.find("-") != std::string::npos )
-	    trans += "i";
-	else
+      
+      std::string codon = seq.substr( i,3 );
+      
+      codons.push_back( codon );
+      
+      if ( codon.find("-") != std::string::npos )
+	trans += "i";
+      else
 	{
-	    std::string tmp = t[ codon ];
-	    if ( tmp == "" ) tmp = "?";
-	    trans += tmp;	    
+	  std::string tmp = t[ codon ];
+	  if ( tmp == "" ) tmp = "?";
+	  trans += tmp;	    
 	}
     }
-
+  
   return trans;
 }
 
@@ -222,14 +222,15 @@ bool Annotate::annotate(Variant & var , Region * pregion )
 
   // summary of 'worst' annotation (int, syn, nonsyn)
   
-  int is_silent = 0;
-  int is_missense = 0;
-  int is_splice = 0;
-  int is_esplice = 0;
-  int is_nonsense = 0;
+  int is_silent      = 0;
+  int is_missense    = 0;
+  int is_splice      = 0;
+  int is_esplice     = 0;
+  int is_nonsense    = 0;
   int is_readthrough = 0;
-  int is_intergenic = 0;
-  int is_intronic = 0;
+  int is_intergenic  = 0;
+  int is_intronic    = 0;
+  int is_utr         = 0;
 
   std::set<SeqInfo>::iterator i = s.begin();
   while ( i != s.end() )
@@ -237,23 +238,24 @@ bool Annotate::annotate(Variant & var , Region * pregion )
       
       // track whether this is coding, for a 'single' return code      
       
-      if ( i->synon() ) ++is_silent;
-      if ( i->missense() ) ++is_missense;
-      if ( i->nonsense() ) ++is_nonsense;
-      if ( i->splice() ) ++is_splice;
-      if ( i->esplice() ) ++is_esplice;
+      if ( i->synon() )       ++is_silent;
+      if ( i->missense() )    ++is_missense;
+      if ( i->nonsense() )    ++is_nonsense;
+      if ( i->splice() )      ++is_splice;
+      if ( i->esplice() )     ++is_esplice;
+      if ( i->utr() )         ++is_utr;
       if ( i->readthrough() ) ++is_readthrough;
-      if ( i->intergenic() ) ++is_intergenic;
-      if ( i->intronic() ) ++is_intronic;
+      if ( i->intergenic() )  ++is_intergenic;
+      if ( i->intronic() )    ++is_intronic;
     
       // add annotations      
-      var.meta.add( PLINKSeq::ANNOT_TYPE() , i->status() );
-      var.meta.add( PLINKSeq::ANNOT_GENE() , i->gene_name() );
+      var.meta.add( PLINKSeq::ANNOT_TYPE() ,   i->status() );
+      var.meta.add( PLINKSeq::ANNOT_GENE() ,   i->gene_name() );
       var.meta.add( PLINKSeq::ANNOT_CODING() , i->coding() );
- // var.meta.add( PLINKSeq::ANNOT_EXONIC() , i->exonic() );
+      // var.meta.add( PLINKSeq::ANNOT_EXONIC() ,   i->exonic() );
       
       var.meta.add( PLINKSeq::ANNOT_CHANGE() , i->genomic() );
-      var.meta.add( PLINKSeq::ANNOT_CODON() , i->codon() );
+      var.meta.add( PLINKSeq::ANNOT_CODON() ,  i->codon() );
 
       // for splice, use this slot for the details, for now
       if ( i->splice() )
@@ -460,24 +462,49 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      continue;
 	    }
 	  
-
+	  //
+	  // Distinguish here between CDS and non-CDS exons
+	  //
+	  
+	  
 
 	  // Which exon(s) does this mutation impact?  Pull in
 	  // neighbouring exon if needed. Assume all subregions are on
 	  // the same chromosome
 	  
 	  std::set<int> exons;
+	  std::set<int> CDS_exons;
 	  std::map<int,int> exon_pos;
 	  int pos = 1;
-	  int in_exon = 0;
+	  int in_CDS_exon = 0;
 	  
 
 	  //
 	  // Strand and exon status
 	  //
 	  
-	  bool negative_strand = r->subregion[0].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() ) == -1;
+	  // note that strand encodes type of exon also
 	  
+	  bool negative_strand = false;
+	  bool positive_strand = false; // just to check atleast one strand is given
+	  for (int ss=0;ss< r->subregion.size(); ss++)
+	    { 
+	      int s = r->subregion[ss].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
+	      if ( s == 0 ) continue;	      
+	      negative_strand = s < 0 ;
+	      positive_strand = s > 0 ;
+	      break;
+	    }
+
+	  // skip if no strand information
+
+	  if ( ! ( negative_strand || positive_strand ) )
+	    {
+	      ++r;
+	      continue;
+	    }
+
+
 	  int first_exon = negative_strand ? 0 : r->subregion.size()-1;
 
 	  int last_exon = negative_strand ? r->subregion.size()-1 : 0;
@@ -489,7 +516,16 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  
 	  for ( unsigned int s = 0 ; s < r->subregion.size(); s++ )
 	    {	      
-	    
+	      
+	      std::cout << "subregion = " << s << " of " << r->subregion.size() << " " 
+			<< r->subregion[s].CDS() << " " 
+			<< r->subregion[s].exon() << " " 
+			<< r->subregion[s].start_codon() << " " 
+			<< r->subregion[s].stop_codon() << " " 
+			<< r->subregion[s].meta.get1_int( PLINKSeq::TRANSCRIPT_FRAME() ) << " "
+			<< r->subregion[s].coordinate() << "\n";
+		
+	      
 	      exon_pos[s] = pos;
 	      
 	      pos += r->subregion[s].stop.position() - r->subregion[s].start.position() + 1;
@@ -497,17 +533,30 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      if ( bp1 >= r->subregion[s].start.position() && 
 		   bp1 <= r->subregion[s].stop.position() ) 
 		{
+		  
+		  if      ( r->subregion[s].exon() ) 
+		    {
+		      exons.insert(s);
 
-		  exons.insert(s);
-		  
-		  in_exon = s;
-		  
-		  if ( bp1 - r->subregion[s].start.position() < 3 && s>0 ) 
-		    exons.insert(s-1);
-		  
-		  if ( r->subregion[s].stop.position() - bp1 < 3 && s < r->subregion.size()-1 )
-		    exons.insert(s+1);
-		  
+		      if ( bp1 - r->subregion[s].start.position() < 3 && s>0 ) 
+			exons.insert(s-1);
+		      
+		      if ( r->subregion[s].stop.position() - bp1 < 3 && s < r->subregion.size()-1 )
+			exons.insert(s+1);
+		    }
+		  else if ( r->subregion[s].CDS() )
+		    {
+		      CDS_exons.insert(s);
+		      in_CDS_exon = s;
+
+		      if ( bp1 - r->subregion[s].start.position() < 3 && s>0 ) 
+			CDS_exons.insert(s-1);
+		      
+		      if ( r->subregion[s].stop.position() - bp1 < 3 && s < r->subregion.size()-1 )
+			CDS_exons.insert(s+1);
+
+		    }
+
 		}
 	      
 		  
@@ -624,7 +673,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  
 	  
 	  //
-	  // Get reference sequence 
+	  // Get reference sequence (CDS)
 	  //
 	  
 	  std::string ref_cds;
@@ -660,7 +709,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  int pos_extracted_seq = 0;
 	  int pos_whole_transcript = 0;
 	  
-	  while ( exon != in_exon )
+	  while ( exon != in_CDS_exon )
 	    {
 	      
 	      // Count all exons
@@ -681,8 +730,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  //
 	  
 	  int pos_in_exon = negative_strand ? 
-	    r->subregion[ in_exon ].stop.position() - bp1 + 1 :
-	    bp1 - r->subregion[ in_exon ].start.position() + 1 ;
+	    r->subregion[ in_CDS_exon ].stop.position() - bp1 + 1 :
+	    bp1 - r->subregion[ in_CDS_exon ].start.position() + 1 ;
 	  
 	  pos_extracted_seq += pos_in_exon;
 	  pos_whole_transcript += pos_in_exon;
@@ -788,14 +837,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		  
 		  seq_annot_t type = MIS;
 
-		  if ( trans_var[i] == '*' ) type = NON;
+		  if      ( trans_var[i] == '*' ) type = NON;
 		  else if ( trans_ref[i] == '*' ) type = RT;
-
-// 		  else 
-// 		    {
-// 		      // need to assess frameshifts, and also splice/UTRs
-// 		    }
-		  
 		  
 		  annot.insert( SeqInfo( r->name , 
 					 type , 

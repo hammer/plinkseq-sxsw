@@ -3,8 +3,13 @@
 
 extern GStore g;
 
-Pseq::Assoc::Aux_hoffman_witte::Aux_hoffman_witte( const VariantGroup & vars, Aux_prelim * p )
+Pseq::Assoc::Aux_hoffman_witte::Aux_hoffman_witte( bool run_this , const VariantGroup & vars, Aux_prelim * p )
 { 
+
+  // Only do all this if we'll actually be using this test... (messy, I know)
+
+  if ( ! run_this ) return;
+
 
   // Populate helper struct for the STEPUP test
 
@@ -19,8 +24,6 @@ Pseq::Assoc::Aux_hoffman_witte::Aux_hoffman_witte( const VariantGroup & vars, Au
   const int K = vars.size(); 
   const int I = vars.n_individuals();
   
-  
-
   // Phenotype type
 
   if ( g.phmap.type() == PHE_DICHOT ) dichot = true;

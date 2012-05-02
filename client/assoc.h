@@ -30,6 +30,8 @@ namespace Pseq
       bool variant_qtassoc_test( Mask & , Aux_vassoc_options &  , const Pseq::Util::Options & options );
 
       bool glm_assoc_test( Mask & , Aux_glm &  );
+
+      bool glm_assoc_testlist( Mask & , Aux_glm & );
       
       bool set_assoc_test( Mask & , const Pseq::Util::Options & );
 
@@ -73,20 +75,26 @@ namespace Pseq
 	  nrep = 0;
 	  dichot_pheno = true;
 	  show_all_covar = false;
+	  show_intercept = false;
 	  has_covar = false;
 	  use_dosage = false;
 	  use_postprobs = false;
 	  softtag = "";
+	  test_list = 0;
+	  test_list_file = "";
 	}
 	
 	bool show_meta;
 	bool dichot_pheno;
 	bool show_all_covar;
+	bool show_intercept;
 	bool has_covar;
 	bool use_dosage;
 	bool use_postprobs;
 	std::string softtag;
 	int nrep;
+	int test_list;
+	std::string test_list_file;
 
 	Data::Vector<double> y; 
 	Data::Matrix<double> c; 
