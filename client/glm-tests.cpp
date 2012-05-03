@@ -40,7 +40,7 @@ bool Pseq::Assoc::glm_assoc_test( Mask & m ,
       plog.data_header("PHE");      
     }
 
-  if ( aux.test_list || aux.show_all_covar ) 
+  if ( aux.show_all_covar ) 
     plog.data_header( "TERM" );  
 
   if ( aux.test_list )
@@ -307,7 +307,7 @@ void f_glm_association( Variant & v , void * p )
 		  plog.data( data->test_list );
 		  plog.data( g.phmap.phenotype() );
 		}
-
+	      
 	      if ( term == 0 ) 
 		plog.data( "b0" );
 	      else if ( term == 1 )
@@ -345,9 +345,15 @@ void f_glm_association( Variant & v , void * p )
 	  else
 	    plog.data( maf , 1 );
 	  
+	  if ( data->test_list ) 
+	    {
+	      plog.data( data->test_list );
+	      plog.data( g.phmap.phenotype() );
+	    }
+	  
 	  if ( data->show_all_covar )
 	    plog.data( v.name() );
-	  
+	   
 	  if ( data->dichot_pheno )
 	    {
 	      if ( ! data->has_covar ) 
