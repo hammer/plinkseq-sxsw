@@ -462,20 +462,31 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      continue;
 	    }
 	  
+
 	  //
 	  // Distinguish here between CDS and non-CDS exons
 	  //
 	  
+	  Region r_exon;   // only contains CDS (and extra stop-codon)
+	  Region r_cds;    // contains all exons (i.e., will include 3UTR, 5UTR, but not 'stop')
 	  
+	  for (int ss=0;ss< r->subregion.size(); ss++)
+	    {
+	      if      ( r->subregion[ss].CDS() || r->subregion[ss].stop_codon() ) 
+		r_cds.subregion.push_back( r->subregion[ss] );
+	      else if ( r->subregion[ss].exon() ) 
+		r_exon.subregion.push_back( r->subregion[ss] );
+	    }
 
+	  
+	  //
 	  // Which exon(s) does this mutation impact?  Pull in
 	  // neighbouring exon if needed. Assume all subregions are on
 	  // the same chromosome
-	  
-	  std::set<int> exons;
+	  //
+
+
 	  std::set<int> CDS_exons;
-	  std::map<int,int> exon_pos;
-	  int pos = 1;
 	  int in_CDS_exon = 0;
 	  
 
@@ -486,10 +497,10 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  // note that strand encodes type of exon also
 	  
 	  bool negative_strand = false;
-	  bool positive_strand = false; // just to check atleast one strand is given
-	  for (int ss=0;ss< r->subregion.size(); ss++)
+	  bool positive_strand = false; // just to check at least one strand is given
+	  for (int ss=0;ss< r_cds.subregion.size(); ss++)
 	    { 
-	      int s = r->subregion[ss].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
+	      int s = r_cds.subregion[ss].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
 	      if ( s == 0 ) continue;	      
 	      negative_strand = s < 0 ;
 	      positive_strand = s > 0 ;
@@ -504,63 +515,66 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      continue;
 	    }
 
+	  
 
-	  int first_exon = negative_strand ? 0 : r->subregion.size()-1;
-
-	  int last_exon = negative_strand ? r->subregion.size()-1 : 0;
+	  int first_exon = negative_strand ? 0 : r_cds.subregion.size()-1;
+	  
+	  int last_exon = negative_strand ? r_cds.subregion.size()-1 : 0;
 	  
 	  
 	  //
-	  // Does variant fall within an exon, or near an intron/exon splice-site boundary
+	  // Does variant fall within a CDS exon?
 	  //
 	  
-	  for ( unsigned int s = 0 ; s < r->subregion.size(); s++ )
+// 	  for ( unsigned int s = 0 ; s < r->subregion.size(); s++ )
+// 	    {
+// 	      std::cout << "REG " << r->subregion[s].meta.get1_int( PLINKSeq::TRANSCRIPT_FRAME()  ) << " "
+// 			<< r->subregion[s].coordinate() << " "
+// 			<< r->subregion[s].CDS() << " " 
+// 			<< r->subregion[s].exon() << " " 
+// 			<< r->subregion[s].start_codon() << " " 
+// 			<< r->subregion[s].stop_codon() << " "
+// 			<< "\n";
+		
+// 	    }
+
+	  for ( unsigned int s = 0 ; s < r_cds.subregion.size(); s++ )
 	    {	      
 	      
-	      std::cout << "subregion = " << s << " of " << r->subregion.size() << " " 
-			<< r->subregion[s].CDS() << " " 
-			<< r->subregion[s].exon() << " " 
-			<< r->subregion[s].start_codon() << " " 
-			<< r->subregion[s].stop_codon() << " " 
-			<< r->subregion[s].meta.get1_int( PLINKSeq::TRANSCRIPT_FRAME() ) << " "
-			<< r->subregion[s].coordinate() << "\n";
+// 	      std::cout << "subregion = " << s << " of " << r_cds.subregion.size() << " " 
+// 			<< r_cds.subregion[s].CDS() << " " 
+// 			<< r_cds.subregion[s].exon() << " " 
+// 			<< r_cds.subregion[s].start_codon() << " " 
+// 			<< r_cds.subregion[s].stop_codon() << " [" 
+// 			<< r_cds.subregion[s].meta.get1_int( PLINKSeq::TRANSCRIPT_FRAME() ) << "] "
+// 			<< r_cds.subregion[s].coordinate() << "\n";
 		
-	      
-	      exon_pos[s] = pos;
-	      
-	      pos += r->subregion[s].stop.position() - r->subregion[s].start.position() + 1;
-	      
-	      if ( bp1 >= r->subregion[s].start.position() && 
-		   bp1 <= r->subregion[s].stop.position() ) 
+
+	      if ( bp1 >= r_cds.subregion[s].start.position() && 
+		   bp1 <= r_cds.subregion[s].stop.position() ) 
 		{
 		  
-		  if      ( r->subregion[s].exon() ) 
-		    {
-		      exons.insert(s);
-
-		      if ( bp1 - r->subregion[s].start.position() < 3 && s>0 ) 
-			exons.insert(s-1);
-		      
-		      if ( r->subregion[s].stop.position() - bp1 < 3 && s < r->subregion.size()-1 )
-			exons.insert(s+1);
-		    }
-		  else if ( r->subregion[s].CDS() )
-		    {
-		      CDS_exons.insert(s);
-		      in_CDS_exon = s;
-
-		      if ( bp1 - r->subregion[s].start.position() < 3 && s>0 ) 
-			CDS_exons.insert(s-1);
-		      
-		      if ( r->subregion[s].stop.position() - bp1 < 3 && s < r->subregion.size()-1 )
-			CDS_exons.insert(s+1);
-
-		    }
-
-		}
-	      
+		  CDS_exons.insert(s);
+		  in_CDS_exon = s;
 		  
-	      // Is this a SPLICE-SITE? 
+		  if ( bp1 - r_cds.subregion[s].start.position() < 3 && s>0 ) 
+		    CDS_exons.insert(s-1);
+		  
+		  if ( r_cds.subregion[s].stop.position() - bp1 < 3 && s < r_cds.subregion.size()-1 )
+		    CDS_exons.insert(s+1);
+		  		
+		}
+	    
+	    }
+
+	  
+	  //
+	  // Is this a SPLICE-SITE? 
+	  //
+
+
+	  for ( unsigned int s = 0 ; s < r_exon.subregion.size(); s++ )
+	    {
 	      
 // 	      std::cout << "s = " << s << " " << first_exon << " " << last_exon << " " << r->subregion.size() << "\n";
 // 	      std::cout << "bp1 = " << bp1 << "\t" << r->subregion[s].start.position() << " " << r->subregion[s].stop.position() << "\n";
@@ -608,66 +622,63 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      
 
 
-              if ( s != first_exon  &&  abs( r->subregion[s].start.position() - bp1 ) < 3 )
+              if ( s != first_exon  &&  abs( r_exon.subregion[s].start.position() - bp1 ) < 3 )
                 {
                   if ( negative_strand )
                     {
-                      SeqInfo sie = SeqInfo( r->name , ESPLICE3 );
-                      SeqInfo si = SeqInfo( r->name , SPLICE3 );
-                      si.splicedist = sie.splicedist = r->subregion[s].start.position() - bp1; 
+                      SeqInfo sie = SeqInfo( r_exon.name , ESPLICE3 );
+                      SeqInfo si = SeqInfo( r_exon.name , SPLICE3 );
+                      si.splicedist = sie.splicedist = r_exon.subregion[s].start.position() - bp1; 
                       if ( si.splicedist <= 0 ) { --si.splicedist; --sie.splicedist; }
                       if ( si.splicedist > -3 && si.splicedist < 0) annot.insert( si );
                       if ( si.splicedist > 0 && si.splicedist < 3) annot.insert( sie );
                     }
                   else
                     {
-                      SeqInfo sie = SeqInfo( r->name , ESPLICE5 );
-                      SeqInfo si = SeqInfo( r->name , SPLICE5 );
-                      si.splicedist = sie.splicedist = bp1 - r->subregion[s].start.position(); 
+                      SeqInfo sie = SeqInfo( r_exon.name , ESPLICE5 );
+                      SeqInfo si = SeqInfo( r_exon.name , SPLICE5 );
+                      si.splicedist = sie.splicedist = bp1 - r_exon.subregion[s].start.position(); 
                       if ( si.splicedist >= 0 ) { ++sie.splicedist; ++si.splicedist; } 
                       if ( si.splicedist < 3 && si.splicedist > 0) annot.insert( si );
                       if ( si.splicedist > -3 && si.splicedist < 0) annot.insert( sie );
                     }
                 }
               
-              if ( s != last_exon && abs( r->subregion[s].stop.position() - bp1 ) < 3 )
+              if ( s != last_exon && abs( r_exon.subregion[s].stop.position() - bp1 ) < 3 )
                 {
                   if ( negative_strand )
                     {
-                      SeqInfo sie = SeqInfo( r->name , ESPLICE5 );
-                      SeqInfo si = SeqInfo( r->name , SPLICE5 );
-                      si.splicedist = sie.splicedist = r->subregion[s].stop.position() - bp1;
+                      SeqInfo sie = SeqInfo( r_exon.name , ESPLICE5 );
+                      SeqInfo si = SeqInfo( r_exon.name , SPLICE5 );
+                      si.splicedist = sie.splicedist = r_exon.subregion[s].stop.position() - bp1;
                       if ( si.splicedist >= 0 ) { ++si.splicedist; ++sie.splicedist; }
                       if ( si.splicedist < 3 && si.splicedist > 0 ) annot.insert( si );
                       if ( si.splicedist > -3 && si.splicedist < 0 ) annot.insert( sie );
                     }
                   else
                     {
-                      SeqInfo sie = SeqInfo( r->name , ESPLICE3 );
-                      SeqInfo si = SeqInfo( r->name , SPLICE3 );
-                      si.splicedist = sie.splicedist = bp1 - r->subregion[s].stop.position() ;
+                      SeqInfo sie = SeqInfo( r_exon.name , ESPLICE3 );
+                      SeqInfo si = SeqInfo( r_exon.name , SPLICE3 );
+                      si.splicedist = sie.splicedist = bp1 - r_exon.subregion[s].stop.position() ;
                       if ( si.splicedist <= 0 ) { --si.splicedist; --si.splicedist; }
                       if ( si.splicedist > -3 && si.splicedist < 0 ) annot.insert( si );
                       if ( si.splicedist < 3 && si.splicedist > 0 ) annot.insert( sie );
                     }
                 }
+
             }
-
-
-
-
-
+	
 	  
 	  
 	  //
-	  // If no exons attached, implies an intronic SNP (or splice site)
+	  // If no exons attached (but was pulled into this region)
+	  // or (splice site)
 	  //
-	  
-	  if ( exons.size() == 0 ) 
-	    {	      
-	      // Otherwise
+
+	  if ( CDS_exons.size() == 0 ) 
+	    {	      	      
 	      annot.insert( SeqInfo( r->name , INTRON ) );
-	      ++r; // next region
+	      ++r; // and skip to next region
 	      continue;
 	    }
 	  
@@ -678,8 +689,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  
 	  std::string ref_cds;
 	  
-	  std::set<int>::iterator i = exons.begin();
-	  while ( i != exons.end() )
+	  std::set<int>::iterator i = CDS_exons.begin();
+	  while ( i != CDS_exons.end() )
 	    {
 	      
 	      if ( negative_strand )
@@ -694,8 +705,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		}
 	      
 	      ref_cds += seqdb->lookup( chr , 
-					r->subregion[ *i ].start.position(),
-					r->subregion[ *i ].stop.position() );
+					r_cds.subregion[ *i ].start.position(),
+					r_cds.subregion[ *i ].stop.position() );
 	      
 	      ++i;
 	    }
@@ -705,7 +716,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  // Get position of our transcript relative to start of gene
 	  //
 	  
-	  int exon = negative_strand ? r->subregion.size()-1 : 0 ;
+	  int exon = negative_strand ? r_cds.subregion.size()-1 : 0 ;
 	  int pos_extracted_seq = 0;
 	  int pos_whole_transcript = 0;
 	  
@@ -713,13 +724,13 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	    {
 	      
 	      // Count all exons
-	      pos_whole_transcript += r->subregion[ exon ].stop.position() 
-		- r->subregion[ exon ].start.position() + 1;
+	      pos_whole_transcript += r_cds.subregion[ exon ].stop.position() 
+		- r_cds.subregion[ exon ].start.position() + 1;
 	      
 	      // Count only exons extracted from seqdb
-	      if ( exons.find( exon ) != exons.end() )
+	      if ( CDS_exons.find( exon ) != CDS_exons.end() )
 		{			
-		  pos_extracted_seq += r->subregion[ exon ].stop.position() - r->subregion[ exon ].start.position() + 1;
+		  pos_extracted_seq += r_cds.subregion[ exon ].stop.position() - r_cds.subregion[ exon ].start.position() + 1;
 		}
 	      exon += negative_strand ? -1 : +1;
 	    }
@@ -730,8 +741,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  //
 	  
 	  int pos_in_exon = negative_strand ? 
-	    r->subregion[ in_CDS_exon ].stop.position() - bp1 + 1 :
-	    bp1 - r->subregion[ in_CDS_exon ].start.position() + 1 ;
+	    r_cds.subregion[ in_CDS_exon ].stop.position() - bp1 + 1 :
+	    bp1 - r_cds.subregion[ in_CDS_exon ].start.position() + 1 ;
 	  
 	  pos_extracted_seq += pos_in_exon;
 	  pos_whole_transcript += pos_in_exon;
@@ -741,7 +752,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  // Determine reading frame
 	  //
 	  
-	  int frame = r->subregion[ first_exon ].meta.get1_int( PLINKSeq::TRANSCRIPT_FRAME() ) ;
+	  int frame = r_cds.subregion[ first_exon ].meta.get1_int( PLINKSeq::TRANSCRIPT_FRAME() ) ;
 	  
 	  
 	  //
@@ -776,12 +787,9 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  //
 	  
 	  if ( ref_cds == var_cds ) 
-	    {
-	      
-	      annot.insert( SeqInfo( MONO ) );
-	      
-	      // Next region
-	      ++r;
+	    {	      
+	      annot.insert( SeqInfo( MONO ) );	      	      
+	      ++r; // skip to next transcript
 	      continue;
 	    }
 	  
@@ -819,6 +827,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  while ( trans_var.size() < longest ) { trans_var += "_"; }
 	  while ( trans_ref.size() < longest ) { trans_ref += "_"; }
 
+
 	  //
 	  // Make calls
 	  //
@@ -828,16 +837,12 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  for ( unsigned int i=0; i< trans_var.size(); i++ )
 	    {
 	      
-	      // for reference -- for substitutions,
-	      // ref allele = ref_cds.substr( pos_extracted_seq-1 , 1 )  
-	      // alt allele = var_allele
-	      
 	      if ( trans_ref[i] != trans_var[i] )
 		{
 		  
 		  seq_annot_t type = MIS;
 
-		  if      ( trans_var[i] == '*' ) type = NON;
+		  if      ( trans_var[i] == '*' ) type = NON; 
 		  else if ( trans_ref[i] == '*' ) type = RT;
 		  
 		  annot.insert( SeqInfo( r->name , 
