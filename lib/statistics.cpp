@@ -1033,6 +1033,11 @@ void Statistics::tred2( Data::Matrix<double> & a ,
 // Modified to return only eigenvalues.
 void Statistics::tqli( Data::Vector<double> & d, Data::Vector<double> & e )
 {
+  const int MAXIT = 60 ; // hmm, was 30 but SKAT had issues with large genes
+  // -- I believe these routines have some issues with convergenece when 
+  //    using newer compilers -- should add in a EPS difference test when 
+  //    testing for convergence here.
+
   int m,l,iter,i,k;
   double s,r,p,g,f,dd,c,b;
   double volatile temp;
@@ -1048,7 +1053,7 @@ void Statistics::tqli( Data::Vector<double> & d, Data::Vector<double> & e )
 	if (temp == dd) break;
       }
       if (m != l) {
-	if (iter++ == 30) Helper::halt("Internal problem in tqli routine");
+	if (iter++ == MAXIT ) Helper::halt("Internal problem in tqli routine");
 	g=(d[l+1]-d[l])/(2.0*e[l]);
 	r=pythag(g,1.0);
 	g=d[m]-d[l]+e[l]/(g+SIGN(r,g));

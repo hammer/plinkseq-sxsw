@@ -87,7 +87,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "*reload-vcf|input|clear VARDB, then reload all VCF (not implemented yet)"
 	
 	  << "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id,iid,fid,check-reference,fix-strand" 
-	
+      
+	  << "load-dosage|input|load dosage data|ARG:file,file-list,id,check-reference,format$position-map$allele-map$dose1$dose2$prob2$prob3$as-dosage$as-posteriors,name"
+
 	  << "attach-meta|input|load meta-information for existing VARDB variants|ARG:file,id,group"
 	
 	  << "load-pheno|input,indop|load phenotypes into INDB|ARG:file"
@@ -409,6 +411,12 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "ibddb", STRING, "IBD segment database location" );  
     
     reg( "file" , STRING_VECTOR , "generic input file(s)" );
+    reg( "file-list" , STRING , "file to specify a list of files" );
+    
+    reg( "map-file" , STRING , "map file" );  // primarily for load-dosage
+    reg( "indiv-file" , STRING , "individual ID list"); // primarily for load-dosage
+    reg( "meta-file" , STRING , "meta-information file" ); // primarily for load-dosage
+
     reg( "group" , STRING_VECTOR , "generic group label(s)" );
     reg( "members" , STRING_VECTOR , "super-set members" );
     reg( "ref-group" , STRING , "REFDB group label" );
@@ -519,6 +527,15 @@ void Pseq::Util::Options::load( int n , char ** argv )
     keyword( "format" , "description" , STRING , "" ); // SEQDB, REFDB
     keyword( "format" , "iupac" , NONE , "" );
     keyword( "format" , "BGZF" , NONE , "write VCF in BGZF-compressed form" );
+
+    keyword( "format" , "position-map" , NONE , "dosage map only contains chr/bp" );
+    keyword( "format" , "allele-map" , NONE , "dosage map only contains a1/a2" );
+    keyword( "format" , "dose1" , NONE , "dosage data 0..1" );
+    keyword( "format" , "dose2" , NONE , "dosage data 0..2" );
+    keyword( "format" , "prob2" , NONE , "2 posterior probabilities" );
+    keyword( "format" , "prob3" , NONE , "3 posterior probabilities" );
+    keyword( "format" , "as-dosage" , NONE , "store as dosage" );
+    keyword( "format" , "as-posteriors" , NONE , "store as 3 posterior probailities" );
 
     keyword( "format" , "chr" , STRING , "" ) ;
     keyword( "format" , "bp1" , STRING , "" );

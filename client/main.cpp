@@ -679,6 +679,17 @@ int main(int argc, char ** argv)
   
   
   //
+  // Load .dosage file (-like) format
+  //
+  
+  if ( command == "load-dosage" ) 
+    {
+      Pseq::VarDB::load_dosage();
+      Pseq::finished();
+    }
+
+
+  //
   // Load/flush meta-information into VARDB, as independent meta-information 
   //
 

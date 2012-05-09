@@ -258,7 +258,7 @@ class Region {
   void addSubRegion(uint64_t id, std::string name, int chr, int bp1, int bp2, int strand , int frame )
     { subregion.push_back( Subregion( id, name, chr, bp1, bp2, strand, frame ) ); }
   
-  void addSubRegion(Region & r)
+  void addSubRegion( const Region & r)
       { 
 
 	  

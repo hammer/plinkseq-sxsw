@@ -11,6 +11,7 @@ annot.h \
 bcf.h \
 vcfz.h \
 bed.h \
+dose.h \
 bgzf.h \
 cdflib.h \
 crandom.h \
@@ -94,6 +95,7 @@ crandom.cpp \
 defs.cpp \
 em.cpp \
 bed.cpp \
+dose.cpp \
 varmeta.cpp \
 pp.cpp \
 pp.pb.cpp \
