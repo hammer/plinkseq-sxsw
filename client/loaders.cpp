@@ -775,10 +775,13 @@ bool Pseq::VarDB::load_dosage()
   //      or, '.' if that info is in the main file
   
   // map-file format:  
-  //  rs123 chr1:12345 A1 A2
+  //  rs123   chr1   12345   A1   A2
   //  so, if two col, assume A1/A2 in dosage file
   //      if 3 col, assume chr1:1234 in dosage file
   //      if 5 col, assume only rsID in dosage file
+
+  // if reading from an specific indiv-file, we can specify --formats skip-header if the dosage file(s) have headers
+  // but we want to ignore
   
   std::vector<std::string> files;
   std::string filelist = "";
@@ -825,8 +828,6 @@ bool Pseq::VarDB::load_dosage()
   std::string store_as = "as-dosage";
   if ( args.has( "format" , "as-posteriors" ) ) store_as = "as-posteriors";
   
-  std::cout << "inpt = [" << input_format << "]\n";
-
   //
   // A single tag, e.g. 'EC' that will be used to specify the posteriors
   //
@@ -835,6 +836,13 @@ bool Pseq::VarDB::load_dosage()
     Helper::halt( "no --name specified" ) ;  
   std::string tagname = args.as_string( "name" );
   
+  //
+  // Check reference, if SEQDB attached?
+  //
+  
+  if ( ! args.has("check-reference") && g.seqdb.attached() ) 
+    g.seqdb.dettach();
+ 
 
   // 
   // MAP/INDIV files
@@ -859,6 +867,22 @@ bool Pseq::VarDB::load_dosage()
       indiv_files = args.as_string_vector( "indiv-file" );
     }
   
+  //
+  // SKip dosage file headers?
+  //
+  bool skip_header = false;
+  if ( args.has( "format" , "skip-header") ) 
+    {
+      if ( ! ( args.has("indiv-file") || file_list_mode ) )
+	Helper::halt("cannot skip-header w/out indiv-file or file-list mode set");
+      skip_header = true;
+    }
+
+  //
+  // Space vs. tabs
+  //
+
+  bool spaced = args.has( "format" , "space-delimited" ) ;
 
   //
   // Load single file
@@ -881,6 +905,8 @@ bool Pseq::VarDB::load_dosage()
       	  DoseReader reader( &g.vardb ); 
 	  reader.set_input_format( input_format );  
 	  reader.set_metatag( tagname , store_as ); 
+	  reader.set_skip_header( skip_header );
+	  if ( spaced ) reader.set_spaced();
 	  if ( use_map ) reader.set_mapfile( map_files[f] );
 	  if ( args.has("meta-file") ) reader.set_meta( args.as_string("meta-file") ); 
 	  if ( args.has("format" , "position-map") ) reader.set_mapfile_only_pos();
@@ -888,8 +914,10 @@ bool Pseq::VarDB::load_dosage()
 	  if ( use_indiv ) reader.set_famfile( indiv_files[f] );
 	  if ( g.seqdb.attached() ) reader.use_seqdb( & g.seqdb );
 	  reader.set_filetag( filetag );
+	  g.vardb.begin();
 	  if ( ! reader.read_dose( files[f] ) ) 
 	    Helper::halt( "problem reading dosage file " + files[f] + ", or associated file" );	  
+	  g.vardb.commit();
 	}
       
     }
@@ -922,10 +950,10 @@ bool Pseq::VarDB::load_dosage()
 	  if ( map_file != "." && map_file != "" ) 
 	    reader.set_mapfile( tok[2] );
 	 
-	  if ( args.has("formats" , "position-map") ) 
+	  if ( args.has("format" , "position-map") ) 
 	    reader.set_mapfile_only_pos();
 
-	  if ( args.has("formats" , "allele-map") ) 
+	  if ( args.has("format" , "allele-map") ) 
 	    reader.set_mapfile_only_alleles();
  
 	  if ( indiv_file != "." && indiv_file != "" )
@@ -941,9 +969,14 @@ bool Pseq::VarDB::load_dosage()
 	  
 	  reader.set_filetag( tok[0] );
 
+	  reader.set_skip_header( skip_header );
+
+	  if ( spaced ) reader.set_spaced();
+
+	  g.vardb.begin();
 	  if ( ! reader.read_dose( tok[1] ) ) 
 	    Helper::halt( "problem reading dosage file " + tok[1] + ", or associated file" );
-	  
+	  g.vardb.commit();	  
 	}
       FL.close();
     }

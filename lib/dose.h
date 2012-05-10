@@ -33,7 +33,19 @@ class DoseReader {
       make_hard_call = true;
       hard_call_prob_threshold = 0.9;
       hard_call_dosage_threshold = 0.1;
+      skip_header = false;
+      spaced = false;
     }  
+
+  void set_skip_header( const bool b ) 
+  {
+    skip_header = b;
+  }
+
+  void set_spaced() 
+  {
+    spaced = true;
+  }
 
   void set_mapfile( const std::string & n )
   {
@@ -123,11 +135,15 @@ class DoseReader {
   bool format_dose1;
   bool format_dose2;
 
+  bool skip_header;
+  bool spaced;
+
   bool has_meta;
   bool make_hard_call;
   double hard_call_prob_threshold;
   double hard_call_dosage_threshold;
-  
+
+
   // DB pointers
   
   VarDBase * vardb;

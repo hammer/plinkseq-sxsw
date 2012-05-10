@@ -16,8 +16,6 @@ int DoseReader::read_fam( const int file_id )
   
   std::ifstream FAM( fam_filename.c_str() , std::ios::in );
   
-  vardb->begin();
-  
   int ni = 0;
   while ( ! FAM.eof() )
     {
@@ -30,15 +28,14 @@ int DoseReader::read_fam( const int file_id )
       vardb->insert( file_id , ind );      
     }
 
-  vardb->commit();
-
   if ( ni == 0 ) 
     {
       FAM.close();
       plog.warn("no individuals specified in " + fam_filename );
       return 0;
     }
- 
+  
+  return ni;
 }
 
 void DoseReader::read_meta()
@@ -67,7 +64,10 @@ void DoseReader::read_meta()
 bool DoseReader::read_dose( const std::string & f )
 {
   
+  const bool store_as_dosage = storage_format == "as-dosage" ;
+  const bool store_as_prob3  = storage_format == "as-posteriors" ; 
   
+
   //
   // Open dosage file 
   //
@@ -89,6 +89,7 @@ bool DoseReader::read_dose( const std::string & f )
   if ( has_meta )
     {
       read_meta();
+      Helper::checkFileExists( meta_filename );
       inp_meta.open( meta_filename.c_str() );
     }
 
@@ -99,7 +100,8 @@ bool DoseReader::read_dose( const std::string & f )
 
   InFile inp_map;
   if ( separate_map )
-    {
+    {      
+      Helper::checkFileExists( map_filename );
       inp_map.open( map_filename.c_str() );
     }
 
@@ -124,6 +126,12 @@ bool DoseReader::read_dose( const std::string & f )
   if ( separate_fam ) 
     {
       ni = read_fam( file_id );
+
+      // and also skip any header row in the dosage file
+      if ( skip_header ) 
+	{
+	  std::string ignored = inp_dosage.readLine();
+	}
     }
   else // read from header
     {
@@ -140,10 +148,8 @@ bool DoseReader::read_dose( const std::string & f )
       ni = ids.size();      
       
       // insert people       
-      vardb->begin();
       for (int i=0;i<ni;i++)
 	vardb->insert( file_id , Individual( ids[i] ) );      
-      vardb->commit();      
 
     }
   
@@ -176,38 +182,40 @@ bool DoseReader::read_dose( const std::string & f )
   
   long int cnt = 0;
 
-  vardb->begin();
-  
   while (1) 
     {
       
       // Read dosage line
       
       std::string dosage_line = inp_dosage.readLine();
-      
+
       if ( inp_dosage.eof() ) break;
       if ( dosage_line == "" ) continue;
 
-      // should be tab delimited
-      
+      // should be tab or space delimited
+      // char_tok() returns empty cells, if multiple contiguous delimters
+      //  allow this (treat as one), but we have to do this here.
+
       int ntok;
       
-      Helper::char_tok tok( &(dosage_line[0]) , dosage_line.size() , &ntok , '\t' );
+      //      Helper::char_tok tok( &(dosage_line[0]) , dosage_line.size() , &ntok , spaced ? ' ' : '\t' );
       
+      std::vector<std::string> toks = Helper::parse( dosage_line , " \t" ) ; 
+
+      ntok = toks.size();
+
       // expecting rsID + 2(pos) + 2(alleles) + n_genotypes
-      
-      
-      if ( ntok != expected_fields ) 
+            
+      if ( ntok < expected_fields ) 
 	Helper::halt( "invalid dosage line entry, wrong number of rows (expecting " 
 		      + Helper::int2str( expected_fields ) + " but found " 
 		      + Helper::int2str( ntok ) + " ):\n" + dosage_line );
-
-
+      
+      
       // Create a new variant
 
       Variant v;
 
- 
      
             
       //
@@ -221,7 +229,8 @@ bool DoseReader::read_dose( const std::string & f )
       
       if ( separate_map ) 
 	{
-	  std::vector<std::string> mtok = inp_map.tokenizeLine("\t");
+	  std::vector<std::string> mtok = inp_map.tokenizeLine("\t ");
+
 	  if ( mtok.size() == 0 ) continue;
 	  
 	  if ( map_pos_only ) 
@@ -256,30 +265,30 @@ bool DoseReader::read_dose( const std::string & f )
 	{
 	  if ( map_pos_only ) // .dose contains a1,a2
 	    {
-	      a1 = tok(1);
-	      a2 = tok(2);
+	      a1 = toks[1];
+	      a2 = toks[2];
 	    }
 	  else if ( map_allele_only ) // .dose contains chr/bp
 	    {
-	      chr = tok(1);
-	      if ( ! Helper::str2int( tok(2) , bp ) ) Helper::halt("invalid base-position");	      
+	      chr = toks[1];
+	      if ( ! Helper::str2int( toks[2] , bp ) ) Helper::halt("invalid base-position");	      
 	    }
 	}
       else
 	{
-	  chr = tok(1);
-	  if ( ! Helper::str2int( tok(2) , bp ) ) Helper::halt("invalid base-position");	      
-	  a1 = tok(3);
-	  a2 = tok(4);	  
+	  chr = toks[1];
+	  if ( ! Helper::str2int( toks[2] , bp ) ) Helper::halt("invalid base-position");	      
+	  a1 = toks[3];
+	  a2 = toks[4];	  
 	}
       
       //
       // check that ID matches
       //
     
-      if ( separate_map && id != tok(0) ) 
+      if ( separate_map && id != toks[0] ) 
 	{
-	  std::string tid = tok(0);
+	  std::string tid = toks[0];
 	  Helper::halt("mismatch of ID codes: [" + tid + "] in dosage, but [" + id + "] in map-file" );
 	}
       
@@ -291,8 +300,6 @@ bool DoseReader::read_dose( const std::string & f )
       v.position( bp );
       v.name( id );
       
-      std::cout << "vvv = [" << v << "]\n";
-
       // Use SEQDB to look up reference allele. Implies that all
       // alleles are known to be on the positive strand;
       
@@ -315,58 +322,55 @@ bool DoseReader::read_dose( const std::string & f )
 
 	  if ( ref != "N" ) 
 	    {
-
+	      
 	      if ( ref == a2 ) ref1 = false;
+	      
 	      else if ( ref != a1 ) 
 		{
-
+		  
 		  // either attempt to fix strand, or give error
 		  // only for biallelic, single nucleotide markers 
-
-		  if ( false ) // || force_fix_strand )
+		  if ( 1 ) 
 		    {
-
-		      if      ( a1 == "A" ) a1 = "T";
-		      else if ( a1 == "C" ) a1 = "G";
-		      else if ( a1 == "G" ) a1 = "C";
-		      else if ( a1 == "T" ) a1 = "A";
 		      
-		      if      ( a2 == "A" ) a2 = "T";
-		      else if ( a2 == "C" ) a2 = "G";
-		      else if ( a2 == "G" ) a2 = "C";
-		      else if ( a2 == "T" ) a2 = "A";
-
-		      if      ( ref == a1 ) ref1 = true;
-		      else if ( ref == a2 ) ref1 = false;
-		      else 
-			plog.warn( "attempted to fix, but mismatching reference allele in dosage-file versus SEQDB" , 
-				   v.displaycore() + " " + a1+"/"+a2 + " vs " + ref );
-
-		    }
-		  else
-		    plog.warn( "mismatching reference allele in dosage-file versus SEQDB" , 
-			       v.displaycore() + " " + a1+"/"+a2 + " vs " + ref );
-		}
+		      plog.warn( "mismatching reference allele in dosage-file versus SEQDB" , 
+				 v.displaycore() + " " + a1+"/"+a2 + " vs " + ref );
+		      
+ 		      if      ( a1 == "A" ) a1 = "T";
+ 		      else if ( a1 == "C" ) a1 = "G";
+ 		      else if ( a1 == "G" ) a1 = "C";
+ 		      else if ( a1 == "T" ) a1 = "A";		      
+		      
+ 		      if      ( a2 == "A" ) a2 = "T";
+ 		      else if ( a2 == "C" ) a2 = "G";
+ 		      else if ( a2 == "G" ) a2 = "C";
+ 		      else if ( a2 == "T" ) a2 = "A";
+		      
+ 		      if      ( ref == a1 ) ref1 = true;
+ 		      else if ( ref == a2 ) ref1 = false;
+ 		      else 
+ 			plog.warn( "attempted to fix, but mismatching reference allele in dosage-file versus SEQDB" , 
+ 				   v.displaycore() + " " + a1+"/"+a2 + " vs " + ref );
+ 		    }
+		}		
 	    }
 	}
       
+
       if ( ref1 ) 
-	{
-	  std::cout << "setting (1) " << a1 << " " << a2 << "\n";
+	{	  
 	  v.consensus.reference( a1 );
 	  v.consensus.alternate( a2 );	  
 	}
       else
-	{
-	  std::cout << "setting (2) " << a1 << " " << a2 << "\n";
+	{	  
 	  v.consensus.reference( a2 );
 	  v.consensus.alternate( a1 );	  
 	}
       
-      
+
       if ( cnt % 1000 == 0  )
 	plog.counter( "inserted " + Helper::int2str( cnt ) + " variants" );
-      
       
       
       //
@@ -374,9 +378,11 @@ bool DoseReader::read_dose( const std::string & f )
       //
 
       v.resize( ni );
-      
-      int p = start_pos;
+
+      // read 'start_pos' slots first      
 	
+      int p = start_pos;
+      
       for (int i=0;i<ni;i++)
 	{
 	  
@@ -388,75 +394,201 @@ bool DoseReader::read_dose( const std::string & f )
 	  
 	  int geno = 0; // 1,2,3 = ref,het,hom
 
+	  //
+	  // By default, if ref1==T we assume 
+	  //   A1  A2    dosage is for 'A2' allele
+	  //             posterior is 11 12 22
+	  
+	  // But always store as dosage of 'alternate' allele when possible
+
+	  //   dosage = EC = alternate allele (2)
+	  //   PP     = 11 / 12 / 22  ( REF / HET / HOM )
+	  
+	  // Thus by default, we assume that A1 is reference
+	  // If A2 is reference, then swap codes: (reverse PP / calculate 2 - dosage )
+	  
+	  //
+	  // assume just biallelic for now.
+	  //
+
 	  if ( format_prob2 ) 
 	    {
-	      std::vector<double> x(2);
-	      if ( Helper::str2dbl( tok(p++) , x[0] ) && Helper::str2dbl( tok(p++) , x[1] ) )
-		{		  
-		  g.meta.set( tagname , x );
-		  if ( make_hard_call ) 
-		    {
-		      if      ( x[0] >= hard_call_prob_threshold ) geno = 1;
-		      else if ( x[1] >= hard_call_prob_threshold ) geno = 2;
-		      else if ( 1-x[0]-x[1] >= hard_call_prob_threshold ) geno = 3;
+	      
+	      std::vector<double> pp(3);
+	      
+	      if ( Helper::str2dbl( toks[p++] , pp[0] ) ) 
+		{
+		  if ( Helper::str2dbl( toks[p++] , pp[1] ) )
+		    {		  		      
+		      
+		      pp[2] = 1 - pp[0] - pp[1];
+
+		      if ( ! ref1 ) 
+			{
+			  double tmp = pp[2];
+			  pp[2] = pp[0];
+			  pp[0] = tmp;
+			}
+		      
+		      if ( store_as_dosage ) 
+			{
+			  // 0..2 scale, of '2/alternate' allele
+			  g.meta.set( tagname , pp[1] + 2 * pp[2] );
+			}
+		      else if ( store_as_prob3 )
+			{
+			  g.meta.set( tagname , pp );
+			}
+		      
+		      if ( make_hard_call ) 
+			{
+			  if      ( pp[0] >= hard_call_prob_threshold ) geno = 1;
+			  else if ( pp[1] >= hard_call_prob_threshold ) geno = 2;
+			  else if ( pp[2] >= hard_call_prob_threshold ) geno = 3;
+			}
 		    }
 		}
 	    }
 	  else if ( format_prob3 ) 
 	    {
-	      std::vector<double> x(3);
-	      if ( Helper::str2dbl( tok(p++) , x[0] ) && 
-		   Helper::str2dbl( tok(p++) , x[1] ) && 
-		   Helper::str2dbl( tok(p++) , x[2] ) )
+	      
+	      std::vector<double> pp(3);
+	      
+	      if ( Helper::str2dbl( toks[p++] , pp[0] ) && 
+		   Helper::str2dbl( toks[p++] , pp[1] ) && 
+		   Helper::str2dbl( toks[p++] , pp[2] ) )
 		{		  
-		  g.meta.set( tagname , x );
+		  
+		  if ( ! ref1 )
+		    {
+		      double tmp = pp[2];
+		      pp[2] = pp[0];
+		      pp[0] = tmp;
+		    }		  
+
+		  if ( store_as_dosage ) 
+		    {
+		      // 0..2 scale, of 'B' allele
+		      g.meta.set( tagname , pp[1] + 2 * pp[2] );
+		    }
+		  else if ( store_as_prob3 )
+		    {		      
+		      g.meta.set( tagname , pp );
+		    }
+		  
 		  if ( make_hard_call ) 
 		    {
-		      if      ( x[0] >= hard_call_prob_threshold ) geno = 1;
-		      else if ( x[1] >= hard_call_prob_threshold ) geno = 2;
-		      else if ( x[2] >= hard_call_prob_threshold ) geno = 3;
+		      if      ( pp[0] >= hard_call_prob_threshold ) geno = 1;
+		      else if ( pp[1] >= hard_call_prob_threshold ) geno = 2;
+		      else if ( pp[2] >= hard_call_prob_threshold ) geno = 3;
 		    }
 		}
 	    }
 	  else if ( format_dose2 ) 
 	    {
 	      double d = 0;
-	      if ( Helper::str2dbl( tok(p++) , d ) ) 
+
+	      if ( Helper::str2dbl( toks[p++] , d ) ) 
 		{
-		  g.meta.set( tagname , d );
+
+		  // assume diploid...
+		  if ( ! ref1 ) d = 2 - d;
+		  
+		  if ( store_as_dosage ) 
+		    {
+		      g.meta.set( tagname , d ) ;
+		    }
+
+		  else if ( store_as_prob3 )
+		    {
+
+		      std::vector<double> pp(3);
+
+		      // fudge, but probably not too bad??
+		      // no other choice...
+		      if ( d > 1 ) 
+			{
+			  pp[0] = 0;
+			  pp[1] = 2 - d;
+			  pp[2] = d - 1;
+			}
+		      else
+			{
+			  pp[0] = 1 - d;
+			  pp[1] = d;
+			  pp[2] = 0;
+			}
+		      
+		      g.meta.set( tagname , pp ) ;
+		    }
+		 
 		  if ( make_hard_call ) 
 		    {
 		      if      ( d <= hard_call_dosage_threshold ) geno = 1;
-		      else if ( d >= 1 - hard_call_dosage_threshold ) geno = 3;
-		      else if ( abs( d - 0.5 ) <= hard_call_dosage_threshold ) geno = 2;
+		      else if ( d >= 2.0 - hard_call_dosage_threshold ) geno = 3;
+		      else if ( abs( d - 1.0 ) <= hard_call_dosage_threshold ) geno = 2;
 		    }
 		}
 	    }
 	  else if ( format_dose1 ) 
-	    {
-	      double d = 0;
-	      if ( Helper::str2dbl( tok(p++) , d ) ) 
-		{
-		  g.meta.set( tagname , d * 2 );		
+	    {	      
+	      double d;
+
+	      if ( Helper::str2dbl( toks[p++] , d ) ) 
+		{		  
+
+		  // internally, use 0..2 encoding of dosage always
+
+		  d *= 2;
+		  
+		  if ( !ref1 ) d = 1 - d;
+		  
+		  if ( store_as_dosage ) 
+		    {
+		      g.meta.set( tagname , d  ) ;
+		    }
+		  
+		  else if ( store_as_prob3 )
+		    {
+		      
+		      std::vector<double> pp(3);
+		      // fudge, but probably not too bad??
+		      // no other choice...
+		      if ( d > 1 ) 
+			{
+			  pp[0] = 0;
+			  pp[1] = 2 - d;
+			  pp[2] = d - 1;
+			}
+		      else
+			{
+			  pp[0] = 1 - d;
+			  pp[1] = d;
+			  pp[2] = 0;
+			}
+		      
+		      g.meta.set( tagname , pp ) ;
+		    }
+
 		  if ( make_hard_call ) 
 		    {
 		      if      ( d <= hard_call_dosage_threshold ) geno = 1;
 		      else if ( d >= 2 - hard_call_dosage_threshold ) geno = 3;
 		      else if ( abs( d - 1.0 ) <= hard_call_dosage_threshold ) geno = 2;
 		    }
-
+		  
 		}
 	    }
-
-
+	  
+	  
 	  //
 	  // Make a hard-call?
 	  //
 	  
 	  if ( geno == 0 ) g.null( true );
 	  else g.set_alternate_allele_count( geno - 1 );
-	
-
+	  
+	  
 	}
       
       
@@ -475,10 +607,7 @@ bool DoseReader::read_dose( const std::string & f )
 		v.consensus.meta.set( metas[m] , d );
 	    }
 	}
-      
-      
-      std::cout << "about to invert + " << v << "\n" << v.meta << "\n";
-
+           
       //
       // Put this variant into the database
       //
@@ -500,9 +629,7 @@ bool DoseReader::read_dose( const std::string & f )
   // Ensure variant index is set on VARDB
   //
   
-  vardb->commit();
-  vardb->index();
-  
+  int2 niv = vardb->make_summary( file_id ) ;
 
   //
   // Clean-up and leave
@@ -516,7 +643,6 @@ bool DoseReader::read_dose( const std::string & f )
        << cnt << " variants, for " 
        << ni << " individuals from "
        << dose_filename << "\n";
-
   
   return cnt;
 
