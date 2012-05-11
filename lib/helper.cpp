@@ -552,31 +552,6 @@ std::vector<std::string> Helper::tokenizeLine(std::ifstream & F1)
   return tokens;
 }
 
-std::string Helper::stringize( const std::set<std::string> & s , const std::string & delim  )
-{
-  std::string r = "";
-  std::set<std::string>::iterator i = s.begin();
-  while ( i != s.end() )
-    {
-      if ( i != s.begin() ) r += delim;
-      r += *i;
-      ++i;
-    }
-  return r;
-}
-
-std::string Helper::stringize( const std::vector<std::string> & s , const std::string & delim  )
-{
-  std::string r = "";
-  std::vector<std::string>::const_iterator i = s.begin();
-  while ( i != s.end() )
-    {
-      if ( i != s.begin() ) r += delim;
-      r += *i;
-      ++i;
-    }
-  return r;
-}
 
 std::string Helper::stringizeKeyPairList( const std::map<std::string,std::string> & m , bool show_keys )
 {
@@ -1647,3 +1622,12 @@ void Helper::char_tok::clear()
     len = 0;
 }
 
+bool Helper::char_tok::next_nonmissing( int * i ) const
+{
+  while (1) 
+    {
+      if ( *i >= p.size() ) return false;
+      if ( *(s + p[*i]) == '\0' ) ++(*i);
+      else return true;	
+    }  
+}

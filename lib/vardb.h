@@ -227,7 +227,7 @@ class VarDBase {
   // Fetch a single Region/Variant, given it's ID
   //
 
-  Region get_position_from_id( const std::string & id1 , const std::string & id2 ) ;
+  Region get_position_from_id( const std::string & id1 , const std::string & id2 , bool * okay = NULL ) ;
 
   //
   // Deletions

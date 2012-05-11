@@ -26,6 +26,7 @@ std::string PSEQ_DATE    = "10-Mar-2012";
 int main(int argc, char ** argv)
 {
 
+
   //
   // Get command-line options into a sensible form
   //
@@ -678,6 +679,17 @@ int main(int argc, char ** argv)
   
   
   //
+  // Load .dosage file (-like) format
+  //
+  
+  if ( command == "load-dosage" ) 
+    {
+      Pseq::VarDB::load_dosage();
+      Pseq::finished();
+    }
+
+
+  //
   // Load/flush meta-information into VARDB, as independent meta-information 
   //
 
@@ -1168,7 +1180,7 @@ int main(int argc, char ** argv)
     // Set phenotype (as used by Mask phe.unobs)
     //
     
-    if ( args.has("phenotype") )
+    if ( args.has( "phenotype" ) )
       {		
 	// in single-file mode, we need to upload the phenotypes on the fly
 	
@@ -1200,13 +1212,24 @@ int main(int argc, char ** argv)
 	  Helper::halt("no individuals selected / problem setting (default) phenotype " + PLINKSeq::DEFAULT_PHENOTYPE() );
       }
     
-    
+    //
+    // Create a residual-based phenotype (at this point, will only include people who 
+    // are in the mask)
+    //
+
+    if ( args.has( "residuals" ) )
+      {
+	if ( ! ( g.phmap.type() == PHE_DICHOT || g.phmap.type() == PHE_QT ) )
+	  Helper::halt( "no binary or continuous phenotype defeined for making residuals");
+	
+	Pseq::IndDB::make_residuals( args.as_string_vector( "residuals" ) );	
+      }
 
     //
     // Set a stratifying variable?
     //
 
-    if ( args.has("strata") )
+    if ( args.has( "strata" ) )
       {
 	if ( ! g.phmap.set_strata( args.as_string( "strata" ) ) )
 	  Helper::halt("problem setting strata");
@@ -1403,6 +1426,23 @@ int main(int argc, char ** argv)
 	  Pseq::IndDB::dump_table( m );
 	Pseq::finished();
       }
+
+
+    if ( command == "write-phe" )
+      {	
+	std::vector<std::string> names;	
+
+	if ( ! args.has( "name" ) ) 
+	  {
+	    if ( g.phmap.type() != PHE_NONE ) names.push_back( g.phmap.phenotype() );
+	    else Helper::halt( "no phenotype specified: --phenotype (or --name pheno1 pheno2 ...)" );
+	  }
+	else names = args.as_string_vector( "name" ) ;
+	
+	Pseq::IndDB::dump_phenotypes( names ) ;
+	Pseq::finished();
+      }
+
 
     //
     // Dump individual segments from a SEGDB
@@ -1894,8 +1934,6 @@ int main(int argc, char ** argv)
 
     if ( command == "assoc" )
       {
-	if ( g.phmap.type() != PHE_DICHOT ) 
-	  Helper::halt("no dichotomous phenotype specified");
 
 	// if no perms specified, use adaptive permutation mode
 	Pseq::Assoc::set_assoc_test( m , args );
@@ -2002,7 +2040,8 @@ int main(int argc, char ** argv)
     if ( command == "glm" )
       {
 	
-	if ( g.phmap.type() != PHE_DICHOT && g.phmap.type() != PHE_QT ) 
+	// allow phenotpe not to be specified yet, if reading from a file a list of tests:
+	if ( g.phmap.type() != PHE_DICHOT && g.phmap.type() != PHE_QT && ! args.has("file" ) ) 
 	  Helper::halt("no dichotomous or quantitative phenotype specified");	
 
 	Pseq::Assoc::Aux_glm aux;
@@ -2010,6 +2049,12 @@ int main(int argc, char ** argv)
 	aux.show_meta = args.has( "vmeta" );
 	
 	aux.dichot_pheno = g.phmap.type() == PHE_DICHOT;
+	
+	if ( args.has( "file" ) )
+	  {
+	    aux.test_list = 1;
+	    aux.test_list_file = args.as_string( "file" );
+	  }
 	
 	if ( args.has( "use-postprobs" ) )
 	{
@@ -2023,15 +2068,16 @@ int main(int argc, char ** argv)
 	}
 	
 	if ( args.has( "covar" ) )
-	{
+	  {
 	    aux.has_covar = true;
-	    aux.covars = args.as_string_vector( "covar" );
-	    
-	    if ( args.has( "show-covar" ) )
-	    {
-		aux.show_all_covar = true;
-	      }
-	}
+	    aux.covars = args.as_string_vector( "covar" );	    
+	  }
+
+	if ( args.has( "show-covar" ) )
+	  aux.show_all_covar = true;
+
+	if ( args.has( "show-intercept" ) )
+	  aux.show_intercept = true;
 	
 	// for now, no permutations
 	// aux.nrep = args.has( "perm" ) ? args.as_int( "perm" ) : 0 ;

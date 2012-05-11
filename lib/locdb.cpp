@@ -1139,10 +1139,6 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
 
       // AB000381 Twinscan  CDS          380   401   .   +   0  gene_id "001"; transcript_id "001.1";
 
-      // For now, we only want to store CDS exons and stop_codons : (?check)
-      
-      if ( ! ( tok[2] == "CDS" || tok[2] == "stop_codon" ) ) continue;
-      
             
       // Start/stop positions
 
@@ -1198,25 +1194,47 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
 
       // Always expect gene_id and transcript_id 
       // Use gene_id
-      
-      r.meta.set( "feature" , tok[2] );
+
+      std::string & feature = tok[2];
+
+      r.meta.set( "feature" , feature );
       
 
-      // Track strand and frame (-1,1,  0=missing)
+      // Track strand for CDS (-1,1,  0=missing)
       
+      // Use 'strand' to encode two distinct things: a) whether
+      //  transcript is on +ve or -ve strand, b) but also some
+      //  meta-data about the type of feature. Not particularly
+      //  elegant, but will work for now...
+
+      //         <other>     0
+      //         CDS         -1,+1
+      //         exon        -2,+2
+      //         start_codon -3,+3
+      //         stop_codon  -4,+4
+
       int strand = 0;
-      if ( tok[6] == "-" ) strand = -1;
-      else if ( tok[6] == "+" ) strand = 1;
+      if      ( tok[6] == "-" ) strand = -1;
+      else if ( tok[6] == "+" ) strand =  1;
+
+      if      ( feature == "exon" ) strand *= 2;
+      else if ( feature == "start_codon" ) strand *= 3;
+      else if ( feature == "stop_codon" ) strand *= 4;
+
       r.meta.set( PLINKSeq::TRANSCRIPT_STRAND() , strand );
       
+      
+      //
+      // Frame: for CDS 0, 1 or 2 
+      //   for start_codon
+      //
 
-      // implies "." --> 0  (i.e. for stop_codon )
       int frame = 0;
       
       if ( Helper::str2int( tok[7] , frame ) ) 
-      {	
+	{	
 	  r.meta.set( PLINKSeq::TRANSCRIPT_FRAME() , frame );
-      }
+	}
 
       ///////////////////////////
       // Add region to database
@@ -2089,20 +2107,30 @@ MetaInformation<LocMeta> LocDBase::submeta( uint64_t sub_id )
 
 uint64_t LocDBase::merge( const std::string & grp_name, const std::string & name, const std::string & mergeField)
 {
-  
+
   if ( ! attached() ) return 0;
+
+  //
+  // Does this group exist?
+  //
+
   uint64_t grp_id = lookup_group_id( grp_name );
+
   if ( grp_id == 0 ) return 0;
   
-  
+
+  //
   // Merge regions with the same "name" into a new group, where each
   // region is now a subregion. Specific meta-information will be
   // lost.
+  //
   
-  // e.g. make one-region == exon into a gene with exons as subregions
+  // We are assuming that this function is being applied only to
+  // features read from a GTF2.2 file as specific elements (CDS/exon
+  // distinctions) will be stored/handled differently.
 
-  // if mergeField != "" then use that meta-information field. If not present, 
-  // skip that region
+  // If mergeField != "" then use that meta-information field. If not
+  // present, skip that region
   
   bool useName = mergeField == "";
 

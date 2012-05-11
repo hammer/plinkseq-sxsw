@@ -95,26 +95,83 @@ Region::Region(const std::string & s, bool & flag)
   if ( ! Helper::chr_known( s.substr( 0,p ) ) ) 
     {
       // is this a rs-ID (or two rs-IDs) instead?
-      if  ( GP->vardb.attached() ) 
+      if  ( GP->vardb.attached() && ! GP->single_file_mode() ) 
 	{
 	  // could be in one of four forms:
 	  // rs1234
 	  // rs1234..rs5678
 	  // rs1234-rs5678
+	  // rs1234+10000
 	  
-	  // what of mixture? :  rs1234..200000  // NO, do not allow (as we have no specified a chr, could cause problems)
-
-	}
-      
-      return;
-    }
+	  // Are one or two positions specified?
+	  
+	  size_t q1 = s.find("..");
+	  size_t q2 = s.find("-");
+	  size_t q3 = s.find("+");
   
+	  // Single ID
+	  if ( q1 == string::npos && q2 == std::string::npos && q3 == std::string::npos )
+	    {
+	      bool okay ;
+	      Region r = GP->vardb.get_position_from_id( s , "" , &okay );
+	      if ( ! okay ) return; // could not find a position	      
+	      start.chromosome( r.start.chromosome() );
+	      stop.chromosome( r.stop.chromosome() );
+	      start.position( r.start.position() );
+	      stop.position( r.stop.position() );
+	      flag = true;
+	      return;
+	    }
+	  
+	  if       ( q1 != std::string::npos ) // '..'
+	    { 
+	      bool okay ;
+	      Region r = GP->vardb.get_position_from_id( s.substr(0,q1) , s.substr( q1+2 ) , &okay );
+	      if ( ! okay ) return; // could not find a position	      
+	      start.chromosome( r.start.chromosome() );
+	      stop.chromosome( r.stop.chromosome() );
+	      start.position( r.start.position() );
+	      stop.position( r.stop.position() );
+	      flag = true;
+	      return;
+	    }
+	  else if  ( q2 != std::string::npos )   // '-'
+	    { 
+	      bool okay ;
+	      Region r = GP->vardb.get_position_from_id( s.substr(0,q2) , s.substr( q2+1 ) , &okay );
+	      if ( ! okay ) return; // could not find a position	      
+	      start.chromosome( r.start.chromosome() );
+	      stop.chromosome( r.stop.chromosome() );
+	      start.position( r.start.position() );
+	      stop.position( r.stop.position() );
+	      flag = true;
+	      return;
+	    }
+	  else if  ( q3 != std::string::npos )  // '+'
+	    { 
+
+	      bool okay ;
+	      int pmid = 0, w = 0;
+	      if ( ! Helper::str2int( s.substr( q3+1 ) , w ) ) return;
+	      Region r = GP->vardb.get_position_from_id( s.substr(0,q3) , "" , &okay );
+	      if ( ! okay ) return; // could not find a position	      
+	      pmid = r.start.position();
+
+	      start.chromosome( r.start.chromosome() );
+	      stop.chromosome( r.stop.chromosome() );
+	      start.position( pmid - w < 0 ? 0 : pmid - w );  // impose positive bounds
+	      stop.position( pmid + w );
+	      flag = true;
+	      return;
+	    }
+	}
+    }
+
+  // if the above didn't work, and we still do not recognize this region, bail
   int chr = Helper::chrCode( s.substr( 0,p ) );
   if ( chr == 0 ) return;
-  
-  
-  // In form chr1:1234:rs1234?  remove rs component
-  
+    
+  // In form chr1:1234:rs1234?  remove rs component  
   std::string r = s.substr(p+1);
   size_t w = r.find(":");
   std::string spos = w != string::npos ? r.substr(0,w) : r ;

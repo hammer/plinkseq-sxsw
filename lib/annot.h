@@ -32,8 +32,10 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
  		   PART     =  21 ,    // partial codon  -- not used
 		   SPLICE5  =  22 ,    // 5' splice-site
 		   SPLICE3  =  23 ,    // 3' splice-site 
+
 		   ESPLICE5 =  27 ,    // Essential 5' splice-site
                    ESPLICE3 =  28 ,    // Essential 3' splice-site
+
  		   NON      =  24 ,    // nonsense allele		   		  
  		   FS       =  25 ,    // frameshift 
 		   RT       =  26 };   // readthrough
@@ -42,19 +44,20 @@ struct SeqInfo {
   
   // note -- these function depend on exact coding of seq_annot_t (see above)
 
-  bool missense() const { return type == 20 ; } 
-  bool nonsense() const { return type == 24 ; }
+  bool missense()    const { return type == 20 ; } 
+  bool nonsense()    const { return type == 24 ; }
   bool readthrough() const { return type == 26 ; }
-  bool frameshift() const { return type == 25 ; }    
-  bool splice() const { return type == 22 || type == 23; }   
-  bool esplice() const { return type == 27 || type == 28; }
+  bool frameshift()  const { return type == 25 ; }    
+  bool splice()      const { return type == 22 || type == 23; }   
+  bool esplice()     const { return type == 27 || type == 28; }
+  bool utr()         const { return type == 4  || type == 5; }
 
-  bool coding() const { return type > 9 ; } 
-  bool synon() const { return type == 10 ; } 
-  bool nonsyn() const { return type > 19 ; }   
-  bool intergenic() const { return type == 2 ; }
-  bool intronic() const { return type == 3 ; }
-  bool invalid() const { return type < 2 ; }
+  bool coding()      const { return type > 9 ; } 
+  bool synon()       const { return type == 10 ; } 
+  bool nonsyn()      const { return type > 19 ; }   
+  bool intergenic()  const { return type == 2 ; }
+  bool intronic()    const { return type == 3 ; }
+  bool invalid()     const { return type < 2 ; }
   
   static std::map< seq_annot_t , std::string> types;
   
@@ -119,7 +122,6 @@ struct SeqInfo {
   std::string alt_seq;
   std::string alt_aa;  
   
-
   std::string genomic() const;
 
   std::string codon() const;
@@ -165,6 +167,7 @@ class Annotate {
     // Hold region map, populated by fetch_transcripts()
 
     static std::map<uint64_t,Region> rmap;
+
     static uint64_t transcript_group_id;
 
     static bool load_transcripts( uint64_t id );

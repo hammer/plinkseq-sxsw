@@ -166,8 +166,9 @@ Data::Matrix<double> Statistics::inverse( const Data::Matrix<double> & u_orig, b
 Data::Matrix<double> Statistics::matrix_sqrt( const Data::Matrix<double> & u_orig )
 {
   
-  Data::Matrix<double> u = u_orig;
 
+  Data::Matrix<double> u = u_orig;
+  
   // Using SVD, square root is U . sqrt(D) . V_T
   //  msqrt <- function(m) { m <- svd(m); m$u %*% sqrt(diag(m$d)) %*% t(m$v) }  
 
@@ -183,10 +184,8 @@ Data::Matrix<double> Statistics::matrix_sqrt( const Data::Matrix<double> & u_ori
   // Take square root of diagonal values                                                                                                                                                                                                                                                                          
   for (int i=0; i<n; i++)
     d[i] = sqrt(d[i]);
-  
-  
-  // Multiplication to reconstruct original                                                                                                                                                                                                                                                                             
 
+  // Multiplication to reconstruct original                                                                                                                                                                                                                                                                             
   Data::Matrix<double> r(n,n);
   Data::Matrix<double> r2(n,n);
 
@@ -544,6 +543,18 @@ double Statistics::chi2_prob(double x, double df)
   return q;
   
 }
+
+
+double Statistics::noncentral_chi2_prob( double x , double df , double ncp )
+{
+  int w = 1;
+  double bnd = 1;
+  int st = 0;
+  double p, q;  
+  cdfchn(&w,&p,&q,&x,&df,&ncp,&st,&bnd);
+  return q;
+}
+
 
 // Inverse normal distribution
 
@@ -1022,6 +1033,11 @@ void Statistics::tred2( Data::Matrix<double> & a ,
 // Modified to return only eigenvalues.
 void Statistics::tqli( Data::Vector<double> & d, Data::Vector<double> & e )
 {
+  const int MAXIT = 60 ; // hmm, was 30 but SKAT had issues with large genes
+  // -- I believe these routines have some issues with convergenece when 
+  //    using newer compilers -- should add in a EPS difference test when 
+  //    testing for convergence here.
+
   int m,l,iter,i,k;
   double s,r,p,g,f,dd,c,b;
   double volatile temp;
@@ -1037,7 +1053,7 @@ void Statistics::tqli( Data::Vector<double> & d, Data::Vector<double> & e )
 	if (temp == dd) break;
       }
       if (m != l) {
-	if (iter++ == 30) Helper::halt("Internal problem in tqli routine");
+	if (iter++ == MAXIT ) Helper::halt("Internal problem in tqli routine");
 	g=(d[l+1]-d[l])/(2.0*e[l]);
 	r=pythag(g,1.0);
 	g=d[m]-d[l]+e[l]/(g+SIGN(r,g));

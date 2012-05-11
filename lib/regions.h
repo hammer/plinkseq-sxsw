@@ -5,7 +5,6 @@
 #include <iostream>
 #include <vector>
 
-
 #include "meta.h"
 #include "helper.h"
 #include "variant.h"
@@ -123,8 +122,12 @@ class Subregion {
   int              strand;
   
   int              frame;
-
   
+  bool CDS() const         { return strand == -1 || strand == 1; } 
+  bool exon() const        { return strand == -2 || strand == 2; }
+  bool start_codon() const { return strand == -3 || strand == 3; }
+  bool stop_codon() const  { return strand == -4 || strand == 4; } 
+
   MetaInformation<LocMeta>  meta;
 
   bool overlaps(const Region & b) const;
@@ -150,8 +153,7 @@ class Subregion {
 	 << start.position() << ".."
 	 << stop.position();
       return ss.str();
-    }
-  
+    }  
 
 };
 
@@ -256,7 +258,7 @@ class Region {
   void addSubRegion(uint64_t id, std::string name, int chr, int bp1, int bp2, int strand , int frame )
     { subregion.push_back( Subregion( id, name, chr, bp1, bp2, strand, frame ) ); }
   
-  void addSubRegion(Region & r)
+  void addSubRegion( const Region & r)
       { 
 
 	  

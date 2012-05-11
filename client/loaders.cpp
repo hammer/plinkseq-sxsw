@@ -1,6 +1,7 @@
 #include "loaders.h"
 #include "util.h"
 #include "netdb.h"
+#include "dose.h"
 
 extern GStore g;
 extern Pseq::Util::Options args;
@@ -64,6 +65,8 @@ bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & g
 bool Pseq::VarDB::load_PLINK( const std::vector<std::string> & name , const Pseq::Util::Options & opt , const std::string & tag )
 {
   if ( name.size() == 0 ) return false; 
+  if ( name.size() != 1 ) Helper::halt( "expecting a single --id value" );
+
   std::string fileroot = name[0];
   
   BEDReader b( &g.vardb );
@@ -79,7 +82,8 @@ bool Pseq::VarDB::load_PLINK( const std::vector<std::string> & name , const Pseq
   if ( tag != "" ) b.set_tag( tag );
   bool okay = b.read_bed();
   if ( ! okay ) plog.warn( "problems detected loading BED file, " + fileroot );
-  g.fIndex.append_to_projectfile( Helper::fullpath( fileroot ) , "PLINK" );
+  if ( g.has_project_file() ) 
+    g.fIndex.append_to_projectfile( Helper::fullpath( fileroot ) , "PLINK" );
   return okay;
 }
 
@@ -750,3 +754,238 @@ bool Pseq::VarDB::swap_ids( const std::string & filename )
   return false;
 }
 
+
+// Load dosage data
+
+bool Pseq::VarDB::load_dosage()
+{
+  
+  // FORMAT:
+
+  // [ #ID1 ID2 ID3 ... ]
+  // rs12345 [ chr1 12345 ] [ A1 A2 ]  dosages... 
+
+
+  // 1) load-dosage --file f1.dose f2.dose f3.dose
+
+  // 2) load-dosage --file f1.dose --map-file f1.map --indiv-file f1.indiv
+  
+  // 3) load-dosage --file-list my.files 
+  //      where my.files has [ f1.dose f1.map f1.fam ] 
+  //      or, '.' if that info is in the main file
+  
+  // map-file format:  
+  //  rs123   chr1   12345   A1   A2
+  //  so, if two col, assume A1/A2 in dosage file
+  //      if 3 col, assume chr1:1234 in dosage file
+  //      if 5 col, assume only rsID in dosage file
+
+  // if reading from an specific indiv-file, we can specify --formats skip-header if the dosage file(s) have headers
+  // but we want to ignore
+  
+  std::vector<std::string> files;
+  std::string filelist = "";
+  
+  if ( args.has( "file" ) )
+    files = args.as_string_vector( "file" );
+  else if ( args.has( "file-list" ) )
+    filelist = args.as_string( "file-list" );
+  else 
+    Helper::halt( "need to specify either --file or --file-list" );
+  
+  
+  //
+  // File-list format: four tab-delimited columns
+  //
+  //   ID  dosage-file   map-file   indiv-file
+  //
+
+  // Is this just a single file?
+  
+  bool single_file_mode = files.size() == 1;
+  bool file_list_mode = filelist != "";
+  
+  //
+  // File ID (single file mode)
+  //
+  std::string filetag = "";
+
+  if ( (!file_list_mode) && (!args.has("id")) )
+    Helper::halt("no --id specified" );
+  else
+    filetag = args.has("id");
+
+  //
+  // Require a single format across all files
+  //
+  
+  std::string input_format = "dose2";  
+  if      ( args.has( "format" , "dose2" ) ) input_format = "dose2";
+  else if ( args.has( "format" , "dose1" ) ) input_format = "dose1";
+  else if ( args.has( "format" , "prob3" ) ) input_format = "prob3";
+  else if ( args.has( "format" , "prob2" ) ) input_format = "prob2";
+
+  std::string store_as = "as-dosage";
+  if ( args.has( "format" , "as-posteriors" ) ) store_as = "as-posteriors";
+  
+  //
+  // A single tag, e.g. 'EC' that will be used to specify the posteriors
+  //
+    
+  if ( ! args.has( "name" ) ) 
+    Helper::halt( "no --name specified" ) ;  
+  std::string tagname = args.as_string( "name" );
+  
+  //
+  // Check reference, if SEQDB attached?
+  //
+  
+  if ( ! args.has("check-reference") && g.seqdb.attached() ) 
+    g.seqdb.dettach();
+ 
+
+  // 
+  // MAP/INDIV files
+  // 
+  
+  std::vector<std::string> map_files;
+  if ( args.has( "map-file" ) )
+    {
+      if ( file_list_mode ) Helper::halt( "cannot use --map-file and --file-list" );
+      map_files = args.as_string_vector( "map-file" );
+    }
+  
+
+  //
+  // Indiv. files
+  //
+
+  std::vector<std::string> indiv_files;
+  if ( args.has( "indiv-file" ) )
+    {
+      if ( file_list_mode ) Helper::halt( "cannot use --indiv-file and --file-list" );
+      indiv_files = args.as_string_vector( "indiv-file" );
+    }
+  
+  //
+  // SKip dosage file headers?
+  //
+  bool skip_header = false;
+  if ( args.has( "format" , "skip-header") ) 
+    {
+      if ( ! ( args.has("indiv-file") || file_list_mode ) )
+	Helper::halt("cannot skip-header w/out indiv-file or file-list mode set");
+      skip_header = true;
+    }
+
+  //
+  // Space vs. tabs
+  //
+
+  bool spaced = args.has( "format" , "space-delimited" ) ;
+
+  //
+  // Load single file
+  //
+  
+  if ( ! file_list_mode ) 
+    {
+      
+      if ( map_files.size() > 0 && map_files.size() != files.size() ) 
+	Helper::halt( "--map-file and --file do not have similar length");
+      
+      if ( indiv_files.size() > 0 && indiv_files.size() != files.size() ) 
+	Helper::halt( "--indiv-file and --file do not have similar length");
+      
+      bool use_map = map_files.size() > 0 ;
+      bool use_indiv = indiv_files.size() > 0 ;
+
+      for (int f=0;f<files.size();f++)
+	{  
+      	  DoseReader reader( &g.vardb ); 
+	  reader.set_input_format( input_format );  
+	  reader.set_metatag( tagname , store_as ); 
+	  reader.set_skip_header( skip_header );
+	  if ( spaced ) reader.set_spaced();
+	  if ( use_map ) reader.set_mapfile( map_files[f] );
+	  if ( args.has("meta-file") ) reader.set_meta( args.as_string("meta-file") ); 
+	  if ( args.has("format" , "position-map") ) reader.set_mapfile_only_pos();
+	  if ( args.has("format" , "allele-map") ) reader.set_mapfile_only_alleles();
+	  if ( use_indiv ) reader.set_famfile( indiv_files[f] );
+	  if ( g.seqdb.attached() ) reader.use_seqdb( & g.seqdb );
+	  reader.set_filetag( filetag );
+	  g.vardb.begin();
+	  if ( ! reader.read_dose( files[f] ) ) 
+	    Helper::halt( "problem reading dosage file " + files[f] + ", or associated file" );	  
+	  g.vardb.commit();
+	}
+      
+    }
+
+  
+  //
+  // Populate map/indiv files from list
+  //
+  
+  if ( file_list_mode ) 
+    {
+      
+      g.vardb.drop_index();
+      
+      Helper::checkFileExists( filelist );      
+      InFile FL( filelist );
+      while ( ! FL.eof() )
+	{
+	  std::vector<std::string> tok = FL.tokenizeLine("\t");
+	  if ( tok.size() == 0 ) continue;
+	  if ( tok.size() != 4 ) Helper::halt( "expecting 4 tab-delimited fields per line" );
+	  
+	  std::string tagname = tok[0];
+	  std::string dose_file = tok[1];
+	  std::string map_file = tok[2];
+	  std::string indiv_file = tok[3];
+	  	  
+	  DoseReader reader( &g.vardb );
+	  	  
+	  if ( map_file != "." && map_file != "" ) 
+	    reader.set_mapfile( tok[2] );
+	 
+	  if ( args.has("format" , "position-map") ) 
+	    reader.set_mapfile_only_pos();
+
+	  if ( args.has("format" , "allele-map") ) 
+	    reader.set_mapfile_only_alleles();
+ 
+	  if ( indiv_file != "." && indiv_file != "" )
+	    reader.set_famfile( tok[3] );
+	  
+	  if ( g.seqdb.attached() ) reader.use_seqdb( & g.seqdb );
+	  
+	  if ( args.has("meta-file") ) reader.set_meta( args.as_string("meta-file") ); 
+	  
+	  reader.set_input_format( input_format );  
+
+	  reader.set_metatag( tagname , store_as ); 
+	  
+	  reader.set_filetag( tok[0] );
+
+	  reader.set_skip_header( skip_header );
+
+	  if ( spaced ) reader.set_spaced();
+
+	  g.vardb.begin();
+	  if ( ! reader.read_dose( tok[1] ) ) 
+	    Helper::halt( "problem reading dosage file " + tok[1] + ", or associated file" );
+	  g.vardb.commit();	  
+	}
+      FL.close();
+    }
+  
+  // re-index
+  //  (note -- if fails above, doesn't matter, as the VARDB will automatically get the indexes 
+  //   added back in next time something runs)
+
+  g.vardb.index();  
+ 
+  return true;
+}

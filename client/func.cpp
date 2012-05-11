@@ -1019,7 +1019,8 @@ bool Pseq::IndDB::dump_table(Mask & m)
       return false;
     }
   
-
+  bool verbose = args.has("verbose");
+  
   // List all information in IndDB, one person per line
   
   std::map<std::string,std::vector<std::string> > pheno = g.inddb.fetch_phenotype_info();
@@ -1055,69 +1056,69 @@ bool Pseq::IndDB::dump_table(Mask & m)
   const int n = g.indmap.size();
   
   // track any people in the phmap who are not in the mask 
-
-  plog << "#ID\tFID\tIID\tMISS\tSEX\tPAT\tMAT\tMETA";
-  if ( g.phmap.phenotype_set() && g.phmap.type() == PHE_DICHOT ) plog << "\tPHE";
-  if ( g.phmap.strata_set() ) plog << "\tSTRATA";
-  plog << "\n";
+  
+  if ( ! verbose ) 
+    {
+      plog << "#ID\tFID\tIID\tMISS\tSEX\tPAT\tMAT\tMETA";
+      if ( g.phmap.phenotype_set() && g.phmap.type() == PHE_DICHOT ) plog << "\tPHE";
+      if ( g.phmap.strata_set() ) plog << "\tSTRATA";
+      plog << "\n";
+    }
 
   std::set<Individual*> observed;
   
   for (int i = 0 ; i < n ; i++) 
     {
-
+      
       // note: should never return a null, if based on 0..(n-1) where n is 
       // returned from create_from_mask()
       
       Individual * pmapped = g.indmap.ind( i );
-            
-      plog << *pmapped;
-      
-      if ( g.phmap.type() == PHE_DICHOT )
+
+      if ( ! verbose ) 
 	{
-	  if ( pmapped->affected() == CASE ) plog << "\tCASE";
-	  else if ( pmapped->affected() == CONTROL ) plog << "\tCONTROL";
-	  else plog << "\t.";
+	  plog << *pmapped;
+	  
+	  if ( g.phmap.type() == PHE_DICHOT )
+	    {
+	      if ( pmapped->affected() == CASE ) plog << "\tCASE";
+	      else if ( pmapped->affected() == CONTROL ) plog << "\tCONTROL";
+	      else plog << "\t.";
+	    }
+	  
+	  if ( g.phmap.strata_set() )
+	    {
+	      plog << "\t" << pmapped->group_label();
+	    }
 	}
-      
-      if ( g.phmap.strata_set() )
+      else // VERBOSE output mode
 	{
-	  plog << "\t" << pmapped->group_label();
+	  
+	  plog << "ID:\t" << pmapped->id() << "\n";
+	  
+	  if ( g.phmap.type() == PHE_DICHOT )
+	    {
+	      if ( pmapped->affected() == CASE ) plog << "\tPHENO:\tCASE\n";
+	      else if ( pmapped->affected() == CONTROL ) plog << "\tPHENO:\tCONTROL\n";
+	      else plog << "\tPHENO:\t.\n";
+	    }
+	  
+	  if ( g.phmap.strata_set() )
+	    {
+	      plog << "\tSTRATA\t" << pmapped->group_label() << "\n";
+	    }
+
+	  // Now all phenotypes, in long form:
+	  plog << pmapped->meta.display();
+	  
 	}
-      
       
       plog << "\n";      
-
+      
       observed.insert( pmapped );
       
     }
 
-
-  //
-  // List the people we are not looking at
-  //
-
-  // note -- currently, this function only lists the people who are in VARDB, and 
-  // specified by the Mask.  If they also exist in INDDB, then the phenotypic info. 
-  // is attacged.  Currently, there is no option to get the list of people in INDDB
-  // who are not in VARDB
-
-//   string ex = "";
-//   int x = 0;
-//   set<Individual*> all = g.phmap.all_in_map();
-//   set<Individual*>::iterator i = all.begin();
-//   while ( i != all.end() )
-//     {
-//       if ( observed.find( *i ) == observed.end() )
-// 	{
-// 	  ex += " " + (*i)->id();
-// 	  if ( ++x % 8 ) ex += "\n";
-// 	}
-//       ++i;
-//     }
-  
-//   if ( x != 0 ) 
-//     plog << x << " individuals in INDB not included by this mask:" << ex << "\n";
   
   return true;
 }
@@ -1941,3 +1942,44 @@ bool Pseq::VarDB::write_BCF( Mask & mask , const std::string & bcffile )
 
 
 
+
+bool Pseq::IndDB::dump_phenotypes( const std::vector<std::string> & pheno )
+{
+  std::vector<bool> m( pheno.size() , true );
+  for (int p=0;p<pheno.size();p++)
+    {
+      pType ptype = g.phmap.type( pheno[p] );
+      if      ( ptype == PHE_DICHOT ) plog << "##" << pheno[p] << ",Integer,.,\"Integer phenotype\"\n";
+      else if ( ptype == PHE_QT )     plog << "##" << pheno[p] << ",Float,.,\"Float phenotype\"\n";
+      else if ( ptype == PHE_FACTOR ) plog << "##" << pheno[p] << ",String,.,\"Factor phenotype\"\n";
+      else { m[p] = false; continue; } 
+    }
+
+  plog << "#ID";
+
+  for (int p=0;p<pheno.size();p++)
+    if ( m[p] ) plog << "\t" << pheno[p];
+  plog << "\n";
+  
+  const int n = g.indmap.size();
+
+  for (int i=0;i<n;i++)
+    {
+      plog << g.indmap(i)->id() ;
+      for (int p=0;p<pheno.size();p++)
+	if ( m[p] ) 
+	  {
+	    Individual * person = g.indmap(i);
+	    if ( person->meta.has_field( pheno[p] ) )
+	      {
+		pType ptype = g.phmap.type( pheno[p] );
+		if      ( ptype == PHE_DICHOT ) plog << "\t" << person->meta.get1_int( pheno[p] ) ;
+		else if ( ptype == PHE_QT )     plog << "\t" << person->meta.get1_double( pheno[p] ) ;
+		else if ( ptype == PHE_FACTOR ) plog << "\t" << person->meta.get1_string( pheno[p] ) ;
+	      }
+	    else 
+	      plog << "\t.";
+	  }
+      plog << "\n";
+    }
+}

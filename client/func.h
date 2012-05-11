@@ -37,7 +37,9 @@ namespace Pseq
       bool header_VCF( const bool meta , const bool header , Mask & );
       
       bool load_PLINK( const std::vector<std::string> & , const Pseq::Util::Options & , const std::string & );
-      
+
+      bool load_dosage();
+
       bool swap_ids( const std::string & );
 
       bool flush( const std::vector<int> & );
@@ -193,7 +195,10 @@ namespace Pseq
       bool swap_ids( const std::string & );
 
       bool dump_table(Mask &);
+
+      bool make_residuals( const std::vector<std::string> & );
       
+      bool dump_phenotypes( const std::vector<std::string> & );
     }
   
   

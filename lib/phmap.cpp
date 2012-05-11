@@ -166,10 +166,26 @@ void PhenotypeMap::align( const std::set<std::string> & ids )
 
 bool PhenotypeMap::phenotype_exists( const std::string & phenotype ) const
 {
+  // catch case of on-the-fly created variable:
+  if ( phenotype == phenotype_name ) return true;
   mType mt = MetaInformation<IndivMeta>::type( phenotype ) ;
   return mt != META_UNDEFINED;  
 }
 
+pType PhenotypeMap::type( const std::string & phenotype ) const 
+{
+
+  // catch case of on-the-fly created variable:
+  // (i.e. residualized phenotypes are stored here
+  if ( phenotype == phenotype_name ) return phenotype_type;
+
+  // otherwise, look up from meta-info
+  mType mt = MetaInformation<IndivMeta>::type( phenotype ) ;
+  if ( mt == META_INT ) return PHE_DICHOT;
+  if ( mt == META_FLOAT ) return PHE_QT;
+  if ( mt == META_TEXT ) return PHE_FACTOR;
+  return PHE_NONE;  
+}
 
 int PhenotypeMap::set_phenotype( const std::string & phenotype )
 {
@@ -261,6 +277,9 @@ int PhenotypeMap::attach_dichot_phenotype( const std::string & pname , const std
   int nonmissing = 0;
   phenotype_name = pname;
   phenotype_type = PHE_DICHOT;
+
+  // register as a type if does not exist
+  MetaInformation<IndivMeta>::field( pname , META_INT , 1 , "." );
   
   const int n = imap.size();
     for (int i = 0 ; i < n ; i++ ) 
@@ -272,21 +291,62 @@ int PhenotypeMap::attach_dichot_phenotype( const std::string & pname , const std
       if ( phe[i] == 2 ) 
 	{
 	  person->affected( CASE );
+	  person->meta.set( pname , 2 );
 	  ++nonmissing;
 	}
       else if ( phe[i] == 1 ) 
 	{
 	  // A control
 	  person->affected( CONTROL );
+	  person->meta.set( pname , 1 );
 	  ++nonmissing;
 	}
       else
 	{
 	  person->affected( UNKNOWN_PHE );		  
+	  person->meta.set( pname , 0 );
 	}
     }
   return nonmissing;  
 }
+
+
+int PhenotypeMap::attach_qt_phenotype( const std::string & pname , 
+				       const std::vector<bool> & missing , 
+				       const std::vector<double> & phe , 
+				       const IndividualMap & imap )
+{
+  
+  int nonmissing = 0;
+  phenotype_name = pname;
+  phenotype_type = PHE_QT;
+
+  // register as a type if does not exist
+  MetaInformation<IndivMeta>::field( pname , META_FLOAT , 1 , "." );
+  
+  const int n = imap.size();
+
+  for (int i = 0 ; i < n ; i++ ) 
+    {
+      
+      Individual * person = imap(i);
+      
+      // Is this person a case? 
+      if ( ! missing[i] ) 
+	{
+	  person->qt( phe[i] );
+	  person->meta.set( pname , phe[i] );
+	  person->missing( false );
+	  ++nonmissing;
+	}
+      else
+	{
+	  person->missing( true );	  
+	}
+    }
+  return nonmissing;  
+}
+
 
 
 int PhenotypeMap::make_phenotype( const std::string & make_phenotype )
@@ -563,38 +623,129 @@ std::string PhenotypeMap::phenotype(const std::string & p , const int i ) const
   return ".";
 }
 
-Data::Matrix<double> PhenotypeMap::covariates( const std::vector<std::string> & c , const IndividualMap & indmap )
+Data::Matrix<double> PhenotypeMap::covariates( const std::vector<std::string> & c , const IndividualMap & indmap , 
+					       VarDBase * vardb )
 {
 
   // Create a matrix of covariate values
   // The order of rows of this matrix corresponds to the indmap given
-
+  
   // To add -- function to automatically downcode factors?
   // Return a matrix of covariate values
+
+  // If w cannot find a covariate by name, see if it exists as a SNP/region in the VARDB, if a VARDB is passed in
 
   const int n = indmap.size();
 
   Data::Matrix<double> d( n , c.size() );
-  
-  for (int r=0; r<n; r++)
-    {
 
-      Individual * person = indmap(r);
+  for (int p=0; p<c.size(); p++)
+    {	  
       
-      for (int p=0; p<c.size(); p++)
-	{	  
-	  if ( person->meta.has_field( c[p] ) )
+      // Does this variable exist in the INDDB at all?
+      
+      bool covariate_exists = phenotype_exists( c[p] );
+      
+      if ( !covariate_exists )
+	{
+
+	  if ( ! vardb ) 
+	    Helper::halt("could not find covariate " + c[p] );
+
+	  // If in form rs12345:AC
+	  //  means use AC tag from rs12345
+	  //  if so, determine type of tag
+
+	  std::vector<std::string> t = Helper::parse( c[p] , ":" );
+	  std::string gettag = "";
+	  if ( t.size() == 2 ) gettag = t[1];
+	  else if ( t.size() == 3 ) 
 	    {
-	      mType mt = MetaInformation<IndivMeta>::type( c[p] );
-	      if ( mt == META_INT ) d(r,p) = person->meta.get1_int( c[p] );
-	      else if ( mt == META_FLOAT ) d(r,p) = person->meta.get1_double( c[p] );
-	      else if ( mt == META_BOOL ) d(r,p) = person->meta.get1_bool( c[p] );
-	      else d.set_row_mask( r );	      
+	      t[0] = t[0] + ":" + t[1];  // assume this was in form chr1:12345:TAG
+	      gettag = t[2];
 	    }
-	  else // for now, require completely non-missing data
-	    d.set_row_mask( r );
+
+	  bool usetag = gettag != "";
+	  
+	  const std::string & cp = t[0];
+	  
+	  bool is_float = false , is_int = false;
+	  if ( usetag ) 
+	    {
+	      mType mt = MetaInformation<GenMeta>::type( gettag );
+	      if      ( mt == META_INT ) is_int = true;
+	      else if ( mt == META_FLOAT ) is_float = true;
+	      else Helper::halt("could not find valid (float/int) genotype tag " + gettag );
+	    }
+	  
+	  // search for in the VARDB: first by rsID name, then by region
+	  bool is_region = false;
+	  Region region( cp , is_region );
+	  
+	  // is it instead an ID
+	  if ( ! is_region ) 
+	    {
+	      region = vardb->get_position_from_id( cp , cp );
+	      is_region = region.start.chromosome() != 0;
+	    }
+	  
+	  if ( ! is_region ) 
+	    Helper::halt("could not find a single covariate value to attach for " + cp ); 
+	  
+	  std::set<Variant> s = vardb->fetch( region );
+	  
+	  if ( s.size() != 1 ) 
+	    Helper::halt("could not find a single covariate value to attach for for " + cp ); 
+	  
+	  const Variant & var = *s.begin();
+
+	  // extract tag, or genotype value
+	  for (int r=0;r<n;r++)
+	    {
+	      if ( usetag )
+		{
+		  if ( var(r).meta.has_field( gettag ) ) 
+		    {
+		      // has to be one of these two, we checked above
+		      if      ( is_float ) d(r,p) = var(r).meta.get1_double( gettag );
+		      else if ( is_int ) d(r,p) = var(r).meta.get1_int( gettag );		      		      
+		    }
+		  else
+		    d.set_row_mask( r );
+		}
+	      else
+		{
+		  // use standard genotype (alt-allele count) as covariate value
+		  if ( var(r).null() ) d.set_row_mask( r ) ;
+		  else d(r,p) = var(r).minor_allele_count( true ) ; // assume REF is MAJOR allele here...
+		}
+	    } 
 	}
-    }
+      
+      // If we are here, it must be a normal covariate that exists in the INDDB
+      
+      if ( covariate_exists ) 
+	{
+	  for (int r=0; r<n; r++)
+	    {
+	      
+	      Individual * person = indmap(r);
+	      
+	      if ( person->meta.has_field( c[p] ) )
+		{
+		  mType mt = MetaInformation<IndivMeta>::type( c[p] );
+		  if ( mt == META_INT ) d(r,p) = person->meta.get1_int( c[p] );
+		  else if ( mt == META_FLOAT ) d(r,p) = person->meta.get1_double( c[p] );
+		  else if ( mt == META_BOOL ) d(r,p) = person->meta.get1_bool( c[p] );
+		  else d.set_row_mask( r );	      
+		}
+	      else // for now, require completely non-missing data
+		d.set_row_mask( r );
+	    }
+	}
+
+    } // next covariate
+
   return d;
 }
 

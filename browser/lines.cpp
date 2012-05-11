@@ -12,7 +12,7 @@ std::string Pseq::Helper::Lines::preamble() const
   ss << "<script type=\"text/javascript\">"
      << "var canvas_" << name << ";"
      << "var ctx_" << name << ";"
-     << "var textHeight_" << name << " = 10;";
+     << "var textHeight_" << name << " = 12;";
   
 
   // define all "inlink" variables
