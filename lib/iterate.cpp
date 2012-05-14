@@ -49,8 +49,9 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 					   Mask & mask ) 
 {
 
+  
+  std::cout << "check1\n";
 
-    
   //
   // Does everything look set up correctly?
   //
@@ -151,6 +152,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 
     }
   
+  std::cout << "check2\n";
   
   
   //
@@ -489,7 +491,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
     // are sure this is the variant.
     //
     
-    //    std::cout << "Q = [" << query << "]\n";
+    std::cout << "Q = [" << query << "]\n";
 
  
 

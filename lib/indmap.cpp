@@ -110,6 +110,7 @@ std::map<int,std::string> IndividualMap::map_slot_to_id() const
 int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
 {
 
+
   // First clear the map
   reset();
   
@@ -122,14 +123,16 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
 
   // Get a list of all individuals from the VARDB, apply Mask, then
   // load into the database
-
+  
   std::map<int,std::string> files = vardb.fetch_files();
   std::map<int,std::string>::iterator f = files.begin();
-
+  
   // track files actually appearing in this map, to 
   // assign 'multi-sample' status or not
 
   std::set<int> obs_files;
+  
+  //  std::vector<std::vector<std::string> > inds = vardb.fetch_individuals();
 
   //
   // Start a transaction
@@ -151,6 +154,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
       int actual_j = 0;
       
       std::vector<std::string> ind = vardb.fetch_individuals( f->first );
+
 
       // Always include N=0 files (i.e. summary info), unless explicitly filtered
       // out via the mask (use_file() above)
@@ -227,7 +231,6 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
 
       ++f;
     }
-
 
 
   //

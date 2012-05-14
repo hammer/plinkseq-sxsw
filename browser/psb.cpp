@@ -1702,7 +1702,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
   
   const int N_RARE_MAC       = 50;
   const int N_TOO_MANY_INDIV = 100;
-  const int N_TOO_MANY_TRANS = 30;
+  const int N_TOO_MANY_TRANS = 50;
   const int N_TOO_MANY_VAR   = 100;
 
 
@@ -1991,7 +1991,8 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
       int ylines = 7;  // ( defaults from above)
 
       if ( show_sequence ) ylines += 2;  // sequence line?
-
+      
+      
       // number of transcripts (or collapsed if too many)
       ylines += regions[r].size() < N_TOO_MANY_TRANS
        	? regions[r].size() 

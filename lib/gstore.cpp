@@ -106,7 +106,7 @@ bool GStore::register_mask( Mask & m )
 {
   // set up the individual map  
   int n = indmap.populate( vardb , phmap , m );
-
+  
   // register all known meta-types (Var, VarFilter, Gen)
   vardb.set_mask_metatypes( m );
 

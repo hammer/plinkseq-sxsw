@@ -427,6 +427,21 @@ bool SeqDBase::ACGT( const Region & region , int & a , int & c , int & g , int &
   return true;
 }
 
+bool SeqDBase::dinucleotide( const Region & region , std::map<std::string,int> & counts )
+{
+  if ( ! attached() ) return false;
+  std::string s = lookup( region );  
+  int totm1 = s.size()-1;
+  if ( totm1 < 0 ) return false;  
+  for (int i=0; i<totm1; i++)
+    {
+      if ( !( s[i] == 'A' || s[i] == 'C' || s[i] == 'G' || s[i] == 'T' ) ) continue;
+      if ( !( s[i+1] == 'A' || s[i+1] == 'C' || s[i+1] == 'G' || s[i+1] == 'T' ) ) continue;      
+      counts[ s.substr(i,2) ]++;
+    }
+  return true;
+}
+
 void SeqDBase::setMinMax()
 {
 
