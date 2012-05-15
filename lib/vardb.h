@@ -185,6 +185,7 @@ class VarDBase {
   // File, indiv and meta-information
     
   std::vector<std::string> fetch_individuals(uint64_t file_id);
+  std::vector<std::vector<std::string> > fetch_individuals();
   std::vector<std::map<std::string,std::string> > fetch_headers(uint64_t file_id);
   std::vector<std::map<std::string,std::string> > fetch_metatypes(uint64_t file_id);
   std::map<int,std::string> fetch_files( Mask * mask = NULL );

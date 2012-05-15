@@ -88,7 +88,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id,iid,fid,check-reference,fix-strand" 
       
-	  << "load-dosage|input|load dosage data|ARG:file,file-list,id,check-reference,format$position-map$allele-map$dose1$dose2$prob2$prob3$as-dosage$as-posteriors,name"
+	  << "load-dosage|input|load dosage data|ARG:file,file-list,id,check-reference,format$space-delimited$skip-header$position-map$allele-map$dose1$dose2$prob2$prob3$as-dosage$as-posteriors,name"
 
 	  << "attach-meta|input|load meta-information for existing VARDB variants|ARG:file,id,group"
 	
@@ -536,6 +536,8 @@ void Pseq::Util::Options::load( int n , char ** argv )
     keyword( "format" , "prob3" , NONE , "3 posterior probabilities" );
     keyword( "format" , "as-dosage" , NONE , "store as dosage" );
     keyword( "format" , "as-posteriors" , NONE , "store as 3 posterior probailities" );
+    keyword( "format" , "skip-header" , NONE , "ignore header in dosage file(s)" );
+    keyword( "format" , "space-delimited" , NONE , "use spaces, not tabs, as delimiters in dosag file(s)" );
 
     keyword( "format" , "chr" , STRING , "" ) ;
     keyword( "format" , "bp1" , STRING , "" );

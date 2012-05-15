@@ -552,6 +552,7 @@ namespace Helper
 	  const char * operator() (const int i) const { return s + p[i]; }
 	  const char * operator[] (const int i) const { return s + p[i]; }
 	  int size() const { return p.size(); } 
+	  bool next_nonmissing( int * ) const;
 	  void clear();
 	  
       private:

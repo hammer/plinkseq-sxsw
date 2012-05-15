@@ -1622,3 +1622,12 @@ void Helper::char_tok::clear()
     len = 0;
 }
 
+bool Helper::char_tok::next_nonmissing( int * i ) const
+{
+  while (1) 
+    {
+      if ( *i >= p.size() ) return false;
+      if ( *(s + p[*i]) == '\0' ) ++(*i);
+      else return true;	
+    }  
+}

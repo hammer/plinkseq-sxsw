@@ -27,6 +27,7 @@ std::string PSEQ_DATE    = "10-Mar-2012";
 int main(int argc, char ** argv)
 {
 
+
   //
   // Get command-line options into a sensible form
   //
@@ -218,7 +219,7 @@ int main(int argc, char ** argv)
 	  Helper::halt("Could not open project file " + project_file );      
   }
   
-
+  
   //
   // Hot-swap in alternate DBs, core folders, etc
   //
@@ -1153,7 +1154,6 @@ int main(int argc, char ** argv)
     // data, which can involve a mask, and possibly a phenotype
     //
     
-
     Mask m( maskspec , filtspec , filter_T_include , pcomm.groups( command ) );
 
 
@@ -1366,6 +1366,7 @@ int main(int argc, char ** argv)
 	opt.show_only_alt        =   args.has( "only-alt" ) ;
 	if ( opt.show_only_alt || opt.show_only_minor ) opt.show_nonmissing_geno = false;
 	opt.mview = mview;
+
 
 	IterationReport report = g.vardb.iterate( f_view , &opt , m );
 
