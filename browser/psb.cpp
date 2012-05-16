@@ -1481,15 +1481,33 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 	{
 
 	  Genotype & g = var(i);
+	  	  
+	  // Genotype; genotype meta-fields;
 	  
-	  // color-coding
-	  if ( g.null() ) o1 << "<td align=\"center\" bgcolor=\"gray\">";
-	  else if ( g.reference() ) o1 << "<td align=\"center\" bgcolor=\"lightgreen\">";
-	  else if ( g.heterozygote() ) o1 << "<td align=\"center\" bgcolor=\"red\">";
-	  else if ( g.alternate_homozygote() ) o1 << "<td align=\"center\" bgcolor=\"yellow\">";
+	  int gt = g.null() ? 3 : 
+	    2 - g.allele_count( );
 	  
-	  // actual genotype
-	  o1 << "<b>" << ( var.flat() ? var.geno_label( var(i) ) : var.label(i) ) << "</b><br>";
+	  if ( gt == 0 ) 
+	    o1 << "<td align=\"center\" bgcolor=\"red\">";
+	  else if ( gt == 1 ) 
+	    o1 << "<td align=\"center\" bgcolor=\"yellow\">";
+	  else if ( gt == 2 )
+	    o1 << "<td align=\"center\" bgcolor=\"lightgreen\">";
+	  else 
+	    o1 << "<td align=\"center\" bgcolor=\"gray\">";
+	  
+	  
+	  // TODO: why didn't this work...
+	  // 	  // color-coding
+	  // 	  if ( g.null() ) o1 << "<td align=\"center\" bgcolor=\"gray\">";
+	  // 	  else if ( g.reference() ) o1 << "<td align=\"center\" bgcolor=\"lightgreen\">";
+	  // 	  else if ( g.heterozygote() ) o1 << "<td align=\"center\" bgcolor=\"red\">";
+	  // 	  else if ( g.alternate_homozygote() ) o1 << "<td align=\"center\" bgcolor=\"yellow\">";
+	  
+
+ 	  // actual genotype
+
+ 	  o1 << "<b>" << ( var.flat() ? var.geno_label( var(i) ) : var.label(i) ) << "</b><br>";
 	  
 	  // genotype meta-information?
 

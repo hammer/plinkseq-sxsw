@@ -391,10 +391,12 @@ int main(int argc, char ** argv)
   
   if ( command == "load-weights" )
     {
-      std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
-      std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
-      Pseq::PPH2DB::load( dbname , filename );
-      Pseq::finished();
+      Helper::halt("obsolete command score weights" );
+
+//       std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
+//       std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
+//       Pseq::PPH2DB::load( dbname , filename );
+//       Pseq::finished();
     }
   
 
@@ -1553,9 +1555,10 @@ int main(int argc, char ** argv)
 
     if ( command == "score-weights" )
       {
-	std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
-	Pseq::PPH2DB::score( m , dbname );
-	Pseq::finished();
+	Helper::halt("obsolete command score-weights");
+// 	std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
+// 	Pseq::PPH2DB::score( m , dbname );
+// 	Pseq::finished();
       }
 
 
