@@ -641,6 +641,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
                       if ( si.splicedist >= 0 ) { ++sie.splicedist; ++si.splicedist; } 
                       if ( si.splicedist < 3 && si.splicedist > 0) annot.insert( si );
                       if ( si.splicedist > -3 && si.splicedist < 0) annot.insert( sie );
+
                     }
                 }
               

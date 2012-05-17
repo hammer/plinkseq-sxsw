@@ -9,7 +9,7 @@
 #include <sstream>
 
 extern GStore g;
-
+extern Pseq::Util::Options args;
 
 bool Pseq::Assoc::variant_assoc_test( Mask & m , 
 				      Pseq::Assoc::Aux_vassoc_options & aux , 
@@ -45,7 +45,7 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   // Use Yates-chisq (instead of standard, or instead of Fisher's exact if no perms)
 
   aux.yates_chisq = args.has( "yates" );
-  
+
 
   //
   // Header row
@@ -1264,7 +1264,6 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 
   if ( args.has( "midpoint" ) ) a.show_midbp = true;
   
-
   //
   // Standard output mode, or dumping a matrix of null-statistics
   // (with originals, and labels, as first row)
@@ -1309,7 +1308,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //
   // Which tests to apply?
   //
-  
+
   a.vanilla       =   args.has( "tests" , "sumstat" );
   a.burden        = ! args.has( "tests" , "no-burden" );
   a.uniq          =   args.has( "tests" , "uniq" );
@@ -1321,9 +1320,9 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   a.cancor        =   args.has( "tests" , "cancor" );
   a.hoffman_witte =   args.has( "tests" , "stepup" );
   a.kbac          =   args.has( "tests" , "kbac" );
+  a.two_hit       =   args.has( "tests" , "two_hit");
   a.skat          =   args.has( "tests" , "skat" );
 
-  
   const int ntests = a.n_tests();
   
   if ( ntests == 0 ) Helper::halt( "no assoc tests specified" );
@@ -1339,6 +1338,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //          cancor   CANCOR
   //          stepup   STEPUP
   //          kbac     KBAC 
+  //          two-hit  TWO-HIT
   //          skat     SKAT
 
 
@@ -1488,6 +1488,7 @@ void g_set_association( VariantGroup & vars , void * p )
   // Metainfo transport structs
   //
 
+
   Pseq::Assoc::Aux_prelim aux_prelim;
   Pseq::Assoc::Aux_burden aux_burden(data->vanilla,data->burden,data->uniq,data->mhit,data->site_burden);
   Pseq::Assoc::Aux_fw_vt  aux_fw_vt(data->fw,data->vt);
@@ -1503,6 +1504,7 @@ void g_set_association( VariantGroup & vars , void * p )
 
   Pseq::Assoc::Aux_hoffman_witte aux_hoffman_witte( data->hoffman_witte , vars, &aux_prelim );
   Pseq::Assoc::Aux_kbac aux_kbac;
+  Pseq::Assoc::Aux_two_hit aux_two_hit( 1 , vars.size() , vars.n_individuals() );
   Pseq::Assoc::Aux_skat aux_skat;
 
 
@@ -1525,6 +1527,24 @@ void g_set_association( VariantGroup & vars , void * p )
   std::vector<std::string> test_name;
   std::map<std::string,std::string> test_text;
   
+
+  double prev = .006;
+  if ( args.has( "prev" ) )
+    prev =  Helper::str2dbl(args.as_string( "prev" ));
+
+  bool mhit = args.has( "mhit" );
+
+
+  std::map< std::string, int > var_class;
+
+  if( args.has( "func" ) ){
+    std::vector<std::string> inc = args.as_string_vector( "func" );
+    for( int i = 0; i < inc.size(); i++ )
+      var_class[inc[i]] = i;
+  }
+
+
+
   if ( data->vanilla || data->burden || data->uniq || data->mhit ) 
     {
       
@@ -1627,6 +1647,15 @@ void g_set_association( VariantGroup & vars , void * p )
       double statistic = Pseq::Assoc::stat_kbac( vars , &aux_prelim , &aux_kbac , &test_text , true );
       test_statistic.push_back( statistic );
     }
+
+
+  if ( data->two_hit )
+    {
+      test_name.push_back( "TWO-HIT" );
+      
+      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true , var_class , prev, mhit );
+      test_statistic.push_back( statistic );
+    }
   
   
   if ( data->skat ) 
@@ -1643,7 +1672,8 @@ void g_set_association( VariantGroup & vars , void * p )
   //
   
   g->perm.score( test_statistic );
-  
+
+
     
   //
   // Begin permutations
@@ -1709,7 +1739,11 @@ void g_set_association( VariantGroup & vars , void * p )
 	  double statistic = Pseq::Assoc::stat_kbac( vars , &aux_prelim , &aux_kbac , NULL , false );
 	  test_statistic.push_back( statistic );
 	}
-
+      if ( data->two_hit )
+        {
+	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false , var_class , prev, mhit );
+	  test_statistic.push_back( statistic );
+	}
       if ( data->skat )
 	{	  
 	  double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , NULL , false  );
@@ -1933,7 +1967,6 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   
   for (int k = 0 ; k < aux.indiv.size() ; k++)
     {
-      
       const int i = aux.indiv[k];
       const int gslot = aux.gene[k];                // col position in SCORES matrix
       const int gmap  = genes_slot2map[ gslot ];    // ID from LOCDB that connects genes to sets
@@ -1956,7 +1989,6 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 	}
       
     }
-  
 
   
   //
