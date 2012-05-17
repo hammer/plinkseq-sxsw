@@ -1,4 +1,4 @@
-bin_PROGRAMS = tab2vcf gcol behead
+bin_PROGRAMS = tab2vcf gcol behead smp
 
 tab2vcf_SOURCES = \
 char_tok.h \
@@ -8,3 +8,7 @@ char_tok.cpp
 gcol_SOURCES = gcol.cpp
 
 behead_SOURCES = behead.cpp
+
+smp_SOURCES = char_tok.h \
+char_tok.cpp \
+smp.cpp
