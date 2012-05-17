@@ -108,13 +108,19 @@ bool DoseReader::read_dose( const std::string & f )
 
 
   //
-  // Get slot in VARDB, and track file-source
+  // Get slot in VARDB, and track file-source, if we have not already seen this fileset
   //
-  
-  const int file_id = vardb->insert( dose_filename , filetag );
-  
-  vardb->insert_header( file_id , "format", "dosage-data" );
 
+
+  uint64_t file_id = vardb->lookup_file_id( filetag );   
+  
+  bool already_loaded_header = file_id == 0 ;
+
+  if ( file_id == 0 ) 
+    {
+      file_id = vardb->insert( dose_filename , filetag );      
+      vardb->insert_header( file_id , "format", "dosage-data" );
+    }
   
 
   //
@@ -147,9 +153,10 @@ bool DoseReader::read_dose( const std::string & f )
       std::vector<std::string> ids = Helper::parse( line.substr(1) , "\t " );
       ni = ids.size();      
       
-      // insert people       
-      for (int i=0;i<ni;i++)
-	vardb->insert( file_id , Individual( ids[i] ) );      
+      // insert people, if not already done
+      if ( ! already_loaded_header ) 
+	for (int i=0;i<ni;i++)
+	  vardb->insert( file_id , Individual( ids[i] ) );      
 
     }
   
@@ -332,10 +339,7 @@ bool DoseReader::read_dose( const std::string & f )
 		  // only for biallelic, single nucleotide markers 
 		  if ( 1 ) 
 		    {
-		      
-		      plog.warn( "mismatching reference allele in dosage-file versus SEQDB" , 
-				 v.displaycore() + " " + a1+"/"+a2 + " vs " + ref );
-		      
+		      		      
  		      if      ( a1 == "A" ) a1 = "T";
  		      else if ( a1 == "C" ) a1 = "G";
  		      else if ( a1 == "G" ) a1 = "C";
@@ -345,12 +349,20 @@ bool DoseReader::read_dose( const std::string & f )
  		      else if ( a2 == "C" ) a2 = "G";
  		      else if ( a2 == "G" ) a2 = "C";
  		      else if ( a2 == "T" ) a2 = "A";
-		      
- 		      if      ( ref == a1 ) ref1 = true;
- 		      else if ( ref == a2 ) ref1 = false;
+
+		      bool flipped = false;
+
+ 		      if      ( ref == a1 ) { flipped = true; ref1 = true; }
+ 		      else if ( ref == a2 ) { flipped = true; ref1 = false; }
  		      else 
- 			plog.warn( "attempted to fix, but mismatching reference allele in dosage-file versus SEQDB" , 
+ 			plog.warn( "attempted to fix, but mismatching reference allele versus SEQDB" , 
  				   v.displaycore() + " " + a1+"/"+a2 + " vs " + ref );
+
+		      if ( flipped )
+			plog.warn( "mismatching reference allele versus SEQDB, but resolved by strand-flip : " , 
+				   v.displaycore() + " " + a1+"/"+a2 + " vs " + ref );
+		      
+		      
  		    }
 		}		
 	    }

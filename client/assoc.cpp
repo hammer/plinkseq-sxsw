@@ -1264,31 +1264,46 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 
   if ( args.has( "midpoint" ) ) a.show_midbp = true;
   
+  //
+  // Standard output mode, or dumping a matrix of null-statistics
+  // (with originals, and labels, as first row)
+  //
 
-  plog.data_reset();
-  
-  plog.data_group_header( "LOCUS" );
+  a.dump_stats_matrix = args.has( "dump-null-matrix" );
 
-  plog.data_header( "POS" );
 
-  if ( a.show_midbp ) 
+  //
+  // Write header, if in stanard OUTPUT mode
+  //
+
+  if ( ! a.dump_stats_matrix )
     {
-      plog.data_header( "MID" );
-      plog.data_header( "BP" );
+  
+      plog.data_reset();
+      
+      plog.data_group_header( "LOCUS" );
+      
+      plog.data_header( "POS" );
+      
+      if ( a.show_midbp ) 
+	{
+	  plog.data_header( "MID" );
+	  plog.data_header( "BP" );
+	}
+      
+      plog.data_header( "ALIAS" );
+      
+      plog.data_header( "NVAR" );
+      
+      plog.data_header( "TEST" );
+      
+      plog.data_header( "P" );
+      plog.data_header( "I" );
+      plog.data_header( "DESC" );
+      
+      plog.data_header_done();
     }
 
-  plog.data_header( "ALIAS" );
-
-  plog.data_header( "NVAR" );
-
-  plog.data_header( "TEST" );
-
-  plog.data_header( "P" );
-  plog.data_header( "I" );
-  plog.data_header( "DESC" );
-  
-  plog.data_header_done();
-  
 
   //
   // Which tests to apply?
@@ -1308,8 +1323,6 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   a.two_hit       =   args.has( "tests" , "two_hit");
   a.skat          =   args.has( "tests" , "skat" );
 
-  //  std::cout << "Num tests: " << a.n_tests() << " " << a.two_hit << " " << a.burden << "\n";
-
   const int ntests = a.n_tests();
   
   if ( ntests == 0 ) Helper::halt( "no assoc tests specified" );
@@ -1328,6 +1341,22 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //          two-hit  TWO-HIT
   //          skat     SKAT
 
+
+
+  //
+  // Write list of tests, if in matrix-dump mode
+  //
+
+  if ( a.dump_stats_matrix ) 
+    {
+      plog << nrep ;
+      if ( a.burden ) plog << "\t" << "BURDEN"; 
+      if ( a.uniq )  plog << "\t" << "UNIQ"; 
+      if ( a.skat )  plog << "\t" << "SKAT"; 
+      plog << "\n";
+    }
+
+  
 
   //
   // Do we have an appropriate pheotype specified?
@@ -1399,16 +1428,19 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 
   if ( false ) // skip for now
     {
-      for (int t=0; t < g.perm.n_tests(); t++)
-	for (int s=0; s < g.perm.n_stats(); s++) 
-	  {      
-	    plog << "_PCORR\t" 
-		 << s << "\t"
-		 << t << "\t"
-		 << g.perm.max_pvalue(s,t) << "\n";      
-	  }
+      if ( ! a.dump_stats_matrix ) 
+	{
+	  for (int t=0; t < g.perm.n_tests(); t++)
+	    for (int s=0; s < g.perm.n_stats(); s++) 
+	      {      
+		plog << "_PCORR\t" 
+		     << s << "\t"
+		     << t << "\t"
+		     << g.perm.max_pvalue(s,t) << "\n";      
+	      }
+	}
     }
-  
+
 
   // All done
 
@@ -1435,7 +1467,7 @@ void g_set_association( VariantGroup & vars , void * p )
   
 
   //
-  // Get auxiliary daya
+  // Get auxiliary data
   //
 
   if ( ! p ) return; 
@@ -1465,7 +1497,7 @@ void g_set_association( VariantGroup & vars , void * p )
 
   Pseq::Assoc::prelim( vars , &aux_prelim );
 
-
+  
   //  
   // External tests
   //
@@ -1474,6 +1506,17 @@ void g_set_association( VariantGroup & vars , void * p )
   Pseq::Assoc::Aux_kbac aux_kbac;
   Pseq::Assoc::Aux_two_hit aux_two_hit( 1 , vars.size() , vars.n_individuals() );
   Pseq::Assoc::Aux_skat aux_skat;
+
+
+  //
+  // If in dump-stats-matrix mode, this is the second header row -- output vars.nam()
+  //
+
+  if ( data->dump_stats_matrix ) 
+    {
+      plog << vars.name() ;
+    }
+
 
 
   //
@@ -1521,12 +1564,14 @@ void g_set_association( VariantGroup & vars , void * p )
 	{ 
 	  test_name.push_back("BURDEN");
 	  test_statistic.push_back( aux_burden.stat_burden );
+	  if ( data->dump_stats_matrix ) plog << "\t" << aux_burden.stat_burden ;
 	}
       
       if ( data->uniq ) 
 	{ 
 	  test_name.push_back("UNIQ");
 	  test_statistic.push_back( aux_burden.stat_uniq );	  
+	  if ( data->dump_stats_matrix ) plog << "\t" << aux_burden.stat_uniq ;
 	}
       
       if ( data->mhit )
@@ -1618,6 +1663,7 @@ void g_set_association( VariantGroup & vars , void * p )
       test_name.push_back( "SKAT" );
       double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , &test_text , true ); 
       test_statistic.push_back( statistic );
+      if ( data->dump_stats_matrix ) plog << "\t" << statistic;
     }
 
 
@@ -1645,6 +1691,13 @@ void g_set_association( VariantGroup & vars , void * p )
 	  if ( data->burden ) test_statistic.push_back( aux_burden.stat_burden );
 	  if ( data->uniq ) test_statistic.push_back( aux_burden.stat_uniq );
 	  if ( data->mhit ) test_statistic.push_back( aux_burden.stat_mhit );
+
+	  if ( data->dump_stats_matrix )
+	    {
+	      if ( data->burden ) plog << "\t" << aux_burden.stat_burden;
+	      if ( data->uniq ) plog << "\t" << aux_burden.stat_uniq;
+	    }
+
 	}
 
       
@@ -1695,7 +1748,9 @@ void g_set_association( VariantGroup & vars , void * p )
 	{	  
 	  double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , NULL , false  );
 	  test_statistic.push_back( statistic );
+	  if ( data->dump_stats_matrix ) plog << "\t" << statistic;
 	}
+
 
 
       //
@@ -1708,41 +1763,50 @@ void g_set_association( VariantGroup & vars , void * p )
     } // Next permutation
   
   
+
+
   //
   // Output and return for next gene
   //
 
-  //std::cout << "CCC\n";
-  plog.data_group( vars.name() );
-  plog.data( vars.coordinate() );
-  plog.data( g->locdb.alias( vars.name() , false ) );
-  //plog.data( "." );
-  plog.data( vars.size() );
-  
-  if ( data->show_midbp)
+  if ( ! data->dump_stats_matrix ) 
     {
-      plog.data( vars.midposition() );
-      plog.data( vars.span() );
-    }
 
-  for (int t=0; t<test_name.size(); t++ )
-    {      
-      std::string output = test_text[ test_name[t] ];      
-      plog.data( test_name[t] , "TEST" , test_name[t] );      
-      if ( R != 1 ) 
+      plog.data_group( vars.name() );
+      plog.data( vars.coordinate() );
+      plog.data( g->locdb.alias( vars.name() , false ) );
+      //plog.data( "." );
+      plog.data( vars.size() );
+      
+      if ( data->show_midbp)
 	{
-	  plog.data( g->perm.pvalue(t) , "P", test_name[t] );
-	  plog.data( g->perm.min_pvalue(t) , "I" , test_name[t] ); 
+	  plog.data( vars.midposition() );
+	  plog.data( vars.span() );
 	}
-      else // asymptotic p-values
-	{ 
-	  plog.data( "." , "P", test_name[t] );
-	  plog.data( "." , "I" , test_name[t] ); 
+      
+      for (int t=0; t<test_name.size(); t++ )
+	{      
+	  std::string output = test_text[ test_name[t] ];      
+	  plog.data( test_name[t] , "TEST" , test_name[t] );      
+	  if ( R != 1 ) 
+	    {
+	      plog.data( g->perm.pvalue(t) , "P", test_name[t] );
+	      plog.data( g->perm.min_pvalue(t) , "I" , test_name[t] ); 
+	    }
+	  else // asymptotic p-values
+	    { 
+	      plog.data( "." , "P", test_name[t] );
+	      plog.data( "." , "I" , test_name[t] ); 
+	    }
+	  plog.data( output == "" ? "." : output , "DESC" , test_name[t] );
 	}
-      plog.data( output == "" ? "." : output , "DESC" , test_name[t] );
+      
+      plog.print_data_group();
     }
-  
-  plog.print_data_group();
+  else // in dump-stats-mode
+    {
+      plog << "\n";
+    }
 
   return;
 

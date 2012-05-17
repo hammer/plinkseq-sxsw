@@ -311,7 +311,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name"
 	
-	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$no-burden$calpha$uniq$vt$fw$sumstat$two_hit,info,fix-null,perm,midpoint,prev,func,mhit"
+	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$no-burden$calpha$uniq$vt$fw$sumstat,info,fix-null,perm,dump-null-matrix,midpoint"
     
 	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta"
 	
@@ -579,6 +579,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "fix-null" , NONE , "exclude individuals with null genotypes" );
     reg( "yates" , NONE , "use Yates' test for single-site association" );
     
+    reg( "dump-null-matrix" , NONE , "output (null) gene-based statistics in matrix form" );
     reg( "perm" , INT, "number of permutations");
     reg( "aperm" , INT_VECTOR , "adaptive perm min, max");
 

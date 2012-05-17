@@ -1409,6 +1409,11 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
     
 
 
+  // RMOVE
+   std::map<std::string,int> dic;
+  // REMOVE
+
+
   //
   // Start iterating over locus-group selected
   //
@@ -1432,6 +1437,12 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
       
       bool okay = g.seqdb.GC( *i , gc0 , tot0 );      
       g.seqdb.N( *i , n0 , tot0 ); 
+
+      
+      // REMOVE
+      g.seqdb.dinucleotide( *i , dic );
+      // REMOVE
+      
       
       if ( refvars ) 
 	range_intersector.intersect( *i , &refcnt_whole );
@@ -1466,7 +1477,7 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
 	  
 	  bool okay = g.seqdb.GC( sr , sgc, stot );
 	  
-	  g.seqdb.N( sr , sn, stot) ;
+	  g.seqdb.N( sr , sn, stot ) ;
 	  
 	  if ( okay )
 	    {
@@ -1580,6 +1591,17 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
       ++i;
 
     }
+
+
+  // DINUCLEOTIDE CALCS
+
+//   std::map<std::string,int>::iterator ii = dic.begin();
+//   while ( ii != dic.end() ) 
+//     {
+//       std::cout << ii->first << "\t" << ii->second << "\n";
+//       ++ii;
+//     }
+
 
   return true;
 }

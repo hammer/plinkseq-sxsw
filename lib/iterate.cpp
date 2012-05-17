@@ -49,8 +49,8 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 					   Mask & mask ) 
 {
 
+  
 
-    
   //
   // Does everything look set up correctly?
   //

@@ -82,6 +82,7 @@ namespace Pseq
 	g=NULL;
 	rseed=0; 
 	fix_null_genotypes = true;
+	dump_stats_matrix = false;
 	show_info = false; 
 	show_midbp = false;
 	vanilla = true;
@@ -121,7 +122,7 @@ namespace Pseq
       bool fix_null_genotypes;
       bool show_info;
       bool show_midbp;
-      
+      bool dump_stats_matrix;
       
       // genic tests      
       bool mhit;

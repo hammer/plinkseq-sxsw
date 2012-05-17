@@ -218,7 +218,7 @@ int main(int argc, char ** argv)
 	  Helper::halt("Could not open project file " + project_file );      
   }
   
-
+  
   //
   // Hot-swap in alternate DBs, core folders, etc
   //
@@ -390,10 +390,12 @@ int main(int argc, char ** argv)
   
   if ( command == "load-weights" )
     {
-      std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
-      std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
-      Pseq::PPH2DB::load( dbname , filename );
-      Pseq::finished();
+      Helper::halt("obsolete command score weights" );
+
+//       std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
+//       std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
+//       Pseq::PPH2DB::load( dbname , filename );
+//       Pseq::finished();
     }
   
 
@@ -1153,7 +1155,6 @@ int main(int argc, char ** argv)
     // data, which can involve a mask, and possibly a phenotype
     //
     
-
     Mask m( maskspec , filtspec , filter_T_include , pcomm.groups( command ) );
 
 
@@ -1367,6 +1368,7 @@ int main(int argc, char ** argv)
 	if ( opt.show_only_alt || opt.show_only_minor ) opt.show_nonmissing_geno = false;
 	opt.mview = mview;
 
+
 	IterationReport report = g.vardb.iterate( f_view , &opt , m );
 
 	// Use g-view code to display a set of multiple variants; fix options for display here
@@ -1552,9 +1554,10 @@ int main(int argc, char ** argv)
 
     if ( command == "score-weights" )
       {
-	std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
-	Pseq::PPH2DB::score( m , dbname );
-	Pseq::finished();
+	Helper::halt("obsolete command score-weights");
+// 	std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
+// 	Pseq::PPH2DB::score( m , dbname );
+// 	Pseq::finished();
       }
 
 

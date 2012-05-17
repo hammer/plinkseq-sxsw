@@ -25,6 +25,7 @@ bool Pseq::VarDB::load_VCF( Mask & mask )
     if ( args.has( "format" , "exclude-meta" ) ) excludes = args.get_set( "format" , "exclude-meta" );
 
     if ( ! args.has("check-reference") ) g.seqdb.dettach();
+    else if ( ! g.seqdb.attached() ) Helper::halt("no SEQDB attachd");
 
     return g.vardb_load_vcf( mask , includes , excludes , region_mask ? & rmask : NULL );
 
@@ -48,6 +49,7 @@ bool Pseq::RefDB::load_VCF( const std::string & filename , const std::string & g
   if ( args.has( "description" ) ) comment = args.as_string( "description" );
   
   if ( ! args.has( "check-reference" ) ) g.seqdb.dettach();
+  else if ( ! g.seqdb.attached() ) Helper::halt("no SEQDB attachd");
 
   if ( ! Helper::valid_name( grp ) ) 
       Helper::halt( grp + " is not a valid name" );
@@ -75,8 +77,13 @@ bool Pseq::VarDB::load_PLINK( const std::vector<std::string> & name , const Pseq
   b.set_root( fileroot );
 
   if ( args.has("fix-strand") && g.seqdb.attached() ) b.fix_strand();  
-  else if ( ! args.has("check-reference") ) g.seqdb.dettach();
-  
+  else if ( ! args.has("check-reference") ) 
+    {
+      if ( g.seqdb.attached() ) g.seqdb.dettach();
+    }
+  else 
+    if ( ! g.seqdb.attached() ) Helper::halt( "no SEQDB attached" );
+
   if ( g.seqdb.attached() ) b.use_seqdb( &g.seqdb );
   b.store_phenotypes( &g.inddb, args.has("phenotype") ? args.as_string("phenotype") : "phe1" );
   if ( tag != "" ) b.set_tag( tag );
@@ -840,9 +847,11 @@ bool Pseq::VarDB::load_dosage()
   // Check reference, if SEQDB attached?
   //
   
-  if ( ! args.has("check-reference") && g.seqdb.attached() ) 
-    g.seqdb.dettach();
- 
+  if ( ! args.has("check-reference") ) 
+    {
+      if ( g.seqdb.attached() ) g.seqdb.dettach();
+    }
+  else if ( ! g.seqdb.attached() ) Helper::halt("no SEQDB attached");
 
   // 
   // MAP/INDIV files
@@ -878,11 +887,13 @@ bool Pseq::VarDB::load_dosage()
       skip_header = true;
     }
 
+
   //
   // Space vs. tabs
   //
 
   bool spaced = args.has( "format" , "space-delimited" ) ;
+
 
   //
   // Load single file
@@ -932,7 +943,13 @@ bool Pseq::VarDB::load_dosage()
       
       g.vardb.drop_index();
       
+      // keep track of file IDs -- ID and FAM should always match
+      
+      std::map<std::string,std::string> id2fam;
+      std::map<std::string,int> idcnt;
+
       Helper::checkFileExists( filelist );      
+
       InFile FL( filelist );
       while ( ! FL.eof() )
 	{
@@ -940,11 +957,23 @@ bool Pseq::VarDB::load_dosage()
 	  if ( tok.size() == 0 ) continue;
 	  if ( tok.size() != 4 ) Helper::halt( "expecting 4 tab-delimited fields per line" );
 	  
-	  std::string tagname = tok[0];
+	  std::string filetag = tok[0];
 	  std::string dose_file = tok[1];
 	  std::string map_file = tok[2];
 	  std::string indiv_file = tok[3];
-	  	  
+	  
+	  if ( id2fam.find( tagname ) != id2fam.end() )
+	    {
+	      if ( id2fam[ tagname ] != indiv_file )
+		Helper::halt( "more than one indiv-file specified for " 
+			      + tagname + " : " + indiv_file + " and " + id2fam[ tagname ] );
+	    }
+	  else 
+	    {
+	      id2fam[ tagname ] = indiv_file;
+	      idcnt[ tagname ]++;
+	    } 
+
 	  DoseReader reader( &g.vardb );
 	  	  
 	  if ( map_file != "." && map_file != "" ) 
@@ -967,7 +996,7 @@ bool Pseq::VarDB::load_dosage()
 
 	  reader.set_metatag( tagname , store_as ); 
 	  
-	  reader.set_filetag( tok[0] );
+	  reader.set_filetag( filetag );
 
 	  reader.set_skip_header( skip_header );
 

@@ -1481,15 +1481,33 @@ void ExomeBrowser::f_display(Variant & var, void *p)
 	{
 
 	  Genotype & g = var(i);
+	  	  
+	  // Genotype; genotype meta-fields;
 	  
-	  // color-coding
-	  if ( g.null() ) o1 << "<td align=\"center\" bgcolor=\"gray\">";
-	  else if ( g.reference() ) o1 << "<td align=\"center\" bgcolor=\"lightgreen\">";
-	  else if ( g.heterozygote() ) o1 << "<td align=\"center\" bgcolor=\"red\">";
-	  else if ( g.alternate_homozygote() ) o1 << "<td align=\"center\" bgcolor=\"yellow\">";
+	  int gt = g.null() ? 3 : 
+	    2 - g.allele_count( );
 	  
-	  // actual genotype
-	  o1 << "<b>" << ( var.flat() ? var.geno_label( var(i) ) : var.label(i) ) << "</b><br>";
+	  if ( gt == 0 ) 
+	    o1 << "<td align=\"center\" bgcolor=\"red\">";
+	  else if ( gt == 1 ) 
+	    o1 << "<td align=\"center\" bgcolor=\"yellow\">";
+	  else if ( gt == 2 )
+	    o1 << "<td align=\"center\" bgcolor=\"lightgreen\">";
+	  else 
+	    o1 << "<td align=\"center\" bgcolor=\"gray\">";
+	  
+	  
+	  // TODO: why didn't this work...
+	  // 	  // color-coding
+	  // 	  if ( g.null() ) o1 << "<td align=\"center\" bgcolor=\"gray\">";
+	  // 	  else if ( g.reference() ) o1 << "<td align=\"center\" bgcolor=\"lightgreen\">";
+	  // 	  else if ( g.heterozygote() ) o1 << "<td align=\"center\" bgcolor=\"red\">";
+	  // 	  else if ( g.alternate_homozygote() ) o1 << "<td align=\"center\" bgcolor=\"yellow\">";
+	  
+
+ 	  // actual genotype
+
+ 	  o1 << "<b>" << ( var.flat() ? var.geno_label( var(i) ) : var.label(i) ) << "</b><br>";
 	  
 	  // genotype meta-information?
 
@@ -1702,7 +1720,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
   
   const int N_RARE_MAC       = 50;
   const int N_TOO_MANY_INDIV = 100;
-  const int N_TOO_MANY_TRANS = 30;
+  const int N_TOO_MANY_TRANS = 50;
   const int N_TOO_MANY_VAR   = 100;
 
 
@@ -1991,7 +2009,8 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
       int ylines = 7;  // ( defaults from above)
 
       if ( show_sequence ) ylines += 2;  // sequence line?
-
+      
+      
       // number of transcripts (or collapsed if too many)
       ylines += regions[r].size() < N_TOO_MANY_TRANS
        	? regions[r].size() 

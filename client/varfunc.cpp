@@ -380,6 +380,8 @@ struct AuxLookup
 void f_lookup_annotator( Variant & var , void * p )
 {
   
+  std::cout << "in here..\n";
+
   AuxLookup * aux = (AuxLookup*)p;
 
   Region region( var );
@@ -427,8 +429,12 @@ void f_lookup_annotator( Variant & var , void * p )
 	   << var.meta.get1_string( PLINKSeq::ANNOT_SUMMARY()) << "\n";
       
     }
-  
+
+  std::cout << "s2\n";
+
   std::string s = var.coordinate();
+
+  std::cout << "s3\n";
 
   // Fetch from SEQDB
   
@@ -448,6 +454,8 @@ void f_lookup_annotator( Variant & var , void * p )
   // Fetch from VARDB 
 
   std::set<Variant> vars = g.vardb.fetch( region );
+
+  std::cout << "sX\n";
 
   if ( vars.size() == 0  )
     {
@@ -636,7 +644,9 @@ void f_lookup_annotator( Variant & var , void * p )
 }
 
 
-bool Pseq::VarDB::lookup_list( const std::string & filename , Mask & mask , const std::vector<Region> * regs )
+bool Pseq::VarDB::lookup_list( const std::string & filename , 
+			       Mask & mask , 
+			       const std::vector<Region> * regs )
 {
  
   AuxLookup aux;
