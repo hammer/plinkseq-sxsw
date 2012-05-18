@@ -46,7 +46,7 @@ int main(int argc, char ** argv)
     }
 
 
-  
+
   // known PSEQ commands, and descriptions
   
   pcomm.attach( &args );
@@ -1163,9 +1163,7 @@ int main(int argc, char ** argv)
     // also, reg meta-types, etc
     //
 
-
     g.register_mask( m );
-
 
     
     //
@@ -1660,7 +1658,7 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
-    
+
     if ( command == "var-summary" )
       {
 	Pseq::VarDB::summary(m , args.has( "ugly" ) );

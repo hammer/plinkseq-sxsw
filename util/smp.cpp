@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 
+#include "pseq.h"
 #include "char_tok.h"
 
 int main( int argc , char ** argv )
@@ -29,6 +30,33 @@ int main( int argc , char ** argv )
   
   
   // read first row of (n+1)T original tests (where n is # of test types (i.e. BURDEN, UNIQ, etc)
+
+  
+  //  Notation: 
+  
+  //    E_i  is element (i.e. typically genic score element i
+  //    S_j  is additive set score = Sum_{'i' in 'j'} E_i 
+  
+  //    Evaluate empirical null distribution of S_j by application to R sets of E calculated under the null
+  //    (phenotype shuffling in PSEQ, that preserves LD between tests)
+
+  //    2) Obtain per-gene revised scores, given any set-based enrichment: score for element 'i' 
+  //      
+  //     E'_i =  Sum_{ all sets containing i } 
+
+//   msqrt <- function(a) { 
+//   a.eig <- eigen(a)
+//   a.eig$vectors %*% diag(sqrt(a.eig$values)) %*% solve(a.eig$vectors) 
+// }
+
+
+//   sum ( solve(msqrt(p)) %*% t  ) 
+//     solve(msqrt(p)) %*% t  
+// t
+//     p <- matrix( 0.999999999 , nrow=10 , ncol=10)
+//     diag(p) <- 1 
+//     sum ( solve(msqrt(p)) %*% t  ) 
+//     history()
 
 
   std::ifstream NMAT( argv[1] );
@@ -126,25 +154,38 @@ int main( int argc , char ** argv )
 
 
   std::map<std::string,std::vector<std::string> > sets;
-  
+  long int elem_cnt = 0;
   while ( ! IN1.eof() ) 
     {
-      // format GENE  SET  (i.e. same as INRICH)
-      std::string s, t;
-      IN1 >> t >> s;
-      if ( s != "" ) sets[s].push_back(t);      
+      // format GENE /tab SET (blurb)  (i.e. same as INRICH)
+      
+      std::string line;
+      std::getline( IN1 , line );
+      if ( line == "" ) continue;
+      int n;
+      char_tok tok( line , &n , '\t' );
+      if ( n < 2 ) { std::cerr << "problem with format of set file\n"; exit(1); }
+      std::string t = tok(0);
+      std::string s = tok(1);
+      
+      // only load in elements found in this result set
+      std::map<std::string,int>::iterator ee = orig_elem.find( t );
+      if ( ee != orig_elem.end() ) 
+	{
+	  sets[ s ].push_back( t );
+	  ++elem_cnt;
+	}
     }
   IN1.close();
 
-  std::cerr << "read " << sets.size() << " sets\n";
-
+  std::cerr << "read " << elem_cnt << " elements in " << sets.size() << " sets\n";
 
   const int ntests = sets.size();
 
   std::map<std::string,std::vector<std::string> >::iterator ii = sets.begin();
   while ( ii != sets.end() )
     {
-
+      
       //      std::cout << "considering " << ii->first << "\n";
 
       // for each test type
@@ -158,7 +199,7 @@ int main( int argc , char ** argv )
 	  
 	  for (int e=0;e<elems.size();e++)
 	    {
-
+	      
 	      std::map<std::string,int>::iterator ee = orig_elem.find( elems[e] );
 	      
 	      if ( ee != orig_elem.end() ) 
@@ -179,10 +220,11 @@ int main( int argc , char ** argv )
 	    if ( ns[r] >= s ) ++pv;
 	  
 	  // output
-
-	  std::cout << ii->first << "\t" 
-		    << test_names[j] << "\t"
-		    << (double)pv / (double)(nrep+1)   // both denom and numer inc. the +1 alreadt
+	  
+	  std::cout << test_names[j] << "\t"
+		    << (double)pv / (double)(nrep+1) << "\t"  // both denom and numer inc. the +1 alreadt
+		    << ii->second.size() << "\t"
+		    << ii->first  		    
 		    << "\n";
 	  
 	  
