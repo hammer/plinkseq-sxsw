@@ -616,8 +616,7 @@ Variant VCFReader::getVariant(const std::string & s)
       Region test( s , okay );
       if ( ! okay ) return var; 
       pos = test.start.position();
-      stop = test.stop.position();
-      
+      stop = test.stop.position();      
     }
 
   // these return false is non-valid value
@@ -658,7 +657,6 @@ Variant VCFReader::getVariant(const std::string & s)
 
   var.chromosome( Helper::chrCode(chr) );
   var.position( pos );
-  var.stop( stop ? stop : pos + ref.size() - 1 );
 
   
   // SampleVariant (consensus) fields
@@ -674,6 +672,28 @@ Variant VCFReader::getVariant(const std::string & s)
   
   var.consensus.filter(filter , vardb , file_id );
   var.consensus.info(info , vardb , file_id);
+
+  //
+  // End field
+  // 
+  
+  if ( stop == 0 )
+    {
+      
+      // is this a symbollic REF allele (in which case look for an 'END' INFO field
+      // i.e. for SVs.
+      
+      if ( ref[0] == '<' || ref[0] == '.' ) 
+	{
+	  if ( var.consensus.meta.has_field( PLINKSeq::VCF_END_FIELD() ) )
+	    stop = var.consensus.meta.get1_int( PLINKSeq::VCF_END_FIELD() ) ;	      
+	}
+      else
+	stop = pos + ref.size() - 1 ;  
+    }
+  
+  var.stop( stop );
+
   
     
   //

@@ -7,7 +7,6 @@
 #include <cstdlib>
 
 
-
 #include "pseq.h"
 #include "char_tok.h"
 
