@@ -155,7 +155,7 @@ class VarDBase {
   int loader_indep_meta( const std::string & , int , const std::string & );
   int flush_indep_meta( const std::string & );
   void flush_indep_meta( );
-  bool attach_indep_metadata( const uint64_t & svar_id , SampleVariant & t , const std::set<std::string> * keys = NULL );
+  bool attach_indep_metadata( const uint64_t & svar_id , SampleVariant & t , Variant &  , const std::set<std::string> * keys = NULL );
 
 
   //

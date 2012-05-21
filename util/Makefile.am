@@ -12,3 +12,7 @@ behead_SOURCES = behead.cpp
 smp_SOURCES = char_tok.h \
 char_tok.cpp \
 smp.cpp
+
+smp_LDADD = ../lib/libplinkseq.la -ldl -lpthread -lz
+
+smp_CPPFLAGS = -I../lib

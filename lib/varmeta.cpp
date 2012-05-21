@@ -227,9 +227,11 @@ void VarDBase::populate_indep_metadata_map()
 
 bool VarDBase::attach_indep_metadata( const uint64_t & svar_id , 
 				      SampleVariant & target , 
+				      Variant & parent , 
 				      const std::set<std::string> * grps )
 {
 
+  
 
   sql.bind_int64( stmt_fetch_indep_meta_value , ":var_id" , svar_id );
   
@@ -237,7 +239,7 @@ bool VarDBase::attach_indep_metadata( const uint64_t & svar_id ,
     {
 
       int meta_id = sql.get_int( stmt_fetch_indep_meta_value , 0 );
-
+      
       if ( reverse_indep_metamap.find( meta_id ) != reverse_indep_metamap.end() )
 	{
 	  
@@ -247,18 +249,21 @@ bool VarDBase::attach_indep_metadata( const uint64_t & svar_id ,
 	  if ( grps && grps->find( key ) == grps->end() ) continue;
 
 	  meta_index_t midx = MetaInformation<VarMeta>::field( key );	  
-
+	  
+	  MetaInformation<VarMeta> & m = MetaMeta::static_variant( key ) 
+	    ? parent.meta : target.meta ; 
+	  
 	  if ( midx.mt == META_INT || midx.mt == META_BOOL )
-	    target.meta.set( key , sql.get_int( stmt_fetch_indep_meta_value , 1 ) );
+	    m.set( key , sql.get_int( stmt_fetch_indep_meta_value , 1 ) );
 	  else if ( midx.mt == META_FLOAT ) 
-	    target.meta.set( key , sql.get_double( stmt_fetch_indep_meta_value , 1 ) );
+	    m.set( key , sql.get_double( stmt_fetch_indep_meta_value , 1 ) );
 	  else if ( midx.mt == META_FLAG && sql.get_int( stmt_fetch_indep_meta_value , 1 ) != 0 ) 
 	    {
-	      target.meta.set( key );
+	      m.set( key );
 	    }
 	  else // META_TEXT as default
-	    target.meta.set( key , sql.get_text( stmt_fetch_indep_meta_value , 1 ) );
-
+	    m.set( key , sql.get_text( stmt_fetch_indep_meta_value , 1 ) );
+	  
 	}
 
     }

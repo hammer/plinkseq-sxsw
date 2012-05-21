@@ -961,12 +961,12 @@ bool VarDBase::eval_and_call( Mask & mask,
       {	  
 	if ( mask.attach_all_meta() ) 
 	  {
-	    attach_indep_metadata( svar.index() , *vmeta_target , NULL );
+	    attach_indep_metadata( svar.index() , *vmeta_target , var , NULL );
 	  }
 	else
 	    {
 	      std::set<std::string> s = mask.attach_meta_fields();
-	      attach_indep_metadata( svar.index() , *vmeta_target , &s );
+	      attach_indep_metadata( svar.index() , *vmeta_target , var , &s );
 	  }
       }
       
