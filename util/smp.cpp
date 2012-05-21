@@ -3,8 +3,8 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 
 
@@ -38,7 +38,7 @@ int main( int argc , char ** argv )
   
   //  Notation: 
   
-  //    E_i  is element (i.e. typically genic score element i
+  //    E_i  is element (i.e. typically genic score element i)
   //    S_j  is additive set score = Sum_{'i' in 'j'} E_i 
   
   //    Evaluate empirical null distribution of S_j by application to R sets of E calculated under the null
@@ -47,6 +47,8 @@ int main( int argc , char ** argv )
   //    2) Obtain per-gene revised scores, given any set-based enrichment: score for element 'i' 
   //      
   //     E'_i =  Sum_{ all sets containing i } 
+
+  //       
 
 //   msqrt <- function(a) { 
 //   a.eig <- eigen(a)
