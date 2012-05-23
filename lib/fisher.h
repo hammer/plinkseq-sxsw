@@ -144,7 +144,7 @@ class Table {
 
 // Fisher's exact test
 
-void fexact(int *nrow, 
+bool fexact(int *nrow, 
 	    int *ncol, 
 	    double *table, 
 	    int *ldtabl,

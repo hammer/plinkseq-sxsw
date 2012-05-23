@@ -10,14 +10,26 @@
 #include "pseq.h"
 #include "char_tok.h"
 
+std::map<std::string,std::vector<std::string> > read_sets( const std::string & sets_filename , 
+							   const std::map<std::string,int> & orig_elem ,
+							   long int * elem_cnt );
+
 int main( int argc , char ** argv )
 {
   
-  if ( argc != 3 ) 
+  if ( argc != 4 ) 
     {
-      std::cerr << "expecting ./smp matrix.dat test.set \n" ;
+      std::cerr << "usage:   ./smp list   sets.list data.mat\n"
+		<< "         ./smp matrix sets.mat  data.mat\n"
+		<< "         ./smp make   sets.list\n";
+
       exit(1);
     }
+
+  std::string run_mode = argv[1];
+  std::string sets_filename = argv[2];
+  std::string data_filename = argv[3];
+    
 
   // simple utility to read in    
   //   a) a T string vector of test types (e.g. BURDEN UNIQ)
@@ -31,7 +43,6 @@ int main( int argc , char ** argv )
 
   // assume T is genic, and R not tremendously high (so should fit in memory okay)
   
-  
   // read first row of (n+1)T original tests (where n is # of test types (i.e. BURDEN, UNIQ, etc)
 
   
@@ -44,30 +55,22 @@ int main( int argc , char ** argv )
   //    (phenotype shuffling in PSEQ, that preserves LD between tests)
 
   //    2) Obtain per-gene revised scores, given any set-based enrichment: score for element 'i' 
+  //       (performed within test-type currently)
   //      
-  //     E'_i =  Sum_{ all sets containing i } 
+  //     E'_i =  E_i * Sum_{ all sets containing i } Sum_{ j=all other genes in set } (1 - r^2_ij ) E_j 
 
-  //       
-
-//   msqrt <- function(a) { 
-//   a.eig <- eigen(a)
-//   a.eig$vectors %*% diag(sqrt(a.eig$values)) %*% solve(a.eig$vectors) 
-// }
+  //  Note: consider a version of this where (to alleviate concerns of over-lapping sets) we perform QR 
+  //   decomposition on the original (implicit) S * G matrix (from 0s, 1s) to produce a new 'continuous' 
+  //   set of sets that a) are orthogonal, b) span all genes. We then proceed with scoring these sets for the
+  //   purpose of collapsing back for a per-gene score. 
 
 
-//   sum ( solve(msqrt(p)) %*% t  ) 
-//     solve(msqrt(p)) %*% t  
-// t
-//     p <- matrix( 0.999999999 , nrow=10 , ncol=10)
-//     diag(p) <- 1 
-//     sum ( solve(msqrt(p)) %*% t  ) 
-//     history()
 
-
-  std::ifstream NMAT( argv[1] );
+  
+  std::ifstream NMAT( data_filename.c_str() );
   if ( ! NMAT.good() ) 
     {
-      std::cerr << "problem opening " << argv[1] << "\n";
+      std::cerr << "problem opening " << data_filename << "\n";
       exit(1);
     }
   
@@ -79,7 +82,7 @@ int main( int argc , char ** argv )
   std::getline( NMAT , line );
   if ( line == "" ) exit(1);
   char_tok tok( line , &ntest_types , '\t' );
-
+  
   // first obs should be # perms
   --ntest_types;
   int nrep = atoi( tok(0) );
@@ -110,8 +113,6 @@ int main( int argc , char ** argv )
       std::string elem;
 
       NMAT >> elem;
-
-      //      std::cout << "elem = " << elem << "\n";
 
       if ( elem == "" ) continue;
       
@@ -150,40 +151,9 @@ int main( int argc , char ** argv )
   // read in sets to test
   //
 
-  std::ifstream IN1( argv[2] );
-  if ( ! IN1.good() ) 
-    {
-      std::cerr << "problem opening " << argv[2] << "\n";
-      exit(1);
-    }
-
-
-  std::map<std::string,std::vector<std::string> > sets;
   long int elem_cnt = 0;
-  while ( ! IN1.eof() ) 
-    {
-      // format GENE /tab SET (blurb)  (i.e. same as INRICH)
-      
-      std::string line;
-      std::getline( IN1 , line );
-      if ( line == "" ) continue;
-      int n;
-      char_tok tok( line , &n , '\t' );
-      if ( n < 2 ) { std::cerr << "problem with format of set file\n"; exit(1); }
-      std::string t = tok(0);
-      std::string s = tok(1);
-      
-      // only load in elements found in this result set
-      std::map<std::string,int>::iterator ee = orig_elem.find( t );
-      if ( ee != orig_elem.end() ) 
-	{
-	  sets[ s ].push_back( t );
-	  ++elem_cnt;
-	}
-    }
-  IN1.close();
-
-  std::cerr << "read " << elem_cnt << " elements in " << sets.size() << " sets\n";
+  
+  std::map<std::string,std::vector<std::string> > sets = read_sets( sets_filename , orig_elem, &elem_cnt );
 
   const int ntests = sets.size();
 
@@ -191,8 +161,6 @@ int main( int argc , char ** argv )
   while ( ii != sets.end() )
     {
       
-      //      std::cout << "considering " << ii->first << "\n";
-
       // for each test type
       for (int j=0;j<ntest_types;j++)
 	{
@@ -242,3 +210,49 @@ int main( int argc , char ** argv )
   exit(0);
 
 }
+
+
+
+
+std::map<std::string,std::vector<std::string> > read_sets( const std::string & sets_filename , 
+							   const std::map<std::string,int> & orig_elem , 						   
+							   long int * elem_cnt )
+{
+  
+  std::map<std::string,std::vector<std::string> > sets;
+
+  std::ifstream IN1( sets_filename.c_str() );
+  if ( ! IN1.good() ) 
+    {
+      std::cerr << "problem opening " << sets_filename << "\n";
+      exit(1);
+    }
+
+  while ( ! IN1.eof() ) 
+    {
+      // format GENE /tab SET (blurb)  (i.e. same as INRICH)
+      
+      std::string line;
+      std::getline( IN1 , line );
+      if ( line == "" ) continue;
+      int n;
+      char_tok tok( line , &n , '\t' );
+      if ( n < 2 ) { std::cerr << "problem with format of set file\n"; exit(1); }
+      std::string t = tok(0);
+      std::string s = tok(1);
+      
+      // only load in elements found in this result set
+      std::map<std::string,int>::const_iterator ee = orig_elem.find( t );
+      if ( ee != orig_elem.end() ) 
+	{
+	  sets[ s ].push_back( t );
+	  ++(*elem_cnt);
+	}
+    }
+  IN1.close();
+
+  std::cerr << "read " << elem_cnt << " elements in " << sets.size() << " sets\n";
+  
+  return sets;
+}
+
