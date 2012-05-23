@@ -311,7 +311,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name"
 	
-	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$no-burden$calpha$uniq$vt$fw$sumstat,info,fix-null,perm,dump-null-matrix,midpoint"
+	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$no-burden$calpha$uniq$vt$fw$sumstat$two_hit,info,fix-null,perm,dump-null-matrix,midpoint"
     
 	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta"
 	
@@ -667,7 +667,8 @@ void Pseq::Util::Options::load( int n , char ** argv )
      reg( "distance" , NONE , "" ); // ?     
      reg( "compact" , NONE , "compact seq-view output" );  // seq-view
      reg( "prev" , STRING , "disease prevalence" ); // setting prevalence for recessive/compound het tests
-     reg( "func" , STRING_VECTOR , "included functional annotations" ); // get list of functional annotations to include
+     reg( "func-inc" , STRING_VECTOR , "included functional annotations" ); // get list of functional annotations to include
+     reg( "func-exc" , STRING_VECTOR , "excluded functional annotations" ); // get list of functional annotations to include
      reg( "mhit" , NONE , "include multi hits on the same chromosome" ); // get list of functional annotations to include
 
      Pseq::IBS::regargs( this );  // IBS tests (example

@@ -8,7 +8,7 @@
 
 
 
-#include "pseq.h"
+//#include "pseq.h"
 #include "char_tok.h"
 
 int main( int argc , char ** argv )

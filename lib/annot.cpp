@@ -30,10 +30,10 @@ std::map<seq_annot_t,std::string> populate_seqinfo()
   m[MIS]      = "missense";
   m[NON]      = "nonsense";
   m[PART]     = "partial-codon";
-  m[SPLICE5]  = "splice-5";
-  m[SPLICE3]  = "splice-3";
-  m[ESPLICE5] = "esplice-5"; 
-  m[ESPLICE3] = "esplice-3";
+  m[SPLICE5]  = "splice5";
+  m[SPLICE3]  = "splice3";
+  m[ESPLICE5] = "esplice5"; 
+  m[ESPLICE3] = "esplice3";
   m[FS]       = "frameshift";
   m[RT]       = "readthrough";
   return m;
@@ -626,8 +626,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
                 {
                   if ( negative_strand )
                     {
-                      SeqInfo sie = SeqInfo( r_exon.name , ESPLICE3 );
-                      SeqInfo si = SeqInfo( r_exon.name , SPLICE3 );
+                      SeqInfo sie = SeqInfo( r->name , ESPLICE3 );
+                      SeqInfo si = SeqInfo( r->name , SPLICE3 );
                       si.splicedist = sie.splicedist = r_exon.subregion[s].start.position() - bp1; 
                       if ( si.splicedist <= 0 ) { --si.splicedist; --sie.splicedist; }
                       if ( si.splicedist > -3 && si.splicedist < 0) annot.insert( si );
@@ -635,8 +635,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
                     }
                   else
                     {
-                      SeqInfo sie = SeqInfo( r_exon.name , ESPLICE5 );
-                      SeqInfo si = SeqInfo( r_exon.name , SPLICE5 );
+                      SeqInfo sie = SeqInfo( r->name , ESPLICE5 );
+                      SeqInfo si = SeqInfo( r->name , SPLICE5 );
                       si.splicedist = sie.splicedist = bp1 - r_exon.subregion[s].start.position(); 
                       if ( si.splicedist >= 0 ) { ++sie.splicedist; ++si.splicedist; } 
                       if ( si.splicedist < 3 && si.splicedist > 0) annot.insert( si );
@@ -649,8 +649,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
                 {
                   if ( negative_strand )
                     {
-                      SeqInfo sie = SeqInfo( r_exon.name , ESPLICE5 );
-                      SeqInfo si = SeqInfo( r_exon.name , SPLICE5 );
+                      SeqInfo sie = SeqInfo( r->name , ESPLICE5 );
+                      SeqInfo si = SeqInfo( r->name , SPLICE5 );
                       si.splicedist = sie.splicedist = r_exon.subregion[s].stop.position() - bp1;
                       if ( si.splicedist >= 0 ) { ++si.splicedist; ++sie.splicedist; }
                       if ( si.splicedist < 3 && si.splicedist > 0 ) annot.insert( si );
@@ -658,8 +658,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
                     }
                   else
                     {
-                      SeqInfo sie = SeqInfo( r_exon.name , ESPLICE3 );
-                      SeqInfo si = SeqInfo( r_exon.name , SPLICE3 );
+                      SeqInfo sie = SeqInfo( r->name , ESPLICE3 );
+                      SeqInfo si = SeqInfo( r->name , SPLICE3 );
                       si.splicedist = sie.splicedist = bp1 - r_exon.subregion[s].stop.position() ;
                       if ( si.splicedist <= 0 ) { --si.splicedist; --si.splicedist; }
                       if ( si.splicedist > -3 && si.splicedist < 0 ) annot.insert( si );
