@@ -767,6 +767,7 @@ bool Pseq::VarDB::swap_ids( const std::string & filename )
 bool Pseq::VarDB::load_dosage()
 {
   
+
   // FORMAT:
 
   // [ #ID1 ID2 ID3 ... ]
@@ -964,14 +965,14 @@ bool Pseq::VarDB::load_dosage()
 	  
 	  if ( id2fam.find( tagname ) != id2fam.end() )
 	    {
-	      if ( id2fam[ tagname ] != indiv_file )
+	      if ( id2fam[ filetag ] != indiv_file )
 		Helper::halt( "more than one indiv-file specified for " 
-			      + tagname + " : " + indiv_file + " and " + id2fam[ tagname ] );
+			      + filetag + " : " + indiv_file + " and " + id2fam[ filetag ] );
 	    }
 	  else 
 	    {
-	      id2fam[ tagname ] = indiv_file;
-	      idcnt[ tagname ]++;
+	      id2fam[ filetag ] = indiv_file;
+	      idcnt[ filetag ]++;
 	    } 
 
 	  DoseReader reader( &g.vardb );

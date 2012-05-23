@@ -602,6 +602,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     keyword( "tests" , "cancor" , NONE , "canonical correlation test" );
     keyword( "tests" , "stepup" , NONE , "Hoffman-Witte step-up test" );
     keyword( "tests" , "kbac" , NONE , "KBAC test" );
+    keyword( "tests" , "two_hit" , NONE, "Recessive/compound het tests" );
     keyword( "tests" , "skat" , NONE , "SKAT test" );
 
     // de-novo scan
@@ -665,6 +666,9 @@ void Pseq::Util::Options::load( int n , char ** argv )
      reg( "report-all" , NONE , "" ); // concordance
      reg( "distance" , NONE , "" ); // ?     
      reg( "compact" , NONE , "compact seq-view output" );  // seq-view
+     reg( "prev" , STRING , "disease prevalence" ); // setting prevalence for recessive/compound het tests
+     reg( "func" , STRING_VECTOR , "included functional annotations" ); // get list of functional annotations to include
+     reg( "mhit" , NONE , "include multi hits on the same chromosome" ); // get list of functional annotations to include
 
      Pseq::IBS::regargs( this );  // IBS tests (example
     

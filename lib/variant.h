@@ -337,7 +337,7 @@ class Variant {
   /// Point to svar that holds genotypes 
   SampleVariant & sample_genotypes( const int s ) const
     {
-      return flat() ? (SampleVariant&)consensus : (SampleVariant&)svar[si] ; 
+      return flat() ? (SampleVariant&)consensus : (SampleVariant&)svar[s] ; 
     }
   
   SampleVariant & sample_genotypes( const SampleVariant & sv ) const
@@ -350,20 +350,22 @@ class Variant {
       return flat() ?  (SampleVariant*)&consensus : (SampleVariant*)sv ;
     }
 
-  SampleVariant & sample_metainformation( const int s ) const
-    {
-      return multi_sample() ? (SampleVariant&)svar[si] : (SampleVariant&)consensus;
-    }
-  
-  SampleVariant & sample_metainformation( const SampleVariant & sv ) const
-    {
-      return multi_sample() ? (SampleVariant&)sv : (SampleVariant&)consensus;
-    }
 
-  SampleVariant * sample_metainformation( const SampleVariant * sv ) const
-    {
-      return multi_sample() ? (SampleVariant*)sv : (SampleVariant*)&consensus;
-    }
+/*   SampleVariant & sample_metainformation( const int s ) const */
+/*     { */
+/*       return multi_sample() ? (SampleVariant&)svar[s] : (SampleVariant&)consensus; */
+/*     } */
+
+  
+  SampleVariant & sample_metainformation( const SampleVariant & sv ) const 
+    { 
+      return multi_sample() ? (SampleVariant&)sv : (SampleVariant&)consensus; 
+    } 
+  
+  SampleVariant * sample_metainformation( const SampleVariant * sv ) const 
+  { 
+    return multi_sample() ? (SampleVariant*)sv : (SampleVariant*)&consensus; 
+  } 
 
 
   /// As above, but via external file codes

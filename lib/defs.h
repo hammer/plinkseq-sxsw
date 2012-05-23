@@ -53,6 +53,7 @@ struct PLINKSeq {
   static std::string & DEFAULT_LOC_GROUP();
   static std::string & DEFAULT_GENE_SYMBOL();
 
+  static std::string & VCF_END_FIELD();
   static std::string & VCF_GENOTYPE();
   static std::string & VCF_GENOTYPE_ACGT();
   static std::string & VCF_GENOTYPE_AC();
