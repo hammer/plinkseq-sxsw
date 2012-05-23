@@ -1861,5 +1861,6 @@ double Statistics::factln(int n)
 
 double Statistics::beta( double x , double a1 , double a2 )
 {
-
+  Helper::halt("not implemented beta()");
 }
+

@@ -52,7 +52,7 @@ bool fisher( const Table & t, double * stat )
 #define max(a, b)((a) < (b) ? (b) : (a))
 #define min(a, b)((a) > (b) ? (b) : (a))
 
-static void f2xact(int *nrow, int *ncol, double *table, int *ldtabl,
+static bool f2xact(int *nrow, int *ncol, double *table, int *ldtabl,
 		     double *expect, double *percnt, double *emin, double
 		     *prt, double *pre, double *fact, int *ico, int
 		     *iro, int *kyy, int *idif, int *irn, int *key,
@@ -95,11 +95,13 @@ static int iwork(int iwkmax, int *iwkpt, int number, int itype);
 #endif
 
 /* The only public function : */
-void
+bool
 fexact(int *nrow, int *ncol, double *table, int *ldtabl,
        double *expect, double *percnt, double *emin, double *prt,
        double *pre, int *workspace)
 {
+  
+  bool okay = true;
 
   /*
   ALGORITHM 643, COLLECTED ALGORITHMS FROM ACM.
@@ -245,9 +247,14 @@ fexact(int *nrow, int *ncol, double *table, int *ldtabl,
 	ntot = (int) (ntot + table[i + j * *ldtabl]);
       }
     }
+
     if (ntot == 0) {
-      prterr(3, "All elements of TABLE are zero.\n"
-	     "PRT and PRE are set to missing values.");
+      
+      okay = false;
+
+//       prterr(3, "All elements of TABLE are zero.\n"
+// 	     "PRT and PRE are set to missing values.");
+
       *prt = amiss;
       *pre = amiss;
       goto L_End;
@@ -311,7 +318,7 @@ fexact(int *nrow, int *ncol, double *table, int *ldtabl,
 
     /* To convert to double precision, change RWRK to DWRK in the next CALL.
      */
-    f2xact(nrow,
+    okay = f2xact(nrow,
 	   ncol,
 	   &table[*ldtabl + 1],
 	   ldtabl,
@@ -342,7 +349,9 @@ fexact(int *nrow, int *ncol, double *table, int *ldtabl,
 L_End:
     /* Free(equiv); */
     free(equiv);
-    return;
+
+    return okay;
+
 }
 
 #undef rwrk
@@ -361,7 +370,7 @@ L_End:
   DLP, DSP, TM, KEY2, IWK, RWK)
   -----------------------------------------------------------------------
 */
-void
+bool
 f2xact(int *nrow, int *ncol, double *table, int *ldtabl,
        double *expect, double *percnt, double *emin, double *prt,
        double *pre, double *fact, int *ico, int *iro, int *kyy,
@@ -481,18 +490,22 @@ f2xact(int *nrow, int *ncol, double *table, int *ldtabl,
       ntot += iro[i];
     }
 
+
     if (ntot == 0) {
-      prterr(3, "All elements of TABLE are zero.\n"
-	            "PRT and PRE are set to missing values.");
+      
+//       prterr(3, "All elements of TABLE are zero.\n"
+// 	     "PRT and PRE are set to missing values.");
+
       *pre = *prt = amiss;
-      return;
+
+      return false;
     }
 
     /* Column marginals */
     for (i = 1; i <= *ncol; ++i) {
       ico[i] = 0;
       for (j = 1; j <= *nrow; ++j)
-	    ico[i] += (int) table[j + i * *ldtabl];
+	ico[i] += (int) table[j + i * *ldtabl];
     }
 
     /* sort marginals */
@@ -538,7 +551,7 @@ f2xact(int *nrow, int *ncol, double *table, int *ldtabl,
 	            "is larger than the largest representable int.\n"
 	            "The algorithm cannot proceed.\n"
 	            "Reduce the workspace size, or use `exact = FALSE'.");
-      return;
+      return false ;
     }
 
     /* Compute log factorials */
@@ -1395,22 +1408,22 @@ f4xact(int *nrow, int *irow, int *ncol, int *icol, double *dsp,
     if (y > amx) {
       amx = y;
       if (*dsp - amx <= *tol) {
-	    *dsp = 0.;
-	        return;
-		}
+	*dsp = 0.;
+	return;
+      }
     }
-
-L100:
+    
+ L100:
     --istk;
     if (istk == 0) {
       *dsp -= amx;
       if (*dsp - amx <= *tol) {
-	    *dsp = 0.;
-	    }
+	*dsp = 0.;
+      }
       return;
     }
     l = lstk[istk] + 1;
-
+    
     /* L110: */
     for(;; ++l) {
       if (l > mstk[istk])goto L100;
