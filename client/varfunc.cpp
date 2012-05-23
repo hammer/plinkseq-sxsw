@@ -380,7 +380,7 @@ struct AuxLookup
 void f_lookup_annotator( Variant & var , void * p )
 {
   
-  std::cout << "in here..\n";
+  //  std::cout << "in here..\n";
 
   AuxLookup * aux = (AuxLookup*)p;
 
@@ -430,11 +430,11 @@ void f_lookup_annotator( Variant & var , void * p )
       
     }
 
-  std::cout << "s2\n";
+  //  std::cout << "s2\n";
 
   std::string s = var.coordinate();
 
-  std::cout << "s3\n";
+  //  std::cout << "s3\n";
 
   // Fetch from SEQDB
   
@@ -455,7 +455,7 @@ void f_lookup_annotator( Variant & var , void * p )
 
   std::set<Variant> vars = g.vardb.fetch( region );
 
-  std::cout << "sX\n";
+  //  std::cout << "sX\n";
 
   if ( vars.size() == 0  )
     {

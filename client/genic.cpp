@@ -2,6 +2,7 @@
 #include "util.h"
 
 #include <iostream>
+#include <algorithm>
 #include "util.h"
 
 
@@ -23,7 +24,7 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
   aux->maf.resize( vars.size() , 0 );
 
   for ( int v = 0 ; v < vars.size(); v++ )
-    {
+   {
       
       int c     = 0; // minor allele
       int c_tot = 0; // total counts	  
@@ -445,7 +446,7 @@ void Pseq::Assoc::stat_cancor( const VariantGroup & vars ,
 }
 
 double
-Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_hit * aux, std::map<std::string, std::string> * output, bool original, std::map<std::string, int> var_class, double prev, bool mhit)
+Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_hit * aux, std::map<std::string, std::string> * output, bool original, std::map<std::string, int> include, std::map<std::string, int> exclude, double prev, bool mhit)
 {
 
   const int n = vars.n_individuals();
@@ -505,12 +506,13 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
           }
 
         // count non-ref homozygotes
-	std::string annot = "";
+	//std::string annot = "";
+	std::vector< std::string > annot;
 
-        if( vars(v).consensus.meta.has_field( "transcript" ) && vars(v).consensus.meta.has_field( "func" )){
+	if( vars(v).meta.has_field( "transcript" ) && vars(v).meta.has_field( "func" )){
 
-	  std::vector<std::string> func = vars(v).consensus.meta.get_string( "func" );
-	  std::vector<std::string> transcript = vars(v).consensus.meta.get_string( "transcript");
+	  std::vector<std::string> func = vars(v).meta.get_string( "func" );
+	  std::vector<std::string> transcript = vars(v).meta.get_string( "transcript");
 	  std::vector<std::string> func_split;
 	  std::vector<std::string> trans_split;
 
@@ -534,68 +536,51 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
               func_split.push_back(func[0].substr(i1, func[0].length( )));
           }
 
-	  std::string annot1 = "";
-          
           if( trans_split.size() == 0 )
-            annot = func[0];
+            annot.push_back(func[0]);
+
           else{
             for( int ti = 0; ti < trans_split.size(); ti++)
-              if( trans_split[ti].compare(vars.name()) == 0 ){
-                if( annot.compare("") == 0 ){
-                  annot = func_split[ti];
-		}
-                else{
-		  std::string test = func_split[ti].substr(0,7);
-		  std::string test1 = func_split[ti].substr(0,6);
-
-                  // if esplice or nonsense doesn't matter what previous annotation is (can't be both) 
-		  if( func_split[ti].compare("nonsense") == 0 || func_split[ti].compare("esplice3") == 0 || func_split[ti].compare("esplice5") == 0)
-                    annot = func_split[ti];
-
-		  // if splice site and not nonsense
-		  if( ( func_split[ti].compare("splice3") == 0 || func_split[ti].compare("splice5") == 0 ) && annot.compare("nonsense") != 0  )
-                    annot = func_split[ti];
-		  
-		  // if missense and not nonsense or splice
-		  if( func_split[ti].compare("missense") == 0 && annot.compare("nonsense") != 0 && annot.compare("splice3") != 0 && annot.compare("splice5") != 0 )
-                    annot = func_split[ti];
-
-		  // if silent and not nonsense, missense or splice
-                  if( func_split[ti].compare("silent") == 0 && annot.compare("nonsense") != 0 && annot.compare("missense") != 0 && annot.compare("splice3") != 0 && annot.compare("splice5") != 0 )
-                    annot = func_split[ti];
-                
-		}
-              }
-          }
+              if( trans_split[ti].compare(vars.name()) == 0 )
+		annot.push_back(func_split[ti]);
+	  }
         }
-
-	bool pass = true;
-	if( var_class.size() > 0 ){
-	  if( var_class.count(annot) > 0 )
+	
+	std::string annot1 = "";
+	int cnt = 0;
+	bool pass = false;	
+	for( int ti = 0; ti < annot.size(); ti++){
+	  if( cnt > 0 )
+	    annot1 += "/";
+	  annot1 += annot[ti];
+	  cnt++;
+	  if( include.count(annot[ti]) > 0 || include.size() == 0 )
 	    pass = true;
-	  else
+	  
+	  if( exclude.count(annot[ti]) > 0 ){
 	    pass = false;
+	    break;
+	  } 
 	}
-
+	
         if( d == 2 && ab < .1 && pass )
           {         
             if( vars.ind( j )->affected() == CASE){
               if(original)
-		std::cout << "HOM: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " case " << annot << "\n"; 
+		std::cout << "HOM: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " case " << annot1 << "\n"; 
               ahomi++;
             }
             else{
               if(original)
-		std::cout << "HOM: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " control " << annot << "\n";
+		std::cout << "HOM: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " control " << annot1 << "\n";
               uhomi++;
             }
           }
 
         // found het, store for later
         if( d == 1 && ab > .3 && ab < .7 && pass){
-          hets.push_back(v);
-          ann.push_back(annot);
-          
+          hets.push_back(v);	  	  
+          ann.push_back(annot1);
           if(vars.ind(j)->affected() == CASE){
             aheti++;
           }
@@ -624,14 +609,21 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
             // test two hit
             int rest = mat[0][1] + mat[0][2] + mat[1][0] + mat[1][2] + mat[2][0] + mat[2][1] + mat[2][2];            
             if( ((mat[0][1] + mat[0][2]) > 0 && (mat[1][0] + mat[2][0]) > 0 && ( mat[1][2] + mat[2][1] + mat[2][2] == 0 ) ) || (mat[1][1] == 1 && rest == 0) || mhit ){
+
+	      //sort two annotations for consistancy
+	      std::vector<std::string> vtmp;
+	      vtmp.push_back(ann[z]);
+	      vtmp.push_back(ann[k]);
+	      sort(vtmp.begin(), vtmp.end());
+
               if(vars.ind(j)->affected() == CASE){
                 if(original)
-		  std::cout << "CHET: " << vars(hets[z]).chromosome() << ":" << vars(hets[z]).position() << "-" << vars(hets[k]).chromosome() << ":" << vars(hets[k]).position() << " " << id << " case " << ann[z] << "-" << ann[k] << "\n";
+		  std::cout << "CHET: " << vars(hets[z]).chromosome() << ":" << vars(hets[z]).position() << "," << vars(hets[k]).chromosome() << ":" << vars(hets[k]).position() << " " << id << " case " << vtmp[0] << "," << vtmp[1] << "\n";
                 acheti++;
               }
               else{
                 if(original)
-		  std::cout << "CHET: " << vars(hets[z]).chromosome() << ":" << vars(hets[z]).position() << "-" << vars(hets[k]).chromosome() << ":" << vars(hets[k]).position() << " " << id << " control  " << ann[z] << "-" << ann[k] << "\n";
+		  std::cout << "CHET: " << vars(hets[z]).chromosome() << ":" << vars(hets[z]).position() << "," << vars(hets[k]).chromosome() << ":" << vars(hets[k]).position() << " " << id << " control  " << vtmp[0] << "," << vtmp[1] << "\n";
                 ucheti++;
               }
             }   
