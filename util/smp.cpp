@@ -4,11 +4,22 @@
 #include <string>
 #include <map>
 
+#include "pseq.h"
+
 #include "char_tok.h"
 
 int main( int argc , char ** argv )
 {
+
+  Data::Matrix<double> d(1000,1000);
+  for (int i=0;i<1000;i++)
+    for (int j=0;j<1000;j++)
+      d(i,j) = d(j,i) = i+j;
   
+  Data::Matrix<double> d2 = Statistics::matrix_sqrt( d );
+  
+  
+
   if ( argc != 3 ) 
     {
       std::cerr << "expecting ./smp matrix.dat test.set \n" ;
