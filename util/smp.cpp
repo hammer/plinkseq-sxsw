@@ -7,6 +7,7 @@
 #include <cstdlib>
 
 #include "pseq.h"
+
 #include "char_tok.h"
 
 double mean( const Data::Vector<double> & x ) ;

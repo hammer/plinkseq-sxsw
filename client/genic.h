@@ -65,7 +65,7 @@ namespace Pseq
                          Aux_prelim * ,
                          Aux_two_hit * ,
                          std::map<std::string,std::string> *  ,
-                         bool original, std::map< std::string, int >, double, bool );
+                         bool original, std::map< std::string, int >, std::map< std::string, int >, double, bool );
     
     
     double stat_skat( const VariantGroup & , 

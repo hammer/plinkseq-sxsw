@@ -30,10 +30,10 @@ std::map<seq_annot_t,std::string> populate_seqinfo()
   m[MIS]      = "missense";
   m[NON]      = "nonsense";
   m[PART]     = "partial-codon";
-  m[SPLICE5]  = "splice-5";
-  m[SPLICE3]  = "splice-3";
-  m[ESPLICE5] = "esplice-5"; 
-  m[ESPLICE3] = "esplice-3";
+  m[SPLICE5]  = "splice5";
+  m[SPLICE3]  = "splice3";
+  m[ESPLICE5] = "esplice5"; 
+  m[ESPLICE3] = "esplice3";
   m[FS]       = "frameshift";
   m[RT]       = "readthrough";
   return m;

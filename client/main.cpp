@@ -12,6 +12,7 @@
 #include "ibd.h"
 #include "ibs.h"
 #include "extra.h"
+#include "cnv.h"
 
 using namespace std;
 
@@ -1878,6 +1879,16 @@ int main(int argc, char ** argv)
 	Pseq::VarDB::denovo_scan( m );
 	Pseq::finished();
       }
+
+    //
+    // Family-based operations for XHMM-like output
+    //
+
+    if ( command == "CNV-denovo" )
+    {
+    	Pseq::VarDB::cnv_denovo_scan( m );
+    	Pseq::finished();
+    }
 
     // 
     // Per indiviaul/group unique/enriched listing

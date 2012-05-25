@@ -1535,13 +1535,25 @@ void g_set_association( VariantGroup & vars , void * p )
   bool mhit = args.has( "mhit" );
 
 
-  std::map< std::string, int > var_class;
+  std::map< std::string, int > func_inc;
+  std::map< std::string, int > func_exc;
 
-  if( args.has( "func" ) ){
-    std::vector<std::string> inc = args.as_string_vector( "func" );
+  if( args.has( "func-inc" ) ){
+    std::vector<std::string> inc = args.as_string_vector( "func-inc" );
     for( int i = 0; i < inc.size(); i++ )
-      var_class[inc[i]] = i;
+      func_inc[inc[i]] = i;
   }
+
+  if( args.has( "func-exc" ) ){
+    std::vector<std::string> inc = args.as_string_vector( "func-exc" );
+    for( int i = 0; i < inc.size(); i++ )
+      func_exc[inc[i]] = i;
+  }
+
+
+
+  
+
 
 
 
@@ -1653,7 +1665,7 @@ void g_set_association( VariantGroup & vars , void * p )
     {
       test_name.push_back( "TWO-HIT" );
       
-      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true , var_class , prev, mhit );
+      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true , func_inc, func_exc , prev, mhit );
       test_statistic.push_back( statistic );
     }
   
@@ -1741,7 +1753,7 @@ void g_set_association( VariantGroup & vars , void * p )
 	}
       if ( data->two_hit )
         {
-	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false , var_class , prev, mhit );
+	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false , func_inc, func_exc , prev, mhit );
 	  test_statistic.push_back( statistic );
 	}
       if ( data->skat )
