@@ -111,6 +111,7 @@ namespace Data {
 
     void add_col( const Vector<T> & r ) 
     { 
+      if ( ncol == 0 ) nrow = r.size(); 
       data.push_back(r);  // add data
       ++ncol;             // track increase in col count
       
@@ -119,8 +120,13 @@ namespace Data {
 	if( r.masked(i) ) set_row_mask(i); 
     }
     
-    void add_col( const std::vector<T> & r ) { data.push_back( Vector<T>(r) ); ++ncol; }
+    void add_col( const std::vector<T> & r ) 
+    { 
+      if ( ncol == 0 ) nrow = r.size();
+      data.push_back( Vector<T>(r) ); ++ncol; 
+    }
     
+
     void cbind( const Data::Matrix<T> & rhs )
     {
       if ( nrow != rhs.dim1() ) 
