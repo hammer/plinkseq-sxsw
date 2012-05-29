@@ -105,7 +105,7 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   
   Pseq::Assoc::Aux a;
   a.g     = &g;
-  a.rseed = time(0);
+  a.rseed = PLINKSeq::DEFAULT_RNG_SEED();
   a.show_info = args.has( "info" );
   g.perm.initiate( aux.nrep , ntests );
   //  if ( args.has("aperm") ) g.perm.adaptive( args.as_int_vector( "aperm" ) );
@@ -1254,8 +1254,8 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   Pseq::Assoc::AuxGenic a;
 
   a.g     = &g;
-  a.rseed = time(0);
-
+  a.rseed = PLINKSeq::DEFAULT_RNG_SEED();
+  
   int nrep = args.has("perm") ? args.as_int( "perm" ) : -1 ;
     
   //
@@ -1326,6 +1326,18 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   const int ntests = a.n_tests();
   
   if ( ntests == 0 ) Helper::halt( "no assoc tests specified" );
+  
+  // Convenience specification for asymptotic-only tests 
+  
+  // convert   assoc --tests skat 
+  //      to   assoc --tests no-burden skat  --perm 0 
+  
+  if ( ntests == 2 && a.burden && a.skat && nrep == -1 ) 
+    {
+      a.burden = false;
+      nrep = 0; // i.e. no permutations
+      }
+
 
   // labels   vanilla  SUMSTAT
   //          burden   BURDEN
@@ -1518,7 +1530,6 @@ void g_set_association( VariantGroup & vars , void * p )
     }
 
 
-
   //
   // Apply tests to original dataset
   //
@@ -1528,12 +1539,15 @@ void g_set_association( VariantGroup & vars , void * p )
   std::map<std::string,std::string> test_text;
   
 
+
+
+  // --- chet additions (need to be moved )  -------------------------------
+
   double prev = .006;
   if ( args.has( "prev" ) )
     prev =  Helper::str2dbl(args.as_string( "prev" ));
 
   bool mhit = args.has( "mhit" );
-
 
   std::map< std::string, int > func_inc;
   std::map< std::string, int > func_exc;
@@ -1550,7 +1564,7 @@ void g_set_association( VariantGroup & vars , void * p )
       func_exc[inc[i]] = i;
   }
 
-
+  // -------------------------------
 
   
 
@@ -1800,6 +1814,7 @@ void g_set_association( VariantGroup & vars , void * p )
 	{      
 	  std::string output = test_text[ test_name[t] ];      
 	  plog.data( test_name[t] , "TEST" , test_name[t] );      
+
 	  if ( R != 1 ) 
 	    {
 	      plog.data( g->perm.pvalue(t) , "P", test_name[t] );
@@ -1807,8 +1822,16 @@ void g_set_association( VariantGroup & vars , void * p )
 	    }
 	  else // asymptotic p-values
 	    { 
-	      plog.data( "." , "P", test_name[t] );
-	      plog.data( "." , "I" , test_name[t] ); 
+	      if ( test_name[t] == "SKAT" ) 
+		{
+		  plog.data( aux_skat.returned_pvalue , "P", test_name[t] );
+		  plog.data( "." , "I", test_name[t] );
+		}
+	      else
+		{
+		  plog.data( "." , "P", test_name[t] );
+		  plog.data( "." , "I" , test_name[t] ); 
+		}
 	    }
 	  plog.data( output == "" ? "." : output , "DESC" , test_name[t] );
 	}

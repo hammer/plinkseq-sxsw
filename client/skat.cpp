@@ -353,6 +353,7 @@ double Pseq::Assoc::stat_skat( const VariantGroup & vars ,
 	  
 	  for (int v=0;v<nv;v++)
 	    {
+
 // 	      std::cout << "maf , w = " 
 // 			<< aux->maf[v] << " " 
 // 			<< Helper::PROB::beta_pdf( aux->maf[v] , Aux_skat::a1 , Aux_skat::a2 ) << "\n";
@@ -444,11 +445,31 @@ double Pseq::Assoc::stat_skat( const VariantGroup & vars ,
 
   if ( original ) 
     {
-      (*output)["SKAT"] = "Q=" + Helper::dbl2str( Q ) + ";P=" + Helper::dbl2str( pvalue );
-    }
-  
-  return pvalue;
+      
+      if ( pvalue < 0 ) 
+	(*output)["SKAT"] = "P=NA;";
+      else
+	(*output)["SKAT"] = "P=" + Helper::dbl2str( pvalue ) + ";";
 
+      if ( aux_skat->logistic_model )
+	{
+	  std::map<std::string,int>::iterator i = aux->mc_a.begin();
+	  while ( i != aux->mc_a.end() )
+	    {
+	      if ( i != aux->mc_a.begin() ) (*output)["SKAT"] += ";";
+	      (*output)["SKAT"] += i->first + "(" + Helper::int2str( i->second ) + ")";
+	      ++i;
+	    }	  
+	}      
+    }
+
+
+  // save is auxillary structure, so we can use in output
+  
+  aux_skat->returned_pvalue = pvalue < 0 ? 1.00 : pvalue ; 
+  
+  return aux_skat->returned_pvalue;
+  
 }
 
 
@@ -569,9 +590,12 @@ double Pseq::Assoc::Aux_skat::calculate_pvalue( double Q , Data::Matrix<double> 
   std::vector<double> lambda;  
   for (int i=0; i<idx1.size(); i++) 
     if ( eigen[i] > mean_s ) lambda.push_back( eigen[i] ); 
-  
+
+  // e.g. all monomorphic variants
   if ( lambda.size() == 0 ) 
-    Helper::halt( "error in SKAT -- no eigenvalue is bigger than 0"  );
+    {
+      return -1.0;
+    }
   
   Davies d;
   bool okay = true;

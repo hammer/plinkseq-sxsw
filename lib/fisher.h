@@ -134,6 +134,8 @@ class Table {
   
   double * data() const { return (double*)&(d[0]); }
 
+  bool odds_ratio( double * odds ) const;
+
  private:
   
   int r, c;

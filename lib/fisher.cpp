@@ -3,6 +3,16 @@
 
 #include "fisher.h"
 
+bool Table::odds_ratio( double * odds ) const
+{
+  if ( r != 2 || c != 2 ) return false;
+  bool zeros = d[0] == 0 || d[1] == 0 || d[2] == 0 || d[3] == 0;  
+  if ( zeros ) *odds = ( ( d[0] + 0.5 ) * ( d[3] + 0.5 ) ) / ( ( d[1] + 0.5 ) * ( d[2] + 0.5 ) ) ;
+  else *odds = ( d[0] * d[3] ) / ( d[1] * d[2] ) ;
+  return true;
+}
+
+
 bool fisher( const Table & t, double * stat )
 {
   

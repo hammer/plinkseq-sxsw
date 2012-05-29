@@ -20,6 +20,7 @@ void read_sets( const std::string & sets_filename ,
 		long int * elem_cnt , 
 		std::vector<std::vector<int> > & , 
 		std::vector<std::string> & , 
+		std::vector<std::string> & , 
 		std::vector<std::vector<int> > & ); 
 
 
@@ -29,17 +30,15 @@ int main( int argc , char ** argv )
   
   if ( argc != 4 ) 
     {
-      std::cerr << "usage:   ./smp list   sets.list data.mat\n"
-		<< "         ./smp matrix sets.mat  data.mat\n"
-		<< "         ./smp make   sets.list\n";
-
+      std::cerr << "usage:   ./smp gene.list sets.list data.mat\n";
       exit(1);
     }
 
-  std::string run_mode = argv[1];
-  std::string sets_filename = argv[2];
-  std::string data_filename = argv[3];
-    
+  std::string genes_filename = argv[1];
+  std::string sets_filename  = argv[2];
+  std::string data_filename  = argv[3];
+
+  
 
   // simple utility to read in    
   //   a) a T string vector of test types (e.g. BURDEN UNIQ)
@@ -78,9 +77,29 @@ int main( int argc , char ** argv )
   // 'Set-weighted gene-based tests' 
   
   
-
-
+  std::map<std::string,std::string> gene_annot;
+ 
+  std::ifstream GENES( genes_filename.c_str() , std::ios::in );
   
+  if ( GENES.good() ) 
+    {
+      while ( ! GENES.eof() ) 
+	{
+	  std::string line;
+	  std::getline( GENES , line );
+	  if ( line == "" ) continue;
+	  int ncol;
+	  char_tok tok( line , &ncol , '\t' );
+	  if ( ncol != 2 ) { std::cerr << "skipping line in " << genes_filename << " that doesn't have 2 tab-delim fields\n"; continue; } 
+	  gene_annot[ tok(0) ] = tok(1);
+	}      
+      std::cerr << "read " << gene_annot.size() << " gene/anotations\n";
+    }
+  else
+    std::cerr << "skipping a gene-list\n";
+
+  GENES.close();
+
   std::ifstream NMAT( data_filename.c_str() );
   if ( ! NMAT.good() ) 
     {
@@ -118,7 +137,7 @@ int main( int argc , char ** argv )
   // G, T original vales, R*T null values
   //
   
-  std::map<std::string,int> gene2slot;        // map gene-name to column in E matrix
+  std::map<std::string,int> gene2slot;         // map gene-name to column in E matrix
   std::vector<std::string> slot2gene; 
 
   std::vector< Data::Matrix<double> > E( ntest_types );  // For each test type, E is rep X gene matrix
@@ -144,6 +163,27 @@ int main( int argc , char ** argv )
       NMAT >> elem;
 
       if ( elem == "" ) continue;
+ 
+      // do we want this gene?
+      if ( gene_annot.size() > 0 ) 
+	{
+	  if ( gene_annot.find( elem ) == gene_annot.end() ) 
+	    {
+	      for (int j=0;j<ntest_types;j++)
+		{
+		  double x;
+		  NMAT >> x;	  		  
+		}
+
+	      for (int r=0;r<nrep;r++)
+		for (int j=0;j<ntest_types;j++)
+		  {
+		    double x;
+		    NMAT >> x;	    
+		  }
+	      continue;
+	    }
+	}
       
       // track 'slot' for this element 
       gene2slot[ elem ] = nelems;
@@ -187,59 +227,14 @@ int main( int argc , char ** argv )
   long int elem_cnt = 0;
 
   std::vector<std::string> set_names;  
+  std::vector<std::string> set_descriptions;
   std::vector<std::vector<int> > sets;      // for set i, all genes
   std::vector<std::vector<int> > gene2sets; // for gene i, all sets
 
 
-  read_sets( sets_filename , gene2slot , &elem_cnt , sets , set_names , gene2sets );
+  read_sets( sets_filename , gene2slot , &elem_cnt , sets , set_names , set_descriptions, gene2sets );
   
   const int ntests = sets.size();
-
-  //
-  // Simple gene-based (element-wise) empirical p-values, and experiment-wide corrected
-  //
-  
-  // max test value per replicate, for each test
-
-  std::vector<std::vector<double> > mx( ntest_types );  // test x rep(+1)
-
-  for (int j=0;j<ntest_types;j++)
-    {
-      Data::Matrix<double> & T = E[j];
-      std::vector<double> & x = mx[j];
-      x.resize( nrep+1 ); // includes original data in [0]
-      for (int r = 0 ; r <= nrep ; r++ ) 
-	{
-	  x[r] = T(r,0);
-	  for (int e = 1 ; e < nelems ; e++ ) 
-	    if ( T(r,e) > x[r] ) x[r] = T(r,e);
-	}
-    }
-  
-  // Now for each gene, get pointwise and corrected p-values
-  
-  for (int e = 0 ; e < nelems ; e++ ) 
-    {
-      for (int j=0;j<ntest_types;j++)
-	{
-	  int p1 = 1;
-	  int p2 = 1;
-	  Data::Matrix<double> & T = E[j];
-	  std::vector<double> & x = mx[j];
-
-	  for (int r = 1 ; r <= nrep ; r++ ) 
-	    {
-	      if ( T(r,e) >= T(0,e) ) ++p1;
-	      if ( x[r]   >= T(0,e) ) ++p2;
-	    }
-	  
-	  std::cout << "ELEM\t"
-		    << test_names[ j ] << "\t" 		    
-		    << (double)p1 / (double)( nrep + 1 ) << "\t"
-		    << (double)p2 / (double)( nrep + 1 ) << "\t"
-		    << slot2gene[e] << "\n"; 
-	}
-    }
 
 
 
@@ -280,7 +275,7 @@ int main( int argc , char ** argv )
 	  
 	  std::cout << "SET\t" 
 		    << test_names[j] << "\t"
-		    << (double)(pv+1) / (double)(nrep+1) << "\t" 
+		    << (double)(pv) / (double)(nrep+1) << "\t" 
 		    << elems.size() << "\t"
 		    << set_names[ i ] 
 		    << "\n";
@@ -295,12 +290,33 @@ int main( int argc , char ** argv )
 
   
 
+  //
+  // Obtain max(statistic) distribution (per test, per replicate)
+  //
+  
+  std::vector<std::vector<double> > mx( ntest_types );  // test x rep(+1)
+
+  for (int j=0;j<ntest_types;j++)
+    {
+      Data::Matrix<double> & T = E[j];
+      std::vector<double> & x = mx[j];
+      x.resize( nrep+1 ); // includes original data in [0]
+      for (int r = 0 ; r <= nrep ; r++ ) 
+	{
+	  x[r] = T(r,0);
+	  for (int e = 1 ; e < nelems ; e++ ) 
+	    if ( T(r,e) > x[r] ) x[r] = T(r,e);
+	}
+    }
+  
 
 
   //
   // ---------------------- Gene-based re-scoring ------------------------------
   //
   
+
+
   // Now for each gene, get pointwise and corrected p-values
   
    for (int e = 0 ; e < nelems ; e++ ) 
@@ -331,7 +347,8 @@ int main( int argc , char ** argv )
 
 	  std::set<int> fellows;
 	  std::map<int,double> wgt;
-	  
+	  std::map<int,int> minset;
+
 	  for (int s=0;s<gene2sets[e].size(); s++ ) 
 	    {	      
 	      std::vector<int> & inset = sets[ gene2sets[e][s] ];	      
@@ -341,67 +358,136 @@ int main( int argc , char ** argv )
 		  fellows.insert( inset[f] );
 
 		  // minimum set-size weight
-		  if ( wgt[ inset[f] ] < 1.0/(double)inset.size() ) 
+		  if ( wgt[ inset[f] ] < 1.0/(double)inset.size() && inset.size() < 500 ) 
 		    {
 		      wgt[ inset[f] ] = 1.0/(double)inset.size() ;
+		      minset[ inset[f] ] =  gene2sets[e][s];
 		    }
 		}
 	    }
 	  
+	  // figure out which fellows are contributing significantly to 
+	  // this set-weighted test
+	  std::vector<std::vector<double> > fellow_tests( nrep+1 ) ;
+
 	  std::vector<double> accum( nrep+1 , 0 );
 	  
 	  std::set<int>::iterator fi = fellows.begin();
 	  while ( fi != fellows.end() )
 	    {
 	      Data::Vector<double> resid = residualise( E[j].col( *fi ) , evec , vare , meane ) ;
-	      for (int r=0;r<nrep;r++) accum[r] += wgt[ *fi ] * resid[r];
+	      for (int r=0;r<=nrep;r++) 
+		{
+		  accum[r] += wgt[ *fi ] * resid[r];
+		  fellow_tests[r].push_back( wgt[ *fi ] * resid[r] );
+		}
+	      
 	      ++fi;
 	    }
 	  
-	  
+	  // and then standardize fellow contributions to be a
+	  // proportion of the total sum (which means the weighting
+	  // should be implicitly counted now
 
+	  for (int r=0;r<=nrep;r++) 
+	    for (int f=0;f<fellows.size();f++)
+	      fellow_tests[r][f] /= accum[r];
+		
 	  //
 	  // Get empirical p-value
 	  //
 	  
+	  int pv0 = 1;  // basic, pointwise EMP1
+	  int pvm = 1;  // EMP2 for gene
 	  int pv1 = 1;  // orig * fellow-score 
 	  int pv2 = 1;  // fellow-score
+	  
+	  
 	  
 	  // has at least one fellow?
 	  if ( fellows.size() > 0 ) 
 	    {
 	      for (int r=1;r<=nrep;r++)
 		{
+		  if ( E[j](r,e) >= E[j](0,e) ) ++pv0;
+		  if ( mx[j][r]  >= E[j](0,e) ) ++pvm;
 		  if ( accum[r] * E[j](r,e) >= accum[0] * E[j](0,e) ) ++pv1;
 		  if ( accum[r] >= accum[0] ) ++pv2;	      
 		}
-
+	      
 	      // Output
 	      
-	      std::cout << "REVISED\t" 
+	      std::cout << "GENE\t" 
 			<< test_names[j] << "\t"
 			<< gene2sets[e].size() << "\t"
 			<< fellows.size() << "\t"			
+			<< (double)(pv0) / (double)(nrep+1) << "\t" 
+			<< (double)(pvm) / (double)(nrep+1) << "\t" 
 			<< (double)(pv1) / (double)(nrep+1) << "\t" 
 			<< (double)(pv2) / (double)(nrep+1) << "\t" 
-			<< slot2gene[e] << "\n";
-	      
-	      
+			<< slot2gene[e] << "\t";
+
+	      std::string ann = gene_annot[ slot2gene[e] ] ;
+	      std::cout << ( ann == "" ? "." : ann ) << "\n";
+
+	      // if the fellow-test is nominally significant, give
+	      // some extra output as to what is driving the signal.
+
+	      if ( (double)(pv1) / (double)(nrep+1)  < 0.05 && (pv2) / (double)(nrep+1) < 0.05 ) 
+		{
+
+		  std::vector<int> pv( fellows.size() , 1 );
+		  for (int r=1;r<=nrep;r++)
+		    for (int f=0;f<fellows.size();f++)
+		      if ( fellow_tests[r][f] >= fellow_tests[0][f] ) ++pv[f];
+
+		  double totwgt = 0;
+		  std::set<int>::iterator fi = fellows.begin();
+		  while ( fi != fellows.end() )
+		    { totwgt += wgt[ *fi ]; ++fi; } 
+		  
+		  int f = 0;
+		  fi = fellows.begin();
+		  while ( fi != fellows.end() )
+		    {
+		      double pval = (double)pv[f] / (double)(nrep+1);
+		  
+		      if ( pval < 0.05 ) 
+			{
+
+			  std::cout << "FELLOW" << "\t"
+				    << slot2gene[e] << "\t"
+				    << slot2gene[ *fi ] << "\t"
+				    << pval << "\t"
+				    << sets[ minset[ *fi ] ].size() << "\t"
+				    << wgt[ *fi ] / totwgt << "\t"
+				    << set_names[ minset[ *fi ] ] << "\t"
+				    << set_descriptions[ minset[ *fi ] ] << "\n";
+			  
+			}
+		      ++f;
+		      ++fi;
+		    }
+		  
+		}
 	    }
-	  else
+	  else // if no fellows...
 	    {
 	      for (int r=1;r<=nrep;r++)
 		{
 		  if ( E[j](r,e) >= E[j](0,e) ) ++pv1;
+		  if ( mx[j][r]  >= E[j](0,e) ) ++pvm;
 		}
 	      
 	      // Output
 	      
-	      std::cout << "REVISED\t" 
+	      std::cout << "GENE\t" 
 			<< test_names[j] << "\t"
 			<< gene2sets[e].size() << "\t"
 			<< fellows.size() << "\t"			
-			<< (double)(pv1) / (double)(nrep+1) << "\t" 
+			<< (double)(pv0) / (double)(nrep+1) << "\t" 
+			<< (double)(pvm) / (double)(nrep+1) << "\t" 
+			<< "NA" << "\t"
 			<< "NA" << "\t"
 			<< slot2gene[e] << "\n";	      
 	      
@@ -423,6 +509,7 @@ void read_sets( const std::string & sets_filename ,
 		long int * elem_cnt , 
 		std::vector<std::vector<int> > & sets , 
 		std::vector<std::string> & set_names , 
+		std::vector<std::string> & set_descriptions , 
 		std::vector<std::vector<int> > & gene2sets ) 
 
 {
@@ -451,7 +538,7 @@ void read_sets( const std::string & sets_filename ,
 
       std::string t = tok(0);
       std::string s = tok(1);
-  
+
       // only load in elements found in this result set
       std::map<std::string,int>::const_iterator ee = gene2slot.find( t );
       if ( ee != gene2slot.end() ) 
@@ -466,6 +553,7 @@ void read_sets( const std::string & sets_filename ,
 	      std::vector<int> dummy;
 	      sets.push_back( dummy );
 	      set_names.push_back( s );
+	      set_descriptions.push_back( n == 3 ? tok(2) : "." );
 	    }
 	  else 
 	    sidx = setmap[ s ];

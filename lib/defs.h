@@ -79,6 +79,8 @@ struct PLINKSeq {
   static std::string & DEFAULT_G1K();
   static std::string & DEFAULT_DBSNP();
 
+  static long unsigned & DEFAULT_RNG_SEED();
+
 };
 
 

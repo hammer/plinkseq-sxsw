@@ -27,7 +27,7 @@ extern Log plog;
 #define M_LN_SQRT_PId2 0.225791352644727432363097614947/* log(sqrt(pi/2)) */
 #endif
 
-
+const int EPS = 1.0e-6;
 
 Data::Vector<double> Statistics::mean( const Data::Matrix<double> & d )
 {
@@ -662,6 +662,12 @@ double Statistics::ltqnorm( double p )
     }
 }
 
+
+
+double Statistics::normden(double scr, double mean, double var)
+{
+  return (1.0 / sqrt(2*M_PI*var)) * exp( - ( ((scr-mean)*(scr-mean)) / (2*var) ) ) ;
+}
 
 double Statistics::t_prob(double T, double df)
 {
@@ -1864,3 +1870,58 @@ double Statistics::beta( double x , double a1 , double a2 )
   Helper::halt("not implemented beta()");
 }
 
+
+
+//double Statistics::integrate_trapezoidal(double a, double b, double (*f)(double x,void*), void*d, double eps)
+double Statistics::integrate_old(double a, double b, double (*f)(double x,void*), void*d, double eps)
+{
+  // trapezoidal rule
+  const double ZEPS = 1e-10;
+  double old = update_integral(a, b, f, d, 0.0, 0), result;
+  int round = 1;
+  
+  while (1)
+    {
+      std::cout << "round = " << round << "\n";
+      result = update_integral(a, b, f, d, old, round++);
+      if ( fabs(result-old) < eps*(fabs(result)+fabs(old))+ZEPS)
+	return result;
+      old = result;
+    }
+}
+
+
+double Statistics::integrate(double a, double b, double (*f)(double x,void*), void*d, double eps)
+{
+  // simpson's rule
+  const double ZEPS = 1e-10;
+  double old = update_integral(a, b, f, d, 0.0, 0), result;
+  double sold = old, sresult;
+  int round = 1;
+  
+  while (1)
+    {
+      std::cout << "round = " << round << "\n";
+      result = update_integral(a, b, f, d, old, round++);
+      sresult = (4.0 * result - old) / 3.0;
+      if ( fabs(sresult-sold)<eps*(fabs(sresult)+fabs(sold))+ZEPS)
+	return sresult;
+      old = result; sold=sresult;
+    }
+}
+
+
+double Statistics::update_integral(double a, double b,
+				   double (*f)(double x,void*),void * d,
+				   double previous, int round)
+{
+  double h, sum;
+  int i, n = 1 << (round - 1);
+  if (round == 0)
+    return 0.5 * ((*f)(a,d) + (*f)(b,d)) * (b - a);
+  sum = previous * n / (b - a);
+  h = (b - a) / (2 * n);
+  for (int i = 1; i < 2 * n; i += 2)
+    sum += (*f)(a + i*h,d);
+  return sum * h;
+}

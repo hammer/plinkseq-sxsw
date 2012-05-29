@@ -20,7 +20,12 @@ namespace Statistics {
   bool svdcmp( Data::Matrix<double> & , Data::Vector<double> & , Data::Matrix<double> & );
   void svbksb( Data::Matrix<double> & , Data::Vector<double> & , Data::Matrix<double> & , Data::Vector<double> & , Data::Vector<double> & );
 
+  // 1-dimensional numerical integration
+  double integrate_old(double a, double b, double (*f)(double x,void*), void*d, double eps);
+  double integrate(double a, double b, double (*f)(double x,void*), void*d, double eps);
 
+  double update_integral(double a, double b, double (*f)(double x,void*),void * d, double previous, int round);
+  
   long unsigned int factorial(int n);
   long unsigned int combin(int n, int k);
   
@@ -29,6 +34,7 @@ namespace Statistics {
   double noncentral_chi2_prob( double x, double df , double  );
   double t_prob( double x, double df );
   double ltqnorm( double p );
+  double normden( double x , double m = 0 , double sd = 1 );
 
   // Beta distribution density probability function
   double beta( double , double , double );

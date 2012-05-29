@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "util.h"
 
+const double EPS = 1e-8;
 
 extern GStore g;
 extern Pseq::Util::Options args;
@@ -161,7 +162,6 @@ double Pseq::Assoc::stat_calpha( const VariantGroup & vars ,
 
   if ( original ) 
     {
-      //(*output)["CALPHA"] = "Z=" + Helper::dbl2str( score / sqrt( aux->variance ) )  ;
       (*output)["CALPHA"] = "";
       std::map<std::string,int>::iterator i = pre->mc_a.begin();
       while ( i != pre->mc_a.end() )
@@ -188,10 +188,15 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 
   const int n = vars.n_individuals();
 
-  int cnt_a = 0, cnt_u = 0;    // basic counts
-  int unq_a = 0;               // uniq case counts 
-  double chi2 = 0;             // 2-by-2 X^2 statistics sum
-  std::vector<int> ghits(n,0); // multi-hit instances
+  int cnt_a = 0, cnt_u = 0;      // basic counts
+  int all_a = 0, all_u = 0;      // all non-missing allele-counts
+
+  int unq_a = 0;                 // uniq case counts 
+  int unq_u = 0;                 // likewise for controls
+
+  double chi2 = 0;               // 2-by-2 X^2 statistics sum
+
+  std::vector<int> ghits(n,0);   // multi-hit instances
   int multi_a = 0 , multi_u = 0; // multiple-hit test counts
 
   for (int v=0; v<vars.size(); v++ ) 
@@ -240,13 +245,21 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
       cnt_a += alta;
       cnt_u += altu;
       
-      // case-unique burden
-      if ( altu == 0 ) unq_a += alta;
-      
+      all_a += alta + refa;
+      all_u += altu + refu;
 
+      // case-unique burden 
+      if ( altu == 0 || alta == 0 ) 
+	{
+	  unq_a += alta;
+	  unq_u += altu;
+	}
+      
 
     } // next variant
 
+  
+  // simple multi-hit test
   
   if ( aux->mhit ) 
     {
@@ -264,15 +277,47 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 
   // accumulate statistics
   aux->stat_vanilla = chi2;  
-  aux->stat_burden = cnt_a - cnt_u;  
-  aux->stat_uniq = unq_a; 
+
+  // use -log10(p) from Fisher's exact test; but 1-sided (so require higher alt-allele freq. in cases
+  if ( all_a == 0 || all_u == 0 || cnt_a / (double)all_a <= cnt_u / (double)all_u ) 
+    {
+      aux->stat_burden = 0; 
+    }
+  else 
+    {
+      aux->stat_burden = Helper::chi2x2( cnt_a , cnt_u , all_a - cnt_a , all_u - cnt_u );
+//       if ( ! fisher( Table( cnt_a , cnt_u , all_a - cnt_a , all_u - cnt_u ) , &aux->stat_burden ) ) aux->stat_burden = 0;       
+//       else 
+// 	{
+// 	  aux->stat_burden = fabs( 1.00 - aux->stat_burden ) < EPS ? 0 : -log10( aux->stat_burden );	
+// 	}
+    }
+
+  // uniq-burden test
+  if ( all_a == 0 || all_u == 0 || unq_a / (double)all_a <= unq_u / (double)all_u ) 
+    aux->stat_uniq = 0; 
+  else 
+    {
+      aux->stat_uniq = Helper::chi2x2( unq_a , unq_u , all_a - unq_a , all_u - unq_u );
+    
+//       if ( ! fisher( Table( unq_a , unq_u , all_a - unq_a , all_u - unq_u ) , &aux->stat_uniq ) ) aux->stat_uniq = 0; 
+//       else 
+// 	{
+// 	  // avoid floating-point error in log10()
+// 	  aux->stat_uniq = fabs( 1.00 - aux->stat_uniq ) < EPS ? 0 : -log10( aux->stat_uniq );	
+// 	}
+//     }
+    }
+
   aux->stat_mhit = multi_a - multi_u;
+  
 
   // any output?
   if ( original ) 
     {      
 
       (*output)["BURDEN"] = Helper::int2str( cnt_a ) + "/" + Helper::int2str( cnt_u );
+      
       (*output)["UNIQ"] = Helper::int2str( unq_a ) + "/0";
 	
       if ( aux->mhit ) 
@@ -445,6 +490,7 @@ void Pseq::Assoc::stat_cancor( const VariantGroup & vars ,
 
 }
 
+
 double
 Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_hit * aux, std::map<std::string, std::string> * output, bool original, std::map<std::string, int> include, std::map<std::string, int> exclude, double prev, bool mhit)
 {
@@ -535,7 +581,7 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
             if (i2 == std::string::npos)
               func_split.push_back(func[0].substr(i1, func[0].length( )));
           }
-
+	
           if( trans_split.size() == 0 )
             annot.push_back(func[0]);
 
@@ -545,7 +591,7 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
 		annot.push_back(func_split[ti]);
 	  }
         }
-	
+      
 	std::string annot1 = "";
 	int cnt = 0;
 	bool pass = false;	

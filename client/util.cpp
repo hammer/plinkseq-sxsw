@@ -583,7 +583,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "dump-null-matrix" , NONE , "output (null) gene-based statistics in matrix form" );
     reg( "perm" , INT, "number of permutations");
     reg( "aperm" , INT_VECTOR , "adaptive perm min, max");
-
+    reg( "seed" , FLOAT , "seed for RNG" ); 
 
     reg( "use-dosages" , STRING , "genotypes are dosages in specified tag" );
     reg( "use-postprobs" , STRING , "genotype are posterior probabilities in specified tag" );

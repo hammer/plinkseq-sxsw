@@ -1728,12 +1728,13 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
   // Get list of regions to query (either corresponding to a region or transcript
   //
   
+
   // original input is a.reg_list (regions or genes)
 
   std::vector<std::vector<Region> > regions;
   std::vector<int2> minmax;
   std::vector<std::string> tok = Helper::whitespace( a.reg_list );
-
+  
   for (int i=0; i<tok.size(); i++)
     {
       
@@ -2084,8 +2085,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
       //
       // Genomic positions
       //
-      //
-
+      
       if ( scale < 0.001 ) 
 	for (int t=0;t<10;t++) // do not show last position
 	  cnv.text( border + plotsize * ( t/10.0 ) - 20 , yoff , 

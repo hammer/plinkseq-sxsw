@@ -58,6 +58,8 @@ std::string & PLINKSeq::META_DP() { static std::string s = "DP"; return s; }
 std::string & PLINKSeq::DEFAULT_DBSNP() { static std::string s = "dbsnp"; return s; }
 std::string & PLINKSeq::DEFAULT_G1K() { static std::string s = "g1k"; return s; }
 
+long unsigned & PLINKSeq::DEFAULT_RNG_SEED() { static long unsigned i = time(0); return i; } 
+
 // misc sys.
 std::string & PLINKSeq::SEQDB_GENOME_BUILD_KEY() { static std::string s = "BUILD"; return s; }
 std::string & PLINKSeq::SEQDB_REPEAT_MODE_KEY() { static std::string s = "REPEATMODE"; return s; }

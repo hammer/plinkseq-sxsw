@@ -114,7 +114,8 @@ namespace Pseq
 	  + hoffman_witte
 	  + kbac
 	  + two_hit
-	  + skat;
+	  + skat 
+	  + skato;
       }
       
       GStore * g;
@@ -138,6 +139,7 @@ namespace Pseq
       bool kbac;
       bool two_hit;
       bool skat;
+      bool skato; // optimal SKAT
     };
  
     
@@ -176,18 +178,21 @@ namespace Pseq
 		  bool mhit , 
 		  bool site_burden  )
 	: vanilla(vanilla) , burden(burden) , 
-	  uniq(uniq) , mhit(mhit) , site_burden(false) { } 
+	  uniq(uniq) , mhit(mhit) , site_burden(false) 
+      { 
+      } 
       
       bool vanilla;
       bool burden;
       bool site_burden;
       bool uniq;
       bool mhit;
-      
+
       double stat_vanilla;
       double stat_burden;
       double stat_uniq;
       double stat_mhit;
+
     };
 
 
@@ -260,10 +265,11 @@ namespace Pseq
     struct Aux_skat 
     {
 
-      Aux_skat() 
+      Aux_skat( bool o = false ) 
       {
+	optimal = o;
       }
-
+      
       // when first run, precalculate (only ever once) the 
       // adjust phenotypic expected values for each individual.
 
@@ -305,8 +311,10 @@ namespace Pseq
 			  double * l , double * d ) ;
 
       
-      //
+      // run as SKAT-O
+      bool optimal; 
 
+      //
       static bool has_covar;
       static std::vector<std::string> covars;
 
@@ -322,15 +330,23 @@ namespace Pseq
       Data::Matrix<double> G; // genotype-data
       Data::Matrix<double> K; // kernel
       
-
+      // use slot as return value for asymptotic p-value from each test
+      double returned_pvalue;
     };
-    struct Aux_two_hit {
-      Aux_two_hit(int np, int ng, int ni) : P(ni,np) , G(ni,ng), LD(ng, ng) { }
+
+    
+
+    
+    struct Aux_two_hit 
+    {
+    Aux_two_hit(int np, int ng, int ni) : P(ni,np) , G(ni,ng), LD(ng, ng) { }
       double stat;
       Data::Matrix<double> P; // matrix of phenotypes (1 x num individuals)
       Data::Matrix<double> G; // genotypes of each individual
       Data::Matrix<double> LD; // LD matrix (num genotypes x num genotypes)
     };
+
+
   }  
   
 }

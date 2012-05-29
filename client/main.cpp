@@ -24,9 +24,19 @@ Pseq::Util::Commands pcomm;
 std::string PSEQ_VERSION = "0.08";
 std::string PSEQ_DATE    = "10-Mar-2012";
 
+
+#include <cmath>
+
+
+double fn(double x , void * d ) 
+{
+  return Statistics::normden(x,0,1);
+}
+
+
 int main(int argc, char ** argv)
 {
-
+  
 
   //
   // Get command-line options into a sensible form
@@ -61,6 +71,18 @@ int main(int argc, char ** argv)
   
   if ( args.help() ) exit(0);
   
+
+  //
+  // Misc. initialisation
+  //
+
+  if ( args.has( "seed" ) ) 
+    {
+      long unsigned s = static_cast<long unsigned>(args.as_float( "seed" ));      
+      CRandom::srand( s );
+      srand( s );
+      PLINKSeq::DEFAULT_RNG_SEED() = s;      
+    }
 
   //
   // Reporting and logging options
