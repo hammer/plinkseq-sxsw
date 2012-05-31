@@ -16,6 +16,7 @@ struct PLINKSeq {
   static int         & PROJECT_VERSION_NUMBER();
   static int         & VARDB_VERSION_NUMBER();
   static int         & LOCDB_VERSION_NUMBER();
+  static int         & REFDB_VERSION_NUMBER();
 
   static std::string & SQLITE_SCRATCH_FOLDER();  
   static std::string & PASS_FILTER();  

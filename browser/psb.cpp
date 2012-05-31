@@ -63,7 +63,11 @@ int main()
 	      else if ( s == "i" ) q = Q_INDIV;
 	      else if ( s == "r" ) q = Q_REGION;
 	      else if ( s == "gview" ) { gview = true; q = Q_GRAPHICAL_VIEW; } 
+	      
 	      else if ( s == "varsetlist" ) q = Q_VARSETLIST;
+	      else if ( s == "refdblist" ) q = Q_REFDBLIST;
+	      else if ( s == "locdblist" ) q = Q_LOCDBLIST;
+
 	      else if ( s == "pgrid" )  q = Q_PHENOGRID;
 	      else if ( s == "indlist" ) q = Q_INDGRID;
 	      else if ( s == "glist" ) q = Q_GENELIST;
@@ -155,7 +159,7 @@ int main()
 
 	  if ( str == "meta" ) 
 	    {
-	      a.mf = Helper::parse( cgivars[i+1] , " ," );
+	      a.mf = Helper::parse( cgivars[i+1] , " ," );	      
 	    }
 
 
@@ -241,6 +245,57 @@ int main()
   if ( q != Q_GRAPHICAL_VIEW ) 
     write_start_page(g,loc_set,q,a,pheno,pwd,project_path);
   
+  
+  //
+  // Deal with special case queries
+  // 
+  
+
+  
+  if ( q == Q_GENELIST 
+       || q == Q_PHELIST 
+       || q == Q_METALIST 
+       || q == Q_LOCSETLIST 
+       || q == Q_PROJSUMMARY )
+    {
+      
+      if ( ! Helper::fileExists( project_path ) )
+	{
+	  std::cout << "File [ " 
+		    << project_path 
+		    << " ] could not be found "
+		    << "</BODY></HTML>";
+	  exit(0);
+	}
+
+      
+      if ( ! g.pwd( pwd ) ) 
+	{
+	  Helper::halt( "<b>access denied: password does not match</b>" );
+	  exit(0);
+	}
+
+      if ( q == Q_GENELIST ) 
+	make_gene_list(&a);
+      else if ( q == Q_PHELIST )
+	{
+	  a.phenotype_name = pheno;
+	  make_phe_list(&a);
+	}
+      else if ( q == Q_METALIST )
+	make_mf_list(&a);
+      else if ( q == Q_LOCSETLIST )
+	make_locset_list(&a);
+      else if ( q == Q_PROJSUMMARY )
+	make_proj_summary(&a);
+
+      exit(0);
+
+    }
+
+
+
+
 
 
   ////////////////////////////////////////////////////////////////////////////
@@ -286,7 +341,60 @@ int main()
       mstr += " v-include=\"" + a.vinc_fltr + "\"";
     }
   
+
+  // for now add variant sets to both set and super-set lists (will
+  // just be ignored if doesn't exist in one)
   
+  for (int i=0;i<a.varset.size();i++) 
+    {
+
+      // get list of super-sets
+      std::vector<std::string> sets = a.g->vardb.get_sets();
+      std::set<std::string> setsets;
+      for (int i=0;i<sets.size();i++) setsets.insert(sets[i]);
+
+      // get list of super-sets
+      std::vector<std::string> ss = a.g->vardb.get_supersets();
+      std::set<std::string> sss;
+      for (int i=0;i<ss.size();i++) sss.insert(ss[i]);
+
+      std::set<std::string> mysets;
+      std::set<std::string> mysupersets;
+      
+      for (int i=0;i<a.varset.size();i++)
+	{
+	  if      ( sss.find( a.varset[i] ) != sss.end() ) mysupersets.insert( a.varset[i] );
+	  else if ( setsets.find( a.varset[i] ) != setsets.end() ) mysets.insert( a.varset[i] );	  
+	}
+
+      if ( mysets.size() > 0 ) 
+	{
+	  mstr += " var=";
+	  std::set<std::string>::iterator ii = mysets.begin();
+	  while ( ii != mysets.end() ) 
+	    {
+	      if ( ii != mysets.begin() ) mstr += ",";
+	      mstr += *ii;
+	      ++ii;
+	    }
+	}
+
+      if ( mysupersets.size() > 0 ) 
+	{
+	  mstr += " varset=";
+	  std::set<std::string>::iterator ii = mysupersets.begin();
+	  while ( ii != mysupersets.end() ) 
+	    {
+	      if ( ii != mysupersets.begin() ) mstr += ",";
+	      mstr += *ii;
+	      ++ii;
+	    }
+	}
+      
+    }
+
+  
+
   //
   // Create mask
   //
@@ -326,33 +434,67 @@ int main()
   //
   // Expand wildcard?
   //
+  // allow  field*  to match field* , etc
 
   std::set<std::string> onecopy;
+
   for (int m=0; m<a.mf.size(); m++)
     {
-      if ( a.mf[m] == "*" )
+      // is last char a wildcard?
+      if ( a.mf[m].substr( a.mf[m].size() - 1 , 1 )  == "*" )
 	{
+	  
+	  std::string match = a.mf[m].substr( 0 , a.mf[m].size() - 1 );
+	  
 	  a.mf.erase( a.mf.begin() + m );
+
 	  std::map<int,std::string> f = g.vardb.fetch_files();
 	  std::map<int,std::string>::iterator i = f.begin();
 	  while ( i != f.end() )
 	    {
+	      
 	      std::vector<std::map<std::string,std::string> > m0 = g.vardb.fetch_metatypes( i->first );
 	      for (int j=0; j<m0.size(); j++)
 		{
+
 		  if ( m0[j]["GRP"] == "Variant" )
 		    {
+	
 		      std::string mval = m0[j]["NAME"];
-		      if ( onecopy.find( mval ) == onecopy.end() )
+		      
+		      // does it match seed?
+		      if ( match.size() == 0 || mval.substr( 0 , match.size() ) == match ) 
 			{
-			  onecopy.insert( mval );
-			  a.mf.push_back( mval );
+			  if ( onecopy.find( mval ) == onecopy.end() )
+			    {
+			      onecopy.insert( mval );
+			      a.mf.push_back( mval );
+			    }
 			}
 		    }
 		}
 	      ++i;
 	    }
-	  break;
+	  
+	  // also expand into RefVariant meta information	  
+	  std::map< std::string, std::map<std::string,std::string> > refmeta = a.g->refdb.get_metatypes();
+	  std::map< std::string, std::map<std::string,std::string> >::iterator rii = refmeta.begin();
+	  while ( rii != refmeta.end() ) 
+	    {
+	      // does it match seed?
+	      if ( match.size() == 0 || rii->first.substr( 0 , match.size() ) == match ) 
+		{
+		  if ( onecopy.find( rii->first ) == onecopy.end() )
+		    {
+		      onecopy.insert( rii->first );
+		      a.mf.push_back( rii->first );
+		    }
+		}
+	      ++rii;
+	    }
+	  
+	  // if full wildcard, only expand once
+	  if ( match == "" ) break;
 	}
     }
   
@@ -1298,7 +1440,17 @@ int main()
       show_varsets( a ) ;
     }
 
-  
+  if ( q == Q_REFDBLIST ) 
+    {
+      show_refdb( a );
+    }
+
+  if ( q == Q_LOCDBLIST ) 
+    {
+      show_locdb( a );
+    }
+
+
   // 2) Enumerate all genes 
 
   
@@ -1389,12 +1541,22 @@ void ExomeBrowser::f_display(Variant & var, void *p)
   o1 << "<td>" << var.pp_reference() << "/" << var.pp_alternate() << "</td>";
 
   o1 << "<td>" << var.n_samples() << "</td>";
+
+  // If this variant appears in >1 file, then reduced the PASS filter to passing in  
   
-  o1 << "<td>" << var.print_meta_filter( "<br>" ) << "</td>";
-
+  std::set<std::string> f = var.meta_filter();
+  if ( f.size() == 1 ) 
+    o1 << "<td>" << *f.begin() << "</td>";
+  else
+    {
+      o1 << "<td>" << "<FLAGGED>" << "</td>";
+    }
+  
+  // original...
+  // o1 << "<td>" << ( flagged ? "var.print_meta_filter( "<br>" ) << "</td>"; 
+  
   SampleVariant & con = var.consensus;
-
-
+		      
   // Allele count?
   
   if ( a->show_phenotype ) 
@@ -2860,22 +3022,43 @@ void ExomeBrowser::make_gene_list(Aux * a)
 }
 
 
-void ExomeBrowser::make_phe_list(Aux * a)
+void ExomeBrowser::make_phe_list( Aux * a )
 {
+  
+ 
+
+  // only a single phenotype allowed
+  
   std::map<std::string,std::vector<std::string> > m = a->g->inddb.fetch_phenotype_info();
+
   std::map<std::string,std::vector<std::string> >::iterator i = m.begin();
+
   std::cout << "<h3>Available phenotypes</h3>";
+
+  std::cout << "<em>" << a->getURL()->addField("q", "plist")->addField("pheno", "" )->printLink( "Clear" ) << " selection</em></p>";
+
   std::cout << "<table border=1><tr>"
-       << "<th align=left>Phenotype</th>"
-       << "<th align=left>Type</th>"
-       << "<th align=left>Description</th></tr>";
+	    << "<th align=left>Selected</th>"
+	    << "<th align=left>Phenotype</th>"
+	    << "<th align=left>Type</th>"
+	    << "<th align=left>Description</th></tr>";
+
   while ( i != m.end() )
     {
-      std::cout << "<tr>"
-	   << "<td>" << i->first << "</td>"
-	   << "<td>" << i->second[0] << "</td>"
-	   << "<td>" << i->second[1] << "</td>"
-	   << "</tr>";
+      std::cout << "<tr><td>";
+     
+      if ( i->first == a->phenotype_name ) 
+	std::cout << "<input type=\"checkbox\" disabled=\"disabled\" name=\"phesel\" value=\""<< i->first <<"\" checked>";
+      else
+	std::cout << "<input type=\"checkbox\" disabled=\"disabled\" name=\"phesel\" value=\""<< i->first <<"\">";
+      
+      std::cout << "</td><td>";
+
+      std::cout << a->getURL()->addField("q", "plist")->addField("pheno", i->first )->printLink( i->first ) << "</td>";
+      
+      std::cout << "<td>" << i->second[0] << "</td>"
+		<< "<td>" << i->second[1] << "</td>"
+		<< "</tr>";
       ++i; 
     }
   std::cout << "</table></body></html>";
@@ -2886,12 +3069,104 @@ void ExomeBrowser::make_phe_list(Aux * a)
 
 void ExomeBrowser::make_mf_list(Aux * a)
 {
-  
+
+
+  std::string mf_url;
+  std::set<std::string> selected_meta;
+  for (int m=0; m<a->mf.size(); m++) 
+    {
+      selected_meta.insert( a->mf[m] );
+      if ( mf_url != "" ) mf_url += " ";
+      mf_url += a->mf[m];
+    }
+
+  // Print initial table of all meta fields, that can be selected from
+  std::map<std::string,std::map<std::string,std::string> > all_meta;
+
   std::map<int,std::string> f = a->g->vardb.fetch_files();
   std::map<int,std::string>::iterator i = f.begin();
   while ( i != f.end() )
+    {      
+      std::vector<std::map<std::string,std::string> > m = a->g->vardb.fetch_metatypes( i->first );
+      for (int j=0;j<m.size();j++) all_meta[ m[j]["NAME"] ] = m[j]; 
+      ++i;
+    }
+
+  // Also, add in meta fields from REFDB
+
+
+  // Now print table, w/ links
+  
+  // Meta-types
+  std::cout << "<h3>Variant meta-information fields</h3>";
+
+  std::cout << "<em>" << a->getURL()->addField("q", "mflist")->addField("meta", "" )->printLink( "Clear" ) << " all meta-fields</em></p>";
+
+  std::map< std::string, std::map<std::string,std::string> > refmeta = a->g->refdb.get_metatypes();
+  std::map< std::string, std::map<std::string,std::string> >::iterator rii = refmeta.begin();
+  while ( rii != refmeta.end() ) 
     {
-      std::cout << "<h3><font color=blue>" << i->second << "(" << i->first << ")</font></h3>";
+      if ( all_meta.find( rii->first ) == all_meta.end() ) 
+	all_meta[ rii->first ] = rii->second;
+      ++rii;
+    }
+  
+  std::cout << "<table border=1><tr><th>Selected</th>"
+	    << "<th align=left>Meta-field</th>"
+	    << "<th align=left>Type</th>"
+	    << "<th align=left>Length</th>"
+	    << "<th align=left>Group</th>"
+	    << "<th align=left>Description</th>"
+	    << "</tr>";
+  
+  
+  std::map<std::string,std::map<std::string,std::string> >::iterator ii = all_meta.begin();
+  while ( ii != all_meta.end() ) 
+    {
+      
+      std::cout << "<tr><td>";
+
+      bool refvar = ii->second["GRP"] == "RefVariant";
+      
+      if ( selected_meta.find( ii->first ) != selected_meta.end() )
+	std::cout << "<input type=\"checkbox\" disabled=\"disabled\" name=\"metasel\" value=\""<< ii->first <<"\" checked>";
+      else
+	std::cout << "<input type=\"checkbox\" disabled=\"disabled\" name=\"metasel\" value=\""<< ii->first <<"\">";
+            
+      std::cout << "</td><td>";
+   
+      if ( ! refvar ) 
+	{
+	  std::cout << a->getURL()->addField( "q", "mflist" )	
+	    ->addField( "meta" , mf_url + " " + ii->first )
+	    ->printLink( ii->first );
+	}
+      else
+	std::cout << "<em>GROUP_</em>" << ii->first ;
+
+      std::cout << "</td><td>";
+      
+      std::cout << ii->second["TYPE"] << "</td><td>"
+		<< ii->second["NUM"] << "</td><td>"
+		<< ii->second["GRP"] << "</td><td>"
+		<< ii->second["DESC"] << "</td></tr>";
+	  ++ii;
+    }
+
+  std::cout << "</table>";
+
+
+  std::cout << "<p><hr></p>";
+
+
+  // Second, print individual VCFs
+  
+  std::cout << "<h3>Listing header rows of individual project VCFs</h3>";
+
+  i = f.begin();
+  while ( i != f.end() )
+    {
+      std::cout << "<h4><font color=blue>" << i->second << "(" << i->first << ")</font></h4>";
       // Meta-types
       std::cout << "<h4>Variant meta-information fields</h4>";
       std::cout << "<table border=1><th align=left>Meta-field</th>"
@@ -3088,49 +3363,11 @@ void ExomeBrowser::write_start_page( const GStore & g ,
 
 	    << "<hr>";
   
-
-  if ( q == Q_GENELIST 
-       || q == Q_PHELIST 
-       || q == Q_METALIST 
-       || q == Q_LOCSETLIST 
-       || q == Q_PROJSUMMARY )
-    {
-      
-      if ( ! Helper::fileExists( project_path ) )
-	{
-	  std::cout << "File [ " 
-		    << project_path 
-		    << " ] could not be found "
-		    << "</BODY></HTML>";
-	  exit(0);
-	}
-
-      
-      if ( ! g.pwd( pwd ) ) 
-	{
-	  Helper::halt( "<b>access denied: password does not match</b>" );
-	  exit(0);
-	}
-
-      if ( q == Q_GENELIST ) 
-	make_gene_list(&a);
-      else if ( q == Q_PHELIST )
-	make_phe_list(&a);
-      else if ( q == Q_METALIST )
-	make_mf_list(&a);
-      else if ( q == Q_LOCSETLIST )
-	make_locset_list(&a);
-      else if ( q == Q_PROJSUMMARY )
-	make_proj_summary(&a);
-
-      exit(0);
-
-    }
-
+  
 
   
   //
-  // Draw main query box, with saved defaults
+  // Always draw main query box, with saved defaults
   //
   
   
@@ -3160,9 +3397,10 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   // Query
   //
 
-  std::cout << "<p><b>Variants</b>: gene/transcript ID (" << loc_set << " " 
+  std::cout << "<p><b>Variants</b>: gene ID (" << loc_set << " " 
 	    << a.getURL()->addField("q", "lslist")->printLink("change") << "|"
 	    << a.getURL()->addField("q", "glist")->addField("pheno", pheno)->printLink("list") << "),<br>region or variant ID";
+
 
   // add separate page to change this (on lslist page)
 //   std::cout << "<br><input type=\"text\" size=\"45\" ";  
@@ -3197,7 +3435,9 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   //
   
   std::cout << "<p>Optional variant meta-fields ";
-  std::cout << "(" << a.getURL()->addField("q", "mflist")->addField("pheno", pheno)->printLink("list") << ")";
+  std::cout << "(" << a.getURL()
+    ->addField("q", "mflist")
+    ->printLink("list") << ")";
 
   std::cout << "<br><input type=\"text\" size=\"45\" name=\"meta\"";
   
@@ -3219,10 +3459,9 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   // Phenotype
   //
 
-  std::cout << "<p>Optional case/control phenotype";
+  std::cout << "<p>Optional case/control phenotype ";
 
   std::cout << "(" << a.getURL()->addField("q", "plist")->addField("pheno", pheno)->printLink("list") << ")";
-
   
   std::cout << "<br><input type=\"text\" size=\"45\" name=\"pheno\"";
   
@@ -3270,7 +3509,8 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   // Reference appends
   //
   
-  std::cout << "<p>Reference DB filters/appends";
+  std::cout << "<p>Reference DB filters/appends ";
+  std::cout << "(" << a.getURL()->addField("q", "refdblist")->printLink("list") << ")";
   std::cout << "<br><input type=\"text\" size=\"45\" name=\"ref_append\"";
   std::cout << " value=\""<< Helper::html_encode( a.ref_append_url ) << "\"";  
   std::cout << ">";
@@ -3282,6 +3522,7 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   //
 
   std::cout << "<p>Locus DB filters/appends";
+  std::cout << "(" << a.getURL()->addField("q", "locdblist")->printLink("list") << ")";
   std::cout << "<br><input type=\"text\" size=\"45\" name=\"loc_append\"";
   std::cout << " value=\""<< Helper::html_encode( a.loc_append_url ) << "\"";  
   std::cout << ">";
@@ -3361,8 +3602,9 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   std::cout << "<hr> ";
 
 
+
   //
-  // Draw query 
+  // Main body for processing gene/variant/individual queries
   //
   
 
@@ -3508,12 +3750,19 @@ void ExomeBrowser::show_varsets( Aux & a )
 
   std::cout << "<h3>Variant sets</h3>";
 
+  std::cout << "<em>" << a.getURL()->addField("q", "varsetlist")
+    ->addField("varset", "" ) 
+    ->printLink( "Clear" ) << " current variant-set selection</em></p>";
+  
   std::vector<std::string> sets = a.g->vardb.get_sets();
   
   std::cout << "<table border=1><tr><th>Selected</th><th>Set</th><th>Number of variants</th><th>Description</th></tr>";
-
+  
   for (int s = 0 ; s < sets.size(); s++)
     {
+    
+      std::cout << "<tr>";
+      
       std::cout << ( a.varset_set.find( sets[s] ) != a.varset_set.end() ? 
 		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"setsel\" value=\""+sets[s]+"\" checked></td>" :
 		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"setsel\" value=\""+sets[s]+"\"></td>" );
@@ -3526,41 +3775,216 @@ void ExomeBrowser::show_varsets( Aux & a )
       
       std::cout << "<td>" << a.g->vardb.get_set_size( sets[s] ) << "</td><td>" 
 		<< a.g->vardb.get_set_description( sets[s] ) << "</td></tr>";
+      
+      
     }
 
   std::cout << "</table>";
+
 
   //
   // Variant super-sets
   //
 
-  std::cout << "<h3>Variant super-sets</h3>";
-
   std::vector<std::string> ss = a.g->vardb.get_supersets();
-  if ( ss.size() == 0 ) std::cout << "<br><em>none</em><br>";
-  else
+  if ( ss.size() != 0 ) 
     {
-      std::cout << "<table border=1><tr><th>Selected</th><th>Set</th><th>Number of sets</th><th>Sets</th><th>Description</th></tr>";
-            
+  
+      std::cout << "<h3>Variant super-sets</h3>";
+      
+      std::cout << "<em>" << a.getURL()->addField("q", "varsetlist")
+	->addField("varset", "" ) 
+	->printLink( "Clear" ) << " current variant-set selection</em></p>";
+      
+      std::cout << "<table border=1><tr><th>Selected</th><th>Varant set</th><th>Number of sets</th><th>Sets</th><th>Description</th></tr>";
+      
       for (int s = 0 ; s < ss.size(); s++)
 	{
 	  std::vector<std::string> sets = a.g->vardb.get_sets( ss[s] );
 	  
-	  std::cout << "<tr><td>" ;
-
+	  std::cout << "<tr>";
+	  
+	  std::cout << ( a.varset_set.find( ss[s] ) != a.varset_set.end() ? 
+			 "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"ssetsel\" value=\""+ss[s]+"\" checked></td>" :
+			 "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"ssetsel\" value=\""+ss[s]+"\"></td>" );
+	  
 	  std::cout << "<td>" 
 		    << a.getURL()->addField("q", "varsetlist")
 	    ->addField("varset", a.varset_url == "" ? ss[s] : a.varset_url + " " + ss[s] )
 	    ->printLink( ss[s] ) 	
 		    << "</td>";
-     	
-	  std::cout << "<td>" << sets.size() << "</td>";
-
+	  
+	  std::cout << "<td>" << sets.size() << "</td><td>";
+	  
 	  for (int t = 0 ; t < sets.size(); t++)
 	    std::cout << sets[t] << "<br>";
-	  std::cout << "</td>" << a.g->vardb.get_superset_description( ss[s] ) << "</td>";
+	  
+	  std::cout << "</td><td>" << a.g->vardb.get_superset_description( ss[s] ) << "</td>";
+	 
 	  std::cout << "</tr>";
 	}
       std::cout << "</table>";
     }
+  
+}
+
+
+
+
+void ExomeBrowser::show_refdb( Aux & a )
+{
+
+  std::cout << "<h3>Reference DB groups</h3>";
+  
+  std::cout << "<em>" << a.getURL()->addField("q", "refdblist")
+    ->addField("ref_append", "" ) 
+    ->printLink( "Clear" ) << " current reference database group selection</em></p>";
+  
+  std::vector<std::string> refgrps = a.g->refdb.fetch_groups();
+  
+  std::cout << "<table border=1><tr><th>Required</th><th>Append</th><th>Exclude</th>"
+	    << "<th>Group</th><th>Description</th></tr>";
+  
+  std::set<std::string> myapp; // append    +group
+  std::set<std::string> myreq; // require,   group
+  std::set<std::string> myexc; // exclude,  -group
+
+  for (int i=0; i<a.ref_append.size(); i++) 
+    {
+      if ( a.ref_append[i][0] == '-' ) 
+	myexc.insert( a.ref_append[i].substr(1) );
+      else if ( a.ref_append[i][0] == '+' ) 
+	myapp.insert( a.ref_append[i].substr(1) );
+      else
+	myreq.insert( a.ref_append[i] );      
+    }
+  
+
+  for (int s = 0 ; s < refgrps.size(); s++)
+    {
+      
+      std::cout << "<tr>";
+      
+      std::cout << ( myreq.find( refgrps[s] ) != myreq.end() ?
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"refsel\" value=\""+refgrps[s]+"\" checked></td>" :	
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"refsel\" value=\""+refgrps[s]+"\"></td>" ) ;
+      
+      std::cout << ( myapp.find( refgrps[s] ) != myapp.end() ?
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"refsel\" value=\""+refgrps[s]+"\" checked></td>" :
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"refsel\" value=\""+refgrps[s]+"\"></td>" );
+      
+      std::cout << ( myexc.find( refgrps[s] ) != myexc.end() ?
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"refsel\" value=\""+refgrps[s]+"\" checked></td>" :
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"refsel\" value=\""+refgrps[s]+"\"></td>" );
+      
+      
+      std::cout << "<td>" << refgrps[s] << " (";
+      
+      std::cout << a.getURL()->addField("q", "refdblist")
+	->addField("ref_append", a.ref_append_url == "" ? refgrps[s] : a.ref_append_url + " " + refgrps[s] )
+	->printLink( "require" ) << "|" ;
+      
+      std::cout << a.getURL()->addField("q", "refdblist")
+	->addField("ref_append", a.ref_append_url == "" ? "+" + refgrps[s] : a.ref_append_url + " +" + refgrps[s] )
+	->printLink( "append" ) << "|" ;
+
+      std::cout << a.getURL()->addField("q", "refdblist")
+	->addField("ref_append", a.ref_append_url == "" ? "-" + refgrps[s] : a.ref_append_url + " -" + refgrps[s] )
+	->printLink( "exclude" ) ;
+
+      std::cout << ")</td>";
+      
+      std::cout << "<td>.</td>";
+      
+      std::cout << "</tr>";
+      
+    }
+
+  std::cout << "</table>";
+
+}
+
+
+void ExomeBrowser::show_locdb( Aux & a )
+{
+
+  std::set<GroupInfo> locinfo = a.g->locdb.group_information();
+  
+  //std::set<GroupInfo> locsetinfo = a.g->locdb.set_information();
+  
+  std::vector<std::string> locgrps;
+  std::set<GroupInfo>::iterator ii = locinfo.begin();
+  while ( ii != locinfo.end() ) 
+    {
+      locgrps.push_back( ii->name );
+      ++ii;
+    }  
+ 
+   std::cout << "<h3>Locus DB groups</h3>";
+  
+   std::cout << "<em>" << a.getURL()->addField("q", "locdblist")
+     ->addField("loc_append", "" ) 
+     ->printLink( "Clear" ) << " current locus database group selection</em></p>";
+   
+   std::cout << "<table border=1><tr><th>Required</th>" // <th>Append</th>
+	     << "<th>Exclude</th>"
+	     << "<th>Group</th><th>Description</th></tr>";
+  
+  std::set<std::string> myapp; // append    +group
+  std::set<std::string> myreq; // require,   group
+  std::set<std::string> myexc; // exclude,  -group
+
+  for (int i=0; i<a.loc_append.size(); i++) 
+    {
+      if ( a.loc_append[i][0] == '-' ) 
+	myexc.insert( a.loc_append[i].substr(1) );
+      else if ( a.loc_append[i][0] == '+' ) 
+	myapp.insert( a.loc_append[i].substr(1) );
+      else
+	myreq.insert( a.loc_append[i] );      
+    }
+  
+
+  for (int s = 0 ; s < locgrps.size(); s++)
+    {
+      
+      std::cout << "<tr>";
+      
+      std::cout << ( myreq.find( locgrps[s] ) != myreq.end() ?
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"locsel\" value=\""+locgrps[s]+"\" checked></td>" :	
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"locsel\" value=\""+locgrps[s]+"\"></td>" ) ;
+      
+//       std::cout << ( myapp.find( locgrps[s] ) != myapp.end() ?
+// 		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"locsel\" value=\""+locgrps[s]+"\" checked></td>" :
+// 		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"locsel\" value=\""+locgrps[s]+"\"></td>" );
+      
+      std::cout << ( myexc.find( locgrps[s] ) != myexc.end() ?
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"locsel\" value=\""+locgrps[s]+"\" checked></td>" :
+		     "<td><input type=\"checkbox\" disabled=\"disabled\" name=\"locsel\" value=\""+locgrps[s]+"\"></td>" );
+      
+      
+      std::cout << "<td>" << locgrps[s] << " (";
+      
+      std::cout << a.getURL()->addField("q", "locdblist")
+	->addField("loc_append", a.loc_append_url == "" ? locgrps[s] : a.loc_append_url + " " + locgrps[s] )
+	->printLink( "require" ) << "|" ;
+      
+//       std::cout << a.getURL()->addField("q", "locdblist")
+// 	->addField("loc_append", a.loc_append_url == "" ? "+" + locgrps[s] : a.loc_append_url + " +" + locgrps[s] )
+// 	->printLink( "append" ) << "|" ;
+
+      std::cout << a.getURL()->addField("q", "locdblist")
+	->addField("loc_append", a.loc_append_url == "" ? "-" + locgrps[s] : a.loc_append_url + " -" + locgrps[s] )
+	->printLink( "exclude" ) ;
+
+      std::cout << ")</td>";
+      
+      std::cout << "<td>.</td>";
+      
+      std::cout << "</tr>";
+      
+    }
+
+  std::cout << "</table>";
+
 }

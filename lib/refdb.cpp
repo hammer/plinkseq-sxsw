@@ -24,6 +24,24 @@ bool RefDBase::attach(std::string name)
   fname = name;
 
   sql.synchronous(false);
+
+  //
+  // Check version number 
+  //
+
+  check_version();
+
+
+
+  //
+  // DB version, and a place for various other meta-information in future
+  //
+  
+  sql.query(" CREATE TABLE IF NOT EXISTS dbmeta("
+            "   varname      VARCHAR(20) NOT NULL , "
+            "   varvalue    VARCHAR(20) NOT NULL , "
+            " CONSTRAINT uMeta UNIQUE (varname ) ); " );
+
   
   sql.query(" CREATE TABLE IF NOT EXISTS refvariants("
             "   group_id  INTEGER NOT NULL , "
@@ -40,6 +58,7 @@ bool RefDBase::attach(std::string name)
   
   sql.query( " CREATE TABLE IF NOT EXISTS metatypes("
 	     "   field_id     INTEGER PRIMARY KEY , "
+	     "   group_id     INTEGER NOT NULL , "
 	     "   name         VARCHAR(8) , "
  	     "   type         VARCHAR(8) , "
  	     "   number       INTEGER , "
@@ -56,9 +75,19 @@ bool RefDBase::attach(std::string name)
              "   temp         CHAR(1) , "
              "   description  TEXT ); " );
 
+
+
+  
+  //
+  // set up queries
+  //
+
   init();
   
+
+  //
   // set meta-type information
+  //
 
   set_metatypes();
 
@@ -161,10 +190,10 @@ bool RefDBase::init()
     sql.prepare(" SELECT field_id,type FROM metatypes WHERE name == :name ;" );
 
   stmt_meta_insert_prep2 =
-    sql.prepare(" INSERT INTO metatypes (name,type,number,description) values( :name, :type, :number, :description ); " );
+    sql.prepare(" INSERT INTO metatypes (name,type,number,description,group_id) values( :name, :type, :number, :description, :group_id ); " );
 
   stmt_fetch_metatypes = 
-      sql.prepare(" SELECT name , type , number, description "
+    sql.prepare(" SELECT name , type , number, description , group_id "
 		  " FROM metatypes ; " );
 
 
@@ -256,11 +285,11 @@ void RefDBase::insert_header( uint64_t file_id , const std::string & name , cons
 }
 
 
-void RefDBase::insert_metatype( uint64_t file_id , 
-				const std::string & name ,  
-				mType mt , 
-				int num, 
-				int mgrp, 
+void RefDBase::insert_metatype( uint64_t file_id ,
+				const std::string & name ,
+				mType mt ,
+				int num ,
+				int mgrp ,
 				const std::string & description )
 {
   
@@ -280,6 +309,7 @@ void RefDBase::insert_metatype( uint64_t file_id ,
       sql.bind_int( stmt_meta_insert_prep2 , ":type" , mt );
       sql.bind_int( stmt_meta_insert_prep2 , ":number" , num );
       sql.bind_text( stmt_meta_insert_prep2 , ":description" , description );
+      sql.bind_int( stmt_meta_insert_prep2 , ":group_id" , mgrp );
       sql.step( stmt_meta_insert_prep2 );
 
       // store the newly-created field ID locally
@@ -420,7 +450,7 @@ bool RefDBase::refInsertion(const RefVariant & rv)
 }
 
 
-std::map<std::string,mType> RefDBase::populate_metatypes( std::map<std::string,int> * meta )
+std::map<std::string,mType> RefDBase::populate_metatypes( std::map<std::string,int> * meta , const int group_id )
 {
   
   std::map<std::string,mType> mt;
@@ -447,6 +477,7 @@ std::map<std::string,mType> RefDBase::populate_metatypes( std::map<std::string,i
 	      sql.bind_int( stmt_meta_insert_prep2 , ":type" , midx.mt );
 	      sql.bind_int( stmt_meta_insert_prep2 , ":number" , midx.len );
 	      sql.bind_text( stmt_meta_insert_prep2 , ":description" , midx.description );
+	      sql.bind_int( stmt_meta_insert_prep2 , ":group_id" , group_id );
 	      sql.step( stmt_meta_insert_prep2 );
 	      mtmap[ i->first ] = sql.last_insert_rowid();
 	      sql.reset(stmt_meta_insert_prep2);
@@ -641,7 +672,7 @@ uint64_t RefDBase::loadRefVariants(const std::string & filename,
   // Get and write meta-information types
   //
   
-  std::map<std::string,mType> mt = populate_metatypes( meta );
+  std::map<std::string,mType> mt = populate_metatypes( meta , group_id );
   
   
   //                                     
@@ -1094,6 +1125,66 @@ std::string RefDBase::summary( bool ugly )
      return ss.str();
 }
 
+
+
+
+std::map< std::string, std::map<std::string,std::string> > RefDBase::get_metatypes()
+{
+  
+  std::map< std::string, std::map<std::string,std::string> > mgrp;
+  
+  while ( sql.step( stmt_fetch_metatypes ) )
+    {
+      
+      std::string name = sql.get_text( stmt_fetch_metatypes , 0 );
+      
+      mType mt = (mType)sql.get_int( stmt_fetch_metatypes , 1 );
+      std::string num = sql.get_text( stmt_fetch_metatypes , 2 ); // get as text
+      std::string desc = sql.get_text( stmt_fetch_metatypes , 3 );	
+      
+      std::map<std::string,std::string> inf;
+      
+      inf["GRP"] = "RefVariant";
+      inf["NAME"] = name;
+      inf["LEN"] = num;
+      inf["DESC"] = desc;
+      
+      switch ( mt ) 
+	{
+	case META_FLAG :
+	  inf[ "TYPE" ] = "Flag";
+	  break;
+	case META_UNDEFINED :
+	  inf[ "TYPE" ] = "Undefined";
+	  break;
+	case META_TEXT :
+	  inf[ "TYPE" ] = "String";
+	  break;
+	case META_INT :
+	  inf[ "TYPE" ] = "Integer";
+	  break;
+	case META_FLOAT :
+	  inf[ "TYPE" ] = "Float";
+	  break;
+	case META_BOOL :
+	  inf[ "TYPE" ] = "Bool";
+	  break;
+	case META_CHAR :
+	  inf[ "TYPE" ] = "Char";
+	}
+
+      mgrp[name] = inf;
+      
+    }
+
+  sql.reset( stmt_fetch_metatypes );
+
+  return mgrp;
+
+}
+
+
+
 void RefDBase::dump( const std::string & grp , bool with_meta )
 {
 
@@ -1108,4 +1199,46 @@ void RefDBase::dump( const std::string & grp , bool with_meta )
     }
   return;
 }
+
+
+void RefDBase::check_version()
+{
+  
+  if ( ! sql.table_exists( "dbmeta" ) )
+    Helper::halt( "old database format, expecting REFDB v"
+                  + Helper::int2str( PLINKSeq::REFDB_VERSION_NUMBER() )
+                  + " : to fix, remake your project" );
+  
+  // expected version # is given by  PLINKSeq::LOCDB_VERSION_NUMBER()                                                                      
+  int v = 0;
+  
+  sqlite3_stmt * s = sql.prepare( "SELECT varvalue FROM dbmeta WHERE varname == 'VERSION'; " );
+  
+  if ( sql.step(s) )
+    {
+      v = sql.get_int( s , 0 );
+      sql.finalise(s);
+    }
+  else // implies a new database, as version not yet set -- so add one                                                                    
+    {
+      sql.finalise(s);
+      sqlite3_stmt * si = sql.prepare("INSERT OR REPLACE INTO dbmeta(varname, varvalue ) values( :x , :y ) ; " );
+      std::string vn = "VERSION";
+      v = PLINKSeq::REFDB_VERSION_NUMBER();
+      sql.bind_text( si , ":x" , vn );
+      sql.bind_int( si , ":y" , v );
+      sql.step(si);
+      sql.finalise(si);
+    }
+
+  if ( v != PLINKSeq::REFDB_VERSION_NUMBER() )
+    Helper::halt("REFDB version "
+                 + Helper::int2str( v ) + " but expected "
+                 + Helper::int2str( PLINKSeq::REFDB_VERSION_NUMBER() )
+                 + " : to fix, remake your REFDB" );
+
+  return;
+
+}
+
 

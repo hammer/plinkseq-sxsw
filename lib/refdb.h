@@ -195,8 +195,9 @@ class RefDBase {
     bool values;
     std::string vstring;
 
+    std::map<std::string,mType> populate_metatypes( std::map<std::string,int> * meta , const int );
 
-    std::map<std::string,mType> populate_metatypes( std::map<std::string,int> * meta );
+    std::map< std::string, std::map<std::string,std::string> > get_metatypes();
 
     void attach_metainformation( RefVariant & , const Variant & );
 				
@@ -279,6 +280,8 @@ class RefDBase {
 
     RefVariant construct( sqlite3_stmt * );
     void construct_inplace( sqlite3_stmt * s , RefVariant * rv );
+    
+    void check_version();
     
     std::map<std::string,meta_key_t> mtmap;
     std::map<int,std::string> grpmap;

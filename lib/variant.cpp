@@ -1142,7 +1142,7 @@ std::string Variant::print_meta(const std::string & key , const std::string & de
   // single sample          --> in Consensus SampleVariant
   // otherwise,             --> need to same individual SampleVariants
 
-  if ( MetaMeta::static_variant( key ) ) 
+  if ( MetaMeta::static_variant( key ) || meta.has_field( key ) ) 
     return meta.as_string( key , "," );
   
   if ( align->single_sample() )
@@ -1154,6 +1154,7 @@ std::string Variant::print_meta(const std::string & key , const std::string & de
       if ( i != 0 ) r += delim;	    
       r += svar[i].meta.as_string(key, "," ); 
     }
+
   return r;
 
 }

@@ -9,6 +9,7 @@ int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 5; return i; }
 
 // v2 added exon/CDS/start/stop features encoded in strand column
 int & PLINKSeq::LOCDB_VERSION_NUMBER() { static int i = 2; return i; } 
+int & PLINKSeq::REFDB_VERSION_NUMBER() { static int i = 2; return i; } 
 
 std::string & PLINKSeq::SQLITE_SCRATCH_FOLDER() { static std::string s = ""; return s; }
 

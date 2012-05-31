@@ -24,6 +24,8 @@ namespace ExomeBrowser {
 	       Q_METALIST ,
 	       Q_PHELIST  ,
 	       Q_VARSETLIST , 
+	       Q_REFDBLIST , 
+	       Q_LOCDBLIST , 
 	       Q_INDPHENO , 
 	       Q_LOCSETLIST ,
 	       Q_PROJSUMMARY ,
@@ -59,6 +61,10 @@ namespace ExomeBrowser {
   void show_indiv( Aux & a );
 
   void show_varsets( Aux & a );
+
+  void show_refdb( Aux & a );
+
+  void show_locdb( Aux & a );
 
   // corresponds to indgrid;
   void index_grid( Aux & a );
