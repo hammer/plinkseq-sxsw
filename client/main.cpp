@@ -25,18 +25,10 @@ std::string PSEQ_VERSION = "0.08";
 std::string PSEQ_DATE    = "10-Mar-2012";
 
 
-#include <cmath>
-
-
-double fn(double x , void * d ) 
-{
-  return Statistics::normden(x,0,1);
-}
-
 
 int main(int argc, char ** argv)
 {
-  
+
 
   //
   // Get command-line options into a sensible form
@@ -1575,10 +1567,10 @@ int main(int argc, char ** argv)
 
     if ( command == "score-weights" )
       {
-	Helper::halt("obsolete command score-weights");
-// 	std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
-// 	Pseq::PPH2DB::score( m , dbname );
-// 	Pseq::finished();
+	//Helper::halt("obsolete command score-weights");
+ 	std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
+ 	Pseq::PPH2DB::score( m , dbname );
+ 	Pseq::finished();
       }
 
 

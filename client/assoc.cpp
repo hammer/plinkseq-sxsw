@@ -1310,7 +1310,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //
 
   a.vanilla       =   args.has( "tests" , "sumstat" );
-  a.burden        = ! args.has( "tests" , "no-burden" );
+  a.burden        =   args.has( "tests" , "burden" );
   a.uniq          =   args.has( "tests" , "uniq" );
   a.site_burden   =   args.has( "tests" , "site-burden" );
   a.mhit          =   args.has( "tests" , "mhit" );
@@ -1322,22 +1322,25 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   a.kbac          =   args.has( "tests" , "kbac" );
   a.two_hit       =   args.has( "tests" , "two_hit");
   a.skat          =   args.has( "tests" , "skat" );
+  a.skato         =   args.has( "tests" , "skato" );
 
-  const int ntests = a.n_tests();
+
   
-  if ( ntests == 0 ) Helper::halt( "no assoc tests specified" );
+  int ntests = a.n_tests() ;
+  
+  // if no tests specified, default is SKAT
+
+  if ( ntests == 0 ) { a.skat = true;  ntests = 1; } 
   
   // Convenience specification for asymptotic-only tests 
-  
-  // convert   assoc --tests skat 
-  //      to   assoc --tests no-burden skat  --perm 0 
-  
-  if ( ntests == 2 && a.burden && a.skat && nrep == -1 ) 
-    {
-      a.burden = false;
-      nrep = 0; // i.e. no permutations
-      }
 
+  // If only assymptotic tests, and no permutation requested
+  // by default, then add the equivalent of "--perm 0" to the 
+  // command line
+  
+  const int n_asymptotic_tests = a.skat + a.skato;
+  
+  if ( ntests == n_asymptotic_tests && nrep == -1 ) nrep = 0;
 
   // labels   vanilla  SUMSTAT
   //          burden   BURDEN
@@ -1352,7 +1355,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //          kbac     KBAC 
   //          two-hit  TWO-HIT
   //          skat     SKAT
-
+  //          skato    SKAT-O
 
 
   //
@@ -1363,8 +1366,9 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
     {
       plog << nrep ;
       if ( a.burden ) plog << "\t" << "BURDEN"; 
-      if ( a.uniq )  plog << "\t" << "UNIQ"; 
-      if ( a.skat )  plog << "\t" << "SKAT"; 
+      if ( a.uniq )   plog << "\t" << "UNIQ"; 
+      if ( a.skat )   plog << "\t" << "SKAT"; 
+      if ( a.skat )   plog << "\t" << "SKAT-O"; 
       plog << "\n";
     }
 
@@ -1381,13 +1385,13 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   else if ( g.phmap.type() == PHE_QT )
     {
       // for now, only SKAT can handle QTs
-      if ( ntests > 1 || ! a.skat ) 
-	Helper::halt( "only SKAT can handle quantitative traits" );      
+      if ( ! ( a.skat || a.skato ) ) 
+	Helper::halt( "only SKAT/SKAT-O can handle quantitative traits" );
     }
   else      
     Helper::halt("no dichotomous phenotype specified");
-
-
+  
+  
   //
   // Set up permutation class
   //
@@ -1687,10 +1691,23 @@ void g_set_association( VariantGroup & vars , void * p )
   if ( data->skat ) 
     {
       test_name.push_back( "SKAT" );
+      aux_skat.set_optimal_mode( false );
       double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , &test_text , true ); 
       test_statistic.push_back( statistic );
       if ( data->dump_stats_matrix ) plog << "\t" << statistic;
     }
+
+
+  if ( data->skato ) 
+    {
+      std::cout << "running SKAT-0\n";
+      test_name.push_back( "SKAT-O" );
+      aux_skat.set_optimal_mode( true );
+      double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , &test_text , true ); 
+      test_statistic.push_back( statistic );
+      if ( data->dump_stats_matrix ) plog << "\t" << statistic;
+    }
+
 
 
   //
@@ -1895,7 +1912,7 @@ void g_set_enrichment( VariantGroup & vars , void * p )
 	}
     }
 
-  //  std::cout << " added " << a << " for " << vars.name() << "\n";
+  std::cout << " added " << a << " for " << vars.name() << "\n";
 
 }
 
@@ -1922,12 +1939,21 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 
   plog << "pulling all set information\n";
 
+
+  // names of SETs
   std::map<int,std::string> sets;
+
+  // names of GENEs
   std::map<int,std::string> genes;
+  
+  // SET  -->  all GENES in the SET
   std::map<int,std::set<int> > s2g;
+
+  // GENE --> all SETS that contain that GENE
   std::map<int,std::set<int> > g2s;
   
   bool okay = g.locdb.populate_set_structures( loc , locset , &genes , &sets , &s2g , &g2s );
+
 
   //
   // Create gene-string --> numeric-ID mapping, and attach to aux
@@ -1954,7 +1980,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // ensure that we iterate by gene initially, to build the gene table
   // we want to do this for all genes (whether in set or not)
   //
-
+  
   mask.group_loc( loc );
   
 
@@ -1981,7 +2007,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 
 
   //
-  // Create large score matrix of indiv x set
+  // Create large score matrix of INDIV x SET
   //
   
   const int n = g.indmap.size();  
@@ -2025,6 +2051,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
       
     }
 
+
   
   //
   // Calculate enrichment statistic per individual for each set
@@ -2033,9 +2060,9 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 
   //           | Set | Not-Set
   // ----------|-----|----------
-  // Indiv V   |     |
+  // Indiv V   |     |       
   // ----------|-----|----------
-  // Rest  V-1 |     |
+  // Rest  V-1 |     |        
   // ----------|-----|----------
 
 
@@ -2087,13 +2114,12 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // Test each individual for each set
   //
 
-  ///  std::cout << "n = " << n << "\n";
+  //  std::cout << "n = " << n << "\n";
   
   for ( int i = 0 ; i < n ; i++ ) 
     {
       
       int g0s0 = 0 , g0s1 = 0 , g1s0 = 0 , g1s2 = 0;
-
       int slot = 0;
 
       //      std::cout << "set N = " << s2g.size() << "\n";
@@ -2108,7 +2134,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 	  int g0s0 = numgenes - g0s1 - g1s0 - g1s1;
 	  
 	  plog << g.indmap.ind(i)->id() << "\t";
-
+	  
 	  plog << g0s0 << " " << g0s1 << " / " << g1s0 << " " << g1s1 << "\t";
 	  
 	  // basic Fisher's test
@@ -2116,11 +2142,11 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
  	  if ( ! fisher( Table( g0s0 , g0s1 , g1s0 , g1s1 ) , &pval ) ) pval = -1;
 	  if ( pval < 0 ) plog << "NA";
 	  else plog << pval;
-
+	  
 	  plog << "\t" << sets[ si->first ] << "\n";
-
+	  
 	  ++si;
-
+	  
  	}
     }
   

@@ -108,6 +108,8 @@ int main()
 	  if ( str == "passwd" )
 	    {
 	      pwd = cgivars[i+1];	      
+	      if ( pwd != "(if required)" )
+		a.add_form_value( "passwd", pwd );
 	    }
 
 
@@ -3126,7 +3128,7 @@ void ExomeBrowser::make_mf_list(Aux * a)
       
       std::cout << "<tr><td>";
 
-      bool refvar = ii->second["GRP"] == "RefVariant";
+      // bool refvar = ii->second["GRP"] == "RefVariant";
       
       if ( selected_meta.find( ii->first ) != selected_meta.end() )
 	std::cout << "<input type=\"checkbox\" disabled=\"disabled\" name=\"metasel\" value=\""<< ii->first <<"\" checked>";
@@ -3135,14 +3137,16 @@ void ExomeBrowser::make_mf_list(Aux * a)
             
       std::cout << "</td><td>";
    
-      if ( ! refvar ) 
-	{
+//       if ( ! refvar ) 
+// 	{
 	  std::cout << a->getURL()->addField( "q", "mflist" )	
 	    ->addField( "meta" , mf_url + " " + ii->first )
 	    ->printLink( ii->first );
-	}
-      else
-	std::cout << "<em>GROUP_</em>" << ii->first ;
+	  
+//	}
+//       else
+// 	std::cout << "<em>GROUP_</em>" << ii->first ;
+
 
       std::cout << "</td><td>";
       

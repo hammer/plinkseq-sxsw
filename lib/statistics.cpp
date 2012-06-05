@@ -29,6 +29,36 @@ extern Log plog;
 
 const int EPS = 1.0e-6;
 
+double Statistics::sum( const Data::Vector<double> & a )
+{
+  double s = 0;
+  for (int i=0; i<a.size(); i++) s += a[i];
+  return s;
+}
+
+double Statistics::sum_squares( const Data::Vector<double> & a )
+{
+  double s = 0;
+  for (int i=0; i<a.size(); i++) s += a[i] * a[i];
+  return s;
+}
+
+Data::Vector<double> Statistics::row_sums( const Data::Matrix<double> & a )
+{
+  Data::Vector<double> r( a.dim1() );
+  for (int i=0;i<a.dim1();i++)
+    for (int j=0;j<a.dim2();j++)
+      r[i] += a(i,j);   // avoid making temporary vector from row
+}
+
+Data::Vector<double> Statistics::col_sums( const Data::Matrix<double> & a)
+{
+  Data::Vector<double> r( a.dim2() );
+  for (int i=0;i<a.dim2();i++)
+    r[i] = sum( a.col(i) ); // use fast column reference  
+}
+
+
 Data::Vector<double> Statistics::mean( const Data::Matrix<double> & d )
 {
   Data::Vector<double> m( d.dim2() );
@@ -1925,3 +1955,39 @@ double Statistics::update_integral(double a, double b,
     sum += (*f)(a + i*h,d);
   return sum * h;
 }
+
+
+Data::Matrix<double> Statistics::cholesky( const Data::Matrix<double> & b )
+{
+
+  // return Cholesky decomposition in upper-triangular matrix
+
+  if ( b.dim1() != b.dim2() ) Helper::halt("cholesky of non-square matrix requested");
+
+  const int n = b.dim1();
+
+  Data::Matrix<double> a = b;
+  
+  if ( n == 0 ) Helper::halt("cholesky: 0-element matrix");
+
+  for (int i=0;i<n;i++)
+    for (int j=i;j<n;j++)
+      {
+	double sum = a(i,j);	
+	for ( int k = i-1; k>=0; k--) 
+	  sum -= a(i,k) * a(j,k);
+	if ( i == j ) 
+	  {
+	    if ( sum <= 0.0 ) Helper::halt("cholesky failed");
+	    a(i,i) = sqrt(sum);
+	  }
+	else
+	  {
+	    a(j,i) = sum/a(i,i);
+	    a(i,j) = 0.0;
+	  }
+      }
+  return a;
+}
+
+

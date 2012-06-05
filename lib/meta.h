@@ -119,62 +119,64 @@ template<class T>
 class MetaInformation {
   
  public:
+  
+  void parse( const std::string & str, char delim = ';' , bool autoadd = false , const std::string * prefix = NULL )
+  {
     
-    void parse(const std::string & str, char delim = ';' , bool autoadd = false )
-	{
-	    
-	    // Take delimited string and parse
-	    // Format is  " ;" ->  X=Y  ->  X single      
-	    
-	    // X=1;Y=2,3;Z;A=House;
-	    // X="1 ;23";Y=22;
-	    // but allow quotes
-	    
-	    const bool escape_quotes = true;
-	    
-	    int ntok;
-	    Helper::char_tok tokens( str , &ntok , delim , escape_quotes ); 
-	    
-	    //std::vector<std::string> tokens = Helper::quoted_parse( str , delim , empty );
-	    
-	    const int sz = tokens.size();
-	    
-	    for ( int i = 0 ; i < sz ; i++ )
-	    {
-		
-		// Expecting a key=value pairing; allow quotes
-
-		int ntok2;
-		Helper::char_tok tokens_b( tokens(i) , &ntok2 , '=' , escape_quotes );
-		
-		// skip handle weird things like trying to parse '==' 
-		if ( tokens_b.size() == 0 ) continue;
-		
-		const std::string key = tokens_b[0];
-		
-		// a key/value pair
-		
-		if ( tokens_b.size() == 2 ) // a key = value pair
-		{	    
-		    if ( autoadd ) 
-		    {
-			if ( ! MetaInformation::exists( key ) ) 
-			    MetaInformation::field( key , META_TEXT );
-		    }
-		    
-		    // will find the appropriate type and add value to key
-		    parse_set( key, Helper::unquote( tokens_b[1] ) );
-		} 	
-		else 
-		{ 
-		    if ( autoadd ) MetaInformation::field( key , META_FLAG );	    
-		    set( key ); // set as META_FLAG 
-		} 
-			
-	    }
-
-	}
+    // Take delimited string and parse
+    // Format is  " ;" ->  X=Y  ->  X single      
     
+    // X=1;Y=2,3;Z;A=House;
+    // X="1 ;23";Y=22;
+    // but allow quotes
+    
+    const bool escape_quotes = true;
+	    
+    int ntok;
+    Helper::char_tok tokens( str , &ntok , delim , escape_quotes ); 
+    
+    //std::vector<std::string> tokens = Helper::quoted_parse( str , delim , empty );
+    
+    const int sz = tokens.size();
+    
+    for ( int i = 0 ; i < sz ; i++ )
+      {
+	
+	// Expecting a key=value pairing; allow quotes
+	
+	int ntok2;
+	Helper::char_tok tokens_b( tokens(i) , &ntok2 , '=' , escape_quotes );
+	
+	// skip handle weird things like trying to parse '==' 
+	if ( tokens_b.size() == 0 ) continue;
+	
+	// get (with optional prefix -- for RefVariant meta)
+	
+	const std::string key = prefix ? *prefix + "_" + tokens_b[0] : tokens_b[0];	      	      
+	
+	// a key/value pair
+	
+	if ( tokens_b.size() == 2 ) // a key = value pair
+	  {	    
+	    if ( autoadd ) 
+	      {
+		if ( ! MetaInformation::exists( key ) ) 
+			MetaInformation::field( key , META_TEXT );
+	      }
+	    
+	    // will find the appropriate type and add value to key
+	    parse_set( key, Helper::unquote( tokens_b[1] ) );
+	  } 	
+	else 
+	  { 
+	    if ( autoadd ) MetaInformation::field( key , META_FLAG );	    
+	    set( key ); // set as META_FLAG 
+	  } 
+	
+      }
+    
+  }
+  
     
     
     //

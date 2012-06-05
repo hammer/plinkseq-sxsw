@@ -28,6 +28,8 @@ Data::Vector<double> Pseq::Assoc::Aux_skat::y_orig; // phenotype --> modified (y
 Data::Matrix<double> Pseq::Assoc::Aux_skat::Y_orig; // phenotype --> modified (y_i - u_i)
 Data::Vector<double> Pseq::Assoc::Aux_skat::u_orig; // phenotype --> modified (u_i)
 
+std::vector<double> Pseq::Assoc::Aux_skat::rho; // for SKAT-O -- weight between burden and original SKAT
+
 Data::Matrix<double> Pseq::Assoc::Aux_skat::X; // covariates
 std::vector<bool> Pseq::Assoc::Aux_skat::mask; // inclusion mask
 int Pseq::Assoc::Aux_skat::n_actual = 0;       // actual # of individuals
@@ -227,16 +229,16 @@ void Pseq::Assoc::Aux_skat::populate_G( const VariantGroup & vars , Aux_prelim *
 	  ++j;
 	}
     }
-
-
 }
+
 
 
 void Pseq::Assoc::Aux_skat::populate_K()
 {
 
-  // K = G.W.G'
-  
+  // NOTE: never explicitly called.
+
+  // K = G.W.G'  
   // K_{i,i'} = sum_v w_v G_iv G_i'v 
   // K is NxN matrix
   
@@ -255,6 +257,7 @@ void Pseq::Assoc::Aux_skat::populate_K()
       }
 }
   
+
 double Pseq::Assoc::Aux_skat::calculate_Q( Data::Matrix<double> * pW1 )
 {
 
@@ -316,6 +319,13 @@ double Pseq::Assoc::Aux_skat::calculate_Q( Data::Matrix<double> * pW1 )
 
 }
 
+
+
+
+//
+// Primary driver for both the basic SKAT test and SKAT-O
+//
+
 double Pseq::Assoc::stat_skat( const VariantGroup & vars , 
 			       Aux_prelim * aux , 
 			       Aux_skat * aux_skat , 
@@ -328,9 +338,7 @@ double Pseq::Assoc::stat_skat( const VariantGroup & vars ,
   
   if ( original ) 
     {
-      // create ind x variant matrix in aux_skat;
-
-
+      
       //
       // Fit the null model (only done once per sample/phenotype)
       //
@@ -352,16 +360,9 @@ double Pseq::Assoc::stat_skat( const VariantGroup & vars ,
 	  // MAF (from whole sample) should be in aux_prelim
 	  
 	  for (int v=0;v<nv;v++)
-	    {
-
-// 	      std::cout << "maf , w = " 
-// 			<< aux->maf[v] << " " 
-// 			<< Helper::PROB::beta_pdf( aux->maf[v] , Aux_skat::a1 , Aux_skat::a2 ) << "\n";
-	      
-	      aux_skat->w[v] = Helper::PROB::beta_pdf( aux->maf[v] , Aux_skat::a1 , Aux_skat::a2 );
-	    }
-	    
-	    Aux_skat::has_weights = true;
+	    aux_skat->w[v] = Helper::PROB::beta_pdf( aux->maf[v] , Aux_skat::a1 , Aux_skat::a2 );
+	  
+	  Aux_skat::has_weights = true;
 	}
       else if ( Aux_skat::has_weights ) 
 	{
@@ -383,9 +384,11 @@ double Pseq::Assoc::stat_skat( const VariantGroup & vars ,
     }
 
 
+
   //
-  // Permute residuals not the original 
+  // Permute residuals not the original  ( PERMUTATION NOT IMPLEMENTED YET )
   //
+
   
 //   if ( original ) 
 //     {
@@ -408,18 +411,21 @@ double Pseq::Assoc::stat_skat( const VariantGroup & vars ,
 //     }
 
 
+
+
   //
   // Populate G matrix
   //
   
   aux_skat->populate_G( vars , aux );
-
+  
   
   //
-  // Create kernel K
+  // Create kernel K (not done explicitly)
   //
   
   //  aux_skat->populate_K();
+
 
   
   //
@@ -428,14 +434,18 @@ double Pseq::Assoc::stat_skat( const VariantGroup & vars ,
 
   Data::Matrix<double> W;
 
-  double Q = aux_skat->calculate_Q( &W );
+  double Q = aux_skat->optimal_mode() ? 
+    aux_skat->calculate_optimal_Q( &W ) : 
+    aux_skat->calculate_Q( &W );
   
    
   //
   // Asympotic P-value
   //
-
-  double pvalue = aux_skat->calculate_pvalue( Q , W );
+  
+  double pvalue = aux_skat->optimal_mode() ? 
+    aux_skat->calculate_optimal_pvalue( Q , W ) : 
+    aux_skat->calculate_pvalue( Q , W );
 
  
 
@@ -446,18 +456,20 @@ double Pseq::Assoc::stat_skat( const VariantGroup & vars ,
   if ( original ) 
     {
       
+      const std::string label = aux_skat->optimal_mode() ? "SKAT-O" : "SKAT" ; 
+
       if ( pvalue < 0 ) 
-	(*output)["SKAT"] = "P=NA;";
+	(*output)[ label ] = "P=NA;";
       else
-	(*output)["SKAT"] = "P=" + Helper::dbl2str( pvalue ) + ";";
+	(*output)[ label ] = "P=" + Helper::dbl2str( pvalue ) + ";";
 
       if ( aux_skat->logistic_model )
 	{
 	  std::map<std::string,int>::iterator i = aux->mc_a.begin();
 	  while ( i != aux->mc_a.end() )
 	    {
-	      if ( i != aux->mc_a.begin() ) (*output)["SKAT"] += ";";
-	      (*output)["SKAT"] += i->first + "(" + Helper::int2str( i->second ) + ")";
+	      if ( i != aux->mc_a.begin() ) (*output)[ label ] += ";";
+	      (*output)[ label ] += i->first + "(" + Helper::int2str( i->second ) + ")";
 	      ++i;
 	    }	  
 	}      
@@ -614,3 +626,440 @@ double Pseq::Assoc::Aux_skat::calculate_pvalue( double Q , Data::Matrix<double> 
 
 }
 
+
+double Pseq::Assoc::Aux_skat::calculate_optimal_Q( Data::Matrix<double> * pW1 )
+{
+  
+  // number of variants in gene/set
+  const int nv = G.dim2();
+  
+  // number of values of 'rho' to evaluate
+  const int nr = rho.size();
+  
+
+  // assume 'linear-weighted' kernel is the default (and only) option for now.
+  
+  // pi_1 == 'u' (N matrix of weights/scores)
+  
+  // Z = t(t(Z) * (weights))
+  //   our G matrix should already be weighted, if there are weights; 
+
+  
+  // Z1 = (Z * sqrt(pi_1))  -  ( X1 * sqrt(pi_1))   %*%   solve( t(X1) %*% (X1 * pi_1) )  %*%  ( t(X1) %*% (Z * pi_1) )
+  //      ----------------     ------------------         -----------------------------        -------------------------
+  //      a                    b                          c                                    d
+
+  // Z     --> G  ( n_actual x nv )
+  // pi_1  --> u  ( n_actual )
+  // X1    --> X  ( n_actual x nx )
+
+  const int nx = X.dim2();
+  Data::Vector<double> sqrt_pi( n_actual );
+  for (int i=0;i<n_actual;i++) sqrt_pi[i] = sqrt( u[i] );
+  
+  Data::Matrix<double> Z1a( n_actual , nv );
+  for (int i=0;i<n_actual;i++) 
+    for (int j=0;j<nv;j++) 
+      Z1a(i,j) = G(i,j) * sqrt_pi[i];
+
+  Data::Matrix<double> Z1b( n_actual , nx );
+  for (int i=0;i<n_actual;i++) 
+    for (int j=0;j<nx;j++) 
+      Z1b(i,j) = X(i,j) * sqrt_pi[i];
+  
+  Data::Matrix<double> Z1c( nx , nx  );
+  for (int i=0;i<nx;i++)
+    for (int j=0;j<nx;j++)
+      for (int k=0;k<n_actual;k++)
+	Z1c(i,j) += X(k,i) * X(k,j) * u[k] ;
+
+  Z1c = Statistics::inverse( Z1c );  
+
+  // Z1 = (Z * sqrt(pi_1))  -  ( X1 * sqrt(pi_1))   %*%   solve( t(X1) %*% (X1 * pi_1) )  %*%  ( t(X1) %*% (Z * pi_1) )  
+  //      ----------------     ------------------         -----------------------------        -------------------------  
+  //      a                    b                          c                                    d                                               
+  
+  Data::Matrix<double> Z1d( nx , nv );
+  for (int i=0;i<nx;i++)
+    for (int j=0;j<nv;j++)
+      for (int k=0;k<n_actual;k++)
+	Z1d(i,j) += X(k,i) * G(k,j) * u[k] ;
+  
+  Data::Matrix<double> Z1 = Z1a - Z1b * Z1c * Z1d;
+
+  std::cout << "Z1 dim = " << Z1.dim1() << " " << Z1.dim2() << "\n";
+
+  for(int i=0;i<10;i++)
+    for(int j=0;j<10;j++)
+      std::cout << "Z1 = " << i <<" " << j << " " << Z1(i,j) << "\n";
+  
+
+  //
+  // Calculate vector of Q's, for each value of 'rho'
+  //
+
+  Data::Vector<double> Q = sub_optimal_get_Q(G);
+
+
+  //
+  // Get p-values and find optimal 
+  //
+
+  Data::Vector<double> pvalues = sub_optimal_get_P( Q , Z1 );
+
+
+  return 0;
+
+
+  
+
+
+  //
+  // Q = (y-u)'K(y-u)
+  //
+
+  // Calculated as: ( (Y-U)'.Z ) . (  (Y-U)'.Z ) )
+ 
+//   Data::Matrix<double> Qtemp = Y * G;
+
+//   double Q = 0;
+//   for (int j=0;j<nv;j++) 
+//     Q += Qtemp(0,j) * Qtemp(0,j) * 0.5;
+  
+//   // X1     n x p matrix of covariates, with column of 1's
+//   // pi_1   vector of U  (u)
+  
+//   //  W.1 = t(Z) %*% (Z * pi_1) - (t(Z * pi_1) %*%X1) %*% solve(t(X1)%*%(X1 * pi_1)) %*% (t(X1) %*% (Z * pi_1)) # t(Z) P0 Z
+//   //        -------------------   -------------------     --------------------------     ----------------------
+//   //        a                     b                       c                              d
+
+
+//   Data::Matrix<double> W1a( nv , nv );
+//   for (int i=0;i<nv;i++)
+//     for (int j=0;j<nv;j++)
+//       for (int k=0;k<n_actual;k++)
+// 	W1a(i,j) += G(k,i) * G(k,j) * u[k];
+  
+  
+ 
+//   Data::Matrix<double> W1b( nv , nx );
+//   for (int i=0;i<nv;i++)
+//     for (int j=0;j<nx;j++)
+//       for (int k=0;k<n_actual;k++)
+// 	W1b(i,j) += G(k,i) * u[k] * X(k,j);
+
+//   Data::Matrix<double> W1c( nx , nx );  
+//   for (int i=0;i<nx;i++)
+//     for (int j=0;j<nx;j++)
+//       for (int k=0;k<n_actual;k++)
+// 	W1c(i,j) += X(k,i) * X(k,j) * u[k];
+//   W1c = Statistics::inverse( W1c );
+
+//   Data::Matrix<double> W1d( nx , nv );
+//   for (int i=0;i<nx;i++)
+//     for (int j=0;j<nv;j++)
+//       for (int k=0;k<n_actual;k++)
+// 	W1d(i,j) += X(k,i) * G(k,j) * u[k];
+
+
+//   // keep track of W1 matrix
+
+//   *pW1 = W1a - W1b * W1c * W1d;
+  
+//   return Q;
+
+}
+
+
+
+double Pseq::Assoc::Aux_skat::calculate_optimal_pvalue( double , Data::Matrix<double> & )
+{
+  return 1.00;
+}
+
+Data::Vector<double> Pseq::Assoc::Aux_skat::sub_optimal_get_Q( const Data::Matrix<double> & Z1 )
+{
+
+  set_optimal_rcorr();
+
+  const int nr = rho.size();
+
+  const int nv = Z1.dim2();
+
+  Data::Vector<double> Qr( nr );
+
+  Data::Vector<double> temp( nv ); 
+  for (int i=0; i<nv; i++) 
+    for (int j=0;j<n_actual;j++) 
+      temp[i] += y[j] * Z1(j,i) ; 
+
+  double sum_of_sqr = 0;
+  double s = 0;
+
+  for (int i=0; i<nv; i++) 
+    {
+      sum_of_sqr += ( temp[i] * temp[i] );
+      s += temp[i];
+    }
+  
+  s /= (double)nv;
+
+  double mean_sqr = nv * nv * s * s;
+
+  for (int i=0; i<nr; i++) 
+    {
+      Qr[i] = ( 1 - rho[i] ) * sum_of_sqr  +  rho[i] * mean_sqr ;
+      Qr[i] *= 0.5;
+    }
+
+  return Qr;
+
+}
+
+ 
+Data::Vector<double> Pseq::Assoc::Aux_skat::sub_optimal_get_P( const Data::Vector<double> & Q , const Data::Matrix<double> & Z0 )
+{
+  
+  const int nr = rho.size();
+  const int nq = Q.size();   // should always equal nr, as no resampling implemented
+  
+  const int ni = Z0.dim1();
+  const int nv = Z0.dim2();
+  
+  // scale Z1 by 1/sqrt(2) (see if we can do this elsewhere/once)
+  Data::Matrix<double> Z1(ni,nv);
+  const double fac = 1.0 / sqrt(2.0) ;  
+  for (int i=0;i<Z1.dim1();i++)
+    for (int j=0;j<Z1.dim2();j++)
+      Z1(i,j) = Z0(i,j) * fac;
+
+  
+   std::vector<Data::Vector<double> > lambda; 
+   for (int i=0;i<nr;i++)
+     {
+       
+       // diagonal correlation matrix
+
+       Data::Matrix<double> RM( nv , nv , rho[i] );
+       for (int j=0;j<nv;j++) RM(j,j) = 1.0;
+       
+       // cholesky decomp (returns in lower. tri )       
+       Data::Matrix<double> L = Statistics::cholesky( RM );       
+       Data::Matrix<double> Z2 = Z1 * L;
+       Data::Matrix<double> K1 = Statistics::transpose( Z2 ) * Z2;
+       
+       lambda.push_back( get_lambda( K1 ) );
+     }
+
+   
+   for (int i=0;i<lambda.size(); i++)
+     {
+       std::cout << "LAMBDA " << i << "\n";
+       for (int j=0;j<lambda[i].size();j++)
+	 std::cout << " " << lambda[i][j] ;
+       std::cout <<  "\n";
+     }
+
+   //
+   // Get mixture parameters
+   //
+
+   // param.m<-SKAT_Optimal_Param(Z1,r.all)
+   
+   double muQ, varQ, kerQ, varRemain, df;
+   Data::Vector<double> tau;
+   Data::Vector<double> lambda2;
+
+   get_optimal_param( Z1 , &muQ, &varQ, &kerQ, &varRemain, &df, &tau, &lambda2 );
+   
+   std::cout << "got param = " << muQ << " " << varQ << " " << kerQ << "\n"
+	     << varRemain << " " << df << "\n";
+   
+   for (int i=0;i<tau.size();i++) std::cout << "tau" << i << " " << tau[i] << "\n";
+   for (int i=0;i<lambda2.size();i++) std::cout << "l2" << i << " " << lambda2[i] << "\n";
+
+
+   // Each_Info<-SKAT_Optiaml_Each_Q(param.m, Q.all, r.all, lambda.all)
+
+   // pmin.q<-Each_Info$pmin.q
+   
+   // pval<-rep(0,n.q)
+
+//      if(method == "davies" || method=="optimal"){
+
+//        for(i in 1:n.q){
+// 	 pval[i]<-SKAT_Optimal_PValue_Davies(pmin.q[i,],param.m,r.all)
+// 	   }
+
+
+//      } else if(method =="liu" || method =="liu.mod"){
+
+//        for(i in 1:n.q){
+// 	 pval[i]<-SKAT_Optimal_PValue_Liu(pmin.q[i,],param.m,r.all)
+// 	   }
+
+//      } else {
+//        stop("Invalid Method!")
+// 	 }
+//    return(list(p.value=pval,p.val.each=Each_Info$pval))
+
+//      }
+
+   return 1.0;
+ }
+
+
+Data::Vector<double> Pseq::Assoc::Aux_skat::get_lambda( const Data::Matrix<double> & M )
+ {
+   
+   // get eigenvalues  ( clean up/check const_cast() ) 
+   
+   Data::Vector<double> e = Statistics::eigenvalues( const_cast<Data::Matrix<double> & >(M) );
+   
+   std::vector<double> okaye;
+   
+   double meane = 0;
+   int cnte = 0;
+   for (int i=0;i<e.size();i++) 
+     {
+       if ( e[i] >= 0 ) { meane += e[i]; ++cnte; } 
+     }
+   meane /= (double)cnte;
+   meane /= 100000.0;
+   
+   for (int i=0;i<e.size();i++)      
+     if ( e[i] > meane ) okaye.push_back(e[i]);
+
+   if ( okaye.size() == 0 ) plog.warn("no eigenvalue greater than 0");
+   
+   return Data::Vector<double>( okaye );
+
+ }
+
+
+
+void Pseq::Assoc::Aux_skat::get_optimal_param( const Data::Matrix<double> & Z1 , 
+					       double * muQ, double * varQ, double * kerQ, 
+					       double * varRemain, double * df, 
+					       Data::Vector<double> * tau, 
+					       Data::Vector<double> * lambda )
+{
+
+  const int ni = Z1.dim1();
+  const int nv = Z1.dim2();
+  const int nr = rho.size();
+
+  // row means (score for each individual)
+
+  Data::Vector<double> z_mean( ni ) ;
+  for (int j=0;j<nv;j++)
+    for (int i=0;i<ni;i++)
+      z_mean[i] += Z1(i,j);
+  for (int i=0;i<ni;i++) z_mean[i] /= (double)nv;
+
+
+  //  Z_mean<-matrix(rep(z_mean,p.m),ncol=p.m,byrow=FALSE)
+  // cof1<-(t(z_mean) %*% Z1)[1,] / sum(z_mean^2)
+
+  Data::Vector<double> cof1( nv );
+  double z2 = Statistics::sum_squares( z_mean );
+  for (int j=0; j<nv; j++)
+    {
+      for (int i=0; i<ni; i++)
+	cof1[j] += z_mean[i] * Z1(i,j);
+      cof1[j] /= z2;
+
+      std::cout << "cof1[" << j << "] = " << cof1[j] << "\n";
+
+    }
+  
+  // Z.item1<-Z_mean %*% diag(cof1)
+  // Z.item2<-Z1 - Z.item1
+
+  Data::Matrix<double> Z_item1( ni , nv );
+  Data::Matrix<double> Z_item2( ni , nv );
+  
+  for (int i=0; i<ni; i++)
+    for (int j=0; j<nv; j++)
+      {
+	Z_item1(i,j) = z_mean[i] * cof1[j];
+	Z_item2(i,j) = Z1(i,j) - Z_item1(i,j);
+      }
+  
+  std::cout << Z_item1.print( "Z1_item1" , 10 , 10 )  << "\n";
+  
+  std::cout << Z_item2.print( "Z1_item2" , 10 , 10 ) ;
+
+
+
+  // # W3.2 Term : mixture chisq
+  // W3.2.t <- t(Z.item2) %*% Z.item2
+  // lambda<-Get_Lambda(W3.2.t)
+  
+  Data::Matrix<double> W3_2_t = Statistics::transpose( Z_item2 ) * Z_item2; 
+  std::cout << "W3 dim = " << W3_2_t.dim1() <<" " << W3_2_t.dim2() << "\n";
+
+  *lambda = get_lambda( W3_2_t );
+ 
+
+  // # W3.3 Term : variance of remaining ...
+  // W3.3.item<- sum( (t(Z.item1) %*% Z.item1) * (t(Z.item2) %*% Z.item2) ) * 4
+
+  Data::Matrix<double> tmp = Statistics::transpose( Z_item1 ) * Z_item1;
+  std::cout << " tmp dim = " << tmp.dim1() <<" "<<tmp.dim2() <<"\n";
+
+  std::cout << tmp.print( "tmp" , 10 , 10 ) << "\n";
+
+  double W3_3_item = 0;
+  for (int i=0;i<nv;i++)
+    for (int j=0;j<nv;j++)
+      W3_3_item += W3_2_t(i,j) * tmp(i,j);
+  W3_3_item *= 4.0;
+  
+  std::cout << "W3_3_item = " << W3_3_item << "\n";
+
+  // # Mixture Parameters
+  
+  //     MuQ  <- sum(lambda)
+  //     VarQ <- sum(lambda^2) *2 + W3.3.item
+  //     KerQ <- sum(lambda^4)/(sum(lambda^2))^2 * 12
+  //     Df   <- 12/KerQ
+
+  for (int i=0;i< lambda->size();i++)
+    {      
+      *muQ  += (*lambda)[i];
+      double sqr = (*lambda)[i] * (*lambda)[i];
+      *varQ += sqr;
+      *kerQ += sqr * sqr;
+    }
+  
+  *kerQ /= *varQ * *varQ ; 
+  *kerQ *= 12;
+  
+  *varQ *= 2;
+  *varQ += W3_3_item;
+  
+  *df = 12.0 / *kerQ; 
+  
+
+  // # W3.1 Term : tau1 * chisq_1
+  // tau<-rep(0,r.n)
+
+  tau->clear();
+  tau->resize( nr );
+
+  double sum_cof_sqr = Statistics::sum_squares( cof1 );
+  double sum_z_mean_sqr = Statistics::sum_squares( z_mean ); 
+
+  for (int i=0; i<nr; i++)
+    {
+      // term1<-p.m^2*r.corr + sum(cof1^2) * (1-r.corr)
+      // tau[i]<-sum(term1) *  sum(z_mean^2)
+      
+      (*tau)[i] = nv * nv * rho[i] + sum_cof_sqr * ( 1 - rho[i] ) + sum_z_mean_sqr;
+
+    }
+  
+  *varRemain = W3_3_item;
+  
+}

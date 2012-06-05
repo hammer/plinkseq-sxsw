@@ -62,7 +62,12 @@ namespace Statistics {
   Data::Matrix<double> matrix_outer_product( const Data::Vector<double> & , const Data::Vector<double> & );  
 
   // Mean, variance and covariance
-  
+
+  double sum( const Data::Vector<double> & );
+  double sum_squares( const Data::Vector<double> & );
+  Data::Vector<double> row_sums( const Data::Matrix<double> & );
+  Data::Vector<double> col_sums( const Data::Matrix<double> & );
+
   Data::Vector<double> mean( const Data::Matrix<double> & );
   
   Data::Vector<double> variance( const Data::Matrix<double> & );
@@ -76,6 +81,8 @@ namespace Statistics {
 					    const Data::Matrix<double> & , const Data::Vector<double> & );
   
   std::vector<double> canonical_correlation( const Data::Matrix<double> & , const Data::Matrix<double> & , double * pv = NULL );     
+
+  Data::Matrix<double> cholesky( const Data::Matrix<double> & );
   
   double bartlett(const int N, 
 		  const int p, 

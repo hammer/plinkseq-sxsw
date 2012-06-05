@@ -491,8 +491,15 @@ void Pseq::Assoc::stat_cancor( const VariantGroup & vars ,
 }
 
 
-double
-Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_hit * aux, std::map<std::string, std::string> * output, bool original, std::map<std::string, int> include, std::map<std::string, int> exclude, double prev, bool mhit)
+double Pseq::Assoc::stat_two_hit( const VariantGroup & vars, 
+				  Aux_prelim * pre, 
+				  Aux_two_hit * aux, 
+				  std::map<std::string, 
+				  std::string> * output, 
+				  bool original, 
+				  std::map<std::string, int> include, 
+				  std::map<std::string, int> exclude, 
+				  double prev, bool mhit)
 {
 
   const int n = vars.n_individuals();
@@ -505,14 +512,15 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
 
   for (int i = 0; i < n; i++)
     {
-      if(vars.ind(i)->affected() == CASE)
+      if ( vars.ind(i)->affected() == CASE )
         ncases++;
-      else
+      else // ! ind(i)->missing()
         ncontrols++;
     }
-
+  
   std::vector<double> hets;
   std::vector<std::string> ann;
+  
   int mat[3][3];
   int ahom = 0; int uhom = 0;
   int achet = 0; int uchet = 0;
@@ -522,129 +530,149 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
   int acheti = 0; int ucheti = 0;
   int aheti = 0; int uheti = 0;
   
-
   for (int i = 0; i < n; i++)
     {
+      
       // permuted individual index i->j
       int j = g.perm.pos(i);
-
+      
       std::string id = vars.ind( j )->id();
+      
       ahomi = uhomi = acheti = ucheti = aheti = uheti = 0;
       
       hets.clear();
       ann.clear();
+      
       for( int j = 0; j < 3; j++ )
         for( int k = 0; k < 3; k++ )
           mat[j][k] = 0;
       
-      for (int v = 0; v < vars.size(); v++){
-        double d = vars(v, i).null() ? 0 : vars(v, i).minor_allele_count(pre->refmin.find(v) == pre->refmin.end());
-	std::vector<int> pl;
-	std::vector<int> ad;
-        double ab  = 0;
-
-        const Genotype & g = vars.geno(v,i);
-        
-        if ( vars.geno(v,i).meta.has_field( "AD" ) )
-          {
-            ad = vars.geno(v,i).meta.get_int( "AD" );   
-            ab = (ad[0] * 1.0) / (ad[0] + ad[1]);
-          }
-
-        // count non-ref homozygotes
-	//std::string annot = "";
-	std::vector< std::string > annot;
-
-	if( vars(v).meta.has_field( "transcript" ) && vars(v).meta.has_field( "func" )){
-
-	  std::vector<std::string> func = vars(v).meta.get_string( "func" );
-	  std::vector<std::string> transcript = vars(v).meta.get_string( "transcript");
-	  std::vector<std::string> func_split;
-	  std::vector<std::string> trans_split;
-
-	  std::string::size_type i1 = 0;
-	  std::string::size_type i2 = transcript[0].find(",");
-          while (i2 != std::string::npos) {
-            trans_split.push_back(transcript[0].substr(i1, i2-i1));
-            i1 = ++i2;
-            i2 = transcript[0].find(",", i2);
-            if (i2 == std::string::npos)
-              trans_split.push_back(transcript[0].substr(i1, transcript[0].length( )));
-          }
-          
-          i1 = 0;
-          i2 = func[0].find(",");
-          while (i2 != std::string::npos) {
-            func_split.push_back(func[0].substr(i1, i2-i1));
-            i1 = ++i2;
-            i2 = func[0].find(",", i2);
-            if (i2 == std::string::npos)
-              func_split.push_back(func[0].substr(i1, func[0].length( )));
-          }
-	
-          if( trans_split.size() == 0 )
-            annot.push_back(func[0]);
-
-          else{
-            for( int ti = 0; ti < trans_split.size(); ti++)
-              if( trans_split[ti].compare(vars.name()) == 0 )
-		annot.push_back(func_split[ti]);
-	  }
-        }
-      
-	std::string annot1 = "";
-	int cnt = 0;
-	bool pass = false;	
-	for( int ti = 0; ti < annot.size(); ti++){
-	  if( cnt > 0 )
-	    annot1 += "/";
-	  annot1 += annot[ti];
-	  cnt++;
-	  if( include.count(annot[ti]) > 0 || include.size() == 0 )
-	    pass = true;
+      for (int v = 0; v < vars.size(); v++)
+	{
 	  
-	  if( exclude.count(annot[ti]) > 0 ){
-	    pass = false;
-	    break;
-	  } 
-	}
-	
-        if( d == 2 && ab < .1 && pass )
-          {         
-            if( vars.ind( j )->affected() == CASE){
-              if(original)
-		std::cout << "HOM: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " case " << annot1 << "\n"; 
-              ahomi++;
-            }
-            else{
-              if(original)
-		std::cout << "HOM: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " control " << annot1 << "\n";
-              uhomi++;
-            }
-          }
+	  const Genotype & g = vars.geno(v,i);
+	  
+	  double d = g.null() ? 0 : g.minor_allele_count(pre->refmin.find(v) == pre->refmin.end());
+	  
+	  
+	  std::vector<int> pl;
+	  std::vector<int> ad;
+	  double ab  = 0;
+	  
+	  if ( vars.geno(v,i).meta.has_field( "AD" ) )  // PLINKSeq::DEFAULT_AD() 
+	    {
+	      ad = vars.geno(v,i).meta.get_int( "AD" );   
+	      ab = (ad[0] * 1.0) / (ad[0] + ad[1]);
+	    }
+	  
+	  // plog.warn( "message" , vars.name() );
+	  
 
-        // found het, store for later
-        if( d == 1 && ab > .3 && ab < .7 && pass){
-          hets.push_back(v);	  	  
-          ann.push_back(annot1);
-          if(vars.ind(j)->affected() == CASE){
-            aheti++;
-          }
-          else{
-            uheti++;
-          }
-        }
-      }
+	  // count non-ref homozygotes
 
-      if( hets.size() > 0 ){
-        for(int z = 0; z < hets.size()-1; z++){
-          for(int k = z+1; k < hets.size(); k++){
+	  //std::string annot = "";
+	  std::vector< std::string > annot;
+	  
+	  // fast string tokenizer: 
+	  // int n = 0;
+	  // std::string mystr;
+	  // Helper::char_tok tok( mystr , &n , '\t' );
+	  //  sz = tok.size();
+	  //  std::string s = tok(0);
+	  //   .. 
+
+	  if( vars(v).meta.has_field( "transcript" ) && vars(v).meta.has_field( "func" )){
 	    
-	    for( int u = 0; u < 3; u++ )
-	      for( int v = 0; v < 3; v++ )
+	    std::vector<std::string> func = vars(v).meta.get_string( "func" );
+	    std::vector<std::string> transcript = vars(v).meta.get_string( "transcript");
+	    std::vector<std::string> func_split;
+	    std::vector<std::string> trans_split;
+	   
+
+	    std::string::size_type i1 = 0;
+	    std::string::size_type i2 = transcript[0].find(",");
+	    while (i2 != std::string::npos) {
+	      trans_split.push_back(transcript[0].substr(i1, i2-i1));
+	      i1 = ++i2;
+	      i2 = transcript[0].find(",", i2);
+	      if (i2 == std::string::npos)
+		trans_split.push_back(transcript[0].substr(i1, transcript[0].length( )));
+	    }
+	    
+	    i1 = 0;
+	    i2 = func[0].find(",");
+	    while (i2 != std::string::npos) {
+	      func_split.push_back(func[0].substr(i1, i2-i1));
+	      i1 = ++i2;
+	      i2 = func[0].find(",", i2);
+	      if (i2 == std::string::npos)
+		func_split.push_back(func[0].substr(i1, func[0].length( )));
+	    }
+	    
+	    if( trans_split.size() == 0 )
+	      annot.push_back(func[0]);
+	    
+	    else{
+	      for( int ti = 0; ti < trans_split.size(); ti++)
+		if( trans_split[ti].compare(vars.name()) == 0 )
+		  annot.push_back(func_split[ti]);
+	    }
+	  }
+	  
+	  std::string annot1 = "";
+	  int cnt = 0;
+	  bool pass = false;	
+	
+	  for( int ti = 0; ti < annot.size(); ti++){
+	    if( cnt > 0 )
+	      annot1 += "/";
+	    annot1 += annot[ti];
+	    cnt++;
+	    if( include.count(annot[ti]) > 0 || include.size() == 0 )
+	      pass = true;
+	    
+	    if( exclude.count(annot[ti]) > 0 ){
+	      pass = false;
+	      break;
+	    } 
+	}
+	  
+	  if( d == 2 && ab < .1 && pass )
+	    {         
+	      if( vars.ind( j )->affected() == CASE){
+		if(original)
+		  plog << "HOM: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " case " << annot1 << "\n"; 
+		ahomi++;
+	      } 
+	      else{ // missing??
+		if(original)
+		  plog << "HOM: " << vars(v).chromosome() << ":" << vars(v).position() << " " << id << " control " << annot1 << "\n";
+		uhomi++;
+	      }
+	    }
+
+	  // found het, store for later
+	  if( d == 1 && ab > .3 && ab < .7 && pass){
+	    hets.push_back(v);	  	  
+	    ann.push_back(annot1);
+	    if(vars.ind(j)->affected() == CASE){
+	      aheti++;
+	    }
+	    else{
+	      uheti++;
+	    }
+	  }
+	}
+      
+      if ( hets.size() > 0 ) {
+        for (int z = 0; z < hets.size()-1; z++){
+          for (int k = z+1; k < hets.size(); k++){
+	    
+	    for (int u = 0; u < 3; u++ )
+	      for (int v = 0; v < 3; v++ )
 		mat[u][v] = 0;
-
-
+	    
+	    
             // fill in genotype matrix to test two hits
             for (int l = 0; l < n; l++){
               int var1 = (int) vars(hets[z], l).null() ? 0 : vars(hets[z], l).minor_allele_count(pre->refmin.find(hets[z]) == pre->refmin.end());
@@ -662,9 +690,16 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
 	      vtmp.push_back(ann[k]);
 	      sort(vtmp.begin(), vtmp.end());
 
-              if(vars.ind(j)->affected() == CASE){
-                if(original)
-		  std::cout << "CHET: " << vars(hets[z]).chromosome() << ":" << vars(hets[z]).position() << "," << vars(hets[k]).chromosome() << ":" << vars(hets[k]).position() << " " << id << " case " << vtmp[0] << "," << vtmp[1] << "\n";
+              if ( vars.ind(j)->affected() == CASE )
+		{
+		  
+		  if ( original )
+		    {
+		      //   SMP -- plog << "CHET\t" << vars(hets[z]) << "," << vars(.... 
+
+			std::cout << "CHET: " << Helper::chrCode( vars(hets[z]).chromosome() ) << ":" << vars(hets[z]).position() << "," << vars(hets[k]).chromosome() << ":" << vars(hets[k]).position() << " " << id << " case " << vtmp[0] << "," << vtmp[1] << "\n";
+		    }
+
                 acheti++;
               }
               else{
@@ -701,10 +736,14 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
 	uhet++; 
     }
   
-  int case_allele = (2 * ncases) + ahet;
-  
+
+  // skip chrX and Y 
+  //  haploid ??? chrX ?? 
+
   double total_hets = ahet + uhet;
   double a = 2 * n;
+
+  // CHECK???
   double b = -1 * 2 * n;
   double c = total_hets;
   double descrim = (b*b) - (4*a*c);
@@ -765,8 +804,12 @@ Pseq::Assoc::stat_two_hit(const VariantGroup & vars, Aux_prelim * pre, Aux_two_h
 
   if (original)
     {
-      (*output)["TWO-HIT"] = "P=" + Helper::flt2str( pvalue ) + ";AF=" + Helper::flt2str(f) + ";CASES=" + Helper::dbl2str(ahom) + "," + Helper::dbl2str(achet) + "," + Helper::dbl2str(ahet) + "," + Helper::dbl2str(ncases) + ";CONTROLS=" + Helper::dbl2str(uhom) + "," + Helper::dbl2str(uchet) + "," + Helper::dbl2str(uhet) + "," + Helper::dbl2str(ncontrols);
+      (*output)["TWO-HIT"] = "P=" + Helper::dbl2str( pvalue ) 
+	+ ";AF=" + Helper::dbl2str(f) 
+	+ ";CASES=" + Helper::int2str(ahom) + "," + Helper::int2str(achet) + "," + Helper::int2str(ahet) + "," + Helper::int2str(ncases) 
+	+ ";CONTROLS=" + Helper::int2str(uhom) + "," + Helper::int2str(uchet) + "," + Helper::int2str(uhet) + "," + Helper::int2str(ncontrols);
     }
+  
   
   return chisqVal;
 

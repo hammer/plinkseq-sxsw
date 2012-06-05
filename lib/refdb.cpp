@@ -25,13 +25,6 @@ bool RefDBase::attach(std::string name)
 
   sql.synchronous(false);
 
-  //
-  // Check version number 
-  //
-
-  check_version();
-
-
 
   //
   // DB version, and a place for various other meta-information in future
@@ -75,6 +68,13 @@ bool RefDBase::attach(std::string name)
              "   temp         CHAR(1) , "
              "   description  TEXT ); " );
 
+
+
+  //
+  // Check version number 
+  //
+
+  check_version();
 
 
   
@@ -293,27 +293,30 @@ void RefDBase::insert_metatype( uint64_t file_id ,
 				const std::string & description )
 {
   
+  // pre-prend group name on meta-type name
   
-  sql.bind_text( stmt_meta_insert_prep , ":name" , name );
+  std::string name2 = grpmap[ file_id ] + "_" + name;
+  
+  sql.bind_text( stmt_meta_insert_prep , ":name" , name2 );
   
   if ( sql.step( stmt_meta_insert_prep ) )
     {
       // store ID for this meta-tag if already seen
-      mtmap[ name ] = sql.get_int64( stmt_meta_insert_prep , 0 );
+      mtmap[ name2 ] = sql.get_int64( stmt_meta_insert_prep , 0 );
     }
   else
     {	      
       // otherwise, need to store this in DB
       
-      sql.bind_text( stmt_meta_insert_prep2 , ":name" , name );
+      sql.bind_text( stmt_meta_insert_prep2 , ":name" , name2 );
       sql.bind_int( stmt_meta_insert_prep2 , ":type" , mt );
       sql.bind_int( stmt_meta_insert_prep2 , ":number" , num );
       sql.bind_text( stmt_meta_insert_prep2 , ":description" , description );
-      sql.bind_int( stmt_meta_insert_prep2 , ":group_id" , mgrp );
+      sql.bind_int( stmt_meta_insert_prep2 , ":group_id" , (int)file_id );
       sql.step( stmt_meta_insert_prep2 );
 
       // store the newly-created field ID locally
-      mtmap[ name ] = sql.last_insert_rowid();
+      mtmap[ name2 ] = sql.last_insert_rowid();
 
       // clean up
       sql.reset(stmt_meta_insert_prep2);
@@ -825,6 +828,9 @@ uint64_t RefDBase::set_group_id(const std::string grp,
       sql.step( stmt_insert_group_name );
       group_id = sql.last_insert_rowid();
       sql.reset( stmt_insert_group_name );
+      
+      grpmap[ group_id ] = grp;
+      
     }
 
   return group_id;
@@ -1026,8 +1032,17 @@ bool RefDBase::annotate( Variant & v , const int grp_id )
   
   if ( r.value() != "" && r.value() != "." ) 
     {
-      r.meta.parse( r.value() );
-      v.meta.append( r.meta , gname );
+      // value() contains non-prefixed versions (e.g. A=1;U=0)
+      // passing this extra param, means the prefixes get added, 
+      // which is necessary, because we store and append them this
+      // way
+
+      r.meta.parse( r.value() , ';' , false ,  &gname  );
+      
+      //v.meta.append( r.meta , gname ); // old version explicitly appended group name
+
+      v.meta.append( r.meta );           // now already done internally      
+
     }
   
   return true;
@@ -1207,9 +1222,9 @@ void RefDBase::check_version()
   if ( ! sql.table_exists( "dbmeta" ) )
     Helper::halt( "old database format, expecting REFDB v"
                   + Helper::int2str( PLINKSeq::REFDB_VERSION_NUMBER() )
-                  + " : to fix, remake your project" );
+                  + " : to fix, remake this REFDB" );
   
-  // expected version # is given by  PLINKSeq::LOCDB_VERSION_NUMBER()                                                                      
+  // expected version # is given by  PLINKSeq::REFDB_VERSION_NUMBER()                                                                      
   int v = 0;
   
   sqlite3_stmt * s = sql.prepare( "SELECT varvalue FROM dbmeta WHERE varname == 'VERSION'; " );
@@ -1235,10 +1250,9 @@ void RefDBase::check_version()
     Helper::halt("REFDB version "
                  + Helper::int2str( v ) + " but expected "
                  + Helper::int2str( PLINKSeq::REFDB_VERSION_NUMBER() )
-                 + " : to fix, remake your REFDB" );
+                 + " : to fix, remake this REFDB" );
 
   return;
 
 }
-
 
