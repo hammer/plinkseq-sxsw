@@ -1,4 +1,4 @@
-#include "meta.h"
+#include "plinkseq/meta.h"
 #include <iostream>
 
 using namespace std;

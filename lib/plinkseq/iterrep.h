@@ -1,7 +1,7 @@
 #ifndef __ITER_REPORT_H__
 #define __ITER_REPORT_H__
 
-#include "helper.h"
+#include "plinkseq/helper.h"
 
 #include <string>
 

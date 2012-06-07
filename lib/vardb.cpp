@@ -1,11 +1,10 @@
 
-#include "vardb.h"
-#include "genotype.h"
-#include "regions.h"
-#include "gstore.h"
-#include "em.h"
-#include "regions.h"
-#include "sqlz.h"
+#include "plinkseq/vardb.h"
+#include "plinkseq/genotype.h"
+#include "plinkseq/regions.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/em.h"
+#include "plinkseq/sqlz.h"
 
 extern GStore * GP;
 

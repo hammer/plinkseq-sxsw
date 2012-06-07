@@ -1,7 +1,7 @@
 #ifndef __PSEQ_EVAL_H__
 #define __PSEQ_EVAL_H__
 
-#include "token.h"
+#include "plinkseq/token.h"
 
 #include <cstring>
 #include <ostream>

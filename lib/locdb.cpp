@@ -1,6 +1,6 @@
-#include "locdb.h"
-#include "defs.h"
-#include "regions.h"
+#include "plinkseq/locdb.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/regions.h"
 
 #include <iostream>
 #include <set>

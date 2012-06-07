@@ -1,7 +1,7 @@
 #ifndef __INDEX_H__
 #define __INDEX_H__
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 
 namespace Helper {

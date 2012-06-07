@@ -1,7 +1,7 @@
 #ifndef __PSEQ_UTIL_H__
 #define __PSEQ_UTIL_H__
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 #include <string>
 

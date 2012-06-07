@@ -1,7 +1,7 @@
 #include "extra.h"
 
 #include <iostream>
-#include "pseq.h"
+#include "plinkseq.h"
 
 extern GStore * GP;
 

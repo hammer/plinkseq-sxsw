@@ -5,8 +5,8 @@
 #include <map>
 #include <set>
 
-#include "defs.h"
-#include "individual.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/individual.h"
 #include "matrix.h"
 
 class IndDBase;

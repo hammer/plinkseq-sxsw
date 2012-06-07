@@ -2,7 +2,7 @@
 #define __PSEQ_EM_H__
 
 #include <vector>
-#include "meta.h"
+#include "plinkseq/meta.h"
 
 class Variant;
 

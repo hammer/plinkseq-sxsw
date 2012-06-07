@@ -4,9 +4,9 @@
 #include <set>
 
 #include "regions.h"
-#include "variant.h"
-#include "eval.h"
-#include "defs.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/eval.h"
+#include "plinkseq/defs.h"
 
 #include "locdb.h"
 #include "refdb.h"

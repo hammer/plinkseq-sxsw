@@ -1,5 +1,5 @@
-#include "regions.h"
-#include "gstore.h"
+#include "plinkseq/regions.h"
+#include "plinkseq/gstore.h"
 
 extern GStore * GP;
 

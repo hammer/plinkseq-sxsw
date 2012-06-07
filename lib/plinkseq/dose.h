@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "helper.h"
+#include "plinkseq/helper.h"
 
 class ifstream;
 class SeqDBase;

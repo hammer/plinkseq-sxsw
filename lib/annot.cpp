@@ -1,8 +1,8 @@
 
-#include "annot.h"
-#include "variant.h"
-#include "gstore.h"
-#include "filemap.h"
+#include "plinkseq/annot.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/filemap.h"
 
 #include <algorithm>
 #include <cmath>

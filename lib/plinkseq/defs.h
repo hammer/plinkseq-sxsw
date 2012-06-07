@@ -133,7 +133,7 @@ enum mType { META_FLAG      = 0 ,   //  <none>
 	     META_BOOL      = 5 ,   //  bool 
 	     META_CHAR      = 6 };  //  string, 1char limit
 
-// Also see meta.h
+// Also see plinkseq/meta.h
 enum mGroup { META_GROUP_MISC = 0 , 
 	      META_GROUP_VAR = 1 , 
 	      META_GROUP_GEN = 2 , 

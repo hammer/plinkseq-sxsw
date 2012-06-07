@@ -1,8 +1,8 @@
 
-#include "token.h"
-#include "eval.h"
-#include "matrix.h"
-#include "gstore.h"
+#include "plinkseq/token.h"
+#include "plinkseq/eval.h"
+#include "plinkseq/matrix.h"
+#include "plinkseq/gstore.h"
 
 #include <sstream>
 #include <cmath>

@@ -1,5 +1,5 @@
 #include "compare.h"
-#include "pseq.h"
+#include "plinkseq.h"
 
 extern GStore g;
 

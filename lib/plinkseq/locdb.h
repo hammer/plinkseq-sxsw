@@ -3,7 +3,7 @@
 
 #include "sqlwrap.h"
 #include "regions.h"
-#include "helper.h"
+#include "plinkseq/helper.h"
 
 #include <string>
 

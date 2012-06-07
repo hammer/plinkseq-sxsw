@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "meta.h"
+#include "plinkseq/meta.h"
 
 
 enum aType { ALLELE_UNKNOWN      = 0 , 

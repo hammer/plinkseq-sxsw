@@ -1,9 +1,9 @@
 
-#include "phmap.h"
-#include "indmap.h"
-#include "inddb.h"
-#include "filemap.h"
-#include "gstore.h"
+#include "plinkseq/phmap.h"
+#include "plinkseq/indmap.h"
+#include "plinkseq/inddb.h"
+#include "plinkseq/filemap.h"
+#include "plinkseq/gstore.h"
 
 extern GStore * GP;
 

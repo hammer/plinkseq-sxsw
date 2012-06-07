@@ -1,5 +1,5 @@
-#include "gstore.h"
-#include "helper.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/helper.h"
 
 Log plog(true);
 

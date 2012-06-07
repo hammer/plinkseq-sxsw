@@ -1,8 +1,8 @@
 
-#include "seqdb.h"
-#include "filemap.h"
-#include "gstore.h"
-#include "sqlz.h"
+#include "plinkseq/seqdb.h"
+#include "plinkseq/filemap.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/sqlz.h"
 
 #include <algorithm>
 #include <cmath>

@@ -6,7 +6,7 @@
 #include <vector>
 #include <map>
 
-#include "helper.h"
+#include "plinkseq/helper.h"
 
 #include "sqlite3.h"
 

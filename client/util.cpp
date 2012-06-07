@@ -1,5 +1,5 @@
 
-#include "helper.h"
+#include "plinkseq/helper.h"
 #include "util.h"
 
 // so we can register commands, need to pull in other headers across PSEQ for regargs()

@@ -5,9 +5,9 @@
 #include <cmath>
 #include <algorithm>
 
-#include "eval.h"
-#include "token.h"
-#include "meta.h"
+#include "plinkseq/eval.h"
+#include "plinkseq/token.h"
+#include "plinkseq/meta.h"
 
 // initialise static members
 std::map<std::string,Token::tok_type> Token::tok_map; 

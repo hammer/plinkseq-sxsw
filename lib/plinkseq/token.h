@@ -1,7 +1,7 @@
 #ifndef __PSEQ_TOKEN_H__
 #define __PSEQ_TOKEN_H__
 
-#include "variant.h"
+#include "plinkseq/variant.h"
 
 #include <iostream>
 #include <ostream>

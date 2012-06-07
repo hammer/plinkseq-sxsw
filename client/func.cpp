@@ -4,7 +4,7 @@
 #include "summaries.h"
 #include "util.h"
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 #include <vector>
 #include <fstream>

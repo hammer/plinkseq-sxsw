@@ -3,9 +3,9 @@
 #define __GSTORE_H__
 
 
-#include "variant.h"
-#include "genotype.h"
-#include "individual.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/genotype.h"
+#include "plinkseq/individual.h"
 #include "regions.h"
 #include "permute.h"
 #include "phmap.h"
@@ -26,7 +26,7 @@
 
 // Helper functions, etc
 
-#include "defs.h"
+#include "plinkseq/defs.h"
 
 #include <vector>
 #include <map>

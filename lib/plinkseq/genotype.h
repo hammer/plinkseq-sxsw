@@ -7,9 +7,9 @@
 #include <iostream>
 #include <set>
 
-#include "defs.h"
-#include "individual.h"
-#include "meta.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/individual.h"
+#include "plinkseq/meta.h"
 
 
 /*!

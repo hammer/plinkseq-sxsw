@@ -1,6 +1,6 @@
 
-#include "defs.h"
-#include "meta.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/meta.h"
 
 std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.09(2-Apr-2012)"; return s; }
 

@@ -1,4 +1,4 @@
-#include "allele.h"
+#include "plinkseq/allele.h"
 
 /**
  * TODO:  

@@ -2,9 +2,9 @@
 #define __SEGMENTS_H__
 
 
-#include "gstore.h"
-#include "helper.h"
-#include "regions.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/regions.h"
 
 #include <map>
 #include <set>

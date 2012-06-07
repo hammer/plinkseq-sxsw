@@ -1,7 +1,7 @@
-#include "pseq.h"
+#include "plinkseq.h"
 #include "genic.h"
 
-#include "../lib/prob.h"
+#include "plinkseq/prob.h"
 #include "davies.h"
 
 #include <iostream>

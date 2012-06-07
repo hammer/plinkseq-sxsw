@@ -2,8 +2,8 @@
 #define __PSEQ_VCFZ_H__
 
 #include "bgzf.h"
-#include "helper.h"
-#include "meta.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/meta.h"
 
 #include <vector>
 #include <string>

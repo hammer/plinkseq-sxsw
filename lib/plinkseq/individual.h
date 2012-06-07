@@ -5,8 +5,8 @@
 #include <vector>
 #include <ostream>
 
-#include "meta.h"
-#include "defs.h"
+#include "plinkseq/meta.h"
+#include "plinkseq/defs.h"
 
 class Measure;
 

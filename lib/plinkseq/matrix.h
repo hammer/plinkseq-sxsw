@@ -2,7 +2,7 @@
 #define __PSEQ_MATRIX_H__
 
 #include <vector>
-#include "helper.h"
+#include "plinkseq/helper.h"
 
 namespace Data { 
 

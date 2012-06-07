@@ -22,7 +22,7 @@
  */
 
 #include <vector>
-#include "helper.h"
+#include "plinkseq/helper.h"
 
 #ifndef __FISHER_H__
 #define __FISHER_H__

@@ -1,6 +1,6 @@
 
 #include "util.h"
-#include "pseq.h"
+#include "plinkseq.h"
 #include "assoc.h"
 #include "genic.h"
 

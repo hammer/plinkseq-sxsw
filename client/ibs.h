@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "pseq.h"
+#include "plinkseq.h"
 #include "util.h"
 
 class Mask;

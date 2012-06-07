@@ -1,9 +1,9 @@
 #ifndef __VGROUP_H__
 #define __VGROUP_H__
 
-#include "variant.h"
-#include "individual.h"
-#include "mask.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/individual.h"
+#include "plinkseq/mask.h"
 #include <map>
 
 /*!

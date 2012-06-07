@@ -1,4 +1,4 @@
-#include "crandom.h"
+#include "plinkseq/crandom.h"
 
 #include <cstdlib>
 #include <cstdio>

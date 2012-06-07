@@ -3,9 +3,9 @@
 
 #include "iterrep.h"
 #include "sqlwrap.h"
-#include "variant.h"
+#include "plinkseq/variant.h"
 #include "regions.h"
-#include "mask.h"
+#include "plinkseq/mask.h"
 #include "vgroup.h"
 
 #include <string>

@@ -1,7 +1,7 @@
 #ifndef __PSEQ_ASSOC_H__
 #define __PSEQ_ASSOC_H__
 
-#include "matrix.h"
+#include "plinkseq/matrix.h"
 #include "func.h"
 
 #include <map>

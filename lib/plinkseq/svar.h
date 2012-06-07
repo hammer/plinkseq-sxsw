@@ -2,10 +2,10 @@
 #define __PSEQ_SVAR_H__
 
 
-#include "meta.h"
-#include "variant.pb.h"
+#include "plinkseq/meta.h"
+#include "plinkseq/variant.pb.h"
 #include "allele.h"
-#include "genotype.h"
+#include "plinkseq/genotype.h"
 
 #include <ostream>
 

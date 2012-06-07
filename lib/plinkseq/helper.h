@@ -10,6 +10,9 @@
 #include <map>
 #include <inttypes.h>
 
+// Provide "C" function for use in configure.ac of tools linking against library
+extern "C" char plinkseq_present();
+
 class Log;
 
 extern Log plog;

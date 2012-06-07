@@ -6,7 +6,7 @@
 #include <map>
 #include <set>
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 class Mask;
 

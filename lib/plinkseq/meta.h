@@ -9,8 +9,8 @@
 #include <iostream>
 #include <sstream>
 
-#include "defs.h"
-#include "helper.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/helper.h"
 
 extern Log plog;
 
@@ -45,7 +45,7 @@ struct meta_index_t {
   
 };
 
-// also see enum definition in defs.h
+// also see enum definition in plinkseq/defs.h
 
 struct MiscMeta      { static const int n = 0; };
 struct VarMeta       { static const int n = 1; };

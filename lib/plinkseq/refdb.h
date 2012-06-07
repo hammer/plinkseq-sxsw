@@ -8,8 +8,8 @@
 #include "sqlwrap.h"
 #include "regions.h"
 
-#include "helper.h"
-#include "variant.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/variant.h"
 
 class Region;
 

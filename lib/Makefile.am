@@ -1,63 +1,65 @@
 # TODO: should this be a shared library or a convenience library?
 # I tried to make this a "convenience" library with the noinst_ prefix, but it didn't work
-# TODO: set up a pkginclude
 
 lib_LTLIBRARIES = libplinkseq.la
 
+# Install header files to plinkseq directory
+nobase_pkginclude_HEADERS = \
+plinkseq/eval.h \
+plinkseq/allele.h \
+plinkseq/annot.h \
+plinkseq/bcf.h \
+plinkseq/vcfz.h \
+plinkseq/bed.h \
+plinkseq/dose.h \
+plinkseq/bgzf.h \
+plinkseq/crandom.h \
+plinkseq/defs.h \
+plinkseq/em.h \
+plinkseq/filemap.h \
+plinkseq/fisher.h \
+plinkseq/genotype.h \
+plinkseq/glm.h \
+plinkseq/gstore.h \
+plinkseq/helper.h \
+plinkseq/inddb.h \
+plinkseq/individual.h \
+plinkseq/indmap.h \
+plinkseq/ipmpar.h \
+plinkseq/iterrep.h \
+plinkseq/prob.h \
+plinkseq/locdb.h \
+plinkseq/mask.h \
+plinkseq/matrix.h \
+plinkseq/meta.h \
+plinkseq/netdb.h \
+plinkseq/permute.h \
+plinkseq/phmap.h \
+plinkseq/pp.h \
+plinkseq/pp.pb.h \
+plinkseq.h \
+plinkseq/refdb.h \
+plinkseq/regions.h \
+plinkseq/segments.h \
+plinkseq/seqdb.h \
+plinkseq/sqlite3.h \
+plinkseq/sqlwrap.h \
+plinkseq/sqlz.h \
+plinkseq/statistics.h \
+plinkseq/svar.h \
+plinkseq/token.h \
+plinkseq/vardb.h \
+plinkseq/varfunc.h \
+plinkseq/variant.h \
+plinkseq/variant.pb.h \
+plinkseq/vcf.h \
+plinkseq/vgroup.h \
+plinkseq/zfstream.h
+
 libplinkseq_la_SOURCES = \
-eval.h \
-allele.h \
-annot.h \
-bcf.h \
-vcfz.h \
-bed.h \
-dose.h \
-bgzf.h \
 cdflib.h \
-crandom.h \
 dcdflib.h \
-defs.h \
-em.h \
-filemap.h \
-fisher.h \
-genotype.h \
-glm.h \
-gstore.h \
-helper.h \
-inddb.h \
-individual.h \
-indmap.h \
-ipmpar.h \
-iterrep.h \
-prob.h \
 khash.h \
-locdb.h \
-mask.h \
-matrix.h \
-meta.h \
-netdb.h \
-permute.h \
-phmap.h \
-pp.h \
-pp.pb.h \
-pseq.h \
-refdb.h \
-regions.h \
-segments.h \
-seqdb.h \
-sqlite3.h \
-sqlwrap.h \
-sqlz.h \
-statistics.h \
-svar.h \
-token.h \
-vardb.h \
-varfunc.h \
-variant.h \
-variant.pb.h \
-vcf.h \
-vgroup.h \
-zfstream.h \
 eval.cpp \
 token.cpp \
 vcfz.cpp \
@@ -124,4 +126,3 @@ endif
 libplinkseq_la_LIBADD += -lprotobuf
 
 ACLOCAL_AMFLAGS = -I m4
-

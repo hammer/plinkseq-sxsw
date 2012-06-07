@@ -2,7 +2,7 @@
 #define __INDDB_H__
 
 #include "sqlwrap.h"
-#include "individual.h"
+#include "plinkseq/individual.h"
 
 #include <string>
 #include <vector>

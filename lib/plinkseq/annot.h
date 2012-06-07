@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "regions.h"
-#include "helper.h"
-#include "variant.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/variant.h"
 #include "locdb.h"
 
 

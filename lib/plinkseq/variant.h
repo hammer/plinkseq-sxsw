@@ -11,11 +11,11 @@
 #include <iterator>
 
 
-#include "genotype.h"
+#include "plinkseq/genotype.h"
 #include "allele.h"
-#include "helper.h"
-#include "defs.h"
-#include "meta.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/meta.h"
 #include "filemap.h"
 #include "em.h"
 #include "indmap.h"
