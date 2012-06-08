@@ -1,0 +1,1 @@
+../../../../../lib/plinkseq/individual.h
