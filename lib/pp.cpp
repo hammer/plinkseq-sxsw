@@ -1,6 +1,6 @@
 #include "plinkseq/pp.h"
 
-#include "plinkseq/pp.pb.h"
+#include "pp.pb.h"
 #include "plinkseq/filemap.h"
 #include "plinkseq/regions.h"
 #include "plinkseq/locdb.h"

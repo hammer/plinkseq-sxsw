@@ -36,7 +36,6 @@ plinkseq/netdb.h \
 plinkseq/permute.h \
 plinkseq/phmap.h \
 plinkseq/pp.h \
-plinkseq/pp.pb.h \
 plinkseq.h \
 plinkseq/refdb.h \
 plinkseq/regions.h \
@@ -60,6 +59,7 @@ libplinkseq_la_SOURCES = \
 cdflib.h \
 dcdflib.h \
 khash.h \
+pp.pb.h \
 eval.cpp \
 token.cpp \
 vcfz.cpp \

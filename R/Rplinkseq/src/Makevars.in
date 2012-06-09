@@ -10,7 +10,7 @@ USERLIB	=	libRplinkseq$(DYLIB_EXT)
 USERLIBST =	libRplinkseq.a
 
 PKG_CPPFLAGS += -I../inst/include/ -DR_SHLIB=1 @PROTOBUF_INCLUDE@
-PKG_LIBS += @PROTOBUF_LIBS@ -lprotobuf -lpthread -lz -ldl
+PKG_LIBS += @PROTOBUF_LIBS@ @OTHER_LIBS@
 
 userLibrary: 	$(USERLIB) $(USERLIBST)
 		-@if test ! -e $(USERDIR)$(R_ARCH); then mkdir -p $(USERDIR)$(R_ARCH); fi
@@ -30,4 +30,3 @@ $(USERLIBST): 	$(OBJECTS)
 
 clean:
 		rm -f $(OBJECTS) $(SHLIB) $(USERLIB) $(USERLIBST)
-
