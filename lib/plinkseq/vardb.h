@@ -130,7 +130,7 @@ class VarDBase {
   //
   
   uint64_t add_set( const std::string & name , const std::string & desc = "" , bool donotadd = false );
-  bool add_var_to_set( const std::string & , Variant & , bool allelic = false );
+  bool add_var_to_set( const std::string & , const Variant & , bool allelic = false );
   
   uint64_t add_superset( const std::string & name , const std::string & desc = "" , bool donotadd = false );
   bool add_set_to_superset( const std::string & , const std::string & );

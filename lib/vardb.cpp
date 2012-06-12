@@ -1212,7 +1212,7 @@ uint64_t VarDBase::add_set( const std::string & name , const std::string & desc 
 }
 
 
-bool VarDBase::add_var_to_set( const std::string & group , Variant & v , bool allelic )
+bool VarDBase::add_var_to_set( const std::string & group , const Variant & v , bool allelic )
 {
   
   // Var group ID
