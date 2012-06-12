@@ -58,6 +58,8 @@ variant.pb.h \
 vcf.h \
 vgroup.h \
 zfstream.h \
+matrix.cpp \
+statistics.cpp \
 eval.cpp \
 token.cpp \
 vcfz.cpp \
@@ -99,13 +101,11 @@ dose.cpp \
 varmeta.cpp \
 pp.cpp \
 pp.pb.cpp \
-statistics.cpp \
 prob.cpp \
 dcdflib.cpp \
 bgzf.cpp \
 fisher.cpp \
 glm.cpp \
-matrix.cpp \
 iterate.cpp \
 vcfiterate.cpp \
 netdb.cpp \

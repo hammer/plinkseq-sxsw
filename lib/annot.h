@@ -26,38 +26,49 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
 		   
 		   // exonic
 		   SYN      =  10 ,    // synonymous allele 		   		   
-		   
+		   INDEL    = 11 , // any indel
 		   // non-synon coding
 		   MIS      =  20 ,    // missense allele
  		   PART     =  21 ,    // partial codon  -- not used
-		   SPLICE5  =  22 ,    // 5' splice-site
-		   SPLICE3  =  23 ,    // 3' splice-site 
-
-		   ESPLICE5 =  27 ,    // Essential 5' splice-site
-                   ESPLICE3 =  28 ,    // Essential 3' splice-site
-
- 		   NON      =  24 ,    // nonsense allele		   		  
- 		   FS       =  25 ,    // frameshift 
-		   RT       =  26 };   // readthrough
+ 		   CODONINSERTION		=  22 ,	   // codon insertion
+ 		   CODONDELETION		=  23 ,    // codon deletion
+ 		   SPLICE 	= 24	, // general splice +/- 5bp     
+ 		   
+ 		   
+ 		   // Special class of splice variants : Faustino and Cooper. Pre-mrna splicing and human disease. AG|G   AG|GTNAG. This is consistent with splicing motif measures.
+		   DONORIN2  =  25 ,    // donor splice-site |[GT]
+		   DONOREX2AG = 26 ,  // donor splice-site ex2ag [AG]|
+		   DONORIN45AG = 27 , // donor splice-site in45ag |GTN[AG]
+		   ACCEPTOREX1G = 28 , // acceptor splice-site ex1g |[G]
+		   ACCEPTORIN2  =  29 ,    // 3' splice-site [AG]|
+		   
+		   // Additional LoF annotations 
+		   SL = 30 ,	  // Start Loss
+ 		   NON      =  31 ,    // nonsense allele
+ 		   FRAMESHIFT       =  32 ,    // frameshift
+		   RT       =  33 };   // readthrough
 
 struct SeqInfo { 
   
   // note -- these function depend on exact coding of seq_annot_t (see above)
 
-  bool missense()    const { return type == 20 ; } 
-  bool nonsense()    const { return type == 24 ; }
-  bool readthrough() const { return type == 26 ; }
-  bool frameshift()  const { return type == 25 ; }    
-  bool splice()      const { return type == 22 || type == 23; }   
-  bool esplice()     const { return type == 27 || type == 28; }
-  bool utr()         const { return type == 4  || type == 5; }
+  bool missense() const { return type == 20 ; } 
+  bool nonsense() const { return type == 31 ; }
+  bool startlost() const { return type == 30 ; }
+  bool readthrough() const { return type == 33 ; }
+  bool frameshift() const { return type == 32 ; }
+  bool codondeletion() const { return type == 23 ; }
+  bool codoninsertion() const { return type == 22 ;}
+  bool splice() const { return type == 24 ;}
+  bool esplice() const { return type == 25 || type == 26 || type == 27 || type == 28 || type == 29; }
 
-  bool coding()      const { return type > 9 ; } 
-  bool synon()       const { return type == 10 ; } 
-  bool nonsyn()      const { return type > 19 ; }   
-  bool intergenic()  const { return type == 2 ; }
-  bool intronic()    const { return type == 3 ; }
-  bool invalid()     const { return type < 2 ; }
+  bool coding() const { return type > 9 ; } 
+  bool synon() const { return type == 10 ; } 
+  bool indel() const { return type == 11 ; }
+  bool nonsyn() const { return type > 19 ; }   
+  bool intergenic() const { return type == 2 ; }
+  bool intronic() const { return type == 3 ; }
+  bool invalid() const { return type < 2 ; }
   
   static std::map< seq_annot_t , std::string> types;
   
@@ -69,6 +80,10 @@ struct SeqInfo {
     ppos1 = 0;
     ref_aa = alt_aa = "";
     transcript = "";
+    fs_stop = 0;
+    origpepsize = 0;
+    newpepsize = 0;
+    exon=0;
   } 
   
   SeqInfo( const std::string & transcript, 
@@ -80,16 +95,27 @@ struct SeqInfo {
 	   const std::string & alt_seq = "",
 	   const int ppos1 = 0, 
 	   const std::string & ref_aa = "",
-	   const std::string & alt_aa = "" )
+	   const std::string & alt_aa = "" ,
+	   const int fs_stop = 0 ,
+	   const int origpepsize = 0,
+	   const int newpepsize = 0, 
+	   const int exon = 0 )
     : transcript(transcript), type(type), 
       genomic_ref(genomic_ref) , genomic_alt(genomic_alt),
       ref_seq(ref_seq), ref_aa(ref_aa), 
       alt_seq(alt_seq), alt_aa(alt_aa),
       cpos1(cpos1), cpos2(cpos1), 
-      ppos1(ppos1), ppos2(ppos1) 
+      ppos1(ppos1), ppos2(ppos1),
+      fs_stop(fs_stop),
+      origpepsize(origpepsize),
+      newpepsize(newpepsize), 
+      exon(exon)
   {
     splicedist = 0;
-  } 
+    nmd = 0;
+    ofptv = 0;
+    exin = 0;
+  }
     
   bool operator<( const SeqInfo & rhs ) const
   {
@@ -106,13 +132,20 @@ struct SeqInfo {
   std::string transcript;
 
   int splicedist; // for splice-sites only
-  
+  int ofptv; // for splice-sites only at the moment. If out of frame protein truncating variant. 
+  int nmd; // for LoF variants 
+  int exin; // for splice variants -- what exon is closest 
   int cpos1;  // position in DNA
   int cpos2;
 
   int ppos1;  // position in protein
   int ppos2;
 
+  int fs_stop; // number of AA positions to new stop
+  int origpepsize; //original pep size
+  int newpepsize; // new pep size
+  int exon; //exon number of mutation
+  
   std::string genomic_ref;
   std::string genomic_alt;
 
@@ -122,6 +155,7 @@ struct SeqInfo {
   std::string alt_seq;
   std::string alt_aa;  
   
+
   std::string genomic() const;
 
   std::string codon() const;
@@ -167,13 +201,13 @@ class Annotate {
     // Hold region map, populated by fetch_transcripts()
 
     static std::map<uint64_t,Region> rmap;
-
+    
     static uint64_t transcript_group_id;
 
     static bool load_transcripts( uint64_t id );
 
     static bool load_transcripts( uint64_t id , const std::set<Region> & );
- 
+    
  public:
     
     // AA names
@@ -196,8 +230,8 @@ class Annotate {
     // anything was added
 
     static bool load_transcripts( fType d , const std::string & );
-
-    static bool load_transcripts( const std::string &  , const std::set<Region> & );    
+    
+    static bool load_transcripts( const std::string &  , const std::set<Region> & ); 
 
     static bool annotate(Variant & var , Region * pregion = NULL );
 

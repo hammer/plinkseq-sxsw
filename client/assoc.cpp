@@ -1368,7 +1368,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
       if ( a.burden ) plog << "\t" << "BURDEN"; 
       if ( a.uniq )   plog << "\t" << "UNIQ"; 
       if ( a.skat )   plog << "\t" << "SKAT"; 
-      if ( a.skat )   plog << "\t" << "SKAT-O"; 
+      if ( a.skato )  plog << "\t" << "SKAT-O"; 
       plog << "\n";
     }
 
@@ -1694,18 +1694,17 @@ void g_set_association( VariantGroup & vars , void * p )
       aux_skat.set_optimal_mode( false );
       double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , &test_text , true ); 
       test_statistic.push_back( statistic );
-      if ( data->dump_stats_matrix ) plog << "\t" << statistic;
+      if ( data->dump_stats_matrix ) plog << "\t" << -log10( statistic );
     }
 
 
   if ( data->skato ) 
     {
-      std::cout << "running SKAT-0\n";
       test_name.push_back( "SKAT-O" );
       aux_skat.set_optimal_mode( true );
       double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , &test_text , true ); 
       test_statistic.push_back( statistic );
-      if ( data->dump_stats_matrix ) plog << "\t" << statistic;
+      if ( data->dump_stats_matrix ) plog << "\t" << -log10( statistic );
     }
 
 
@@ -1837,9 +1836,9 @@ void g_set_association( VariantGroup & vars , void * p )
 	      plog.data( g->perm.pvalue(t) , "P", test_name[t] );
 	      plog.data( g->perm.min_pvalue(t) , "I" , test_name[t] ); 
 	    }
-	  else // asymptotic p-values
+	  else // asymptotic p-values for SKAT
 	    { 
-	      if ( test_name[t] == "SKAT" ) 
+	      if ( test_name[t] == "SKAT" || test_name[t] == "SKAT-O" ) 
 		{
 		  plog.data( aux_skat.returned_pvalue , "P", test_name[t] );
 		  plog.data( "." , "I", test_name[t] );

@@ -21,16 +21,41 @@ namespace Statistics {
   void svbksb( Data::Matrix<double> & , Data::Vector<double> & , Data::Matrix<double> & , Data::Vector<double> & , Data::Vector<double> & );
 
   // 1-dimensional numerical integration
-  double integrate_old(double a, double b, double (*f)(double x,void*), void*d, double eps);
-  double integrate(double a, double b, double (*f)(double x,void*), void*d, double eps);
+  double integrate(double a, double b, double (*f)(double x,void*,bool*), bool * , void*d = NULL , double eps = 10e-15 );  
+  double integrate_old(double a, double b, double (*f)(double x,void*,bool*), bool*,void*d, double eps);
+  double update_integral(double a, double b, double (*f)(double x,void*,bool*),void * d, bool *, double previous, int round);
 
-  double update_integral(double a, double b, double (*f)(double x,void*),void * d, double previous, int round);
+  // NR 1-dimensional integration
+  
+  double qsimp( double a, double b, double (*f)(double x,void*,bool*), bool * okay , void*d = NULL , double eps = 10e-6 );
+  
+  //  double trapzd( double a, double b, double (*f)(double x,void*,bool*),void * d, bool *, int );
+
+  // (Open) Romberg integration
+  
+  void polint( double * xa , 
+	       double * ya , 
+	       int n , 
+	       double x, double *y, double *dy );
+
+  double qromo( double a, double b, double (*f)(double x,void*,bool*), bool * okay , void*d = NULL , int method = 1 , double eps = 10e-6 );
+  
+  double midpnt( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n ); //method1 
+  double midinf( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n ); //2
+  double midsql( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n ); //3
+  double midsqu( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n ); //4
+  double midexp( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n ); //5
+
+
+  
   
   long unsigned int factorial(int n);
   long unsigned int combin(int n, int k);
   
   double dbinom( const int k , const int n , double p );
   double chi2_prob( double x, double df );
+  bool   qchisq( double p , double df , double * );
+  double dchisq( double x , double df );
   double noncentral_chi2_prob( double x, double df , double  );
   double t_prob( double x, double df );
   double ltqnorm( double p );

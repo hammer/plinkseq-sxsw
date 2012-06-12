@@ -1903,17 +1903,19 @@ double Statistics::beta( double x , double a1 , double a2 )
 
 
 //double Statistics::integrate_trapezoidal(double a, double b, double (*f)(double x,void*), void*d, double eps)
-double Statistics::integrate_old(double a, double b, double (*f)(double x,void*), void*d, double eps)
+double Statistics::integrate_old(double a, double b, double (*f)(double x,void*,bool*), bool*okay, void*d, double eps)
 {
   // trapezoidal rule
   const double ZEPS = 1e-10;
-  double old = update_integral(a, b, f, d, 0.0, 0), result;
+  double old = update_integral(a, b, f, d, okay, 0.0, 0), result;
   int round = 1;
-  
+  *okay = true;
+
   while (1)
     {
-      std::cout << "round = " << round << "\n";
-      result = update_integral(a, b, f, d, old, round++);
+      //std::cout << "round = " << round << "\n";
+      result = update_integral(a, b, f, d, okay, old, round++);
+      if ( ! *okay ) return 0;
       if ( fabs(result-old) < eps*(fabs(result)+fabs(old))+ZEPS)
 	return result;
       old = result;
@@ -1921,20 +1923,26 @@ double Statistics::integrate_old(double a, double b, double (*f)(double x,void*)
 }
 
 
-double Statistics::integrate(double a, double b, double (*f)(double x,void*), void*d, double eps)
+double Statistics::integrate(double a, double b, double (*f)(double x,void*,bool*), bool *okay, void*d,  double eps)
 {
+
   // simpson's rule
   const double ZEPS = 1e-10;
-  double old = update_integral(a, b, f, d, 0.0, 0), result;
+  double old = update_integral(a, b, f, d, okay, 0.0, 0), result;
   double sold = old, sresult;
   int round = 1;
-  
+  *okay = true;
+
   while (1)
     {
-      std::cout << "round = " << round << "\n";
-      result = update_integral(a, b, f, d, old, round++);
+      //std::cout << "round = " << round << "\n";
+      result = update_integral(a, b, f, d, okay, old, round++);
+      if ( ! *okay ) return 0;
       sresult = (4.0 * result - old) / 3.0;
-      if ( fabs(sresult-sold)<eps*(fabs(sresult)+fabs(sold))+ZEPS)
+
+      std::cout << "res = " << result << " " << sresult << " " << sold << " " << fabs( sresult - sold ) << eps*(fabs(sresult)+fabs(sold))+ZEPS ;
+
+      if ( fabs(sresult-sold) <  eps*(fabs(sresult)+fabs(sold))+ZEPS )
 	return sresult;
       old = result; sold=sresult;
     }
@@ -1942,19 +1950,201 @@ double Statistics::integrate(double a, double b, double (*f)(double x,void*), vo
 
 
 double Statistics::update_integral(double a, double b,
-				   double (*f)(double x,void*),void * d,
+				   double (*f)(double x,void*,bool*), void * d, bool * okay, 
 				   double previous, int round)
 {
   double h, sum;
   int i, n = 1 << (round - 1);
   if (round == 0)
-    return 0.5 * ((*f)(a,d) + (*f)(b,d)) * (b - a);
+    return 0.5 * ((*f)(a,d,okay) + (*f)(b,d,okay)) * (b - a);
   sum = previous * n / (b - a);
   h = (b - a) / (2 * n);
   for (int i = 1; i < 2 * n; i += 2)
-    sum += (*f)(a + i*h,d);
+    sum += (*f)(a + i*h,d,okay);
   return sum * h;
 }
+
+
+// double Statistics::trapzd( double a, double b, double (*f)(double x,void*,bool*),void * d, bool *, int )
+// {
+//   //
+// }
+
+
+
+void Statistics::polint( double * xa, 
+			 double * ya, 
+			 int n, 
+			 double x, 
+			 double *y, 
+			 double *dy )
+{
+  // returns values 'y' and error estimate 'dy'
+  int m,ns=1;
+  double den,dift,ho,hp,w;
+
+  double dif=fabs(x-xa[1]);
+  Data::Vector<double> c(n+1);
+  Data::Vector<double> d(n+1);
+  
+  for (int i=1;i<=n;i++) 
+    {
+      if ( (dift=fabs(x-xa[i])) < dif)
+	{
+	  ns=i;
+	  dif=dift;
+	}
+      c[i]=ya[i];
+      d[i]=ya[i];
+    }
+
+  *y=ya[ns--];
+
+  for (int m=1;m<n;m++)
+    {
+      for (int i=1;i<=n-m;i++)
+	{
+	  ho=xa[i]-x;
+	  hp=xa[i+m]-x;
+	  w=c[i+1]-d[i];
+	  if ( (den=ho-hp) == 0.0) Helper::halt("error in polint");
+	  den=w/den;
+	  d[i]=hp*den;
+	  c[i]=ho*den;
+	}
+      *y += (*dy=(2*ns < (n-m) ? c[ns+1] : d[ns--]));
+    }
+}
+
+double Statistics::qromo( double a, double b, double (*f)(double x,void*,bool*), bool * okay , void*d , int method , double eps )
+{
+
+  const double EPS = eps;
+  const int JMAX = 14;
+  const int JMAXP = JMAX + 1;
+  const int K = 5;
+  double previous = 0;
+  
+  double ss = 0;
+  double dss = 0;
+
+  Data::Vector<double> h( JMAXP+1);
+  Data::Vector<double> s( JMAXP );
+  
+  // note -- uses 1-based indexing here...
+
+  h[1] = 1.0;
+  
+  for (int j=1;j<=JMAX;j++)
+    {
+      switch ( method ) 
+	{
+	case 1 : s[j]=midpnt(a,b,f,previous,d,okay,j); break;
+	case 2 : s[j]=midpnt(a,b,f,previous,d,okay,j); break;
+	case 3 : s[j]=midsql(a,b,f,previous,d,okay,j); break;
+	case 4 : s[j]=midsqu(a,b,f,previous,d,okay,j); break;
+	case 5 : s[j]=midexp(a,b,f,previous,d,okay,j); break;  
+	}
+      
+      if ( ! *okay ) return 0;
+
+      if (j >= K) 
+	{
+	  polint(&h[j-K],&s[j-K],K,0.0,&ss,&dss);
+	  if ( fabs(dss) <= EPS*fabs(ss) ) return ss;
+	}
+      h[j+1]=h[j]/9.0;      
+
+      previous = s[j];
+      
+    }
+  *okay = false; // too many steps
+  return 0;
+}
+  
+
+double Statistics::midpnt( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n )
+{
+  double b = 1/aa;
+  double a = 1/bb;
+  if ( n == 1 ) 
+    return (b-a) * f( 0.5 * (a+b) , d , okay ) ;
+  
+  int it=1;
+  for (int j=1;j<n-1;j++) it *= 3;
+  double tnm = it;
+  double del = (b-a)/(3.0*tnm);
+  double ddel = del+del;
+  double x = a + 0.5 * del;
+  double sum = 0;
+  for (int j=0; j<it;j++)
+    {
+      sum += f(x,d,okay);
+      x += ddel;
+      sum += f(x,d,okay);
+      x += del;
+    }
+  return (previous+(b-a)*sum/tnm)/3.0;
+}
+  
+
+
+double Statistics::midsql( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n )
+{
+  double b = sqrt(bb-aa);
+  double a = 0.0;
+
+  if ( n == 1 ) 
+    return (b-a) * f( 0.5 * (a+b) , d , okay ) ;
+
+#define FUNC(x) (2.0*(x)*(*funk)(aa+(x)*(x)))
+
+  int it=1;
+  for (int j=1;j<n-1;j++) it *= 3;
+  double tnm = it;
+  double del = (b-a)/(3.0*tnm);
+  double ddel = del+del;
+  double x = a + 0.5 * del;
+  double sum = 0;
+  for (int j=0; j<it;j++)
+    {
+      sum += 2 * x * f(aa + x*x  ,d,okay);
+      x += ddel;
+      sum += 2 * x * f(aa + x*x  ,d,okay);
+      x += del;
+    }
+  return (previous+(b-a)*sum/tnm)/3.0;
+}
+  
+
+
+
+
+
+
+
+
+double Statistics::qsimp( double a, double b, double (*f)(double x,void*,bool*), bool * okay , void * d , double eps )
+{
+  const int JMAX = 15;
+  const double EPS = eps;
+  double s, st, ost=0.0, os=0.0; 
+  for (int j=0; j<JMAX; j++)
+    {
+      st = midpnt(a,b,f,os,d,okay,j);
+      s=(9.0*st-ost)/8.0;
+      if ( j > 5 ) 
+	{
+	  if ( fabs( s-os ) < EPS * fabs(os) || 
+	       ( s == 0.0 && os == 0.0 ) ) return s;
+	  os = s;
+	  ost = st;
+	}
+    }
+  *okay = false;
+  return 0;
+}
+
 
 
 Data::Matrix<double> Statistics::cholesky( const Data::Matrix<double> & b )
@@ -1990,4 +2180,28 @@ Data::Matrix<double> Statistics::cholesky( const Data::Matrix<double> & b )
   return a;
 }
 
+
+bool Statistics::qchisq( double q , double df , double * x )
+{
+  
+  if ( ! Helper::realnum(q) ) return false;
+  else if ( q>=1 ) return 0;
+  
+  double p = 1 - q;
+  int st = 0;      // error variable
+  int w = 2;       // function variable
+  double bnd = 1;  // boundary function
+  
+  // NCP is set to 0
+  cdfchi(&w,&p,&q,x,&df,&st,&bnd);
+  if (st != 0 ) return false;
+  return true; 
+}
+
+
+double Statistics::dchisq( double x , double df )
+{
+  // return dgamma(x, df / 2., 2., give_log);
+  return -1;
+}
 

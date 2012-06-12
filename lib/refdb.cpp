@@ -671,6 +671,7 @@ uint64_t RefDBase::loadRefVariants(const std::string & filename,
   
   int inserted = 0;
 
+
   //
   // Get and write meta-information types
   //
@@ -763,44 +764,44 @@ uint64_t RefDBase::loadRefVariants(const std::string & filename,
 
       refInsertion(rv);
 	
-	++inserted;
-
-	if ( inserted % 1000 == 0 ) 
-	  {
-	    plog << "inserted " << inserted << " reference-variants              \r";
-	    plog.flush();
-	  }
+      ++inserted;
+      
+      if ( inserted % 1000 == 0 ) 
+	{
+	  plog << "inserted " << inserted << " reference-variants              \r";
+	  plog.flush();
+	}
     }
+  
+  plog << "\n";
 
-    plog << "\n";
-
-    //                  
-    // Finish transaction                  
-    //                                     
-    
-    sql.commit();
-    
-    
-    //
-    // Store DB meta-information in reference table
-    //
-
-    sql.bind_int64( stmt_update_group_count, ":group_id" , group_id  );
-    sql.bind_int( stmt_update_group_count, ":count" , inserted  );
-    sql.step( stmt_update_group_count );
-    sql.reset( stmt_update_group_count );
-
-    plog << filename << " : inserted " << inserted << " reference variants\n";
-
-    file.close();
-
-    // Re-index
-    index();
-
-    return group_id;
+  //                  
+  // Finish transaction                  
+  //                                     
+  
+  sql.commit();
+  
+  
+  //
+  // Store DB meta-information in reference table
+  //
+  
+  sql.bind_int64( stmt_update_group_count, ":group_id" , group_id  );
+  sql.bind_int( stmt_update_group_count, ":count" , inserted  );
+  sql.step( stmt_update_group_count );
+  sql.reset( stmt_update_group_count );
+  
+  plog << filename << " : inserted " << inserted << " reference variants\n";
+  
+  file.close();
+  
+  // Re-index
+  index();
+  
+  return group_id;
 }
    
-  
+
 
 
 
@@ -1036,13 +1037,13 @@ bool RefDBase::annotate( Variant & v , const int grp_id )
       // passing this extra param, means the prefixes get added, 
       // which is necessary, because we store and append them this
       // way
-
-      r.meta.parse( r.value() , ';' , false ,  &gname  );
       
+      r.meta.parse( r.value() , ';' , false ,  &gname  );
+
       //v.meta.append( r.meta , gname ); // old version explicitly appended group name
-
+      
       v.meta.append( r.meta );           // now already done internally      
-
+      
     }
   
   return true;

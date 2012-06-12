@@ -202,6 +202,8 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
   if ( args.has( "format" , "bp2" ) ) f_bp2 = args.as_string( "format" , "bp2" );
   if ( args.has( "format" , "id" ) )  f_id  = args.as_string( "format" , "id" );
 
+  uint64_t group_id = g.refdb.set_group_id( label );
+
   for (int i=0; i<h.size(); i++)
     {
 
@@ -244,8 +246,12 @@ bool Pseq::RefDB::load_refvar( const std::string & filename ,
 	      // ignore description for now
 	      std::string desc = "";
 	      
-	      mf[ h[i] ] = i;
-	      registerMetatype( h[i] , mt , 1 , META_GROUP_REF , desc );
+	      std::string full_name = label + "_" + h[i];
+	      mf[ full_name ] = i;
+	      registerMetatype( full_name , mt , 1 , META_GROUP_REF , desc );
+	      
+	      g.refdb.insert_metatype( group_id , full_name , mt, 1, META_GROUP_REF , desc );
+
 	    }  
 	  
 	}
@@ -453,9 +459,10 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
 	  // ignore description for now
 	  std::string desc = "";
 	  
-	  mf[ h[i] ] = i;
+	  std::string full_name = h[i]; 
+	  mf[ full_name ] = i;
 	  
-	  registerMetatype( h[i] , mt , 1 , META_GROUP_REF , desc );
+	  registerMetatype( full_name , mt , 1 , META_GROUP_REF , desc );
 	}
     }
   
