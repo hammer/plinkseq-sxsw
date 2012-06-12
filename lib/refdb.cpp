@@ -25,12 +25,6 @@ bool RefDBase::attach(std::string name)
 
   sql.synchronous(false);
 
-  //
-  // Check version number 
-  //
-
-  check_version();
-
 
 
   //
@@ -84,6 +78,12 @@ bool RefDBase::attach(std::string name)
 
   init();
   
+  //
+  // Check version number 
+  //
+
+  check_version();
+
 
   //
   // set meta-type information
