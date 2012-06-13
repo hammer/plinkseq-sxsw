@@ -58,7 +58,8 @@ namespace Data {
     }
     
     const std::vector<T> * data_pointer() const { return data.size() ? &data : NULL ; }
-
+    T * elem_pointer( const int i ) { return data.size() ? &data[i] : NULL ; }
+    
     private:
     
     std::vector<T> data;
@@ -142,7 +143,7 @@ namespace Data {
     { 
       if ( r.size() != ncol ) 
 	{ 
-	  if ( nrow == 0 ) resize(0,r.size());
+	  if ( nrow == 0 ) { ncol = r.size(); resize(0,r.size()); }
 	  else { plog.warn("bad row addition"); return; }
 	}
 
@@ -154,7 +155,7 @@ namespace Data {
     { 
       if ( r.size() != ncol ) 
 	{
-	  if ( nrow == 0 ) resize(0,r.size());
+	  if ( nrow == 0 ) { ncol = r.size(); resize(0,r.size()); }
 	  else { plog.warn("bad row addition"); return; }
 	}
 

@@ -382,8 +382,8 @@ int PhenotypeMap::make_phenotype( const std::string & make_phenotype )
       plog.warn("make-phenotype arg must be a factor");
       return 0;
     }
-  
-  
+
+
   std::vector<std::string> p2 = Helper::char_split( p[1] , ':' );
   
   if ( p2.size() != 1 && p2.size() !=2 ) 
@@ -393,13 +393,14 @@ int PhenotypeMap::make_phenotype( const std::string & make_phenotype )
     }
 
   bool explicit_missing = p2.size() == 2 ;
- 
+   
   std::set<std::string> grp1;
   std::set<std::string> grp2;
   
   std::vector<std::string> t = Helper::char_split( p2[0] , ',' );
   for (int i=0; i<t.size(); i++) grp1.insert( t[i] );
   
+
   if ( explicit_missing ) 
     {
       std::vector<std::string> t = Helper::char_split( p2[1] , ',' );
@@ -411,6 +412,7 @@ int PhenotypeMap::make_phenotype( const std::string & make_phenotype )
   // We seem all okay now, so let's make the phenotype
   //
 
+  pType original_type = phenotype_type;
   phenotype_name = make_phenotype;
   phenotype_type = PHE_DICHOT;
   
@@ -418,12 +420,12 @@ int PhenotypeMap::make_phenotype( const std::string & make_phenotype )
   
   while ( i != pmap.end() )
     {
+
       Individual * person = i->second;
       
-      std::string label = type() == 
-	PHE_DICHOT ?
+      std::string label = original_type == PHE_DICHOT ?
 	( person->affected() == CASE ? "2" : ( person->affected() == CONTROL ? "1" : "." ) ) 
-	:
+	: 
 	person->group_label() ;
       
       if ( person->missing() ) 
@@ -431,6 +433,7 @@ int PhenotypeMap::make_phenotype( const std::string & make_phenotype )
 	  if ( !explicit_missing )  
 	    {
 	      person->affected( CONTROL );
+	
 	      ++nonmissing;
 	    }
 	  else
@@ -438,6 +441,7 @@ int PhenotypeMap::make_phenotype( const std::string & make_phenotype )
 	}
       else
 	{
+
 	  // Is this person a case? 
 	  if ( grp1.find( label ) != grp1.end() )
 	    {

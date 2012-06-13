@@ -25,7 +25,6 @@ std::string PSEQ_VERSION = "0.08";
 std::string PSEQ_DATE    = "10-Mar-2012";
 
 
-
 int main(int argc, char ** argv)
 {
 

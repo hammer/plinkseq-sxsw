@@ -1,6 +1,7 @@
 bin_PROGRAMS = pseq
 
 pseq_SOURCES = \
+skat.cpp \
 assoc.h \
 clusters.h \
 compare.h \
@@ -32,7 +33,6 @@ glm-tests.cpp \
 stepup.cpp \
 kbac.cpp \
 netassoc.cpp \
-skat.cpp \
 davies.cpp \
 gseq.cpp \
 extra.cpp \

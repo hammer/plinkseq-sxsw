@@ -6,6 +6,7 @@
 #include <cmath>
 
 class VariantGroup;
+class SKAT_param;
 
 namespace Pseq 
 {
@@ -262,9 +263,10 @@ namespace Pseq
     //
     // SKAT test
     //
+    
     struct Aux_skat 
-    {
-
+    {    
+      
       Aux_skat() 
       { 
 	optimal = false;
@@ -293,7 +295,9 @@ namespace Pseq
       static bool logistic_model;   
 
       static std::vector<double> rho; // grid of correlation values
-      
+      static int rho_est;
+      static int nr;
+
       // main functions
       static void fit_null();
       
@@ -305,21 +309,28 @@ namespace Pseq
 
       double calculate_optimal_Q( Data::Matrix<double> * );
       Data::Vector<double> sub_optimal_get_Q( const Data::Matrix<double> & );
-      Data::Vector<double> sub_optimal_get_P( const Data::Vector<double> & , const Data::Matrix<double> & );
+      double sub_optimal_get_P( const Data::Vector<double> & , const Data::Matrix<double> & );
       Data::Vector<double> get_lambda( const Data::Matrix<double> & );
       void get_optimal_param( const Data::Matrix<double> & Z1 ,  
  			      double * muQ, double * varQ, double * kerQ,  
  			      double * varRemain, double * df,  
  			      Data::Vector<double> * tau, Data::Vector<double> * lambda ); 
 
-
+      Data::Vector<double> sub_optimal_P_foreach_Q( const Data::Vector<double> & Q , 
+						    const std::vector<std::vector<double> > & lambda );
+						   
+      
+      double sub_optimal_P_Davies( const Data::Vector<double> & pminq , const SKAT_param & param );
+      double sub_optimal_P_Liu( const Data::Vector<double> & pminq , const SKAT_param & param );
+      
       double calculate_pvalue( double , Data::Matrix<double> & );
 
       double calculate_optimal_pvalue( double , Data::Matrix<double> & );
       
       double get_liu_pval( double , Data::Matrix<double> & );
       
-      void get_liu_param( double c1 , double c2 , double c3 , double c4 , 
+      void get_liu_param( bool mod , // use modified form?
+			  double c1 , double c2 , double c3 , double c4 , 
 			  double * muX , double * sigmaX , 
 			  double * muQ , double * sigmaQ , 
 			  double * l , double * d ) ;
