@@ -76,6 +76,17 @@ struct PLINKSeq {
   static std::string & META_DP();
   static std::string & META_GENO_DP();
   static std::string & META_GENO_GQ();
+ 
+
+  static double & DEFAULT_PREV();
+  static std::string & DEFAULT_AD();
+  static std::string & DEFAULT_TRANS();
+  static std::string & DEFAULT_FUNC();
+  static double & DEFAULT_AB_HETMIN();
+  static double & DEFAULT_AB_HETMAX();
+  static double & DEFAULT_AB_HOMMAX();
+
+
 
   static std::string & DEFAULT_G1K();
   static std::string & DEFAULT_DBSNP();

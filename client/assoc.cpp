@@ -1320,7 +1320,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   a.cancor        =   args.has( "tests" , "cancor" );
   a.hoffman_witte =   args.has( "tests" , "stepup" );
   a.kbac          =   args.has( "tests" , "kbac" );
-  a.two_hit       =   args.has( "tests" , "two_hit");
+  a.two_hit       =   args.has( "tests" , "two-hit");
   a.skat          =   args.has( "tests" , "skat" );
   a.skato         =   args.has( "tests" , "skato" );
 
@@ -1432,9 +1432,17 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
     }
 
   //
+  // Initialize TWO-HIT test
+  //
+
+  Pseq::Assoc::Aux_two_hit::initialize();
+
+
+  //
   // Apply tests to dataset
   //
-  
+ 
+
   g.vardb.iterate( g_set_association , &a , m );
 
 
@@ -1523,7 +1531,6 @@ void g_set_association( VariantGroup & vars , void * p )
   Pseq::Assoc::Aux_two_hit aux_two_hit( 1 , vars.size() , vars.n_individuals() );
   Pseq::Assoc::Aux_skat aux_skat;
 
-
   //
   // If in dump-stats-matrix mode, this is the second header row -- output vars.nam()
   //
@@ -1544,31 +1551,6 @@ void g_set_association( VariantGroup & vars , void * p )
   
 
 
-
-  // --- chet additions (need to be moved )  -------------------------------
-
-  double prev = .006;
-  if ( args.has( "prev" ) )
-    prev =  Helper::str2dbl(args.as_string( "prev" ));
-
-  bool mhit = args.has( "mhit" );
-
-  std::map< std::string, int > func_inc;
-  std::map< std::string, int > func_exc;
-
-  if( args.has( "func-inc" ) ){
-    std::vector<std::string> inc = args.as_string_vector( "func-inc" );
-    for( int i = 0; i < inc.size(); i++ )
-      func_inc[inc[i]] = i;
-  }
-
-  if( args.has( "func-exc" ) ){
-    std::vector<std::string> inc = args.as_string_vector( "func-exc" );
-    for( int i = 0; i < inc.size(); i++ )
-      func_exc[inc[i]] = i;
-  }
-
-  // -------------------------------
 
   
 
@@ -1682,8 +1664,7 @@ void g_set_association( VariantGroup & vars , void * p )
   if ( data->two_hit )
     {
       test_name.push_back( "TWO-HIT" );
-      
-      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true , func_inc, func_exc , prev, mhit );
+      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true);
       test_statistic.push_back( statistic );
     }
   
@@ -1714,7 +1695,6 @@ void g_set_association( VariantGroup & vars , void * p )
   //
   
   g->perm.score( test_statistic );
-
 
     
   //
@@ -1783,7 +1763,7 @@ void g_set_association( VariantGroup & vars , void * p )
 	}
       if ( data->two_hit )
         {
-	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false , func_inc, func_exc , prev, mhit );
+	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false );
 	  test_statistic.push_back( statistic );
 	}
       if ( data->skat )
@@ -1813,7 +1793,6 @@ void g_set_association( VariantGroup & vars , void * p )
 
   if ( ! data->dump_stats_matrix ) 
     {
-
       plog.data_group( vars.name() );
       plog.data( vars.coordinate() );
       plog.data( g->locdb.alias( vars.name() , false ) );
@@ -1858,7 +1837,6 @@ void g_set_association( VariantGroup & vars , void * p )
     {
       plog << "\n";
     }
-
   return;
 
 }
