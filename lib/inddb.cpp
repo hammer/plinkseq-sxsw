@@ -517,7 +517,6 @@ bool IndDBase::load_phenotypes( const std::string & filename )
 	  // Skip, if we haven't seen a header
 	  if ( expected_col_count == -1 ) continue;
 	 
-
 	  std::vector<std::string> tok = Helper::parse( s , " \t");
 	  
 	  if ( tok.size() != expected_col_count ) 
@@ -547,7 +546,7 @@ bool IndDBase::load_phenotypes( const std::string & filename )
 	      
 	      // and grab the ID
 	      indiv_id = fetch_id( tok[0] );
-	      
+
 	    }
 	  
 	  //

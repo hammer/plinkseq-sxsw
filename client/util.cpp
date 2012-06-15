@@ -152,6 +152,8 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "i-view|views|individuals in project/file|VCF|ARG:phenotype,from-vardb"
 
+	  << "i-matrix|views|individual phenotype matrix|ARG:phenotype"
+
 	  << "write-phe|views|dump phenotypes in .phe file format|ARG:name"
 
 	  << "v-matrix|output|write a matrix of allele counts|VCF"
@@ -311,7 +313,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name"
 	
-	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$no-burden$calpha$uniq$vt$fw$sumstat$two_hit,info,fix-null,perm,dump-null-matrix,midpoint"
+	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$burden$calpha$uniq$vt$fw$sumstat$two-hit$skat$skato,info,fix-null,perm,dump-null-matrix,midpoint"
     
 	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta"
 	
@@ -593,7 +595,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     
     reg( "tests" , KEYWORD , "gene-based tests" );
     keyword( "tests" , "sumstat" , NONE , "sum-statistic test" );
-    keyword( "tests" , "no-burden" , NONE , "do not apply basic burden test" );
+    keyword( "tests" , "burden" , NONE , "basic burden test" );
     keyword( "tests" , "uniq" , NONE , "burden of case-unique variants" );
     keyword( "tests" , "site-burden" , NONE , "burden of variant sites (not alleles)" );
     keyword( "tests" , "mhit" , NONE , "multiple-hit association model" );
@@ -603,9 +605,10 @@ void Pseq::Util::Options::load( int n , char ** argv )
     keyword( "tests" , "cancor" , NONE , "canonical correlation test" );
     keyword( "tests" , "stepup" , NONE , "Hoffman-Witte step-up test" );
     keyword( "tests" , "kbac" , NONE , "KBAC test" );
-    keyword( "tests" , "two_hit" , NONE, "Recessive/compound het tests" );
+    keyword( "tests" , "two-hit" , NONE, "Recessive/compound-het test" );
     keyword( "tests" , "skat" , NONE , "SKAT test" );
-
+    keyword( "tests" , "skato" , NONE , "Optimal SKAT test" );
+    
     // de-novo scan
 
     reg( "param" , FLOAT_VECTOR , "parameter list" );

@@ -32,6 +32,8 @@ namespace Data {
     Vector<T> operator*( const Matrix<T> & rhs ) const;
     Vector<T> operator+( const Vector<T> & rhs ) const;
     Vector<T> operator-( const Vector<T> & rhs ) const;
+
+    std::string print( const std::string & label = "" , const int nelem = 0 ) const;
     
     void set_elem_mask( const int r , const bool val = true )
     {
@@ -56,7 +58,8 @@ namespace Data {
     }
     
     const std::vector<T> * data_pointer() const { return data.size() ? &data : NULL ; }
-
+    T * elem_pointer( const int i ) { return data.size() ? &data[i] : NULL ; }
+    
     private:
     
     std::vector<T> data;
@@ -92,6 +95,7 @@ namespace Data {
     
     Matrix() { clear(); } 
     Matrix(const int r, const int c) { resize(r,c); }
+    Matrix(const int r, const int c, const T & t) { resize(r,c,t); }
     
     T operator() (const unsigned int i, const unsigned int j ) const { return data[j][i]; }
     T & operator() (const unsigned int i, const unsigned int j ) { return data[j][i]; }
@@ -139,7 +143,7 @@ namespace Data {
     { 
       if ( r.size() != ncol ) 
 	{ 
-	  if ( nrow == 0 ) resize(0,r.size());
+	  if ( nrow == 0 ) { ncol = r.size(); resize(0,r.size()); }
 	  else { plog.warn("bad row addition"); return; }
 	}
 
@@ -151,7 +155,7 @@ namespace Data {
     { 
       if ( r.size() != ncol ) 
 	{
-	  if ( nrow == 0 ) resize(0,r.size());
+	  if ( nrow == 0 ) { ncol = r.size(); resize(0,r.size()); }
 	  else { plog.warn("bad row addition"); return; }
 	}
 
@@ -195,9 +199,21 @@ namespace Data {
       for (int j=0; j<c; j++) data[j].resize( nrow );
     }
     
+    void resize(const int r, const int c, const T & t ) 
+    { 
+      nrow = r;
+      ncol = c;
+      row_mask.resize( nrow , false ); // masked-out
+      data.resize(c); 
+      for (int j=0; j<c; j++) data[j].resize( nrow , t );
+    }
+
     int dim1() const { return nrow; }
     int dim2() const { return ncol; }
-
+    
+    // pretty-print
+    
+    std::string print( const std::string & label = "" , const int nrow = 0 , const int ncol = 0 ) const;
 
     // op. overloading for common matrix operations
     

@@ -430,11 +430,16 @@ void f_lookup_annotator( Variant & var , void * p )
       
     }
 
-  //  std::cout << "s2\n";
 
   std::string s = var.coordinate();
 
-  //  std::cout << "s3\n";
+  plog << s << "\t"
+       << "allele_ref\t"
+       << var.reference() << "\n"
+       << s << "\t"
+       << "allele_alt\t"
+       << var.alternate() << "\n";
+
 
   // Fetch from SEQDB
   
@@ -712,15 +717,18 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
   
   if ( aux.append_annot )
     {
-      plog << "##func,1,String,\"Genomic annotation\"\n";
-      plog << "##transcript,1,String,\"Transcript ID\"\n";
-      plog << "##genomic,1,String,\"Genomic DNA change\"\n";
-      plog << "##codon,1,String,\"Codon change\"\n";
-      plog << "##protein,1,String,\"Any nonsynon amino acid change\"\n";
+      plog << "##func,.,String,\"Genomic annotation\"\n";
+      plog << "##transcript,.,String,\"Transcript ID\"\n";
+      plog << "##genomic,.,String,\"Genomic DNA change\"\n";
+      plog << "##codon,.,String,\"Codon change\"\n";
+      plog << "##protein,.,String,\"Any nonsynon amino acid change\"\n";
       plog << "##worst,1,String,\"Worst annotation\"\n";
-      plog << "##class,1,String,\"Summary of all annotations\"\n";
+      plog << "##class,.,String,\"Summary of all annotations\"\n";
     }
   
+  plog << "##allele_ref,1,String,\"VCF reference sequence\"\n"
+       << "##allele_alt,.,String,\"VCF alternate sequence(s)\"\n";
+
   if ( aux.append_seq )
     {
       plog << "##seqdb_ref,1,String,\"SEQDB reference sequence\"\n";

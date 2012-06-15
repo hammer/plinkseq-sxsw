@@ -217,7 +217,7 @@ void f_view_lik( Variant & v , void * p )
 
       bool using_gl = false;
       
-      if ( genotype.hasField( PLINKSeq::META_GENO_PHRED() ) )
+      if ( genotype.has_field( PLINKSeq::META_GENO_PHRED() ) )
 	{
 
 	  std::vector<int> t = genotype.get_int( PLINKSeq::META_GENO_PHRED() );
@@ -228,7 +228,7 @@ void f_view_lik( Variant & v , void * p )
 	      for (int i=0;i<3;i++) l[i] = t[i];
 	    }
 	}
-      else if ( genotype.hasField( PLINKSeq::META_GENO_LIK() ) )
+      else if ( genotype.has_field( PLINKSeq::META_GENO_LIK() ) )
 	{
 	  l = genotype.get_double( PLINKSeq::META_GENO_LIK() );
 	  using_gl = true;

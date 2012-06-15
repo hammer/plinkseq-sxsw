@@ -118,9 +118,10 @@ bool MetaMeta::display( const std::string & attrib )
 void registerMetatype( const std::string & name, mType mt, int num , int grp , const std::string & desc )
 {
   
-  // Helper function -- if we have read back metainformation from a database, the source 
-  // context might not make it obvious what group it belongs to, e.g. variant vs. genotype
-  // Therefore, use the explicit coding in this case
+  // Helper function -- if we have read back metainformation from a
+  // database, the source context might not make it obvious what group
+  // it belongs to, e.g. variant vs. genotype Therefore, use the
+  // explicit coding in this case
   
   switch ( grp ) { 
   case 1 :     

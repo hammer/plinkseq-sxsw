@@ -6,6 +6,7 @@
 #include <cmath>
 
 class VariantGroup;
+class SKAT_param;
 
 namespace Pseq 
 {
@@ -262,12 +263,13 @@ namespace Pseq
     //
     // SKAT test
     //
+    
     struct Aux_skat 
-    {
-
-      Aux_skat( bool o = false ) 
-      {
-	optimal = o;
+    {    
+      
+      Aux_skat() 
+      { 
+	optimal = false;
       }
       
       // when first run, precalculate (only ever once) the 
@@ -292,6 +294,10 @@ namespace Pseq
       static int n_actual; 
       static bool logistic_model;   
 
+      static std::vector<double> rho; // grid of correlation values
+      static int rho_est;
+      static int nr;
+
       // main functions
       static void fit_null();
       
@@ -300,16 +306,60 @@ namespace Pseq
       void populate_K();
 
       double calculate_Q( Data::Matrix<double> * );
+
+      double calculate_optimal_Q( Data::Matrix<double> * );
+      Data::Vector<double> sub_optimal_get_Q( const Data::Matrix<double> & );
+      double sub_optimal_get_P( const Data::Vector<double> & , const Data::Matrix<double> & );
+      Data::Vector<double> get_lambda( const Data::Matrix<double> & );
+      void get_optimal_param( const Data::Matrix<double> & Z1 ,  
+ 			      double * muQ, double * varQ, double * kerQ,  
+ 			      double * varRemain, double * df,  
+ 			      Data::Vector<double> * tau, Data::Vector<double> * lambda ); 
+
+      Data::Vector<double> sub_optimal_P_foreach_Q( const Data::Vector<double> & Q , 
+						    const std::vector<std::vector<double> > & lambda );
+						   
+      
+      double sub_optimal_P_Davies( const Data::Vector<double> & pminq , const SKAT_param & param );
+      double sub_optimal_P_Liu( const Data::Vector<double> & pminq , const SKAT_param & param );
       
       double calculate_pvalue( double , Data::Matrix<double> & );
 
+      double calculate_optimal_pvalue( double , Data::Matrix<double> & );
+      
       double get_liu_pval( double , Data::Matrix<double> & );
-
-      void get_liu_param( double c1 , double c2 , double c3 , double c4 , 
+      
+      void get_liu_param( bool mod , // use modified form?
+			  double c1 , double c2 , double c3 , double c4 , 
 			  double * muX , double * sigmaX , 
 			  double * muQ , double * sigmaQ , 
 			  double * l , double * d ) ;
 
+      
+      // SKAT-O specific functions
+      
+      void set_optimal_mode( const bool b = true )
+      {
+	optimal = b;
+      }
+      
+      bool optimal_mode() const { return optimal; } 
+      
+      void set_optimal_rcorr( const std::vector<double> & r )
+      {
+	rho = r;
+	// for numerical reasons, following original SKAT R implementation
+	for (int i=0;i<rho.size();i++) if ( rho[i] > 0.999 ) rho[i] = 0.999; 
+      }
+
+      void set_optimal_rcorr()
+      {
+	// default 0.00 , 1.00 grid
+	rho.clear();
+	for (int i=0;i<=10;i++) rho.push_back( (double)i/(double)10.0 );
+	rho[10] = 0.999;
+      }
+            
       
       // run as SKAT-O
       bool optimal; 
@@ -332,7 +382,7 @@ namespace Pseq
       
       // use slot as return value for asymptotic p-value from each test
       double returned_pvalue;
-    };
+  };
 
     
 

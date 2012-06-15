@@ -31,7 +31,8 @@ class Davies {
   double pvalue( double q , 
 		 std::vector<double> & lb , 		 
 		 std::vector<int> & df , 
-		 bool * okay )
+		 bool * okay , 
+		 std::vector<bool> * ifaults = NULL )
   {
     
     //
@@ -71,7 +72,15 @@ class Davies {
     
     
     if ( ifault[0] || ifault[2] || ifault[3] || ifault[4] ) 
-      *okay = false;
+      {
+	*okay = false;
+	if ( ifaults ) 
+	  {
+	    ifaults->resize( 6 );
+	    for (int i=0;i<6;i++)
+	      (*ifaults)[i] = ifault[i]; 
+	  }
+      }
     else 
       *okay = true;
 

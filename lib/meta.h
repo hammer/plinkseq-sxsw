@@ -119,62 +119,79 @@ template<class T>
 class MetaInformation {
   
  public:
+  
+  void parse( const std::string & str, char delim = ';' , bool autoadd = false , const std::string * prefix = NULL )
+  {
     
-    void parse(const std::string & str, char delim = ';' , bool autoadd = false )
-	{
-	    
-	    // Take delimited string and parse
-	    // Format is  " ;" ->  X=Y  ->  X single      
-	    
-	    // X=1;Y=2,3;Z;A=House;
-	    // X="1 ;23";Y=22;
-	    // but allow quotes
-	    
-	    const bool escape_quotes = true;
-	    
-	    int ntok;
-	    Helper::char_tok tokens( str , &ntok , delim , escape_quotes ); 
-	    
-	    //std::vector<std::string> tokens = Helper::quoted_parse( str , delim , empty );
-	    
-	    const int sz = tokens.size();
-	    
-	    for ( int i = 0 ; i < sz ; i++ )
-	    {
-		
-		// Expecting a key=value pairing; allow quotes
-
-		int ntok2;
-		Helper::char_tok tokens_b( tokens(i) , &ntok2 , '=' , escape_quotes );
-		
-		// skip handle weird things like trying to parse '==' 
-		if ( tokens_b.size() == 0 ) continue;
-		
-		const std::string key = tokens_b[0];
-		
-		// a key/value pair
-		
-		if ( tokens_b.size() == 2 ) // a key = value pair
-		{	    
-		    if ( autoadd ) 
-		    {
-			if ( ! MetaInformation::exists( key ) ) 
-			    MetaInformation::field( key , META_TEXT );
-		    }
-		    
-		    // will find the appropriate type and add value to key
-		    parse_set( key, Helper::unquote( tokens_b[1] ) );
-		} 	
-		else 
-		{ 
-		    if ( autoadd ) MetaInformation::field( key , META_FLAG );	    
-		    set( key ); // set as META_FLAG 
-		} 
-			
-	    }
-
-	}
+    // Take delimited string and parse
+    // Format is  " ;" ->  X=Y  ->  X single      
     
+    // X=1;Y=2,3;Z;A=House;
+    // X="1 ;23";Y=22;
+    // but allow quotes
+    // also allow other '=' characters in the strings
+    
+    const bool escape_quotes = true;
+	    
+    int ntok;
+    Helper::char_tok tokens( str , &ntok , delim , escape_quotes ); 
+    
+    //std::vector<std::string> tokens = Helper::quoted_parse( str , delim , empty );
+    
+    const int sz = tokens.size();
+    
+    for ( int i = 0 ; i < sz ; i++ )
+      {
+	
+	// Expecting a key=value pairing; allow quotes
+	
+	int ntok2;
+	Helper::char_tok tokens_b( tokens(i) , &ntok2 , '=' , escape_quotes );
+	
+	// skip handle weird things like trying to parse '==' 
+	if ( tokens_b.size() == 0 ) continue;
+	
+	// get (with optional prefix -- for RefVariant meta)
+	
+	const std::string key = prefix ? *prefix + "_" + tokens_b[0] : tokens_b[0];	      	      
+	
+	// a key/value pair
+	
+	if ( tokens_b.size() == 2 ) // a key = value pair
+	  {	    
+	    if ( autoadd ) 
+	      {
+		if ( ! MetaInformation::exists( key ) ) 
+			MetaInformation::field( key , META_TEXT );
+	      }
+	    
+	    // will find the appropriate type and add value to key
+	    parse_set( key, Helper::unquote( tokens_b[1] ) );
+	  } 	
+	else if ( tokens_b.size() > 2 ) // a key = value=v2 pair (i.e. '=' in value
+	  {
+	    if ( autoadd ) 
+	      {
+		if ( ! MetaInformation::exists( key ) ) 
+		  MetaInformation::field( key , META_TEXT );
+	      }
+	    
+	    std::string val = tokens_b[1];
+	    for (int b=2;b<tokens_b.size();b++) val += "=" + std::string(tokens_b[b]);
+
+	    parse_set( key, Helper::unquote( val ) );
+
+	  }
+	else 
+	  { 
+	    if ( autoadd ) MetaInformation::field( key , META_FLAG );	    
+	    set( key ); // set as META_FLAG 
+	  } 
+	
+      }
+    
+  }
+  
     
     
     //
@@ -353,34 +370,42 @@ class MetaInformation {
     //
 
     void set(const meta_key_t key , const int value )
-	{
-	    std::vector<int> t;
-	    t.push_back(value);
-	    m_int[key] = t;
-	}
-
-    void set(const meta_key_t key , const double value )
-	{
-	    std::vector<double> t;
-	    t.push_back(value);
-	    m_double[key] = t;
-	}
-
-    void set(const meta_key_t key , const std::string & value )
-	{
-	    std::vector<std::string> t;
-	    t.push_back(value);
-	    m_string[key] = t;
-	}
-
-    void set(const meta_key_t key , const bool value )
-	{
-	    std::vector<bool> t;
-	    t.push_back(value);
-	    m_bool[key] = t;
-	}
+    {
+      std::vector<int> t;
+      t.push_back(value);
+      m_int[key] = t;
+    }
     
-
+    void set(const meta_key_t key , const double value )
+    {
+      std::vector<double> t;
+      t.push_back(value);
+      m_double[key] = t;
+    }
+    
+    void set(const meta_key_t key , const std::string & value )
+    {
+      std::vector<std::string> t;
+      t.push_back(value);
+      m_string[key] = t;
+    }
+    
+    void set(const meta_key_t key , const char * value )
+    {
+      std::vector<std::string> t;
+      t.push_back(value);
+      m_string[key] = t;
+    }
+    
+    void set(const meta_key_t key , const bool value )
+    {
+      std::vector<bool> t;
+      t.push_back(value);
+      m_bool[key] = t;
+    }
+    
+    
+    
     //
     // Append a value onto a variable-length list
     //
@@ -549,92 +574,91 @@ class MetaInformation {
 		
 		meta_index_t * m = (*midx)[i];
 		
-		if ( m->len == 1 )  // single value fields
-		{
-		    switch( m->mt ) 
-		    { 		  
-			case META_INT   : 
-			    int x;
-			    if ( Helper::str2int( tok[i] , x ) ) set( m->key , x );
-			    break;  		  
-			case META_FLOAT : 
-			    double d;
-			    if ( Helper::str2dbl( tok[i] ,  d) ) set( m->key , d );
-			    break;  		  
-			case META_TEXT  : 
-			    if ( *tok[i] != '.' ) set( m->key , tok[i] );
-			    break;  		  
-			case META_BOOL  : 
-			    set( m->key , *tok[i] != '0' && *tok[i] != '.' && *tok[i] != 'F' );
-			    break;  		  
-		case META_FLAG  : 
-		  set( m->key );
-		  break;  
-		}
-		}
-	  else
-	    {
-		// Assume comma-delimited vector
-		int tok2size = 0;
-		
-		Helper::char_tok tok2( tok[i] , 0 , &tok2size , ',' );
-		
-		// If an exact length given, check we match
-		if ( m->len > 1 && m->len != tok2.size() ) continue;
-		// this implicitly handles the case in which the whole 
-		// vector is specified as missing 
-		
-		// i.e. "."  instead of "0.0,0.1,0.9" for example (and not ".,.,.")
-		
-		switch( m->mt )
-                {
-		    case META_INT   :
-		    {
-			std::vector<int> x( tok2size );
-			bool okay = true;
-			for (int i=0;i<tok2size;i++) if ( ! Helper::str2int( tok2[i] , x[i] ) ) okay = false;
-			if ( okay ) set( m->key , x );
-			break;
-		  }
-                case META_FLOAT :
+		if ( m->len == 1 )  // single value fields		  
 		  {
-		      std::vector<double> x( tok2size );
-		      bool okay = true;
-		      for (int i=0;i<tok2size;i++) if ( ! Helper::str2dbl( tok2[i] , x[i] ) ) okay = false;
-		      if ( okay ) set( m->key , x );
-		      break;
-		  }
-		    case META_TEXT  :
-		    {
-			set( m->key , tok2 );
-			break;
-		    }
-		    case META_BOOL  :
-		    {
-		    std::vector<bool> x( tok2size );
-		    bool okay = true;
-		    for (int i=0;i<tok2size;i++) 
-		      {
-			  if ( *tok2[i] == '0' || *tok2[i] == 'F' || *tok2[i] == 'f' || *tok2[i] == '.' ) x[i] = false;
-			  else if ( *tok2[i] == '1' || *tok2[i] == 'T' || *tok2[i] == 't' ) x[i] = true;
-			  else okay = false;
+
+		    switch( m->mt ) 
+		      { 		  
+		      case META_INT   : 
+			int x;
+			if ( Helper::str2int( tok[i] , x ) ) set( m->key , x );
+			break;  		  
+		      case META_FLOAT : 
+			double d;
+			if ( Helper::str2dbl( tok[i] ,  d) ) set( m->key , d );
+			break;  		  
+		      case META_TEXT  : 
+			if ( *tok[i] != '.' ) set( m->key , tok[i] );
+			break;  		  
+		      case META_BOOL  : 
+			set( m->key , *tok[i] != '0' && *tok[i] != '.' && *tok[i] != 'F' );
+			break;  		  
+		      case META_FLAG  : 
+			set( m->key );
+			break;  
 		      }
-		    if ( okay ) set( m->key , x );
-		    break;
-		    }
-                }	      
+		  }
+		else
+		  {
+		    // Assume comma-delimited vector
+		    int tok2size = 0;
+		    
+		    Helper::char_tok tok2( tok[i] , 0 , &tok2size , ',' );
+		    
+		    // If an exact length given, check we match
+
+		    if ( m->len > 1 && m->len != tok2.size() ) continue;
+
+		    // this implicitly handles the case in which the whole 
+		    // vector is specified as missing 
+		    
+		    // i.e. "."  instead of "0.0,0.1,0.9" for example (and not ".,.,.")
+		    
+		    switch( m->mt )
+		      {
+		      case META_INT   :
+			{
+			  std::vector<int> x( tok2size );
+			  bool okay = true;
+			  for (int i=0;i<tok2size;i++) if ( ! Helper::str2int( tok2[i] , x[i] ) ) okay = false;
+			  if ( okay ) set( m->key , x );
+			  break;
+			}
+		      case META_FLOAT :
+			{
+			  std::vector<double> x( tok2size );
+			  bool okay = true;
+			  for (int i=0;i<tok2size;i++) if ( ! Helper::str2dbl( tok2[i] , x[i] ) ) okay = false;
+			  if ( okay ) set( m->key , x );
+			  break;
+			}
+		      case META_TEXT  :
+			{
+			  set( m->key , tok2 );
+			  break;
+			}
+		      case META_BOOL  :
+			{
+			  std::vector<bool> x( tok2size );
+			  bool okay = true;
+			  for (int i=0;i<tok2size;i++) 
+			    {
+			      if ( *tok2[i] == '0' || *tok2[i] == 'F' || *tok2[i] == 'f' || *tok2[i] == '.' ) x[i] = false;
+			      else if ( *tok2[i] == '1' || *tok2[i] == 'T' || *tok2[i] == 't' ) x[i] = true;
+			      else okay = false;
+			    }
+			  if ( okay ) set( m->key , x );
+			  break;
+			}
+		      }	      
+		  }
 	    }
 	}
-    }
     
-	      
-	      
+        
     //
     // Queries
     //
-    
-    bool hasField(const std::string & k) const
-    { return has_field(k); }
     
     bool has_field(const std::string & k) const
     { 
@@ -1021,7 +1045,7 @@ class MetaInformation {
 	    
 	    const meta_index_t & midx = field( *i );
 	    
-	    if ( ! hasField( midx.name ) ) out << ".";
+	    if ( ! has_field( midx.name ) ) out << ".";
 	    else if      ( midx.mt == META_INT )
 	      out << print( m_int.find( midx.key )->second );
 	    else if ( midx.mt == META_FLOAT )
@@ -1044,14 +1068,14 @@ class MetaInformation {
 	for (unsigned int i = 0 ; i < ordered.size(); i++) 
 	  {
 	    const meta_index_t & midx = ordered[i];	    
-	    if ( ! hasField( midx.name ) ) continue;	    
-	    if      ( midx.mt == META_INT    && hasField( midx.name ) ) 
+	    if ( ! has_field( midx.name ) ) continue;	    
+	    if      ( midx.mt == META_INT    && has_field( midx.name ) ) 
 	      out << print( m_int.find( midx.key )->second );
-	    else if ( midx.mt == META_FLOAT  && hasField( midx.name ) ) 
+	    else if ( midx.mt == META_FLOAT  && has_field( midx.name ) ) 
 	      out << print( m_double.find( midx.key )->second );
-	    else if ( midx.mt == META_TEXT   && hasField( midx.name ) ) 
+	    else if ( midx.mt == META_TEXT   && has_field( midx.name ) ) 
 	      out << print( m_string.find( midx.key )->second );
-	    else if ( midx.mt == META_BOOL   && hasField( midx.name ) ) 
+	    else if ( midx.mt == META_BOOL   && has_field( midx.name ) ) 
 	      out << print( m_bool.find( midx.key )->second );
 	    else out << ".";	    
 	    if ( i != ordered.size() - 1 ) out << sep;       
@@ -1074,7 +1098,7 @@ class MetaInformation {
 	      
 	      meta_index_t midx = MetaInformation::ordered[i];
 	      
-	      if ( ! m.hasField( midx.name ) ) continue;
+	      if ( ! m.has_field( midx.name ) ) continue;
 	      	      
 	      if ( ! MetaMeta::display( midx.name ) ) continue;
 
@@ -1099,7 +1123,7 @@ class MetaInformation {
     std::string print( meta_name_t & name ) 
       {
 	meta_index_t midx = MetaInformation::field(name);
-	if ( ! hasField( midx.name) ) return ".";
+	if ( ! has_field( midx.name) ) return ".";
 	if ( midx.mt == META_INT ) return print( m_int[ midx.key ] );
 	if ( midx.mt == META_FLOAT ) return print( m_double[ midx.key ] );
 	if ( midx.mt == META_TEXT ) return print( m_string[ midx.key ] );
@@ -1117,7 +1141,7 @@ class MetaInformation {
 
 	    meta_index_t midx = MetaInformation::ordered[i];
 	    if ( ! MetaMeta::display( midx.name ) ) continue;
-	    if ( ! hasField( midx.name ) ) continue;
+	    if ( ! has_field( midx.name ) ) continue;
 
 	    s += indent + midx.name;
 	    if      ( midx.mt == META_INT   ) s += " = " + print( m_int.find( midx.key )->second ) + "\n";
@@ -1241,12 +1265,12 @@ class MetaInformation {
 
 	    if ( midx.mt == META_FLAG  ) 
 	      {
-		if ( hasField( midx.name ) ) 
+		if ( has_field( midx.name ) ) 
 		  s += "1"; 
 		else 
 		  s += "0";     	    
 	      }
-	    else if ( ! hasField( midx.name ) ) s += missing;
+	    else if ( ! has_field( midx.name ) ) s += missing;
 	    else if ( midx.mt == META_INT   ) s += print( m_int.find( midx.key )->second );
 	    else if ( midx.mt == META_FLOAT ) s += print( m_double.find( midx.key )->second );
 	    else if ( midx.mt == META_TEXT  ) s += print( m_string.find(  midx.key )->second );
@@ -1271,12 +1295,12 @@ class MetaInformation {
 
 	    if ( midx.mt == META_FLAG  ) 
 	      {
-		if ( hasField( midx.name ) ) 
+		if ( has_field( midx.name ) ) 
 		  s += "1"; 
 		else 
 		  s += "0";     	    
 	      }
-	    else if ( ! hasField( midx.name ) ) s += missing;
+	    else if ( ! has_field( midx.name ) ) s += missing;
 	    else if ( midx.mt == META_INT   ) s += print( m_int.find( midx.key )->second );
 	    else if ( midx.mt == META_FLOAT ) s += print( m_double.find( midx.key )->second );
 	    else if ( midx.mt == META_TEXT  ) s += print( m_string.find(  midx.key )->second );
@@ -1301,12 +1325,12 @@ class MetaInformation {
 
 	    if ( midx.mt == META_FLAG  ) 
 	      {
-		if ( hasField( midx.name ) ) 
+		if ( has_field( midx.name ) ) 
 		  s += "1"; 
 		else 
 		  s += "0";     	    
 	      }
-	    else if ( ! hasField( midx.name ) ) s += missing;
+	    else if ( ! has_field( midx.name ) ) s += missing;
 	    else if ( midx.mt == META_INT   ) s += print( m_int.find( midx.key )->second );
 	    else if ( midx.mt == META_FLOAT ) s += print( m_double.find( midx.key )->second );
 	    else if ( midx.mt == META_TEXT  ) s += print( m_string.find(  midx.key )->second );
@@ -1496,6 +1520,13 @@ class MetaInformation {
 	  }
 	else
 	  {
+	    
+	    if ( t != META_UNDEFINED && t != i->second.mt )
+	      plog.warn( "conflicting type redefinition " , s );
+
+	    if ( num != -1 && num != i->second.len )
+	      plog.warn( "conflicting type/length redefinition " , s );
+
 	    return i->second;
 	  }
       }

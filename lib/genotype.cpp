@@ -403,7 +403,7 @@ Genotype::Genotype( const char * c ,
 
     // Set genotpe meta-fields (GT field should be NULL and thus skipped)    
     meta.set( tok , &formats );
-  
+
 }
 
 

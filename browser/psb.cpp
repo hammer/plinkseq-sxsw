@@ -108,6 +108,8 @@ int main()
 	  if ( str == "passwd" )
 	    {
 	      pwd = cgivars[i+1];	      
+	      if ( pwd != "(if required)" )
+		a.add_form_value( "passwd", pwd );
 	    }
 
 
@@ -440,13 +442,15 @@ int main()
 
   for (int m=0; m<a.mf.size(); m++)
     {
+
       // is last char a wildcard?
+
       if ( a.mf[m].substr( a.mf[m].size() - 1 , 1 )  == "*" )
 	{
 	  
 	  std::string match = a.mf[m].substr( 0 , a.mf[m].size() - 1 );
 	  
-	  a.mf.erase( a.mf.begin() + m );
+	  //a.mf.erase( a.mf.begin() + m );
 
 	  std::map<int,std::string> f = g.vardb.fetch_files();
 	  std::map<int,std::string>::iterator i = f.begin();
@@ -468,7 +472,7 @@ int main()
 			  if ( onecopy.find( mval ) == onecopy.end() )
 			    {
 			      onecopy.insert( mval );
-			      a.mf.push_back( mval );
+			      //a.mf.push_back( mval );
 			    }
 			}
 		    }
@@ -487,7 +491,7 @@ int main()
 		  if ( onecopy.find( rii->first ) == onecopy.end() )
 		    {
 		      onecopy.insert( rii->first );
-		      a.mf.push_back( rii->first );
+		      //a.mf.push_back( rii->first );
 		    }
 		}
 	      ++rii;
@@ -495,9 +499,20 @@ int main()
 	  
 	  // if full wildcard, only expand once
 	  if ( match == "" ) break;
+	} 
+      else 
+	{
+	  onecopy.insert( a.mf[m] );
 	}
     }
   
+  a.mf.clear();
+  std::set<std::string>::iterator ii = onecopy.begin();
+  while ( ii != onecopy.end() ) 
+    {
+      a.mf.push_back( *ii );
+      ++ii;
+    }
   
   // check for any non-pp fields
   // i.e. that have '+' suffix
@@ -1839,7 +1854,7 @@ void ExomeBrowser::g_display_indiv(VariantGroup & vars, void *p)
       std::set<std::string>::iterator k = gmeta.begin();
       while ( k != gmeta.end() )
 	{
-	  if ( (vars.var(i))(ni).meta.hasField( *k ) )
+	  if ( (vars.var(i))(ni).meta.has_field( *k ) )
 	    {
 	      meta_name_t t = *k;
 	      std::cout << "<td>" << (vars.var(i))(ni).meta.print( t ) << "</td>";
@@ -1884,7 +1899,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
   const int N_TOO_MANY_INDIV = 100;
   const int N_TOO_MANY_TRANS = 50;
   const int N_TOO_MANY_VAR   = 100;
-
+  const int N_TOO_BIG_REGION = 1000000; // 1Mb limit of region size for now
 
   //
   // Get list of regions to query (either corresponding to a region or transcript
@@ -2032,6 +2047,15 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
       int min = minmax[r].p1;
       int max = minmax[r].p2;      
       int span = max - min;      
+
+      // check not too big
+
+      if ( span > N_TOO_BIG_REGION )
+	{
+	  std::cout << "<em><b>...skipping region over 1Mb...</b></em><hr> ";
+	  continue;
+	}
+	
 
       // a little border, and some constraints
 
@@ -3126,7 +3150,7 @@ void ExomeBrowser::make_mf_list(Aux * a)
       
       std::cout << "<tr><td>";
 
-      bool refvar = ii->second["GRP"] == "RefVariant";
+      // bool refvar = ii->second["GRP"] == "RefVariant";
       
       if ( selected_meta.find( ii->first ) != selected_meta.end() )
 	std::cout << "<input type=\"checkbox\" disabled=\"disabled\" name=\"metasel\" value=\""<< ii->first <<"\" checked>";
@@ -3135,14 +3159,16 @@ void ExomeBrowser::make_mf_list(Aux * a)
             
       std::cout << "</td><td>";
    
-      if ( ! refvar ) 
-	{
+//       if ( ! refvar ) 
+// 	{
 	  std::cout << a->getURL()->addField( "q", "mflist" )	
 	    ->addField( "meta" , mf_url + " " + ii->first )
 	    ->printLink( ii->first );
-	}
-      else
-	std::cout << "<em>GROUP_</em>" << ii->first ;
+	  
+//	}
+//       else
+// 	std::cout << "<em>GROUP_</em>" << ii->first ;
+
 
       std::cout << "</td><td>";
       

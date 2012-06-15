@@ -116,7 +116,7 @@ void FileMap::setCoreFiles( const std::string & f )
   
   reset();
   
-  checkFileExists( f );
+  Helper::checkFileExists( f );
   
   addSpecial( FIDX , f );
   

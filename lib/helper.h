@@ -10,7 +10,6 @@
 #include <map>
 #include <inttypes.h>
 
-
 class Log;
 
 extern Log plog;
@@ -520,6 +519,8 @@ namespace Helper
 
   std::vector<std::string> tokenizeLine(std::ifstream &);
 
+
+    
   //
   // faster C-string, in place tokenizer for VCF genotype entries
   //
@@ -813,6 +814,7 @@ class dbl_range {
     return upr < rhs.upr;   
   }
 };
+
 
 
 #endif

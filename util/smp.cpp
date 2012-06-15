@@ -329,6 +329,7 @@ int main( int argc , char ** argv )
 	  // sum over sets this element belongs to 	  
 	  
 	  // get mean/var of gene 'e'
+
 	  Data::Vector<double> & evec = E[j].col(e);
 	  double meane = mean( evec );
 	  double vare = variance( evec , meane );
@@ -368,6 +369,7 @@ int main( int argc , char ** argv )
 	  
 	  // figure out which fellows are contributing significantly to 
 	  // this set-weighted test
+
 	  std::vector<std::vector<double> > fellow_tests( nrep+1 ) ;
 
 	  std::vector<double> accum( nrep+1 , 0 );
@@ -475,7 +477,7 @@ int main( int argc , char ** argv )
 	    {
 	      for (int r=1;r<=nrep;r++)
 		{
-		  if ( E[j](r,e) >= E[j](0,e) ) ++pv1;
+		  if ( E[j](r,e) >= E[j](0,e) ) ++pv0;
 		  if ( mx[j][r]  >= E[j](0,e) ) ++pvm;
 		}
 	      
@@ -489,7 +491,11 @@ int main( int argc , char ** argv )
 			<< (double)(pvm) / (double)(nrep+1) << "\t" 
 			<< "NA" << "\t"
 			<< "NA" << "\t"
-			<< slot2gene[e] << "\n";	      
+			<< slot2gene[e] << "\t";
+	      
+	      std::string ann = gene_annot[ slot2gene[e] ] ;
+	      std::cout << ( ann == "" ? "." : ann ) << "\n";
+	      
 	      
 	    }
 

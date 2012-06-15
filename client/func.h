@@ -198,7 +198,7 @@ namespace Pseq
 
       bool make_residuals( const std::vector<std::string> & );
       
-      bool dump_phenotypes( const std::vector<std::string> & );
+      bool dump_phenotypes( const std::vector<std::string> & , bool as_matrix = false );
     }
   
   

@@ -21,16 +21,41 @@ namespace Statistics {
   void svbksb( Data::Matrix<double> & , Data::Vector<double> & , Data::Matrix<double> & , Data::Vector<double> & , Data::Vector<double> & );
 
   // 1-dimensional numerical integration
-  double integrate_old(double a, double b, double (*f)(double x,void*), void*d, double eps);
-  double integrate(double a, double b, double (*f)(double x,void*), void*d, double eps);
+  double integrate(double a, double b, double (*f)(double x,void*,bool*), bool * , void*d = NULL , double eps = 10e-15 );  
+  double integrate_old(double a, double b, double (*f)(double x,void*,bool*), bool*,void*d, double eps);
+  double update_integral(double a, double b, double (*f)(double x,void*,bool*),void * d, bool *, double previous, int round);
 
-  double update_integral(double a, double b, double (*f)(double x,void*),void * d, double previous, int round);
+  // NR 1-dimensional integration
+  
+  double qsimp( double a, double b, double (*f)(double x,void*,bool*), bool * okay , void*d = NULL , double eps = 10e-6 );
+  
+  //  double trapzd( double a, double b, double (*f)(double x,void*,bool*),void * d, bool *, int );
+
+  // (Open) Romberg integration
+  
+  void polint( double * xa , 
+	       double * ya , 
+	       int n , 
+	       double x, double *y, double *dy );
+
+  double qromo( double a, double b, double (*f)(double x,void*,bool*), bool * okay , void*d = NULL , int method = 1 , double eps = 10e-6 );
+  
+  double midpnt( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n ); //method1 
+  double midinf( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n ); //2
+  double midsql( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n ); //3
+  double midsqu( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n ); //4
+  double midexp( double aa, double bb, double (*f)(double x,void*,bool*), double previous, void * d, bool * okay , int n ); //5
+
+
+  
   
   long unsigned int factorial(int n);
   long unsigned int combin(int n, int k);
   
   double dbinom( const int k , const int n , double p );
   double chi2_prob( double x, double df );
+  bool   qchisq( double p , double df , double * );
+  double dchisq( double x , double df );
   double noncentral_chi2_prob( double x, double df , double  );
   double t_prob( double x, double df );
   double ltqnorm( double p );
@@ -62,7 +87,12 @@ namespace Statistics {
   Data::Matrix<double> matrix_outer_product( const Data::Vector<double> & , const Data::Vector<double> & );  
 
   // Mean, variance and covariance
-  
+
+  double sum( const Data::Vector<double> & );
+  double sum_squares( const Data::Vector<double> & );
+  Data::Vector<double> row_sums( const Data::Matrix<double> & );
+  Data::Vector<double> col_sums( const Data::Matrix<double> & );
+
   Data::Vector<double> mean( const Data::Matrix<double> & );
   
   Data::Vector<double> variance( const Data::Matrix<double> & );
@@ -76,6 +106,8 @@ namespace Statistics {
 					    const Data::Matrix<double> & , const Data::Vector<double> & );
   
   std::vector<double> canonical_correlation( const Data::Matrix<double> & , const Data::Matrix<double> & , double * pv = NULL );     
+
+  Data::Matrix<double> cholesky( const Data::Matrix<double> & );
   
   double bartlett(const int N, 
 		  const int p, 
@@ -90,23 +122,23 @@ namespace Statistics {
     Data::Matrix<double> z; // eigenvectors
   };
   
-  Statistics::Eigen eigenvectors( Data::Matrix<double> & );
+  Statistics::Eigen eigenvectors( Data::Matrix<double> & , bool * okay );
   
-  void EV_tqli( Data::Vector<double> & d , 
+  bool EV_tqli( Data::Vector<double> & d , 
 		Data::Vector<double> & e , 
 		Data::Matrix<double> & z );
 
-  void EV_tred2( Data::Matrix<double> & a , 
+  bool EV_tred2( Data::Matrix<double> & a , 
 		 Data::Vector<double> & d , 
 		 Data::Vector<double> & e );
   
 
-  Data::Vector<double> eigenvalues( Data::Matrix<double> & );  
-  void tqli( Data::Vector<double> & d , 
+  Data::Vector<double> eigenvalues( Data::Matrix<double> & , bool * okay );  
+  bool tqli( Data::Vector<double> & d , 
 	     Data::Vector<double> & e );
 	     
   
-  void tred2( Data::Matrix<double> & a , 
+  bool tred2( Data::Matrix<double> & a , 
 	      Data::Vector<double> & d , 
 	      Data::Vector<double> & e );
   
