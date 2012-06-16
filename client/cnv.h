@@ -1,8 +1,8 @@
 #ifndef __CNV_H__
 #define __CNV_H__
 
-#include "pseq.h"
-#include "mask.h"
+#include "plinkseq.h"
+#include "plinkseq/mask.h"
 
 #include <map>
 #include <string>

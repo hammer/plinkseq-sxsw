@@ -1,5 +1,5 @@
 #include "ibd.h"
-#include "pseq.h"
+#include "plinkseq.h"
 #include "func.h"
 
 #include <iomanip>

@@ -1,10 +1,9 @@
 
-#include "em.h"
-#include "helper.h"
-#include "variant.h"
+#include "plinkseq/em.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/variant.h"
 
 #include <iostream>
-
 #include <cmath>
 
 std::vector<double> EM::lik_to_probs( std::vector<double> & g , bool phred_scaled ) const

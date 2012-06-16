@@ -1,10 +1,10 @@
 
-#include "filemap.h"
-#include "helper.h"
-#include "defs.h"
-#include "bcf.h"
-#include "vcfz.h"
-#include "gstore.h"
+#include "plinkseq/filemap.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/bcf.h"
+#include "plinkseq/vcfz.h"
+#include "plinkseq/gstore.h"
 
 #include <iostream>
 #include <fstream>

@@ -1,5 +1,5 @@
 #include "assoc.h"
-#include "pseq.h"
+#include "plinkseq.h"
 #include "func.h"
 #include "genic.h"
 

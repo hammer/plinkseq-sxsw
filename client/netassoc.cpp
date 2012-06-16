@@ -1,6 +1,6 @@
 
 #include "netassoc.h"
-#include "pseq.h"
+#include "plinkseq.h"
 #include "assoc.h"
 #include "util.h"
 

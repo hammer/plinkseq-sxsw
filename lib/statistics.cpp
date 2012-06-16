@@ -1,8 +1,8 @@
-#include "statistics.h"
-#include "helper.h"
-#include "matrix.h"
+#include "plinkseq/statistics.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/matrix.h"
 #include "dcdflib.h"
-#include "ipmpar.h"
+#include "plinkseq/ipmpar.h"
 
 #include <iostream>
 #include <cmath>

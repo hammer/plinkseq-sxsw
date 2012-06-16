@@ -6,14 +6,20 @@
 #include <cstdio>
 #include <cerrno>
 
-#include "helper.h"
-#include "regions.h"
-#include "variant.h"
-#include "gstore.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/regions.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/gstore.h"
 
 #ifdef R_SHLIB
 #include "rint.h"
 #endif
+
+// Helper function for detecting plinkseq library
+char plinkseq_present() {
+	return 0; 
+}
+
 
 extern GStore * GP;
 

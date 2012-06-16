@@ -1,7 +1,7 @@
 
 #include "clusters.h"
 #include "func.h"
-#include "pseq.h"
+#include "plinkseq.h"
 #include <cmath>
 
 extern GStore g;

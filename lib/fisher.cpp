@@ -1,7 +1,7 @@
 
 #include <climits>
 
-#include "fisher.h"
+#include "plinkseq/fisher.h"
 
 bool Table::odds_ratio( double * odds ) const
 {

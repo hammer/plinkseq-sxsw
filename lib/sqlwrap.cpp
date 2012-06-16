@@ -1,6 +1,6 @@
 
-#include "sqlwrap.h"
-#include "defs.h"
+#include "plinkseq/sqlwrap.h"
+#include "plinkseq/defs.h"
 
 using namespace std;
 using namespace Helper;

@@ -7,7 +7,7 @@
 
 using namespace std;
 
-# include "prob.h"
+# include "plinkseq/prob.h"
 
 namespace Helper { 
   namespace PROB { 

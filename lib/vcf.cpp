@@ -1,8 +1,8 @@
 
-#include "vcf.h"
-#include "gstore.h"
-#include "genotype.h"
-#include "defs.h"
+#include "plinkseq/vcf.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/genotype.h"
+#include "plinkseq/defs.h"
 
 #include <set>
 #include <string>

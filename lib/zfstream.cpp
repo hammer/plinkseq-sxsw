@@ -7,7 +7,7 @@
  * This version is standard-compliant and compatible with gcc 3.x.
  */
 
-#include "zfstream.h"
+#include "plinkseq/zfstream.h"
 #include <cstring>          // for strcpy, strcat, strlen (mode strings)
 #include <cstdio>           // for BUFSIZ
 

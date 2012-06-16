@@ -2,7 +2,7 @@
 #include <iostream>
 #include <iterator>
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 #include "func.h"
 #include "views.h"

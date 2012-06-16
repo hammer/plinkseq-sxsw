@@ -2,7 +2,7 @@
 #define __PSEQ_GENIC_H__
 
 #include <map>
-#include "pseq.h"
+#include "plinkseq.h"
 #include <cmath>
 
 class VariantGroup;

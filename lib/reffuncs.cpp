@@ -1,5 +1,5 @@
 
-#include "gstore.h"
+#include "plinkseq/gstore.h"
 
 using namespace std;
 using namespace Helper;

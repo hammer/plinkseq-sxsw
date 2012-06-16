@@ -1,12 +1,12 @@
 #include <memory>
 
-#include "variant.h"
-#include "genotype.h"
-#include "helper.h"
-#include "mask.h"
-#include "bcf.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/genotype.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/mask.h"
+#include "plinkseq/bcf.h"
 
-#include "gstore.h"
+#include "plinkseq/gstore.h"
 
 extern GStore * GP;
 

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include "pseq.h"
+#include "plinkseq.h"
 
 class Variant;
 class VariantGroup;

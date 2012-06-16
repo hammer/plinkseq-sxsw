@@ -33,7 +33,7 @@ c
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "bgzf.h"
+#include "plinkseq/bgzf.h"
 
 #include "khash.h"
 typedef struct {

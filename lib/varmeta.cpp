@@ -1,6 +1,5 @@
-#include "vardb.h"
-
-#include "helper.h"
+#include "plinkseq/vardb.h"
+#include "plinkseq/helper.h"
 
 
 int VarDBase::loader_indep_meta( const std::string & filename , int f , const std::string & meta_name )

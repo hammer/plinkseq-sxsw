@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 #include "char_tok.h"
 

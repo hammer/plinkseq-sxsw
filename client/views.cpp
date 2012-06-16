@@ -1,10 +1,10 @@
 
 #include "views.h"
-#include "em.h"
+#include "plinkseq/em.h"
 #include "util.h"
 #include "func.h"
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 #include <iostream>
 #include <cmath>

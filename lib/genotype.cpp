@@ -1,7 +1,7 @@
 
-#include "genotype.h"
-#include "variant.h"
-#include "defs.h"
+#include "plinkseq/genotype.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/defs.h"
 
 #include <bitset>
 #include <iostream>

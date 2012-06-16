@@ -1,8 +1,8 @@
-#include "bcf.h"
-#include "variant.h"
-#include "vardb.h"
-#include "gstore.h"
-#include "meta.h"
+#include "plinkseq/bcf.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/vardb.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/meta.h"
 
 #include <iostream>
 

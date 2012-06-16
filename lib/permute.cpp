@@ -1,8 +1,7 @@
-#include "permute.h"
-
-#include "indmap.h"
-#include "phmap.h"
-#include "individual.h"
+#include "plinkseq/permute.h"
+#include "plinkseq/indmap.h"
+#include "plinkseq/phmap.h"
+#include "plinkseq/individual.h"
 
 #include <iostream>
 #include <cmath>

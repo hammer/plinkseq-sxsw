@@ -1,5 +1,5 @@
-#include "matrix.h"
-#include "statistics.h"
+#include "plinkseq/matrix.h"
+#include "plinkseq/statistics.h"
 #include <sstream>
 
 template<class T> Data::Vector<T> Data::Vector<T>::operator*( const Data::Matrix<T> & rhs ) const

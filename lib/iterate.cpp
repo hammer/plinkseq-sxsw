@@ -1,5 +1,5 @@
 
-#include "vardb.h"
+#include "plinkseq/vardb.h"
 
 
 void add_requires_excludes( std::string & query , const Mask & mask );

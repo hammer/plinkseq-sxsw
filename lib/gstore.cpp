@@ -1,10 +1,10 @@
 
-#include "gstore.h"
-#include "genotype.h"
-#include "variant.h"
-#include "vcf.h"
-#include "defs.h"
-#include "crandom.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/genotype.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/vcf.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/crandom.h"
 
 #include <iostream>
 

@@ -1,11 +1,9 @@
-
-#include "mask.h"
-
-#include "locdb.h"
-#include "refdb.h"
-#include "annot.h"
-#include "vardb.h"
-#include "gstore.h"
+#include "plinkseq/mask.h"
+#include "plinkseq/locdb.h"
+#include "plinkseq/refdb.h"
+#include "plinkseq/annot.h"
+#include "plinkseq/vardb.h"
+#include "plinkseq/gstore.h"
 
 using namespace std;
 using namespace Helper;

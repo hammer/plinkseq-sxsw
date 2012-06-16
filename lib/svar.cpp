@@ -1,10 +1,9 @@
 
-#include "svar.h"
-
-#include "mask.h"
-#include "genotype.h"
-#include "vardb.h"
-#include "gstore.h"
+#include "plinkseq/svar.h"
+#include "plinkseq/mask.h"
+#include "plinkseq/genotype.h"
+#include "plinkseq/vardb.h"
+#include "plinkseq/gstore.h"
 
 extern GStore * GP;
 

@@ -4,7 +4,7 @@
 *.a
 *#
 *.lo
-
+*.la
 
 Makefile
 Makefile.in
@@ -79,3 +79,22 @@ m4/ltversion.m4
 m4/lt~obsolete.m4
 missing
 plinkseq-0.07.tar.gz
+.deps
+.libs
+stamp-h1
+util/behead
+util/gcol
+util/smp
+util/tab2vcf
+config.h
+config.h.in
+browser/mongoose
+browser/pbrowse.cgi
+browser/pbrowse.in
+client/pseq
+index/index.cgi
+index/index.in
+gseq/gseq.cgi
+browser/pbrowse
+index/index
+depcomp

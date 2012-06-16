@@ -1,7 +1,7 @@
 
-#include "inddb.h"
-#include "filemap.h"
-#include "gstore.h"
+#include "plinkseq/inddb.h"
+#include "plinkseq/filemap.h"
+#include "plinkseq/gstore.h"
 
 extern GStore * GP;
 
