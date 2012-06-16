@@ -109,6 +109,8 @@ glm.cpp \
 iterate.cpp \
 vcfiterate.cpp \
 netdb.cpp \
+statistics.cpp \
+matrix.cpp \
 sqlite3.c
 
 # right now, --with-debug and --with-static don't change anything here

@@ -1,6 +1,6 @@
 #include "genic.h"
 #include "util.h"
-#include "../lib/defs.h"
+#include "plinkseq/defs.h"
 
 #include <iostream>
 #include <algorithm>

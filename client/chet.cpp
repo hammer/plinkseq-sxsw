@@ -1,4 +1,3 @@
-#include "pseq.h"
 #include "genic.h"
 #include <iostream>
 #include <functional>

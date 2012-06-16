@@ -15,6 +15,7 @@
 
 
 
+
 pkgdatadir = $(datadir)/plinkseq
 pkgincludedir = $(includedir)/plinkseq
 pkglibdir = $(libdir)/plinkseq
@@ -31,10 +32,10 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = x86_64-unknown-linux-gnu
-host_triplet = x86_64-unknown-linux-gnu
+build_triplet = x86_64-apple-darwin11.4.0
+host_triplet = x86_64-apple-darwin11.4.0
 bin_PROGRAMS = pseq$(EXEEXT)
-am__append_1 = -I $(PROTOBUF_PREFIX)/include
+#am__append_1 = -I $(PROTOBUF_PREFIX)/include
 #am__append_2 = -no-install all-static
 subdir = client
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -51,17 +52,17 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_pseq_OBJECTS = pseq-util.$(OBJEXT) pseq-ibs.$(OBJEXT) \
-	pseq-main.$(OBJEXT) pseq-func.$(OBJEXT) \
+am_pseq_OBJECTS = pseq-skat.$(OBJEXT) pseq-util.$(OBJEXT) \
+	pseq-ibs.$(OBJEXT) pseq-main.$(OBJEXT) pseq-func.$(OBJEXT) \
 	pseq-summaries.$(OBJEXT) pseq-views.$(OBJEXT) \
 	pseq-assoc.$(OBJEXT) pseq-genic.$(OBJEXT) \
 	pseq-compare.$(OBJEXT) pseq-ibd.$(OBJEXT) \
 	pseq-loaders.$(OBJEXT) pseq-clusters.$(OBJEXT) \
 	pseq-varfunc.$(OBJEXT) pseq-glm-tests.$(OBJEXT) \
 	pseq-stepup.$(OBJEXT) pseq-kbac.$(OBJEXT) \
-	pseq-netassoc.$(OBJEXT) pseq-skat.$(OBJEXT) \
-	pseq-davies.$(OBJEXT) pseq-gseq.$(OBJEXT) pseq-extra.$(OBJEXT) \
-	pseq-cnv.$(OBJEXT) pseq-chet.$(OBJEXT)
+	pseq-netassoc.$(OBJEXT) pseq-davies.$(OBJEXT) \
+	pseq-gseq.$(OBJEXT) pseq-extra.$(OBJEXT) pseq-cnv.$(OBJEXT) \
+	pseq-chet.$(OBJEXT)
 pseq_OBJECTS = $(am_pseq_OBJECTS)
 pseq_DEPENDENCIES = ../lib/libplinkseq.la
 pseq_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
@@ -94,13 +95,13 @@ DIST_SOURCES = $(pseq_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /hpc/users/ruderd02/pseq/plinkseq/missing --run aclocal-1.11
-AMTAR = ${SHELL} /hpc/users/ruderd02/pseq/plinkseq/missing --run tar
+ACLOCAL = ${SHELL} /Users/thomas/code/plinkseq5/missing --run aclocal-1.11
+AMTAR = ${SHELL} /Users/thomas/code/plinkseq5/missing --run tar
 AR = ar
-AUTOCONF = ${SHELL} /hpc/users/ruderd02/pseq/plinkseq/missing --run autoconf
-AUTOHEADER = ${SHELL} /hpc/users/ruderd02/pseq/plinkseq/missing --run autoheader
-AUTOMAKE = ${SHELL} /hpc/users/ruderd02/pseq/plinkseq/missing --run automake-1.11
-AWK = gawk
+AUTOCONF = ${SHELL} /Users/thomas/code/plinkseq5/missing --run autoconf
+AUTOHEADER = ${SHELL} /Users/thomas/code/plinkseq5/missing --run autoheader
+AUTOMAKE = ${SHELL} /Users/thomas/code/plinkseq5/missing --run automake-1.11
+AWK = awk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
@@ -113,55 +114,59 @@ CXXFLAGS = -g -O2
 CYGPATH_W = echo
 DEFS = -DHAVE_CONFIG_H
 DEPDIR = .deps
-DSYMUTIL = 
+DLLTOOL = false
+DSYMUTIL = dsymutil
 DUMPBIN = 
-ECHO_C = 
-ECHO_N = -n
+ECHO_C = \c
+ECHO_N = 
 ECHO_T = 
-EGREP = /bin/grep -E
+EGREP = /usr/bin/grep -E
 EXEEXT = 
-FGREP = /bin/grep -F
-GREP = /bin/grep
-HAVE_LIBPROTOBUF = 
+FGREP = /usr/bin/grep -F
+GREP = /usr/bin/grep
+HAVE_LIBPROTOBUF = 1
 INSTALL = /usr/bin/install -c
 INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-LD = /usr/bin/ld -m elf_x86_64
+LD = /usr/llvm-gcc-4.2/libexec/gcc/i686-apple-darwin11/4.2.1/ld
 LDFLAGS = 
 LIBOBJS = 
 LIBS = 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
-LIPO = 
+LIPO = lipo
 LN_S = ln -s
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /hpc/users/ruderd02/pseq/plinkseq/missing --run makeinfo
-MKDIR_P = /bin/mkdir -p
-NM = /usr/bin/nm -B
-NMEDIT = 
-OBJDUMP = objdump
+MAKEINFO = ${SHELL} /Users/thomas/code/plinkseq5/missing --run makeinfo
+MANIFEST_TOOL = :
+MKDIR_P = .././install-sh -c -d
+NM = /usr/bin/nm
+NMEDIT = nmedit
+OBJDUMP = false
 OBJEXT = o
-OTOOL = 
-OTOOL64 = 
+OTOOL = otool
+OTOOL64 = :
 PACKAGE = plinkseq
 PACKAGE_BUGREPORT = bthomas@atgu.mgh.harvard.edu
 PACKAGE_NAME = plinkseq
 PACKAGE_STRING = plinkseq 0.08
 PACKAGE_TARNAME = plinkseq
+PACKAGE_URL = 
 PACKAGE_VERSION = 0.08
 PATH_SEPARATOR = :
-PROTOBUF_PREFIX = /packages/protobuf/2.4.1-gcc
+PROTOBUF_PREFIX = 
 RANLIB = ranlib
-SED = /bin/sed
+SED = /usr/bin/sed
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = strip
 VERSION = 0.08
-abs_builddir = /hpc/users/ruderd02/pseq/plinkseq/client
-abs_srcdir = /hpc/users/ruderd02/pseq/plinkseq/client
-abs_top_builddir = /hpc/users/ruderd02/pseq/plinkseq
-abs_top_srcdir = /hpc/users/ruderd02/pseq/plinkseq
+abs_builddir = /Users/thomas/code/plinkseq5/client
+abs_srcdir = /Users/thomas/code/plinkseq5/client
+abs_top_builddir = /Users/thomas/code/plinkseq5
+abs_top_srcdir = /Users/thomas/code/plinkseq5
+ac_ct_AR = ar
 ac_ct_CC = gcc
 ac_ct_CXX = g++
 ac_ct_DUMPBIN = 
@@ -171,33 +176,32 @@ am__quote =
 am__tar = ${AMTAR} chof - "$$tardir"
 am__untar = ${AMTAR} xf -
 bindir = ${exec_prefix}/bin
-build = x86_64-unknown-linux-gnu
+build = x86_64-apple-darwin11.4.0
 build_alias = 
 build_cpu = x86_64
-build_os = linux-gnu
-build_vendor = unknown
+build_os = darwin11.4.0
+build_vendor = apple
 builddir = .
 datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
 exec_prefix = ${prefix}
-host = x86_64-unknown-linux-gnu
+host = x86_64-apple-darwin11.4.0
 host_alias = 
 host_cpu = x86_64
-host_os = linux-gnu
-host_vendor = unknown
+host_os = darwin11.4.0
+host_vendor = apple
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /hpc/users/ruderd02/pseq/plinkseq/install-sh
+install_sh = ${SHELL} /Users/thomas/code/plinkseq5/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
 localstatedir = ${prefix}/var
-lt_ECHO = echo
 mandir = ${datarootdir}/man
-mkdir_p = /bin/mkdir -p
+mkdir_p = $(top_builddir)/./install-sh -c -d
 oldincludedir = /usr/include
 pdfdir = ${docdir}
 prefix = /usr/local
@@ -212,6 +216,7 @@ top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
 pseq_SOURCES = \
+skat.cpp \
 assoc.h \
 clusters.h \
 compare.h \
@@ -243,7 +248,6 @@ glm-tests.cpp \
 stepup.cpp \
 kbac.cpp \
 netassoc.cpp \
-skat.cpp \
 davies.cpp \
 gseq.cpp \
 extra.cpp \
@@ -347,6 +351,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/pseq-assoc.Po
+include ./$(DEPDIR)/pseq-chet.Po
 include ./$(DEPDIR)/pseq-clusters.Po
 include ./$(DEPDIR)/pseq-cnv.Po
 include ./$(DEPDIR)/pseq-compare.Po
@@ -389,6 +394,20 @@ include ./$(DEPDIR)/pseq-views.Po
 #	source='$<' object='$@' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(LTCXXCOMPILE) -c -o $@ $<
+
+pseq-skat.o: skat.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pseq-skat.o -MD -MP -MF $(DEPDIR)/pseq-skat.Tpo -c -o pseq-skat.o `test -f 'skat.cpp' || echo '$(srcdir)/'`skat.cpp
+	$(am__mv) $(DEPDIR)/pseq-skat.Tpo $(DEPDIR)/pseq-skat.Po
+#	source='skat.cpp' object='pseq-skat.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pseq-skat.o `test -f 'skat.cpp' || echo '$(srcdir)/'`skat.cpp
+
+pseq-skat.obj: skat.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pseq-skat.obj -MD -MP -MF $(DEPDIR)/pseq-skat.Tpo -c -o pseq-skat.obj `if test -f 'skat.cpp'; then $(CYGPATH_W) 'skat.cpp'; else $(CYGPATH_W) '$(srcdir)/skat.cpp'; fi`
+	$(am__mv) $(DEPDIR)/pseq-skat.Tpo $(DEPDIR)/pseq-skat.Po
+#	source='skat.cpp' object='pseq-skat.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pseq-skat.obj `if test -f 'skat.cpp'; then $(CYGPATH_W) 'skat.cpp'; else $(CYGPATH_W) '$(srcdir)/skat.cpp'; fi`
 
 pseq-util.o: util.cpp
 	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pseq-util.o -MD -MP -MF $(DEPDIR)/pseq-util.Tpo -c -o pseq-util.o `test -f 'util.cpp' || echo '$(srcdir)/'`util.cpp
@@ -628,34 +647,6 @@ pseq-netassoc.obj: netassoc.cpp
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pseq-netassoc.obj `if test -f 'netassoc.cpp'; then $(CYGPATH_W) 'netassoc.cpp'; else $(CYGPATH_W) '$(srcdir)/netassoc.cpp'; fi`
 
-pseq-chet.o: chet.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pseq-chet.o -MD -MP -MF $(DEPDIR)/pseq-chet.Tpo -c -o pseq-chet.o `test -f 'chet.cpp' || echo '$(srcdir)/'`chet.cpp
-	$(am__mv) $(DEPDIR)/pseq-chet.Tpo $(DEPDIR)/pseq-chet.Po
-#       source='chet.cpp' object='pseq-chet.o' libtool=no \
-#       DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#       $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pseq-chet.o `test -f 'chet.cpp' || echo '$(srcdir)/'`chet.cpp
-
-pseq-chet.obj: chet.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pseq-chet.obj -MD -MP -MF $(DEPDIR)/pseq-chet.Tpo -c -o pseq-chet.obj `if test -f 'chet.cpp'; then $(CYGPATH_W) 'chet.cpp'; else $(CYGPATH_W) '$(srcdir)/chet.cpp'; fi`
-	$(am__mv) $(DEPDIR)/pseq-chet.Tpo $(DEPDIR)/pseq-chet.Po
-#       source='chet.cpp' object='pseq-chet.obj' libtool=no \
-#       DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#       $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pseq-chet.obj `if test -f 'chet.cpp'; then $(CYGPATH_W) 'chet.cpp'; else $(CYGPATH_W) '$(srcdir)/chet.cpp'; fi`  
-
-pseq-skat.o: skat.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pseq-skat.o -MD -MP -MF $(DEPDIR)/pseq-skat.Tpo -c -o pseq-skat.o `test -f 'skat.cpp' || echo '$(srcdir)/'`skat.cpp
-	$(am__mv) $(DEPDIR)/pseq-skat.Tpo $(DEPDIR)/pseq-skat.Po
-#	source='skat.cpp' object='pseq-skat.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pseq-skat.o `test -f 'skat.cpp' || echo '$(srcdir)/'`skat.cpp
-
-pseq-skat.obj: skat.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pseq-skat.obj -MD -MP -MF $(DEPDIR)/pseq-skat.Tpo -c -o pseq-skat.obj `if test -f 'skat.cpp'; then $(CYGPATH_W) 'skat.cpp'; else $(CYGPATH_W) '$(srcdir)/skat.cpp'; fi`
-	$(am__mv) $(DEPDIR)/pseq-skat.Tpo $(DEPDIR)/pseq-skat.Po
-#	source='skat.cpp' object='pseq-skat.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pseq-skat.obj `if test -f 'skat.cpp'; then $(CYGPATH_W) 'skat.cpp'; else $(CYGPATH_W) '$(srcdir)/skat.cpp'; fi`
-
 pseq-davies.o: davies.cpp
 	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pseq-davies.o -MD -MP -MF $(DEPDIR)/pseq-davies.Tpo -c -o pseq-davies.o `test -f 'davies.cpp' || echo '$(srcdir)/'`davies.cpp
 	$(am__mv) $(DEPDIR)/pseq-davies.Tpo $(DEPDIR)/pseq-davies.Po
@@ -711,6 +702,20 @@ pseq-cnv.obj: cnv.cpp
 #	source='cnv.cpp' object='pseq-cnv.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pseq-cnv.obj `if test -f 'cnv.cpp'; then $(CYGPATH_W) 'cnv.cpp'; else $(CYGPATH_W) '$(srcdir)/cnv.cpp'; fi`
+
+pseq-chet.o: chet.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pseq-chet.o -MD -MP -MF $(DEPDIR)/pseq-chet.Tpo -c -o pseq-chet.o `test -f 'chet.cpp' || echo '$(srcdir)/'`chet.cpp
+	$(am__mv) $(DEPDIR)/pseq-chet.Tpo $(DEPDIR)/pseq-chet.Po
+#	source='chet.cpp' object='pseq-chet.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pseq-chet.o `test -f 'chet.cpp' || echo '$(srcdir)/'`chet.cpp
+
+pseq-chet.obj: chet.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT pseq-chet.obj -MD -MP -MF $(DEPDIR)/pseq-chet.Tpo -c -o pseq-chet.obj `if test -f 'chet.cpp'; then $(CYGPATH_W) 'chet.cpp'; else $(CYGPATH_W) '$(srcdir)/chet.cpp'; fi`
+	$(am__mv) $(DEPDIR)/pseq-chet.Tpo $(DEPDIR)/pseq-chet.Po
+#	source='chet.cpp' object='pseq-chet.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pseq_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o pseq-chet.obj `if test -f 'chet.cpp'; then $(CYGPATH_W) 'chet.cpp'; else $(CYGPATH_W) '$(srcdir)/chet.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
