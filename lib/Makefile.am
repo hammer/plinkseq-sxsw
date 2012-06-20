@@ -4,7 +4,7 @@
 lib_LTLIBRARIES = libplinkseq.la
 
 # Install header files to plinkseq directory
-nobase_pkginclude_HEADERS = \
+nobase_include_HEADERS = \
 plinkseq/eval.h \
 plinkseq/allele.h \
 plinkseq/annot.h \
@@ -115,11 +115,11 @@ sqlite3.c
 
 # right now, --with-debug and --with-static don't change anything here
 
-libplinkseq_la_CPPFLAGS = 
+libplinkseq_la_CPPFLAGS =
 libplinkseq_la_LIBADD = -lz
 
 if WITH_PROTOBUF
-libplinkseq_la_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include 
+libplinkseq_la_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
 libplinkseq_la_LIBADD += -L$(PROTOBUF_PREFIX)/lib
 endif
 
