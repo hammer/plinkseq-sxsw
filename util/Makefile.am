@@ -16,3 +16,8 @@ smp.cpp
 smp_LDADD = ../lib/libplinkseq.la -ldl -lpthread -lz
 
 smp_CPPFLAGS = -I../lib
+
+if WITH_PROTOBUF
+smp_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include
+endif
+
