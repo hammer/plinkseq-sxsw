@@ -1,10 +1,10 @@
 
-#include "gstore.h"
-#include "genotype.h"
-#include "variant.h"
-#include "vcf.h"
-#include "defs.h"
-#include "crandom.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/genotype.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/vcf.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/crandom.h"
 
 #include <iostream>
 
@@ -64,30 +64,32 @@ bool GStore::set_project( const std::string & filename, bool verbose)
   if ( filename == "." ) 
     {
       // so we know not to attempt certain other functions
-      has_project_file( false );
-      
+
+      has_project_file( false );      
       return true;
     }
   
   has_project_file(true);
-  
-  // TODO: Reserve "-" to mean read from STDIN
 
+  // for project 'proj'  match first to 'proj.pseq', then 'proj'
+  
   // Starting a new project, we need an index file that points to the
   // key files in the project.
-  
-  if ( ! fileExists( filename ) ) return false;
+
+  bool add_ext = false;
+  if ( Helper::fileExists( filename + ".pseq" ) ) add_ext = true;
+  else if ( ! Helper::fileExists( filename ) ) return false;
   
   // Read in core files and folder locations
-
-  fIndex.setCoreFiles( filename );  
-
+  
+  fIndex.setCoreFiles( add_ext ? filename + ".pseq" : filename );  
+  
   // Ensure that a RESOURCES/ folder has been specified
 
   // Read in all other files specified at this point
   
-  fIndex.readFileIndex( filename );  
-
+  fIndex.readFileIndex( add_ext ? filename + ".pseq" : filename );  
+  
   // Set up core databases
 
   vardb.attach( fIndex.file( VARDB )->name() );

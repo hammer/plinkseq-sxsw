@@ -1,12 +1,12 @@
-#include "pp.h"
+#include "plinkseq/pp.h"
 
 #include "pp.pb.h"
-#include "filemap.h"
-#include "regions.h"
-#include "locdb.h"
-#include "annot.h"
-#include "gstore.h"
-#include "sqlz.h"
+#include "plinkseq/filemap.h"
+#include "plinkseq/regions.h"
+#include "plinkseq/locdb.h"
+#include "plinkseq/annot.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/sqlz.h"
 
 #include <iostream>
 

@@ -1,7 +1,7 @@
 #ifndef __PSEQ_LOADERS_H__
 #define __PSEQ_LOADERS_H__
 
-#include "pseq.h"
+#include "plinkseq.h"
 #include "func.h"
 
 namespace Pseq {

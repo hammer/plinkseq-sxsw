@@ -1,7 +1,7 @@
 #ifndef __PSEQ_FUNC_H__
 #define __PSEQ_FUNC_H__
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 #include <string>
 
@@ -198,7 +198,7 @@ namespace Pseq
 
       bool make_residuals( const std::vector<std::string> & );
       
-      bool dump_phenotypes( const std::vector<std::string> & );
+      bool dump_phenotypes( const std::vector<std::string> & , bool as_matrix = false );
     }
   
   

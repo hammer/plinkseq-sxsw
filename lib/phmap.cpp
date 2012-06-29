@@ -1,9 +1,9 @@
 
-#include "phmap.h"
-#include "indmap.h"
-#include "inddb.h"
-#include "filemap.h"
-#include "gstore.h"
+#include "plinkseq/phmap.h"
+#include "plinkseq/indmap.h"
+#include "plinkseq/inddb.h"
+#include "plinkseq/filemap.h"
+#include "plinkseq/gstore.h"
 
 extern GStore * GP;
 
@@ -82,7 +82,7 @@ int PhenotypeMap::set_strata( const std::string & s )
 	  
 	  Individual * person = i->second;
 	  
-	  if ( ! person->meta.hasField( strata_name ) ) 
+	  if ( ! person->meta.has_field( strata_name ) ) 
 	    {
 	      if ( smap[ i->first ] == "" ) 
 		smap[ i->first ] = ".";
@@ -213,7 +213,7 @@ int PhenotypeMap::set_phenotype( const std::string & phenotype )
       
       if ( phenotype_type == PHE_DICHOT ) 
 	{
-	  if ( ! person->meta.hasField( phenotype ) )
+	  if ( ! person->meta.has_field( phenotype ) )
 	    {
 	      person->missing( true );
 	      person->affected( UNKNOWN_PHE );
@@ -239,7 +239,7 @@ int PhenotypeMap::set_phenotype( const std::string & phenotype )
       
       else if ( phenotype_type == PHE_QT )
 	{
-	  if ( ! person->meta.hasField( phenotype ) )
+	  if ( ! person->meta.has_field( phenotype ) )
 	    person->missing( true );
 	  else
 	    {	      
@@ -250,7 +250,7 @@ int PhenotypeMap::set_phenotype( const std::string & phenotype )
 	}
       else 
 	{
-	  if ( ! person->meta.hasField( phenotype ) )
+	  if ( ! person->meta.has_field( phenotype ) )
 	    {
 	      person->missing( true );
 	      person->group(0);

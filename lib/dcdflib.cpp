@@ -3,7 +3,7 @@
 #include <cmath>
 
 #include <string>
-#include "helper.h"
+#include "plinkseq/helper.h"
 
 #include "cdflib.h"
 

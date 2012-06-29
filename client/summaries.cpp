@@ -1,6 +1,6 @@
 
 #include "summaries.h"
-#include "pseq.h"
+#include "plinkseq.h"
 #include "util.h"
 
 #include <cmath>

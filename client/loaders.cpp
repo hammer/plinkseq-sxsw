@@ -1,7 +1,7 @@
 #include "loaders.h"
 #include "util.h"
 #include "netdb.h"
-#include "dose.h"
+#include "plinkseq/dose.h"
 
 extern GStore g;
 extern Pseq::Util::Options args;

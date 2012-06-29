@@ -1,8 +1,8 @@
-#include "statistics.h"
-#include "helper.h"
-#include "matrix.h"
+#include "plinkseq/statistics.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/matrix.h"
 #include "dcdflib.h"
-#include "ipmpar.h"
+#include "plinkseq/ipmpar.h"
 
 #include <iostream>
 #include <cmath>
@@ -525,7 +525,8 @@ std::vector<double> Statistics::canonical_correlation( const Data::Matrix<double
 
   // Compute and sort eigen values only 
 
-  std::vector<double> sorted_eigenvalues = Statistics::as_vector( Statistics::eigenvalues( M1 ) );
+  bool okay = true;
+  std::vector<double> sorted_eigenvalues = Statistics::as_vector( Statistics::eigenvalues( M1 , & okay ) );
   std::sort( sorted_eigenvalues.begin(), sorted_eigenvalues.end(), std::greater<double>() );
 
   // Display largest canonical correlation and its position
@@ -980,21 +981,22 @@ double Statistics::t_prob(double T, double df)
 //}
 
 
-Data::Vector<double> Statistics::eigenvalues( Data::Matrix<double> & a )
+Data::Vector<double> Statistics::eigenvalues( Data::Matrix<double> & a , bool * okay )
 {
+  *okay = true;
   // 'a' should be a square, symmetric matrix
   int n=a.dim1();
   Data::Vector<double> e(n);
   Data::Vector<double> d(n);
-  tred2(a,d,e);
-  tqli(d,e);
+  if ( ! tred2(a,d,e) ) *okay = false; 
+  if ( ! tqli(d,e) ) *okay = false;
   return d;
 }
 
 // Householder method to reduce real, symmetric matrix
 // to tridiagonal form
 // Modified to return only eigenvalues.
-void Statistics::tred2( Data::Matrix<double> & a , 
+bool Statistics::tred2( Data::Matrix<double> & a , 
 			Data::Vector<double> & d,
 			Data::Vector<double> & e)
 {
@@ -1064,10 +1066,11 @@ void Statistics::tred2( Data::Matrix<double> & a ,
 //     a[i][i]=1.0;
 //     for (j=0;j<l;j++) a[j][i]=a[i][j]=0.0;
   }
+  return true;
 }
 
 // Modified to return only eigenvalues.
-void Statistics::tqli( Data::Vector<double> & d, Data::Vector<double> & e )
+bool Statistics::tqli( Data::Vector<double> & d, Data::Vector<double> & e )
 {
   const int MAXIT = 60 ; // hmm, was 30 but SKAT had issues with large genes
   // -- I believe these routines have some issues with convergenece when 
@@ -1089,7 +1092,7 @@ void Statistics::tqli( Data::Vector<double> & d, Data::Vector<double> & e )
 	if (temp == dd) break;
       }
       if (m != l) {
-	if (iter++ == MAXIT ) Helper::halt("Internal problem in tqli routine");
+	if (iter++ == MAXIT ) { plog.warn( "convergence problem in tqli()" ); return false; } 
 	g=(d[l+1]-d[l])/(2.0*e[l]);
 	r=pythag(g,1.0);
 	g=d[m]-d[l]+e[l]/(g+SIGN(r,g));
@@ -1124,20 +1127,24 @@ void Statistics::tqli( Data::Vector<double> & d, Data::Vector<double> & e )
       }
     } while (m != l);
   }
+  return true;
 }
 
 
 
-Statistics::Eigen Statistics::eigenvectors( Data::Matrix<double> & a )
+Statistics::Eigen Statistics::eigenvectors( Data::Matrix<double> & a , bool * okay )
 {
+
+  *okay = true;
+
   // 'a' should be a square, symmetric matrix
   int n=a.dim1();
   
   Statistics::Eigen E(n);
   
   Data::Vector<double> e(n);
-  Statistics::EV_tred2( a, E.d, e);
-  Statistics::EV_tqli( E.d, e, a);
+  if ( ! Statistics::EV_tred2( a, E.d, e) ) *okay = false;
+  if ( ! Statistics::EV_tqli( E.d, e, a) ) *okay = false;
   E.z = a;
   return E;
 }
@@ -1147,7 +1154,7 @@ Statistics::Eigen Statistics::eigenvectors( Data::Matrix<double> & a )
 // to tridiagonal form
 // Modified to return both eigenvalues and eigenvectors
 
-void Statistics::EV_tred2( Data::Matrix<double> & a ,
+bool Statistics::EV_tred2( Data::Matrix<double> & a ,
 			   Data::Vector<double> & d , 
 			   Data::Vector<double> & e )
 {
@@ -1216,10 +1223,11 @@ void Statistics::EV_tred2( Data::Matrix<double> & a ,
     a[i][i]=1.0;
     for (j=0;j<l;j++) a[j][i]=a[i][j]=0.0;
   }
+  return true;
 }
 
 
-void Statistics::EV_tqli( Data::Vector<double> & d , 
+bool Statistics::EV_tqli( Data::Vector<double> & d , 
 			  Data::Vector<double> & e , 
 			  Data::Matrix<double> & z )
 {
@@ -1237,7 +1245,7 @@ void Statistics::EV_tqli( Data::Vector<double> & d ,
         if (fabs(e[m])+dd == dd) break;
       }
       if (m != l) {
-        if (iter++ == 30) Helper::halt("Internal problem in tqli routine");
+        if (iter++ == 30) { plog.warn("convergence issue in EVtqli()"); return false; } 
         g=(d[l+1]-d[l])/(2.0*e[l]);
         r=Statistics::pythag(g,1.0);
         g=d[m]-d[l]+e[l]/(g+Statistics::SIGN(r,g));
@@ -1272,6 +1280,7 @@ void Statistics::EV_tqli( Data::Vector<double> & d ,
       }
     } while (m != l);
   }
+  return true;
 }
 
 

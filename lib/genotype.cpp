@@ -1,7 +1,7 @@
 
-#include "genotype.h"
-#include "variant.h"
-#include "defs.h"
+#include "plinkseq/genotype.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/defs.h"
 
 #include <bitset>
 #include <iostream>
@@ -403,7 +403,7 @@ Genotype::Genotype( const char * c ,
 
     // Set genotpe meta-fields (GT field should be NULL and thus skipped)    
     meta.set( tok , &formats );
-  
+
 }
 
 

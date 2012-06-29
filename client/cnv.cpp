@@ -24,15 +24,15 @@ Pseq::VarDB::SomeQualityEventOracle::SomeQualityEventOracle(const Variant& v, do
 
 		// TODO: Replace this code once pseq can properly parse Character in INFO and FORMAT:
 		//
-		//if (gt.meta.hasField("DSCVR") && gt.meta.get1_char("DSCVR") == 'Y')
+		//if (gt.meta.has_field("DSCVR") && gt.meta.get1_char("DSCVR") == 'Y')
 		//
-		if (gt.meta.hasField("DSCVR") && gt.meta.get1_int("DSCVR") == 1)
+		if (gt.meta.has_field("DSCVR") && gt.meta.get1_int("DSCVR") == 1)
 			_discoveredIndiv.insert(indivInd);
 
 		indivAltStatus[indivInd] = vector<EventStatus>(_numAltAlleles, MISSING);
 		vector<EventStatus>& indivStatuses = indivAltStatus[indivInd];
 
-		if (!gt.meta.hasField("SQ") || !gt.meta.hasField("NQ"))
+		if (!gt.meta.has_field("SQ") || !gt.meta.has_field("NQ"))
 			continue;
 		vector<double> SQs = gt.meta.get_double("SQ");
 		vector<double> NQs = gt.meta.get_double("NQ");
@@ -130,7 +130,7 @@ void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
 			continue;
 		const SampleVariant& childSampVariant = *(fileSamples[0]);
 
-		if (!childSampVariant.meta.hasField("NUMT"))
+		if (!childSampVariant.meta.has_field("NUMT"))
 			continue;
 		const int numTargets = childSampVariant.meta.get1_int("NUMT");
 

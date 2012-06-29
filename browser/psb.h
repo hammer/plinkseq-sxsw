@@ -1,7 +1,7 @@
 #ifndef __PSB_H__
 #define __PSB_H__
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 namespace Helper {
   std::string url_encode(const std::string & );

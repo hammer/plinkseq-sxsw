@@ -1,8 +1,8 @@
-#include "dose.h"
+#include "plinkseq/dose.h"
 
-#include "helper.h"
-#include "vardb.h"
-#include "seqdb.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/vardb.h"
+#include "plinkseq/seqdb.h"
 
 #include <fstream>
 

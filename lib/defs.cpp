@@ -1,6 +1,6 @@
 
-#include "defs.h"
-#include "meta.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/meta.h"
 
 std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.09(2-Apr-2012)"; return s; }
 
@@ -58,6 +58,16 @@ std::string & PLINKSeq::META_DP() { static std::string s = "DP"; return s; }
 
 std::string & PLINKSeq::DEFAULT_DBSNP() { static std::string s = "dbsnp"; return s; }
 std::string & PLINKSeq::DEFAULT_G1K() { static std::string s = "g1k"; return s; }
+
+
+double & PLINKSeq::DEFAULT_PREV() { static double s = 0.01; return s; }
+std::string & PLINKSeq::DEFAULT_AD() { static std::string s = "AD"; return s; }
+std::string & PLINKSeq::DEFAULT_TRANS() { static std::string s = "transcript"; return s; }
+std::string & PLINKSeq::DEFAULT_FUNC() { static std::string s = "func"; return s; }
+double & PLINKSeq::DEFAULT_AB_HETMIN() { static double s = 0.3; return s; }
+double & PLINKSeq::DEFAULT_AB_HETMAX() { static double s = 0.7; return s; }
+double & PLINKSeq::DEFAULT_AB_HOMMAX() { static double s = 0.1; return s; }
+
 
 long unsigned & PLINKSeq::DEFAULT_RNG_SEED() { static long unsigned i = time(0); return i; } 
 
@@ -118,7 +128,7 @@ void PLINKSeq::register_standard_metatypes()
   MetaInformation<GenMeta>::field( "PL" , META_INT  , -1 , "phred-scaled genotype likelihoods; for AA,AB,BB where A=ref, B=alt" );
   MetaInformation<GenMeta>::field( "PP" , META_FLOAT  , -1 , "P(genotype | data)" );
   MetaInformation<GenMeta>::field( "EC" , META_FLOAT  , -1 , "Expected count (dosage) of alternate alleles");
-  MetaInformation<GenMeta>::field( "GQ" , META_INT  , 1 , "phred-scaled genotype quality, -10log_10p(genotype call is wrong)" );
+  MetaInformation<GenMeta>::field( "GQ" , META_FLOAT  , 1 , "phred-scaled genotype quality, -10log_10p(genotype call is wrong)" );
   MetaInformation<GenMeta>::field( "HQ" , META_INT  , 2 , "haplotype qualities, two phred qualities" );
   
 

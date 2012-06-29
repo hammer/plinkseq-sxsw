@@ -15,7 +15,7 @@ LT_PREREQ([2.2])
 LT_INIT([pic-only disable-static])
 
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_SRCDIR([lib/pseq.h])
+AC_CONFIG_SRCDIR([lib/plinkseq.h])
 AC_CONFIG_HEADERS([config.h])
 
 # --enable-debug

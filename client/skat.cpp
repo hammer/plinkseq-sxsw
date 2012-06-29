@@ -1,7 +1,7 @@
-#include "pseq.h"
+#include "plinkseq.h"
 #include "genic.h"
 
-#include "../lib/prob.h"
+#include "plinkseq/prob.h"
 #include "davies.h"
 
 #include <iostream>
@@ -399,9 +399,9 @@ double Pseq::Assoc::stat_skat( const VariantGroup & vars ,
 	  
 	  for (int v=0;v<nv;v++)
 	    {
-	      if ( vars(v).meta.hasField( Aux_skat::weights ) )
+	      if ( vars(v).meta.has_field( Aux_skat::weights ) )
 		aux_skat->w[v] = vars(v).meta.get1_double( Aux_skat::weights );
-	      else if ( vars(v).consensus.meta.hasField( Aux_skat::weights ) )
+	      else if ( vars(v).consensus.meta.has_field( Aux_skat::weights ) )
 		aux_skat->w[v] = vars(v).consensus.meta.get1_double( Aux_skat::weights );
 	      else
 		aux_skat->w[v] = 0;
@@ -486,8 +486,8 @@ double Pseq::Assoc::stat_skat( const VariantGroup & vars ,
 
       if ( pvalue < 0 ) 
 	(*output)[ label ] = "P=NA;";
-      else
-	(*output)[ label ] = "P=" + Helper::dbl2str( pvalue ) + ";";
+//       else
+// 	(*output)[ label ] = "P=" + Helper::dbl2str( pvalue ) + ";";
       
       if ( aux_skat->optimal_mode() )
 	{
@@ -623,8 +623,12 @@ double Pseq::Assoc::Aux_skat::calculate_pvalue( double Q , Data::Matrix<double> 
 
   
   // Davies method p-value
- 
-  Data::Vector<double> eigen = Statistics::eigenvalues( K );
+
+  bool okay = true;
+  Data::Vector<double> eigen = Statistics::eigenvalues( K , & okay );
+
+  // if convergence issues, use liu p-value
+  if ( ! okay ) return pvalue_liu;
 
   std::vector<bool> idx1( eigen.size() , false );
   double mean_n = 0 , mean_s = 0;
@@ -651,7 +655,7 @@ double Pseq::Assoc::Aux_skat::calculate_pvalue( double Q , Data::Matrix<double> 
     }
   
   Davies d;
-  bool okay = true;
+  okay = true;
   std::vector<int> df( lambda.size() , 1 );
   
   double pvalue_davies = d.pvalue( Q , lambda , df , &okay );
@@ -898,7 +902,8 @@ Data::Vector<double> Pseq::Assoc::Aux_skat::get_lambda( const Data::Matrix<doubl
  {
    
    Data::Matrix<double> cpy = M;
-   Data::Vector<double> e = Statistics::eigenvalues( cpy );
+   bool okay = true; 
+   Data::Vector<double> e = Statistics::eigenvalues( cpy , &okay );
    
    std::vector<double> okaye;
    
@@ -914,7 +919,7 @@ Data::Vector<double> Pseq::Assoc::Aux_skat::get_lambda( const Data::Matrix<doubl
    for (int i=0;i<e.size();i++)      
      if ( e[i] > meane ) okaye.push_back(e[i]);
 
-   if ( okaye.size() == 0 ) plog.warn("no eigenvalue greater than 0");
+   if ( ( ! okay ) || okaye.size() == 0 ) plog.warn("no eigenvalue greater than 0 / convergence issues");
    
    return Data::Vector<double>( okaye );
 

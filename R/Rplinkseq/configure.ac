@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT([plinkseq-R], [0.07], [brettpthomas@gmail.com])
+AC_INIT([plinkseq-R], [0.08], [brettpthomas@gmail.com])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
@@ -25,10 +25,23 @@ AC_ARG_WITH([protobuf],
         [protobuf_path=${withval}],
         [protobuf_path=""]
 )
+AC_ARG_WITH([static-protobuf],
+						[AS_HELP_STRING(
+							[--with-static-protobuf=/path/to/libprotobuf.a],
+							[Specify path to protobuf static library]
+						)],
+						[protobuf_archive=${withval}],
+						[protobuf_archive=""]
+						)
+
 
 if test [ -n "${protobuf_path}" ] ; then
-   PROTOBUF_LIBS="-L${protobuf_path}/lib -R${protobuf_path}/lib -Wl,-rpath ${protobuf_path}/lib "
-   PROTOBUF_INCLUDE="-I${protobuf_path}/include"
+	PROTOBUF_LIBS="-L${protobuf_path}/lib -R${protobuf_path}/lib -Wl,-rpath ${protobuf_path}/lib -lprotobuf"
+	PROTOBUF_INCLUDE="-I${protobuf_path}/include"
+elif test [ -n "${protobuf_archive}" ] ; then
+	PROTOBUF_LIBS="${protobuf_archive}"
+else
+	PROTOBUF_LIBS="-lprotobuf"
 fi
 
 AC_SUBST(PROTOBUF_LIBS)
@@ -40,6 +53,9 @@ AC_SUBST(PROTOBUF_INCLUDE)
 AC_CHECK_LIB([dl], [main])
 AC_CHECK_LIB([pthread], [main])
 AC_CHECK_LIB([z], [main])
+
+OTHER_LIBS="-ldl -lpthread -lz"
+AC_SUBST(OTHER_LIBS)
 
 # the manual made me do it
 : ${R_HOME=`R RHOME`}

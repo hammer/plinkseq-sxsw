@@ -1,10 +1,9 @@
 
-#include "em.h"
-#include "helper.h"
-#include "variant.h"
+#include "plinkseq/em.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/variant.h"
 
 #include <iostream>
-
 #include <cmath>
 
 std::vector<double> EM::lik_to_probs( std::vector<double> & g , bool phred_scaled ) const
@@ -80,13 +79,13 @@ void EM::load( Variant & v )
 
       bool phred = true;
       
-      if ( v(i).meta.hasField( PLINKSeq::META_GENO_PHRED() ) )
+      if ( v(i).meta.has_field( PLINKSeq::META_GENO_PHRED() ) )
 	{
 	  std::vector<int> tmp = v(i).meta.get_int( PLINKSeq::META_GENO_PHRED() );
 	  g.resize( tmp.size() );
 	  for (int t=0; t<g.size(); t++) g[t] = tmp[t];
 	}
-      else if ( v(i).meta.hasField( PLINKSeq::META_GENO_LIK() ) )
+      else if ( v(i).meta.has_field( PLINKSeq::META_GENO_LIK() ) )
 	{	  
 	  phred = false;
 	  g = v(i).meta.get_double( PLINKSeq::META_GENO_LIK() );

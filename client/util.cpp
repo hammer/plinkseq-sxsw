@@ -1,5 +1,5 @@
 
-#include "helper.h"
+#include "plinkseq/helper.h"
 #include "util.h"
 
 // so we can register commands, need to pull in other headers across PSEQ for regargs()
@@ -151,6 +151,8 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "*gs-view|views|view gene variants in sequence|GRP|ARG:ref-variants"
 	
 	  << "i-view|views|individuals in project/file|VCF|ARG:phenotype,from-vardb"
+
+	  << "i-matrix|views|individual phenotype matrix|ARG:phenotype"
 
 	  << "write-phe|views|dump phenotypes in .phe file format|ARG:name"
 

@@ -1,5 +1,5 @@
 
-#include "segments.h"
+#include "plinkseq/segments.h"
 
 using namespace std;
 using namespace Helper;

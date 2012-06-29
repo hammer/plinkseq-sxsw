@@ -1,6 +1,6 @@
-#include "locdb.h"
-#include "defs.h"
-#include "regions.h"
+#include "plinkseq/locdb.h"
+#include "plinkseq/defs.h"
+#include "plinkseq/regions.h"
 
 #include <iostream>
 #include <set>
@@ -2161,7 +2161,7 @@ uint64_t LocDBase::merge( const std::string & grp_name, const std::string & name
 	name = r.name;
       else
 	{
-	  if ( ! r.meta.hasField( mergeField ) )
+	  if ( ! r.meta.has_field( mergeField ) )
 	    continue;
 	  name = r.meta.get1_string( mergeField );	  
 	}

@@ -1,5 +1,5 @@
 
-#include "pseq.h"
+#include "plinkseq.h"
 #include "genic.h"
 
 #include <iostream>

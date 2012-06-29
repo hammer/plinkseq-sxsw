@@ -1,6 +1,5 @@
-#include "gstore.h"
-
-#include "varfunc.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/varfunc.h"
 
 
 std::vector<bool> VarFunc::missing_genotype_mask( const Variant & v )

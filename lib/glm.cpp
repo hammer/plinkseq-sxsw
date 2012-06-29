@@ -1,6 +1,6 @@
 
-#include "glm.h"
-#include "statistics.h"
+#include "plinkseq/glm.h"
+#include "plinkseq/statistics.h"
 
 #include <cmath>
 

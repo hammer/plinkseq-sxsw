@@ -1,6 +1,6 @@
-#include "netdb.h"
-#include "locdb.h"
-#include "helper.h"
+#include "plinkseq/netdb.h"
+#include "plinkseq/locdb.h"
+#include "plinkseq/helper.h"
 
 bool NetDBase::attach( const std::string & name )
 {

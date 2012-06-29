@@ -2,7 +2,7 @@
 #include <iostream>
 #include <iterator>
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 #include "func.h"
 #include "views.h"
@@ -229,7 +229,7 @@ int main(int argc, char ** argv)
   else
   {
       if ( ! Pseq::set_project( project_file ) )
-	  Helper::halt("Could not open project file " + project_file );      
+	  Helper::halt("Could not open project " + project_file );      
   }
   
   
@@ -1442,7 +1442,8 @@ int main(int argc, char ** argv)
       }
 
 
-    if ( command == "write-phe" )
+
+    if ( command == "write-phe" || command == "i-matrix" )
       {	
 	std::vector<std::string> names;	
 
@@ -1453,7 +1454,7 @@ int main(int argc, char ** argv)
 	  }
 	else names = args.as_string_vector( "name" ) ;
 	
-	Pseq::IndDB::dump_phenotypes( names ) ;
+	Pseq::IndDB::dump_phenotypes( names , command == "i-matrix" ) ;
 	Pseq::finished();
       }
 

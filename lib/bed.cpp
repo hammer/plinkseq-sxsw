@@ -1,9 +1,9 @@
-#include "bed.h"
+#include "plinkseq/bed.h"
 
-#include "helper.h"
-#include "vardb.h"
-#include "seqdb.h"
-#include "inddb.h"
+#include "plinkseq/helper.h"
+#include "plinkseq/vardb.h"
+#include "plinkseq/seqdb.h"
+#include "plinkseq/inddb.h"
 
 #include <fstream>
 #include <bitset>

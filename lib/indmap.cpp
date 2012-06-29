@@ -1,7 +1,7 @@
 
-#include "indmap.h"
-#include "phmap.h"
-#include "vardb.h"
+#include "plinkseq/indmap.h"
+#include "plinkseq/phmap.h"
+#include "plinkseq/vardb.h"
 
 using namespace std;
 using namespace Helper;

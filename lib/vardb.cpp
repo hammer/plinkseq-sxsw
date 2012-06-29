@@ -1,11 +1,10 @@
 
-#include "vardb.h"
-#include "genotype.h"
-#include "regions.h"
-#include "gstore.h"
-#include "em.h"
-#include "regions.h"
-#include "sqlz.h"
+#include "plinkseq/vardb.h"
+#include "plinkseq/genotype.h"
+#include "plinkseq/regions.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/em.h"
+#include "plinkseq/sqlz.h"
 
 extern GStore * GP;
 
@@ -1213,7 +1212,7 @@ uint64_t VarDBase::add_set( const std::string & name , const std::string & desc 
 }
 
 
-bool VarDBase::add_var_to_set( const std::string & group , Variant & v , bool allelic )
+bool VarDBase::add_var_to_set( const std::string & group , const Variant & v , bool allelic )
 {
   
   // Var group ID

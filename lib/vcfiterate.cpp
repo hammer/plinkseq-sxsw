@@ -1,6 +1,6 @@
-#include "vardb.h"
-#include "vcf.h"
-#include "gstore.h"
+#include "plinkseq/vardb.h"
+#include "plinkseq/vcf.h"
+#include "plinkseq/gstore.h"
 
 extern GStore * GP;
 

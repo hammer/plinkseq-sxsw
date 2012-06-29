@@ -1,5 +1,5 @@
-#include "vgroup.h"
-#include "gstore.h"
+#include "plinkseq/vgroup.h"
+#include "plinkseq/gstore.h"
 
 using namespace std;
 using namespace Helper;

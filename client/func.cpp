@@ -4,7 +4,7 @@
 #include "summaries.h"
 #include "util.h"
 
-#include "pseq.h"
+#include "plinkseq.h"
 
 #include <vector>
 #include <fstream>
@@ -29,14 +29,52 @@ void Pseq::finished()
 
 bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
 {
+
+  //
+  // Make end in .pseq for actual filename
+  //
   
+  std::string project_filename = Helper::ends_with( project , ".pseq" ) ? project : project + ".pseq" ; 
+
+  
+  //
   // Ensure full paths are used
+  //
   
   project = Helper::fullpath( project );
+ 
+
+  //
+  // Core folders, for output and input
+  //
+
+  std::string output_folder = args.has("output") ?
+    args.as_string( "output" ) : 
+    project + "_out/";
+  
+  output_folder = Helper::fullpath( output_folder );
+
+
+  // Fail if VARDB or INDDB already exist, unless they have been explicitly 
+  // mentioned on the command line
+    
+  if ( ! args.has( "vardb" ) ) 
+    {
+      if ( Helper::fileExists( output_folder + "vardb" ) )
+	Helper::halt( "VARDB [ " + output_folder + "vardb ] already exists, delete file first" );
+    }
+
+  if ( ! args.has( "inddb" ) ) 
+    {
+      if ( Helper::fileExists( output_folder + "inddb" ) )
+	Helper::halt( "INDDB [ " + output_folder + "inddb ] already exists, delete file first" );
+    }
+  
+  
 
   // write a new project file
   
-  std::ofstream P( project.c_str() , std::ios::out );
+  std::ofstream P( project_filename.c_str() , std::ios::out );
   
   if ( P.bad() ) Helper::halt("problem writing new project file " + project );
   
@@ -56,17 +94,12 @@ bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
   // and specify PROJN
   
   P << "PROJN\t" << PLINKSeq::PROJECT_VERSION_NUMBER() << "\n";
-  
-  
-  //
-  // Core folders, for output and input
-  //
 
-  std::string output_folder = args.has("output") ?
-    args.as_string( "output" ) : 
-    project + "_out/";
+
+  //
+  // Main output folder
+  //
   
-  output_folder = Helper::fullpath( output_folder );
   Helper::ensure_folder( output_folder );
   
   P << "OUTPUT\t" << output_folder << "\n";
@@ -1019,7 +1052,7 @@ bool Pseq::IndDB::dump_table(Mask & m)
       return false;
     }
   
-  bool verbose = args.has("verbose");
+  bool verbose = args.has( "verbose" );
   
   // List all information in IndDB, one person per line
   
@@ -1065,6 +1098,7 @@ bool Pseq::IndDB::dump_table(Mask & m)
       plog << "\n";
     }
 
+
   std::set<Individual*> observed;
   
   for (int i = 0 ; i < n ; i++) 
@@ -1074,7 +1108,7 @@ bool Pseq::IndDB::dump_table(Mask & m)
       // returned from create_from_mask()
       
       Individual * pmapped = g.indmap.ind( i );
-
+      
       if ( ! verbose ) 
 	{
 	  plog << *pmapped;
@@ -1965,20 +1999,36 @@ bool Pseq::VarDB::write_BCF( Mask & mask , const std::string & bcffile )
 
 
 
-bool Pseq::IndDB::dump_phenotypes( const std::vector<std::string> & pheno )
+bool Pseq::IndDB::dump_phenotypes( const std::vector<std::string> & pheno , bool as_matrix )
 {
+
   std::vector<bool> m( pheno.size() , true );
-  for (int p=0;p<pheno.size();p++)
+  
+  if ( ! as_matrix ) 
     {
-      pType ptype = g.phmap.type( pheno[p] );
-      if      ( ptype == PHE_DICHOT ) plog << "##" << pheno[p] << ",Integer,.,\"Integer phenotype\"\n";
-      else if ( ptype == PHE_QT )     plog << "##" << pheno[p] << ",Float,.,\"Float phenotype\"\n";
-      else if ( ptype == PHE_FACTOR ) plog << "##" << pheno[p] << ",String,.,\"Factor phenotype\"\n";
-      else { m[p] = false; continue; } 
+      
+      for (int p=0;p<pheno.size();p++)
+	{
+	  pType ptype = g.phmap.type( pheno[p] );
+	  if      ( ptype == PHE_DICHOT ) plog << "##" << pheno[p] << ",Integer,.,\"Integer phenotype\"\n";
+	  else if ( ptype == PHE_QT )     plog << "##" << pheno[p] << ",Float,.,\"Float phenotype\"\n";
+	  else if ( ptype == PHE_FACTOR ) plog << "##" << pheno[p] << ",String,.,\"Factor phenotype\"\n";
+	  else { m[p] = false; continue; } 
+	}
+      plog << "#";
+    }
+  else
+    {
+      for (int p=0;p<pheno.size();p++)
+	{
+	  pType ptype = g.phmap.type( pheno[p] );
+	  if ( ptype != PHE_DICHOT &&
+	       ptype != PHE_QT && 
+	       ptype != PHE_FACTOR ) m[p] = false;
+	}
     }
 
-  plog << "#ID";
-
+  plog << "ID";
   for (int p=0;p<pheno.size();p++)
     if ( m[p] ) plog << "\t" << pheno[p];
   plog << "\n";
@@ -2000,7 +2050,11 @@ bool Pseq::IndDB::dump_phenotypes( const std::vector<std::string> & pheno )
 		else if ( ptype == PHE_FACTOR ) plog << "\t" << person->meta.get1_string( pheno[p] ) ;
 	      }
 	    else 
-	      plog << "\t.";
+	      {
+		pType ptype = g.phmap.type( pheno[p] );
+		if      ( as_matrix && ( ptype == PHE_DICHOT || ptype == PHE_QT ) ) plog << "\tNA";
+		plog << "\t.";
+	      }
 	  }
       plog << "\n";
     }

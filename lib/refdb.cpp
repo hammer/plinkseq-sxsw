@@ -1,8 +1,8 @@
 
-#include "refdb.h"
-#include "variant.h"
-#include "gstore.h"
-#include "filemap.h"
+#include "plinkseq/refdb.h"
+#include "plinkseq/variant.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/filemap.h"
 
 #include <algorithm>
 #include <cmath>
@@ -70,13 +70,6 @@ bool RefDBase::attach(std::string name)
 
 
 
-  //
-  // Check version number 
-  //
-
-  check_version();
-
-
   
   //
   // set up queries
@@ -84,6 +77,12 @@ bool RefDBase::attach(std::string name)
 
   init();
   
+  //
+  // Check version number 
+  //
+
+  check_version();
+
 
   //
   // set meta-type information
