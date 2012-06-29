@@ -242,7 +242,8 @@ bool DoseReader::read_dose( const std::string & f )
 	  
 	  if ( map_pos_only ) 
 	    {
-	      if ( mtok.size() != 3 ) Helper::halt( "problem with map line" );
+
+	      if ( mtok.size() != 3 ) Helper::halt( "problem with map line" );	      
 	      id = mtok[0];
 	      chr = mtok[1];
 	      if ( ! Helper::str2int( mtok[2] , bp ) ) 
