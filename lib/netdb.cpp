@@ -154,26 +154,32 @@ void NetDBase::load( const std::string & filename )
 }
 
   
-std::set<Region> NetDBase::connections_regions( const std::string & seed , int depth , double thresold  )
+std::set<Region> NetDBase::connections_regions( const std::string & seed , int depth , double threshold , bool add_self )
 {    
   std::set<Region> r;
   int nid = node_id( seed );
   if ( nid == 0 || ! locdb ) return r;  
   sql.bind_int( stmt_fetch_connections , ":n" , nid );
   while ( sql.step( stmt_fetch_connections ) )
-    r.insert( locdb->get_region( grp , sql.get_text( stmt_fetch_connections , 0 ) ) );
+    {
+      std::string t = sql.get_text( stmt_fetch_connections , 0 ) ;
+      if ( add_self || seed != t )  r.insert( locdb->get_region( grp , t ) );
+    }
   sql.reset( stmt_fetch_connections );
   return r;
 }
 
-std::set<std::string> NetDBase::connections( const std::string & seed , int depth , double thresold  )
+std::set<std::string> NetDBase::connections( const std::string & seed , int depth , double threshold , bool add_self )
 {  
   std::set<std::string> r;
   int nid = node_id( seed );
   if ( nid == 0 ) return r;  
   sql.bind_int( stmt_fetch_connections , ":n" , nid );
   while ( sql.step( stmt_fetch_connections ) )
-    r.insert( sql.get_text( stmt_fetch_connections , 0 ) );
+    {
+      std::string t = sql.get_text( stmt_fetch_connections , 0 ) ;
+      if ( add_self || t != seed ) r.insert( t ); 
+    }
   sql.reset( stmt_fetch_connections );
   return r;
 }
@@ -181,7 +187,7 @@ std::set<std::string> NetDBase::connections( const std::string & seed , int dept
 
 std::set<int> NetDBase::connections( const std::string & seed , 
 				     const std::map<std::string,int> & genemap, 
-				     int depth , double thresold  )
+				     int depth , double threshold , bool add_self )
 {  
   std::set<int> r;
   int nid = node_id( seed );
@@ -190,8 +196,11 @@ std::set<int> NetDBase::connections( const std::string & seed ,
   while ( sql.step( stmt_fetch_connections ) )
     {
       std::string g = sql.get_text( stmt_fetch_connections , 0 );
-      std::map<std::string,int>::const_iterator i = genemap.find( g );
-      if ( i != genemap.end() ) r.insert( i->second );
+      if ( add_self || seed != g )
+	{
+	  std::map<std::string,int>::const_iterator i = genemap.find( g );
+	  if ( i != genemap.end() ) r.insert( i->second );
+	}
     }
   sql.reset( stmt_fetch_connections );
   return r;

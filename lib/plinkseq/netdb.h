@@ -25,9 +25,9 @@ class NetDBase {
   void set_locdb( LocDBase * l , const std::string & g );
   
   /// Get all score for a particular variant that meet 'threshold' score, up to 'depth' neighbours away
-  std::set<Region> connections_regions( const std::string & seed , int depth = 1 , double thresold = 0 );
-  std::set<std::string> connections( const std::string & seed , int depth = 1 , double thresold = 0 );
-  std::set<int> connections( const std::string & seed , const std::map<std::string,int> &  genemap, int depth = 1 , double thresold = 0 );
+  std::set<Region> connections_regions( const std::string & seed , int depth = 1 , double threshold = 0 , bool add_self = false );
+  std::set<std::string> connections( const std::string & seed , int depth = 1 , double threshold = 0 , bool add_self = false );
+  std::set<int> connections( const std::string & seed , const std::map<std::string,int> &  genemap, int depth = 1 , double threshold = 0 , bool add_self = false );
   
   /// Load gene pairs into a table
   void load( const std::string & filename );

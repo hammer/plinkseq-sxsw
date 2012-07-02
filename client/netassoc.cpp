@@ -7,6 +7,12 @@
 extern GStore g;
 extern Pseq::Util::Options args;
 
+
+// Notes
+//   1. currently individuals with missing phenotypes treated as CONTROL
+//   2. screen for when self-self interactions listed -- in this context, do not want to add to set
+
+
 bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , const std::string & grp )
 {
   if ( ! g.locdb.attached() ) Helper::halt( "no attacged LOCDB" ); 
@@ -15,8 +21,10 @@ bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , co
   netdb.attach( db );
   if ( ! netdb.attached() ) Helper::halt( "no attached NETDB" );
   netdb.set_locdb( &g.locdb , grp );
+  
+  // depth=1, threshold=0.0; add-self = T
+  std::set<std::string> regs = netdb.connections( gene , 1 , 0 , true );
 
-  std::set<std::string> regs = netdb.connections( gene );
   std::set<std::string>::iterator ii = regs.begin();
   while ( ii != regs.end() )
     {
@@ -57,8 +65,8 @@ bool Pseq::Assoc::net_assoc_test( Mask & m , const Pseq::Util::Options & args )
   // And then, optionally, write these as a self-contained dataset
   //
   
-  if ( args.has( "output" ) ) 
-    write_gscores( args.as_string( "output" ) , gscore );
+  if ( args.has( "outfile" ) ) 
+    write_gscores( args.as_string( "outfile" ) , gscore );
   
 
   //
@@ -302,7 +310,8 @@ void Pseq::Assoc::NetDB::net_test( const int seed ,
 
   // report 
 
-  plog << gname << "\t" 
+  plog << "SEED" << "\t"
+       << gname << "\t" 
        << connections.size() << "\t" 
        << endset.size() << "\t"
        << nvar << "\t" 
@@ -313,7 +322,8 @@ void Pseq::Assoc::NetDB::net_test( const int seed ,
   std::set<Aux_connection>::iterator i = endset.begin();
   while ( i != endset.end() ) 
     {
-      plog << "\t";      
+      plog << "PARTNER" << "\t"
+	   << gname << "\t";
       if ( i->parent != seed && i->parent != -1 ) 
 	plog << gscore.find( i->parent )->second.name << " --> ";
       plog << gscore.find( i->extension )->second.name << "\t"
@@ -336,6 +346,7 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
 {
   
   // calculate case/control enrichment   
+
   // optimize over all possible gene parnters, using greedy algorithm.
   
   // start point is always the 1st degree connections that are listed in endset
@@ -370,8 +381,9 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
 
       bool found_better = false;
       
-      // Test each potential extension and select the best
-      // Retain if it is better than original test (by a margin?)
+      // test each potential extension and select the best
+
+      // retain if it is better than original test (by a margin?)
 
       next_node_t * best = NULL;
       
@@ -414,8 +426,8 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
 	  break;
 	}
 
-      //otherwise, add that gene to the list, and all of it's neighbours (up to a point)
-
+      // otherwise, add that gene to the list, and all of it's neighbours (up to a point)
+      
       inset.insert( best->extension );
       
       if ( best->depth < 2 )
@@ -443,9 +455,12 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
 
   if ( endset ) 
     {
+
       std::set<next_node_t>::iterator i = next_node.begin();
+
       while ( i != next_node.end() )
 	{
+
 	  if ( inset.find( i->extension ) == inset.end() ) { ++i; continue; }
 
 	  Aux_connection c;

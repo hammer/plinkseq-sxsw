@@ -77,8 +77,6 @@ lib/Makefile
 client/Makefile 
 browser/Makefile 
 browser/pbrowse
-index/Makefile
-index/index
 util/Makefile
 ])
 

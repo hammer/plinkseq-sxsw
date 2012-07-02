@@ -349,12 +349,12 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
     // Gene-network database
     //
-
-	  << "*net-load|input,net|populate a NETDB|ARG:netdb,file"
-	
-	  << "*net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
-	
-	  << "*net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,pheno,file,output"
+      
+	  << "net-load|input,net|populate a NETDB|ARG:netdb,file"
+      
+	  << "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
+      
+	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,mask,pheno,file,outfile"
             
 
 
@@ -431,7 +431,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "type", STRING , "type of project entry");
     reg( "id" , INT_VECTOR , "generic numeric IDs" );
     reg( "options" , STRING_VECTOR, "context-specific options\n");
-    reg( "output", STRING, "output folder\n" );
+    reg( "outfile", STRING, "generic output filename\n" );
     reg( "whitespace", NONE , "allow whitespace delimited input" );
     reg( "show-id" , NONE , "use chr:position:id variant format in output");
 
