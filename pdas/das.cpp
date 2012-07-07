@@ -43,8 +43,8 @@ int main( int argc , char ** argv )
   //
   // Open socket on port, pointing to processing function and project
   //
-
-  DAS das( &g );
+  
+  DAS das( &g , param.project );
   
   ServerSocket sock( param.portn , f , (void*)&das ) ; 
   
@@ -127,52 +127,84 @@ bool f( const char * t , const int n , void * data , std::stringstream & ss )
 
   pdas->attach_response_stream( & ss );
 
+
+  //
   // parse DAS request 
-  
+  //
+
   int retc = pdas->parse_request(); 
 
-  std::cerr << "retc = " << retc << "\n";
-  // error out?
+
+  //
+  // does requested DSN match the project name? 
+  //
+
+  if ( ! pdas->check_datasource() ) 
+    {
+      retc = 401; // bad data source
+    }
   
+  
+  //
+  // error out?
+  //
+
   if ( retc != 200 )
     {
+      std::cerr << "retc = " << retc << "\n";
       pdas->header( retc );
       return true; 
     }
-
-  pdas->header( retc );
-
-  // perform query
-
+  
+  
+  //
+  // handle specific commands
+  //
+  
   if ( pdas->command( "sources" ) )
     {
-      
+      retc = pdas->sources();
     }
   
   else if ( pdas->command( "features" ) )
     {
       retc = pdas->features();
     }
-    
-  //pdas->write();
-
-  // return as DAS to server 
   
-  return true;
   
-}
+  //
+   // write header...
+   //
+
+   pdas->header( retc );
+
+
+   //
+   // ...and main body of response
+   //
+
+   pdas->write();
+
+   return true;
+
+ }
 
 
 
-//
-// -------  DAS object --------
-//
+ //
+ // -------  DAS object --------
+ //
 
-DAS::DAS( GStore * p) 
+
+DAS::DAS( GStore * p , const std::string & n ) 
 {
+
+  // keep track of this (it will have to match the datasource)  
+  project_name = n;
+  
   qry = "";
   g = p;
-
+  
   // init. error codes
   errcodes[ 200 ] = "OK";
   errcodes[ 400 ] = "Bad command";
@@ -187,10 +219,13 @@ DAS::DAS( GStore * p)
   // capabilities
   capabs.insert( "features/1.1" );
   capabs.insert( "sources/1.0" );
+  capabs.insert( "types/1.1" );
+  
   capabs.insert( "error-segment/1.0" );
   capabs.insert( "unknown-segment/1.0" );
   capabs.insert( "unknown-feature/1.0" );
 }
+
 
 void DAS::add( const char * t )
 {
@@ -205,81 +240,89 @@ void DAS::add( const char * t )
 void DAS::header( const int retc )
 {
   
-  *ss << "HTTP/1.1 200 OK\n"
-     << "Date: Sun, 12 Mar 2012 16:13:51 GMT\n"
-     << "Last-Modified: Fri, 16 Feb 2009 11:17:59 GMT\n"
-     << "Content-Type: text/xml\n"
-     << "Access-Control-Allow-Origin: *\n"
-     << "Access-Control-Expose-Headers: X-DAS-Version, X-DAS-Status, X-DAS-Capabilities, X-DAS-Server\n"
-     << "X-DAS-Version: DAS/1.6\n"
-     << "X-DAS-Status: " << retc << "\n"
-     << "X-DAS-Capabilities:";
+  std::cerr << "writing header...\n";
+  
+  *oss << "HTTP/1.1 200 OK\n"
+       << "Date: Sun, 12 Mar 2012 16:13:51 GMT\n"
+       << "Last-Modified: Fri, 16 Feb 2009 11:17:59 GMT\n"
+       << "Content-Type: text/xml\n"
+       << "Access-Control-Allow-Origin: *\n"
+       << "Access-Control-Expose-Headers: X-DAS-Version, X-DAS-Status, X-DAS-Capabilities, X-DAS-Server\n"
+       << "X-DAS-Version: DAS/1.6\n"
+       << "X-DAS-Status: " << retc << "\n"
+       << "X-DAS-Capabilities:";
   
   std::set<std::string>::iterator ii = capabs.begin();
   while ( ii != capabs.end() )
     {
-      *ss << *ii << ";";
+      *oss << *ii << ";";
       ++ii;
     }
-  *ss << "\n";
-
-  *ss << "X-DAS-Server: PDAS/1.1\n\n";
+  *oss << "\n";
+  
+  *oss << "X-DAS-Server: PDAS/1.1\n\n";
   
 }
 
 
-// print qq(<?xml version="1.0" standalone="yes"?>\n<!DOCTYPE DASDSN SYSTEM "http://www.biodas.org/dtd/dasdsn.dtd">\n);
-// print "<DASDSN>\n";
 
 
-//
-// DAS command 'dsn' -- list data-source names
-//
-
-int DAS::dsn()
-{
-
-//   for my $dsn (sort keys %$CONFIG) {
-//       print "$j<DSN>\n";
-//       print qq($j$j<SOURCE id="$dsn">$dsn</SOURCE>\n);
-//       print qq($j$j<MAPMASTER>$CONFIG->{$dsn}{DSN}{mapmaster}</MAPMASTER>\n);
-//       print qq($j$j<DESCRIPTION>$CONFIG->{$dsn}{DSN}{description}</DESCRIPTION>\n);
-//       print "$j</DSN>\n";
-//     }
-//   print "</DASDSN>\n";
-
-  return 200;
-}
+ // print qq(<?xml version="1.0" standalone="yes"?>\n<!DOCTYPE DASDSN SYSTEM "http://www.biodas.org/dtd/dasdsn.dtd">\n);
+ // print "<DASDSN>\n";
 
 
-//
-// DAS command 'types' -- list types
-//
+ //
+ // DAS command 'dsn' -- list data-source names
+ //
 
-int DAS::types()
-{
+ int DAS::dsn()
+ {
 
-  *ss << "<DASTYPES>"
+ //   for my $dsn (sort keys %$CONFIG) {
+ //       print "$j<DSN>\n";
+ //       print qq($j$j<SOURCE id="$dsn">$dsn</SOURCE>\n);
+ //       print qq($j$j<MAPMASTER>$CONFIG->{$dsn}{DSN}{mapmaster}</MAPMASTER>\n);
+ //       print qq($j$j<DESCRIPTION>$CONFIG->{$dsn}{DSN}{description}</DESCRIPTION>\n);
+ //       print "$j</DSN>\n";
+ //     }
+ //   print "</DASDSN>\n";
+
+   return 200;
+ }
+
+
+ //
+ // DAS command 'types' -- list types
+ //
+
+ int DAS::types()
+ {
+
+   ss << "<DASTYPES>"
       << "<GFF version=\"1.2\" href=\"\">"
       << "<SEGMENT version=\"1.0\">";
-  
-  *ss << "<TYPE id=\"datatype1\" category=\"other\">" 
+
+   ss << "<TYPE id=\"datatype1\" category=\"other\">" 
       << "<TYPE id=\"datatype2\" category=\"other\">" ;
-  
-  *ss << "</SEGMENT>"
+
+   ss << "</SEGMENT>"
       << "</GFF>"
       << "</DASTYPES>";
 
-  return 200;
-}
+   return 200;
+ }
+
 
 
 //
 // DAS command 'features'
 //
 
+void f_display_variant( Variant & , void * ) ;
+
 int DAS::features( )
 {
+  
   
   //  SERVER/das/DSN/features?segment=RANGE
   //                         [;segment=RANGE]
@@ -290,7 +333,7 @@ int DAS::features( )
   //			     [;feature_id=ID]
   //			     [;maxbins=BINS]  
   //
-
+  
   
   // expects at least one 'segment' OR 'feature_id'
   // all other commands are optional
@@ -299,84 +342,111 @@ int DAS::features( )
   
   std::set<Region> s = get_segments( OPT );
   
+  // for now just handle a single segment ( check SPEC for how >1
+  // segments are handled (if they are)
+  
   if ( s.size() == 1 ) 
     {
       
+      //
+      // Generate region mask
+      //
+      
       const Region & region = *s.begin();
+
+      std::string mstr = "reg=" + region.coordinate() ;
+      std::cout << "regstr [" << mstr << "]\n";
       
-      std::cout << "looking...\n";
+      // Make the mask...
+
+      Mask mask( mstr ) ; 
+
+      // ...and populate indmap
       
-      if ( region.chromosome() == 22 ) 
-	{
-	  std::cout << "in reg 22 \n";
-
-	  // RESPONSE: DASGFF document
-	 	  	  
-	  *ss << "<?xml version=\"1.0\" standalone=\"no\"?>"
-	      << "<DASGFF>"
-	      << "<GFF href=\"" << HOST << "\">";
-	  
-	  *ss << "<SEGMENT id=\"22\" start=\"2000000\" stop=\"3000000\" version=\"2.22\" label=\"label22\">S1";
-	  
-	  *ss << "<FEATURE id=\"id1\" label=\"my label\">"	    
-	      << "<START>2000100</START>"
-	      << "<END>2010000</END>"
-	      << "<NOTE>Test from Shaun</NOTE>"
-	      << "</FEATURE>";
-	  
-	  *ss << "</SEGMENT>";
-
-	  std::cout << "returning ... \n"
-	    
-		    << "<?xml version=\"1.0\" standalone=\"no\"?>" 
-		    << "<DASGFF>"
-		    << "<GFF href=\"" << HOST << "\">"	  
-		    << "<SEGMENT id=\"22\" start=\"2000000\" stop=\"20010000\" version=\"2.22\" label=\"label22\">S1"
-		    << "<FEATURE id=\"id1\" label=\"my label\"></FEATURE>"
-		    << "</SEGMENT>"	    
-		    << "</GFF>"
-		    << "</DASGFF>"
-	    
-		    << "\n\n";
-	  
-
-// 	     << "<TYPE d
-//       <FEATURE id="id" label="label">
-//     <TYPE id="mytype" category="category" reference="yes|no" cvId="SO:1234">My Type</TYPE>
-//     <METHOD id="mymethod" cvId="ECO:5678">My Method</METHOD>
-//     <START> start </START>
-//     <END> end </END>
-//          <SCORE> [X.XX|-] </SCORE>
-//          <ORIENTATION> [0|-|+] </ORIENTATION>
-//          <PHASE> [0|1|2|-]</PHASE>
-//     <NOTE> note text </NOTE>
-//     <LINK href="url"> link text </LINK>
-//     <TARGET id="id" start="x" stop="y"> target name </TARGET>
-//          <PARENT id="parent id1" />
-//          <PART id="child id1" />
-//          <PART id="child id2" />
-//       </FEATURE>
-//       <FEATURE id="child id1" label="child label">
-//          ...
-//       </FEATURE>
-//       <FEATURE id="child id2" label="child label">
-//          ...
-//       </FEATURE>
-//       ...
-//       <FEATURE id="parent id1" label="parent label">
-//          ...
-//       </FEATURE>
-//       ...
-//   </SEGMENT>
-
-	  * ss << "</GFF>"
-	       << "</DASGFF>";
-	}
-    }  
-
+      g->indmap.populate( g->vardb, g->phmap, mask );
+      
+      
+      //
+      // Output header
+      // 
+      
+      ss << "<?xml version=\"1.0\" standalone=\"no\"?>"
+	 << "<DASGFF>"
+	 << "<GFF href=\"" << HOST << "\">";
+      
+      
+      //
+      // Fetch variants
+      //
+      
+      g->vardb.iterate( f_display_variant, this , mask );
+      
+      
+      //
+      // Footer
+      //
+      
+      ss << "</GFF>"
+	 << "</DASGFF>";
+      
+      
+    }
+  
+  
   return 200;
   
 }
+
+
+void f_display_variant( Variant & var , void * p )
+{
+
+  std::cerr << "writing " << var << "\n";
+
+  DAS * pdas = (DAS*)p;  
+  
+  // notes: for now, hardcode 'id' to be numeric (to match) chromosome build
+  //        need some way of us tracking whether to write 'chr1' or '1' as the officual co-ordinate name
+  
+  std::string label_part = ":" + var.name() + ":" + var.reference() + "/" + var.alternate();
+  
+  pdas->ss << "<SEGMENT id=\"" << var.chromosome() 
+	   << "\" start=\"" << var.position() 
+	   << "\" stop=\"" << var.stop() 
+	   << "\" label=\"" << var << label_part
+	   << "\">" << var ;
+  
+  pdas->ss << "<FEATURE id=\"variant\" label=\"" << var << label_part << "\">"	    
+	   << "<START>" << var.position() << "</START>"
+	   << "<END>" << var.stop() << "</END>";
+  
+  // meta-information: variant, sample-variant meta-info and FILTER fields
+
+  std::vector<std::string> keys = var.meta.keys();
+
+  for (int m=0; m<keys.size(); m++)
+    pdas->ss << "<NOTE>" << keys[m] << "=" << var.meta.print( keys[m] ) << "</NOTE>";
+  
+  SampleVariant & sample = var.consensus;
+
+  if ( sample.quality() >= 0 ) 
+    pdas->ss << "<NOTE>QUAL=" << sample.quality() << "</NOTE>";
+  
+  pdas->ss << "<NOTE>FILTER=" << sample.filter() << "</NOTE>";
+  
+  std::vector<std::string> keys1 = sample.meta.keys();
+  for (int m=0; m< keys1.size(); m++)
+    pdas->ss << "<NOTE>" << keys1[m] << "=" 
+	     << sample.meta.print( keys1[m] ) 
+	     << "</NOTE>";
+  
+  pdas->ss << "</FEATURE>";
+  
+  pdas->ss << "</SEGMENT>";
+  
+}
+
+
 
 //
 // DAS command 'sequence'
@@ -385,38 +455,41 @@ int DAS::features( )
 int DAS::sequences() 
 {
   // SERVER/das/DSN/sequence?segment=RANGE[;segment=RANGE...]
-
+  
   return 200;
 }
 
 
 
-//
-// DAS 'sources' command
-//
+ //
+ // DAS 'sources' command
+ //
 
-int DAS::sources( )
-{
+ int DAS::sources( )
+ {
 
-  *ss << 
-    "<?xml version='1.0' standalone=\"no\" ?> "
-    "<SOURCES>"
-    "<SOURCE uri=\"URI\" title=\"title\" doc_href=\"helpURL\" description=\"description\">"
-    "<MAINTAINER email=\"email address\" />"
-    "<VERSION uri=\"URI\" created=\"date\">"
-    "<COORDINATES uri=\"URI\""
-    " source=\"data type\""
-    " authority=\"authority\""
-    " taxid=\"taxonomy\""
-    " version=\"version\""
-    " test_range=\"id:start,stop\" >coordinate string</COORDINATES>"
-    "<CAPABILITY type=\"das1:command\" query_uri=\"URL\" />"
-    "<PROP name=\"key\" value=\"value\" />"
-    "</VERSION>"
-    "</SOURCE>"
-    "</SOURCES>";
-
-  return 200;
+   std::cerr << "proc: 'sources' command\n";
+   
+   ss << "<?xml version='1.0' standalone=\"no\" ?> "
+      << "<SOURCES>"
+      << "<SOURCE uri=\"" << DSN << "\" "
+      << " title=\"" << DSN << "\" "
+      << " description=\"Variation data from PLINK/Seq project\">"
+      << " <MAINTAINER email=\"shaun.purcell@mssm.edu\" />"
+      << " <VERSION uri=\"" << DSN << "\" created=\"2010-06-16T11:53:29+0000\">"
+      << " <COORDINATES uri=\"http://www.dasregistry.org/dasregistry/coordsys/CS_DS311\""
+      << " taxid=\"9606\""
+      << " source=\"Chromosome\""
+      << " authority=\"GRCh\" version=\"37\""
+      << " test_range=\"4:32211548,32711547\">GRCh_37,Chromosome,Homo sapiens</COORDINATES>"
+      << " <CAPABILITY type=\"das1:sources\" query_uri=\"http://localhost:8888/das/" << DSN << "\" />"
+      << " <CAPABILITY type=\"das1:features\" query_uri=\"http://localhost:8888/das/" << DSN << "/features\" />"
+      << " </VERSION>"
+      << " </SOURCE>"
+      << " </SOURCES>";
+   
+   return 200;
+   
 }
 
 
@@ -427,6 +500,7 @@ int DAS::sources( )
 
 int DAS::parse_request()
 {
+
   // get first line, expected form
   
   // GET http://localhost/das/dsn1/command&options
@@ -435,16 +509,43 @@ int DAS::parse_request()
 
   Helper::char_tok ltok( qry , &nline , '\n' );
   
-  if ( ltok.size() < 1 ) return false;
+  if ( ltok.size() < 1 ) return 400; // bad request
+
+  //
+  // Parse all headers
+  //
+
+  for (int l=1;l<ltok.size();l++)
+    {
+      std::string t = ltok(l);
+      
+      // chomp off trailing \r
+      if ( t[t.size()-1] == '\r' ) t = t.substr( 0 , t.size() - 1 );
+
+      // Host: header
+      if ( t.substr(0,6) == "Host: " || 
+	   t.substr(0,6) == "host: " ) 
+	HOST = t.substr(6);      
+    }
+
+  // HTTP/1.1 requires a Host: header
+  if ( HOST == "" ) return 400; // bad request
+
+
+  //
+  // Parse first specific command line
+  //
 
   std::vector<std::string> tok = Helper::parse( ltok(0) , " \t" );
 
   // TODO: might whitespace ever be in the URL/request?
   // TODO: be tolerant for multiple delimiters, etc
   
-  if ( tok.size() != 3 ) return false;
+  if ( tok.size() != 3 ) return 400; // bad request
   
   //  if ( tok[0] != "GET" ) Helper::halt( "pdas only implements GET currently" );
+  
+  if ( tok[2] == "HTTP/1.1\r" ) tok[2] = "HTTP/1.1";
   
   for (int i=0;i<tok.size();i++)
     std::cerr << "tok " << i << " [" << tok[i] << "]\n";
@@ -452,48 +553,72 @@ int DAS::parse_request()
   if ( ! ( tok[2] == "HTTP/1.1" || tok[2] == "HTTP/1.1\r" ) ) 
     Helper::halt( "pdas expecting HTTP/1.1" );
   
+  
   std::string q = tok[1];
   
   int p1 = q.find( "/das/" );
   
   if ( p1 == std::string::npos ) return false;
-  
-  HOST                = q.substr( 0 , p1 ) ;
+
+  // Host: header should always have been defined above
+  //  HOST            = q.substr( 0 , p1 ) ;
   std::string cmdstr  = q.substr( p1 + 5 ) ; 
   
-  std::cerr << "Host [" << HOST << "]\n";
-  std::cerr << "Cmd  [" << cmdstr << "]\n";
- 
+  std::cerr << "host [" << HOST << "]\n";
+  std::cerr << "cmd  [" << cmdstr << "]\n";
+  
   // command can contain a DSN and/or a command
   // options are then everything to the right of '?'
-
+  
   int p_slash = cmdstr.find( "/" );
   int p_quest = cmdstr.find( "?" );
   
-  if ( p_slash == std::string::npos ) return false;
-  if ( p_quest == std::string::npos ) p_quest = cmdstr.size();
-  if ( p_slash > p_quest ) return false;
-
-  // no explicit command given?
-  //   das/dsn1/?segment=1:12345,67890
-
-  // implies command = 'features' (?)
-
-  DSN = cmdstr.substr( 0 , p_slash );
-    
-  CMD = cmdstr.substr( p_slash + 1 , p_quest - p_slash - 1 );
-  if ( CMD == "" ) CMD = "features";
+  if ( p_quest == std::string::npos ) 
+    p_quest = cmdstr.size();
   
-  std::string opt = cmdstr.substr( p_quest + 1 );
+  if ( p_slash == std::string::npos ) 
+    {
+      // implies request in form
+      //  das/DSN
+      
+      // implies a 'sources' command for this one DSN
+      CMD = "sources";
+      DSN = cmdstr;
+    }  
+  else 
+    if ( p_slash > p_quest ) return 400; // bad command
   
-  // either '&' or ';' separate request parameters
-  OPT = Helper::parse( opt , ";&" );
   
+  if ( CMD != "sources" ) 
+    {
+
+      // parsing das/dsn/command
+      //      or das/dsn/command?options
+      
+      std::cerr << "parsing full command\n";
+      
+      // no explicit command given?
+      //   das/dsn1/?segment=1:12345,67890
+
+      // implies command = 'features' (?)
+      
+      DSN = cmdstr.substr( 0 , p_slash );
+      
+      CMD = cmdstr.substr( p_slash + 1 , p_quest - p_slash - 1 );
+      if ( CMD == "" ) CMD = "features";
+      
+      std::string opt = cmdstr.substr( p_quest + 1 );
+      
+      // either '&' or ';' separate request parameters
+      OPT = Helper::parse( opt , ";&" );
+      
+    }
+
   std::cerr << "act dsn [" << DSN << "]\n";
   std::cerr << "act cmd [" << CMD << "]\n";
   for (int i=0;i<OPT.size();i++)
     std::cerr << "act opt " << i << "[" << OPT[i] << "]\n";
-
+  
   return 200;
   
 }
@@ -503,13 +628,13 @@ int DAS::entry_points()
 
   //  SERVER/das/DSN/entry_points[?rows=start-end]
 
-  *ss << "<DASEP>";
-
+  ss << "<DASEP>";
+  
   //     << "<ENTRY_POINTS href=\"" << HOST << "/das/" << DSN << "/entry_points\" total=\"93\" start="21" end="29">
-
+  
   // e.g. "<SEGMENT type=\"Chromosome\" id=\"8\" start=\"1\" stop=\"146364022\" orientation=\"+\" subparts=\"yes\">8</SEGMENT>"
 
-  *ss << "</ENTRY_POINTS>"
+  ss << "</ENTRY_POINTS>"
      << "</DASEP>";
 
   return 200;
@@ -525,8 +650,9 @@ std::set<Region> DAS::get_segments( const std::vector<std::string> & p ) const
 	{
 	  std::string t = p[i].substr(8);	  
 	  // swap ',' character with -
-	  for (int s=8;s<t.size();s++)
+	  for (int s=0;s<t.size();s++)
 	    if ( t[s] == ',' ) t[s] = '-';
+	  std::cout << "swapped seg name [" << t << "]\n";
 	  bool okay = true;
 	  Region r( t , okay );
 	  if ( okay ) {
@@ -557,3 +683,14 @@ std::set<Region> DAS::get_segments( const std::vector<std::string> & p ) const
 // <DASCOORDINATESYSTEM>
 // <COORDINATES uri="http://www.dasregistry.org/dasregistry/coordsys/CS_DS313" taxid="9606" source="Supercontig" authority="GRCh" test_range="" version="37">GRCh_37,Supercontig,Homo sapiens</COORDINATES>
 // </DASCOORDINATESYSTEM>
+
+
+
+void DAS::write()
+{
+  *oss << ss.str(); 
+  
+  std::cerr << "total message.....................................................\n\n";
+  std::cerr << ss.str() << "\n";
+
+}
