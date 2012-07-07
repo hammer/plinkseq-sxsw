@@ -77,6 +77,7 @@ lib/Makefile
 client/Makefile 
 browser/Makefile 
 browser/pbrowse
+pdas/Makefile
 util/Makefile
 ])
 
