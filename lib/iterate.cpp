@@ -14,21 +14,35 @@ IterationReport VarDBase::iterate( void (*f)(Variant&, void *) ,
 				   void * data ,	
 				   Mask & mask )
 {
-  if ( mask.any_grouping() ) return IterationReport( false );
+  if ( mask.any_grouping() ) 
+    {
+      Helper::halt( "grouping mask specified with a non-group command" );
+      return IterationReport( false );
+    }
+  
   if ( f ) return generic_iterate( f, NULL , data , mask );
-  else return IterationReport( false );
+    
+  Helper::halt( "internal error: no function pointer for generic_iterate() " );
+  return IterationReport( false );
+  
 }
 
 IterationReport VarDBase::iterate( void (*f)(VariantGroup &, void *) ,
 				   void * data ,	
 				   Mask & mask )
 {
-  if ( !mask.any_grouping() ) return IterationReport( false );
+  if ( !mask.any_grouping() ) 
+    {
+      Helper::halt( "no grouping mask specified with a group command" );
+      return IterationReport( false );
+    }
   // ensure only a single include-group
   mask.ensure_single_include_group();
   
   if ( f ) return generic_iterate( NULL , f, data , mask );
-  else return IterationReport( false );
+
+  Helper::halt( "internal error: no function pointer for generic_iterate() " );
+  return IterationReport( false );
 }
 
 

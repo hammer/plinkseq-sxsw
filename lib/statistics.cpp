@@ -2051,8 +2051,8 @@ double Statistics::qromo( double a, double b, double (*f)(double x,void*,bool*),
 	case 1 : s[j]=midpnt(a,b,f,previous,d,okay,j); break;
 	case 2 : s[j]=midpnt(a,b,f,previous,d,okay,j); break;
 	case 3 : s[j]=midsql(a,b,f,previous,d,okay,j); break;
-	case 4 : s[j]=midsqu(a,b,f,previous,d,okay,j); break;
-	case 5 : s[j]=midexp(a,b,f,previous,d,okay,j); break;  
+	// case 4 : s[j]=midsqu(a,b,f,previous,d,okay,j); break;
+	// case 5 : s[j]=midexp(a,b,f,previous,d,okay,j); break;  
 	}
       
       if ( ! *okay ) return 0;

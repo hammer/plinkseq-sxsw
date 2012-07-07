@@ -367,10 +367,19 @@ class Region {
 };
 
 
+namespace RegionHelper {
+  
+  std::set<Region> region_merge_overlap( const std::set<Region> & r );
+  
+  double region_span( const std::set<Region> & r);
+
+  std::set<Region> region_remove( const std::set<Region> & , const std::set<Region> & );
+  std::set<Region> region_require( const std::set<Region> & , const std::set<Region> & );
+
+}
 
 
 class OverlapDefinition {
-
  public:  
 
 };

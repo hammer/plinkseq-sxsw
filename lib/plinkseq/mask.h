@@ -476,24 +476,44 @@ class Mask {
 
   void ensure_single_include_group() 
     {
+      
       if ( ! named_grouping() ) return;
+      
       if ( group_loc() ) 
 	{
+	  if ( in_varset.size() || in_regions.size() || in_locset_set.size() || in_varset_set.size() ) 
+	    Helper::halt( "you cannot specify other includes in the mask with loc.group" );
+
 	  in_locset.clear();
 	  in_locset.insert( group_set() );
 	}
       else if ( group_var() ) 
 	{
+	  if ( in_locset.size() || in_regions.size() || in_locset_set.size() || in_varset_set.size() ) 
+	    Helper::halt( "you cannot specify other includes in the mask with var.group" );
+
 	    in_varset.clear();
 	    in_varset.insert( group_set() );
 	}
+      else if ( group_reg() )
+	{
+	  if ( in_locset.size() || in_varset.size() || in_locset_set.size() || in_varset_set.size() ) 
+	    Helper::halt( "you cannot specify other includes in the mask with reg.group" );
+	}
       else if ( group_loc_set() )
 	{
+	  if ( in_locset.size() || in_varset.size() || in_regions.size() || in_varset_set.size() ) 
+	    Helper::halt( "you cannot specify other includes in the mask with locset.group" );
+
 	  in_locset_set.clear();
 	  in_locset_set.insert( group_set() );
 	}
       else if ( group_var_set() )
 	{
+
+	  if ( in_locset.size() || in_varset.size() || in_regions.size() || in_locset_set.size() ) 
+	    Helper::halt( "you cannot specify other includes in the mask with varset.group" );
+
 	  in_varset_set.clear();
 	  in_varset_set.insert( group_set() );
 	}

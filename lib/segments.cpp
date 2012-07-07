@@ -4,7 +4,7 @@
 using namespace std;
 using namespace Helper;
 
-void OverlapResults::load_regions(set<Region> r)
+void OverlapResults::load_regions( const std::set<Region> & r )
 {
   
   std::set<Region>::iterator i = r.begin();
@@ -65,7 +65,6 @@ void func_locdb_process_overlap(Region & r1, Region & r2, int v_int, int v_union
 		  
 		  r.nTargets++;
 		  
-		  
 		  std::map<int,set<int2> >::iterator i = r.cover.find(s);		  
 		  if ( i == r.cover.end() )
 		    {
@@ -86,82 +85,84 @@ void func_locdb_process_overlap(Region & r1, Region & r2, int v_int, int v_union
 }
 
 
-void GStore::locdb_load_names( string file , string name )
+void GStore::locdb_load_names( const std::string & file , const std::string & name )
 {
-    uint64_t candidate_id = locdb.load_regions( file , name , -1, -1, -1 , 0 );
+  uint64_t candidate_id = locdb.load_regions( file , name , -1, -1, -1 , 0 );
 }
 
 
 void GStore::locdb_summary()
 {
-    set<GroupInfo> ginfo = locdb.group_information();    
-    set<GroupInfo>::iterator i = ginfo.begin();
-    while ( i++ != ginfo.end() )
+  
+  std::set<GroupInfo> ginfo = locdb.group_information();    
+  std::set<GroupInfo>::iterator i = ginfo.begin();
+  
+  while ( i++ != ginfo.end() )
     {
       plog << *i << "\t"
 	   << locdb.count( i->idx ) << " records; "
 	   << locdb.span( i->idx )/1000.0 << "kb span\n";	    
     }
-    
-    // TODO: output # of subregions
-    
-    plog << "\n";
+  
+  // TODO: output # of subregions
+  
+  plog << "\n";
 }
 
 
 void GStore::locdb_remove_group( ID_t id )
 {
-    locdb.flush( id );
+  locdb.flush( id );
 }
 
 void GStore::locdb_subregions(bool t)
 {
-    locdb.get_subregions(t);
+  locdb.get_subregions(t);
 }
 
 void GStore::locdb_meta(bool t)
 {
-    locdb.get_meta(t);
+  locdb.get_meta(t);
 }
 
 
 
-void GStore::locdb_rename( string group , string alias, string new_label )
+void GStore::locdb_rename( const std::string & group , const std::string & alias, const std::string & new_label )
 {
-    ID_t group1 = locdb.lookup_group_id( group );
-    ID_t alias1 = locdb.lookup_group_id( alias);
-    if ( group1 == 0 || alias1 == 0 ) return;
-    ID_t renamed_id = locdb.rename( group1, alias1, new_label );
+  ID_t group1 = locdb.lookup_group_id( group );
+  ID_t alias1 = locdb.lookup_group_id( alias);
+  if ( group1 == 0 || alias1 == 0 ) return;
+  ID_t renamed_id = locdb.rename( group1, alias1, new_label );
 }
 
 
-void GStore::locdb_extract_intersection(string group1, string group2 , string newLabel)
+void GStore::locdb_extract_intersection( const std::string & group1, const std::string & group2 , const std::string & newLabel)
 {
-    // Check groups exist
-    ID_t g1 = locdb.lookup_group_id( group1 );
-    ID_t g2 = locdb.lookup_group_id( group2 );
-    if ( g1 == 0 || g2 == 0 ) return;
-    uint64_t extract1_id = locdb.extract( g1 , g2 , "newLabel" );    
+  // Check groups exist
+  ID_t g1 = locdb.lookup_group_id( group1 );
+  ID_t g2 = locdb.lookup_group_id( group2 );
+  if ( g1 == 0 || g2 == 0 ) return;
+  uint64_t extract1_id = locdb.extract( g1 , g2 , "newLabel" );    
 } 
-  
 
 
 
-void GStore::locdb_display_regions( string name )
+
+void GStore::locdb_display_regions( const std::string & name )
 {
-    ID_t id = locdb.lookup_group_id( name );
-
-    if ( id == 0 ) 
-	return;
-
-    set<Region> regions = locdb.get_regions( id );
+  ID_t id = locdb.lookup_group_id( name );
+  
+  if ( id == 0 ) 
+    return;
+  
+  std::set<Region> regions = locdb.get_regions( id );
+  
+  std::set<Region>::iterator i = regions.begin();
     
-    set<Region>::iterator i = regions.begin();
-    
-    while ( i != regions.end() )
+  while ( i != regions.end() )
     {
-	plog << *i << "\n";
-	++i;
+      plog << *i << "\n";
+      ++i;
     }
 }
 

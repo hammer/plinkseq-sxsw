@@ -111,6 +111,9 @@ class LocDBase {
 				std::map<int,std::set<int> > * s2g ,
 				std::map<int,std::set<int> > * g2s );
   
+  std::map<std::string,std::set<Region> > fetch_set_regions( const std::string & loc_group , 
+							     const std::string & set_group );
+
 
   // Handle temporary groups
   
@@ -449,6 +452,7 @@ class LocDBase {
   sqlite3_stmt * stmt_set_member_lookup;
   sqlite3_stmt * stmt_set_member_insert;
   sqlite3_stmt * stmt_set_members_fetch;
+  sqlite3_stmt * stmt_set_members_fetch_regions;
   sqlite3_stmt * stmt_set_names_fetch;
   sqlite3_stmt * stmt_set_data_insert;
   sqlite3_stmt * stmt_dump_all_sets;

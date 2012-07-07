@@ -513,7 +513,8 @@ bool BCF::read_record( Variant & var , SampleVariant & svar , SampleVariant & sv
 	      
 	      svar_g.bcf_genotype_buf_resize( buf_sz );
 	      
-	      // swap length in
+	      // swap length in 
+	      plog.warn("internal issue -- pointer size different 32 -> 8... NEEDS FIXING" );
 	      uint8_t * d = (uint8_t*)len;
 
 	      *svar_g.bcf_pointer(p)   = d[0];

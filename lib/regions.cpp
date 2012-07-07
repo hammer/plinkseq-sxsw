@@ -311,3 +311,250 @@ int RangeIntersector::intersect( const Region & a , void * p )
 }
 
 
+
+
+
+std::set<Region> RegionHelper::region_merge_overlap( const std::set<Region> & r )
+{
+  std::set<Region> m;
+
+  if ( r.size() == 0 ) return m;
+
+  Region current = *r.begin();
+
+  std::set<Region>::iterator ii = r.begin();
+  while ( ii != r.end() ) 
+    {
+      if ( ii->chromosome() != current.chromosome() ) 
+	{
+	  m.insert( current );
+	  current = *ii;
+	}
+      else if ( ii->start.position() > current.stop.position() ) 
+	{
+	  m.insert( current ) ;
+	  current = *ii;
+	}
+      else
+	{
+	  if ( ii->stop.position() > current.stop.position() )
+	    current.stop.position( ii->stop.position() ) ;
+	}
+      ++ii;
+    }
+  m.insert( current );
+  return m;
+}
+
+double RegionHelper::region_span( const std::set<Region> & r)
+{
+  // assumes non-overlapping regions
+  double p = 0;
+  std::set<Region>::iterator ii = r.begin();
+  while ( ii != r.end() ) 
+    {
+      p += ii->length();
+      ++ii;
+    }
+  return p;
+}
+
+
+std::set<Region> RegionHelper::region_remove( const std::set<Region> & init , 
+					      const std::set<Region> & ex )
+{
+  
+  // we assume two 'flattened' lists (i.e. both sent via
+  // region_merge_overlap() above
+  
+  // given regions init, return a new list that removes any parts in
+  // 'ex' ie. this may involve returning partial regions, or splitting
+  // a single region into multiple regions, if it is partially
+  // disrupted by one or more segments in 'ex'
+
+  std::set<Region> r;
+  
+  std::set<Region> cache;
+  std::set<Region>::iterator xi = ex.begin();
+  int cache_chr = xi->chromosome();
+  int cache_bp  = xi->stop.position();
+  
+  std::set<Region>::iterator ii = init.begin();
+  while ( ii != init.end() ) 
+    {
+      
+      // chance to clear cache?
+      
+      if ( ii->chromosome() != cache_chr ||
+	   ii->start.position() > cache_bp ) 
+	{
+	  cache.clear();
+	}
+
+      // add items to the cache until we are past this segment
+      
+      while ( xi != ex.end() ) 
+	{
+	  if ( xi->before( *ii ) ) { ++xi; continue; }
+	  if ( xi->after( *ii ) ) break;
+	  // implies overlap
+	  cache.insert( *xi );
+	  if ( xi->stop.position() > cache_bp ) 
+	    cache_bp = xi->stop.position() ;
+	  ++xi;
+	}
+
+      // now the cache should contain any potential overlaps
+
+      Region curr = *ii;
+
+      bool finished = false;
+
+      std::set<Region>::iterator ci = cache.begin();
+      while ( ci != cache.end() )
+	{
+	  // 0) if X starts before the region, just chop of the start (or all)
+	  if ( ci->start.position() <= curr.start.position() ) 
+	    {
+	      // if whole rest of interval covered, we are done
+	      if ( ci->stop.position() >= curr.stop.position() ) { finished = true; break;  }
+	      
+	      // else, update definition of 'current' segment (i.e. rightmost split)
+	      curr.start.position( ci->stop.position() + 1 ) ; 
+	      
+	    }
+
+	  // 1) if X starts after start of region, peel off that region as a separate one, and make 
+	  
+	  if ( ci->start.position() > curr.start.position() && ci->start.position() <= curr.stop.position() ) 
+	    {
+
+	      r.insert( Region( cache_chr , curr.start.position() , ci->start.position() - 1 ) );
+
+	      // if whole rest of interval covered, we are done
+	      if ( ci->stop.position() >= curr.stop.position( ) ) { finished = true; break; } 
+	      
+	      // else, update definition of 'current' segment (i.e. rightmost split)
+	      curr.start.position( ci->stop.position() + 1 ) ; 
+	      
+	    }
+
+	  ++ci;
+	  
+	}
+
+      // is anything left to add (could be entire segment)
+      
+      if ( ! finished ) r.insert( curr );
+
+      // consider next 
+
+      ++ii;
+    }
+
+  return r;
+}
+
+
+
+std::set<Region> RegionHelper::region_require( const std::set<Region> & init , 
+					      const std::set<Region> & req )
+{
+  
+  // we assume two 'flattened' lists (i.e. both sent via
+  // region_merge_overlap() above
+  
+  // as above, except this returns the complement of region_remove()
+  //  i.e. only sub-regions that overlap something in req.
+
+  std::set<Region> r;
+  
+  std::set<Region> cache;
+  std::set<Region>::iterator xi = req.begin();
+  int cache_chr = xi->chromosome();
+  int cache_bp  = xi->stop.position();
+  
+  std::set<Region>::iterator ii = init.begin();
+  while ( ii != init.end() ) 
+    {
+      
+      // chance to clear cache?
+      
+      if ( ii->chromosome() != cache_chr ||
+	   ii->start.position() > cache_bp ) 
+	{
+	  cache.clear();
+	}
+
+      // add items to the cache until we are past this segment
+      
+      while ( xi != req.end() ) 
+	{
+	  if ( xi->before( *ii ) ) { ++xi; continue; }
+	  if ( xi->after( *ii ) ) break;
+	  // implies overlap
+	  cache.insert( *xi );
+	  if ( xi->stop.position() > cache_bp ) 
+	    cache_bp = xi->stop.position() ;
+	  ++xi;
+	}
+
+      // now the cache should contain any potential overlaps
+
+      Region curr = *ii;
+      
+      bool finished = false;
+
+      std::set<Region>::iterator ci = cache.begin();
+      while ( ci != cache.end() )
+	{
+	  // 0) if X starts before the region and overlaps
+	  if ( ci->start.position() <= curr.start.position() ) 
+	    {
+	      // if whole rest of interval covered, add whole region
+	      if ( ci->stop.position() >= curr.stop.position() ) 
+		r.insert( curr );
+	      
+	      // else, add partial, and change definition of current segment
+	      else 
+		{
+		  r.insert( Region( cache_chr , curr.start.position() , ci->stop.position() ) );
+		  curr.start.position( ci->stop.position() + 1 ) ; 
+		}	      
+	    }
+
+	  // 1) if X starts after start of region, peel off that region as a separate one, and make 
+	  
+	  if ( ci->start.position() > curr.start.position() && ci->start.position() <= curr.stop.position() ) 
+	    {
+	      
+	      // if whole rest of interval covered, we are done
+	      if ( ci->stop.position() >= curr.stop.position( ) )
+		{
+		  r.insert( Region( cache_chr , ci->start.position() , curr.stop.position() ) );
+		  finished = true;
+		  break;
+		}
+	      
+	      // else, insert partial segment and update definition of 'current' segment (i.e. rightmost split)
+	      else 
+		{
+		  r.insert( Region( cache_chr , ci->start.position() , ci->stop.position() ) );
+		  curr.start.position( ci->stop.position() + 1 ) ; 
+		}
+	      
+	    }
+
+	  if ( finished ) break;
+
+	  ++ci;
+	  
+	}
+
+      // consider next 
+
+      ++ii;
+    }
+
+  return r;
+}

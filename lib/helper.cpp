@@ -786,8 +786,7 @@ void Helper::inserter( std::set< std::string > & strset , const std::string & fi
   
   if ( ! Helper::fileExists( filename ) ) 
     {
-      plog.warn("could not find " + filename );
-      return;
+      Helper::halt( "could not find " + filename );
     }
   
   InFile IN1( filename );
@@ -1637,3 +1636,5 @@ bool Helper::char_tok::next_nonmissing( int * i ) const
       else return true;	
     }  
 }
+
+

@@ -456,6 +456,11 @@ bool LocDBase::init()
 		 " WHERE l.loc_id == sd.loc_id "
 		 "   AND sd.set_id == :set_id ; " );
 
+  stmt_set_members_fetch_regions = 
+    sql.prepare( "SELECT l.loc_id,l.name,l.group_id,l.chr,l.bp1,l.bp2,l.altname FROM loci AS l , set_data AS sd "
+		 " WHERE l.loc_id == sd.loc_id "
+		 "   AND sd.set_id == :set_id ; " );
+
   stmt_set_member_insert =
     sql.prepare( " INSERT OR REPLACE INTO set_members ( group_id , name )  "
 		 " values ( :group_id , :name ) ; " );
@@ -536,6 +541,7 @@ bool LocDBase::release()
 
   sql.finalise(stmt_set_names_fetch);
   sql.finalise(stmt_set_members_fetch);
+  sql.finalise(stmt_set_members_fetch_regions);
 
   sql.finalise(stmt_fetch_metatypes);
   sql.finalise(stmt_fetch_segment);
@@ -2943,6 +2949,53 @@ std::vector<std::string> LocDBase::fetch_set_members( const std::string & loc_gr
   sql.reset( stmt_set_members_fetch );
   
   return results;
+}
+
+
+std::map<std::string,std::set<Region> > LocDBase::fetch_set_regions( const std::string & loc_group , 
+								     const std::string & set_group )
+{
+
+  std::map<std::string,std::set<Region> > r;
+  if ( ! attached() ) return r;
+
+  uint64_t id = lookup_set_id( loc_group , set_group );
+  if ( id == 0 ) return r;
+
+  std::vector<std::string> sets = fetch_set_names( loc_group , set_group );
+
+  for (int s = 0 ; s < sets.size(); s++ ) 
+    {
+      std::set<Region> t;
+
+      sql.bind_int64( stmt_set_member_lookup, ":group_id" , id );
+      sql.bind_text( stmt_set_member_lookup, ":name" , sets[s] );
+      
+      uint64_t mem_id = 0;      
+      if ( sql.step( stmt_set_member_lookup ) )
+	mem_id = sql.get_int64( stmt_set_member_lookup , 0 );	
+      sql.reset( stmt_set_member_lookup );
+      int mm = mem_id;
+
+      if ( mem_id != 0 ) 
+	{
+
+	  sql.bind_int64( stmt_set_members_fetch_regions, ":set_id" , mem_id );
+	  
+	  while ( sql.step( stmt_set_members_fetch_regions ) )
+	    {	      
+	      t.insert( construct_region( stmt_set_members_fetch_regions ) ) ;
+	    }
+	  sql.reset( stmt_set_members_fetch_regions );	  
+	}
+
+      // add to the list
+      r[ sets[s] ] = t;
+      
+    }
+  
+  return r;
+
 }
 
 

@@ -21,13 +21,14 @@ GStore g;
 Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
-std::string PSEQ_VERSION = "0.08";
-std::string PSEQ_DATE    = "10-Mar-2012";
+std::string PSEQ_VERSION = "0.09";
+std::string PSEQ_DATE    = "4-Jul-2012";
 
 
 int main(int argc, char ** argv)
 {
 
+  
 
   //
   // Get command-line options into a sensible form
@@ -784,7 +785,15 @@ int main(int argc, char ** argv)
       Pseq::VarDB::vacuum();
       Pseq::finished();
     }
-  
+
+
+  if ( command == "reindex" ) 
+    {
+      plog << "reindexing VARDB... this may take a while...\n";
+      g.vardb.drop_index();
+      g.vardb.index();
+      Pseq::finished();
+    }
   
   
   //
@@ -1976,7 +1985,8 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
-    if ( command == "set-enrich" ) 
+
+    if ( command == "indiv-enrich" )
       {
  	Pseq::Assoc::set_enrich_wrapper( m , args );
  	Pseq::finished();

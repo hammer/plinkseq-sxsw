@@ -2,6 +2,7 @@
 #define __PSEQ_DAVIES_H__
 
 #include <vector>
+#include <cstdlib>
 
 extern "C" { 
 void davies_qfc(double* lb1, 

@@ -24,6 +24,15 @@ namespace Pseq {
 	std::map<int,Aux_netdet> gscore;
       };
       
+      struct Aux_net_param { 
+
+	Aux_net_param( const int na , const int nu , bool add_seed ) 
+	: tot_case(na) , tot_control(nu) , add_seed(add_seed) { } 
+
+	const int tot_case;
+	const int tot_control;
+	const bool add_seed;
+      };
 
       struct Aux_connection { 
 	int extension;
@@ -45,7 +54,8 @@ namespace Pseq {
       
       bool driver( const std::map<std::string,Aux_netdet> & gscore , const Pseq::Util::Options & args, Mask & m );
       
-      void net_test( const int seed , long int , NetDBase & netdb , 
+      void net_test( const int seed , const Aux_net_param & , 
+		     long int , NetDBase & netdb , 
 		     const std::set<std::string> & testset , 
 		     const std::map<std::string,int> &, 
 		     const std::map<int,Aux_netdet> & gscore );
@@ -58,6 +68,7 @@ namespace Pseq {
       // actual genic test
 
       double net_statistic( const int seed, 
+			    const Aux_net_param & , 
 			    NetDBase * netdb , 
 			    std::set<int> & connections , 
 			    std::set<Aux_connection> * endset , 
@@ -66,6 +77,7 @@ namespace Pseq {
 			    int * nvar = NULL , double * pa = NULL , double * pu = NULL );
       
       double stat_adder( const int seed , 
+			 const Aux_net_param & , 
 			 std::set<int> & inset , 
 			 const std::map<int,Aux_netdet > & s , 
 			 int * nvar = NULL , double * pa = NULL , double * pu = NULL );

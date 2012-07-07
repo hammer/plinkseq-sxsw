@@ -180,7 +180,8 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "var-delete|varop|remove file from VARDB|ARG:id" 
 	
 	  << "vacuum|varop|clean-up unused disk-space in VARDB"     
-	
+
+	  << "reindex|varop|drop then remake VARDB indices"
 	
 	
 	//
@@ -321,7 +322,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "unique|views,tests|view variants specific to individual groups|VCF|ARG:indiv,require,allow"
 
-	  << "*set-enrich|tests|test per individual for greater-than-expected burden of variants per set|GRP|ARG:phenotype,perm,locset"
+	  << "indiv-enrich|tests|test per individual for greater-than-expected burden of variants per set|ARG:phenotype,perm,locset,loc,loc.ex,reg.ex"
 
 
     //
@@ -449,6 +450,9 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "prolix-file", STRING, "prolix output filename");
     reg( "long" , NONE , "set long output mode");
     reg( "long-header" , NONE , "set header/long output mode");
+
+    // net-DB
+    reg( "exclude-seed" , NONE , "exclude seed from net-assoc" ) ;
 
     // locus operations
     reg( "keep-unmerged" , NONE , "retain unmerged region group when loading GTF" );

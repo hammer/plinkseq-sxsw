@@ -48,34 +48,67 @@ class int2 {
 };
 
 
+///////////////////////////////
+// Primary output streams
 
-////////////////////////////
+/* class Out {  */
+  
+/*   struct output_t */
+/*   { */
+/*     // one or more of these can be set */
+/*     bool            stdout;   // output to STDOUT */
+/*     std::ofstream * file;     // output to a file if non-NULL */
+/*     //    ResDBase *      dbout;    // output to a results DB if non-NULL */
+/*   }; */
+  
+/*   bool stdout;                   // write to STDOUT instead of a file */
+/*   std::<std::string,output_t>  streams; // various output streams */
+  
+/*   // create a new output stream, and define its properties */
+
+/*   // write a stream */
+  
+/*   // close a stream */
+  
+/*   ~Out()  */
+/*     { */
+/*       std::map<std::string,output_t>::iterator ii = streams.begin(); */
+/*       while ( ii != streams.end() ) */
+/* 	{ */
+/* 	  const output_t & o = ii->second; */
+/* 	  //if ( i.dbout ) { /\* close RESDB *\/ }  */
+/* 	  if ( i.file ) { i->close(); } */
+/* 	} */
+/*     } */
+/* }; */
+
+///////////////////////////////
 // Logging and error handling
 
 class Log {
-
+  
   bool     silent_mode;   // write to STOUT?
   bool     output_file;   // write main output to file?
   bool     prolix_mode;   // write any prolix output to file?
-
+  
   // keep track of warnings issued (and # of times)
   std::map<std::string,int> warnings;
   std::map<std::string,std::vector<std::string> > warnings_specific;
-
+  
   // major output files
   std::ofstream file;
   std::ofstream prolix_file;
 
-  // In R mode, use this as buffer 
+  // in R mode, use this as buffer 
   std::stringstream rstream;
   
   // data-dumper modes
-  std::string  igrp;          // track i-group IDs
-  std::string  igrp_header;   // used in tabular-mode
-  int          coln;          // and col max.
+  std::string  igrp;              // track i-group IDs
+  std::string  igrp_header;       // used in tabular-mode
+  int          coln;              // and col max.
   std::vector<std::string> cols;  // track header columns
-  bool mode_tabular;      // mode (long or tabular)
-  bool mode_header;       // header/numbers in long mode
+  bool mode_tabular;              // mode (long or tabular)
+  bool mode_header;               // header/numbers in long mode
   bool ignore_warnings; 
   bool early_warn;
 
@@ -611,6 +644,7 @@ namespace Helper
   bool checkFileExists(File *);
   bool checkFileRectangular(File *);
   std::string fullpath( const std::string & );
+
 
   ////////////////////////////
   // Pretty-printing

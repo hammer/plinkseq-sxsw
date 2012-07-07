@@ -239,14 +239,14 @@ class GStore {
   // Locus-database/segment related functions
   //
   
-  void locdb_load_names( std::string file , std::string name );
+  void locdb_load_names( const std::string & file , const std::string & name );
   void locdb_summary();
   void locdb_remove_group( ID_t id );
   void locdb_subregions(bool t);
   void locdb_meta(bool t);
-  void locdb_rename( std::string group , std::string alias, std::string new_label );
-  void locdb_extract_intersection(std::string group1, std::string group2 , std::string newLabel);
-  void locdb_display_regions( std::string name );
+  void locdb_rename( const std::string & group , const std::string & alias, const std::string & new_label );
+  void locdb_extract_intersection( const std::string & group1, const std::string & group2 , const std::string & newLabel);
+  void locdb_display_regions( const std::string & name );
  
   void locdb_overlap_analysis( const std::string & target, 
 			       const std::string & preload,

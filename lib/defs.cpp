@@ -2,7 +2,7 @@
 #include "plinkseq/defs.h"
 #include "plinkseq/meta.h"
 
-std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.09(2-Apr-2012)"; return s; }
+std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.09(4-Jul-2012)"; return s; }
 
 int & PLINKSeq::PROJECT_VERSION_NUMBER() { static int i = 2; return i; }
 int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 5; return i; }
@@ -106,7 +106,7 @@ void PLINKSeq::register_standard_metatypes()
   MetaInformation<VarMeta>::field( "AN" , META_INT    , 1 , "Total number of alleles in called genotypes" );
   MetaInformation<VarMeta>::field( "BQ" , META_FLOAT  , 1 , "RMS base quality at this position" );
   MetaInformation<VarMeta>::field( "CIGAR" , META_TEXT  , 1 , "CIGAR string describing how to align an alternate allele to the reference allele" );
-  MetaInformation<VarMeta>::field( "DB" , META_INT    , 1 , "dbSNP membership" );
+  MetaInformation<VarMeta>::field( "DB" , META_FLAG    , 0 , "dbSNP membership" );
   MetaInformation<VarMeta>::field( "DP" , META_INT    , 1 , "Combined depth across samples" );
   MetaInformation<VarMeta>::field( "END" , META_INT    , 1 , "End position of the variant" );
   MetaInformation<VarMeta>::field( "H2" , META_FLAG    , 0 , "Membership in HapMap2" );

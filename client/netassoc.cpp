@@ -9,9 +9,9 @@ extern Pseq::Util::Options args;
 
 
 // Notes
-//   1. currently individuals with missing phenotypes treated as CONTROL
-//   2. screen for when self-self interactions listed -- in this context, do not want to add to set
-
+//   1. uses a DOMINANT coding of rare variants (despite gcounts files having '1' or '2' place-holder)
+//   2. we screen for when self-self interactions listed -- in this context, do not want to add to set
+//   3. option to exclude any variants present in the seed gene from the test statistic
 
 bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , const std::string & grp )
 {
@@ -151,7 +151,7 @@ std::map<std::string, Pseq::Assoc::NetDB::Aux_netdet> Pseq::Assoc::NetDB::read_s
 	  double sc;
 	  F1 >> id >> sc;
 	  if ( id >= 0 && id < idmap.size() && idmap[id] != -1 )
-	    a.ind[ idmap[id] ] = sc;	    
+	    a.ind[ idmap[id] ] = sc > 0 ;	// note -- using a dominant coding here, 0 vs. 1 or 2    
 	}
       
       d[ gname ] = a;
@@ -177,7 +177,30 @@ bool Pseq::Assoc::NetDB::driver( const std::map<std::string,Aux_netdet> & gscore
   NetDBase netdb;
   netdb.attach( netdb_filename );
 
+  
 
+  //
+  // Parameters for test
+  //
+
+  // get total # of non-missing cases/controls
+  int na = 0, nu = 0;
+  for (int i=0;i<g.indmap.size();i++)
+    {
+      if ( ! g.indmap(i)->missing() ) 
+	{
+	  if ( g.indmap(i)->affected() == CASE ) ++na;
+	  else if ( g.indmap(i)->affected() == CONTROL ) ++nu;
+	}
+    }
+  
+  if ( na == 0 || nu == 0 ) Helper::halt( "net-assoc requires 1 or more cases and controls" );
+
+  Aux_net_param param( na , // total number of cases (note -- ignores ploidy issues)		       
+		       nu , // total number of controls
+		       ! args.has( "exclude-seed" )   // do not include SEED in association statistic (default to include)
+		       );
+  
   //
   // Encode gene-names numerical for faster lookups
   //
@@ -219,7 +242,7 @@ bool Pseq::Assoc::NetDB::driver( const std::map<std::string,Aux_netdet> & gscore
   std::map<int,Pseq::Assoc::NetDB::Aux_netdet>::const_iterator i1 = gscore.begin();
   while ( i1 != gscore.end() )
     {
-      Pseq::Assoc::NetDB::net_test( i1->first , rseed, netdb , testset, genemap, gscore );
+      Pseq::Assoc::NetDB::net_test( i1->first , param , rseed, netdb , testset, genemap, gscore );
       ++i1;
     }
 
@@ -256,6 +279,7 @@ void g_net_assoc_collector( VariantGroup & vars , void * p )
 	{	  	  
 	  if ( ! vars.geno(v,i).null() )
 	    {
+	      // note, also using a dominent coding here
 	      if ( vars.geno(v,i).minor_allele_count( altmin ) )  { (*aux)[ name ].ind[i] = 1; plog << "."; } 
 	    }
 	}
@@ -264,7 +288,8 @@ void g_net_assoc_collector( VariantGroup & vars , void * p )
 
 
 void Pseq::Assoc::NetDB::net_test( const int seed , 
-				   long int rseed , 
+				   const Aux_net_param & param ,
+				   long int rseed , 				   
 				   NetDBase & netdb , 
 				   const std::set<std::string> & testset , 
 				   const std::map<std::string,int> & genemap , 
@@ -294,7 +319,7 @@ void Pseq::Assoc::NetDB::net_test( const int seed ,
   double ca = 0 , cu = 0;
   int nvar = 0;
   std::set<Aux_connection> endset;
-  double original = net_statistic( seed , &netdb, connections, &endset, gscore , genemap, &nvar, &ca , &cu );
+  double original = net_statistic( seed , param , &netdb, connections, &endset, gscore , genemap, &nvar, &ca , &cu );
   g.perm.score( original );
 
   // permute
@@ -303,30 +328,42 @@ void Pseq::Assoc::NetDB::net_test( const int seed ,
 
   for (int p = 1 ; p < R ; p++ )
     {
-      double stat = net_statistic( seed , &netdb, connections, NULL , gscore , genemap ); 
+      double stat = net_statistic( seed , param , &netdb, connections, NULL , gscore , genemap ); 
       if ( ! g.perm.score( stat ) ) break; 
     }
 
 
-  // report 
+  // report : first seed 
 
   plog << "SEED" << "\t"
        << gname << "\t" 
        << connections.size() << "\t" 
        << endset.size() << "\t"
-       << nvar << "\t" 
-       << ca << ":" << cu << "\t" 
-       << g.perm.pvalue(0) << "\t"
-       << g.locdb.alias( gname , false ) << "\n";
+       << nvar << "\t" ;
   
+  if ( ca + cu == 0 )  // can happen when --exclude-seed but no PPI partners
+    plog  << 0 << ":" << 0 << "\t" 
+	  << 1 << "\t";
+  else
+    plog  << ca << ":" << cu << "\t" 
+	  << g.perm.pvalue(0) << "\t";
+  
+  plog << g.locdb.alias( gname , false ) << "\n";
+  
+  // partners
+
   std::set<Aux_connection>::iterator i = endset.begin();
   while ( i != endset.end() ) 
     {
       plog << "PARTNER" << "\t"
 	   << gname << "\t";
-      if ( i->parent != seed && i->parent != -1 ) 
+
+      std::string n = gscore.find( i->extension )->second.name ; 
+      
+      if ( n != gname && i->parent != seed && i->parent != -1 ) 
 	plog << gscore.find( i->parent )->second.name << " --> ";
-      plog << gscore.find( i->extension )->second.name << "\t"
+
+      plog << n << "\t"
 	   << i->acnt << "\t"
 	   << i->ucnt << "\t";
       plog << g.locdb.alias( gscore.find( i->extension )->second.name , false ) << "\n";
@@ -337,6 +374,7 @@ void Pseq::Assoc::NetDB::net_test( const int seed ,
 
 
 double Pseq::Assoc::NetDB::net_statistic( const int seed, 
+					  const Aux_net_param & param , 
 					  NetDBase * netdb , 
 					  std::set<int> & connections , 
 					  std::set<Aux_connection> * endset , 
@@ -359,7 +397,7 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
   // Original score is single gene test (inset is empty)
   //
   
-  double stat0 =  stat_adder( seed, inset , gscore );
+  double stat0 =  stat_adder( seed, param , inset , gscore );
     
   //
   // initially, populate with 1st degree connections
@@ -406,7 +444,7 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
 	  testset.insert( i->extension );
 	  
 	  // New statistic
-	  double stat1 = stat_adder( seed , testset , gscore );
+	  double stat1 = stat_adder( seed , param , testset , gscore );
 	  
 	  if ( stat1 > stat0 ) 
 	    {
@@ -438,8 +476,9 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
 	  std::set<int> ext = netdb->connections( gname , genemap );	  
 	  std::set<int>::iterator ii = ext.begin();
 	  while ( ii != ext.end() )
-	    {	      
-	      next_node.insert( next_node_t( *ii , best->extension , best->depth + 1 ) );
+	    {	      	      
+	      if ( *ii != seed ) // ensure do not add seed to the list 
+		next_node.insert( next_node_t( *ii , best->extension , best->depth + 1 ) );
 	      ++ii;
 	    }
 	}
@@ -461,57 +500,95 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
       while ( i != next_node.end() )
 	{
 
-	  if ( inset.find( i->extension ) == inset.end() ) { ++i; continue; }
+	  // only consider genes in set 
 
+	  if ( inset.find( i->extension ) == inset.end() ) 	    
+	    { ++i; continue; }
+	    	      
 	  Aux_connection c;
 	  c.extension = i->extension;
 	  c.parent = i->parent;
-
+	  	  
 	  // get gene specific A/U counts
 	  int d_pnvar;
 	  double d_a;
 	  double d_u; 
 	  std::set<int> dummy;
-	  double dummy_stat = stat_adder( i->extension , dummy , gscore , &d_pnvar , &d_a , &d_u );
+	  double dummy_stat = stat_adder( - i->extension , param , dummy , gscore , &d_pnvar , &d_a , &d_u );
+	  
 	  c.acnt = (int)d_a;
 	  c.ucnt = (int)d_u;
 	  endset->insert( c );
 
 	  ++i;
 	}
+      
 
+      // and insert seed node in endset too
+      
+      if ( param.add_seed ) 
+	{
+	  int d_pnvar;
+	  Aux_connection c;
+	  double d_a;
+	  double d_u; 
+	  std::set<int> dummy;
+	  double dummy_stat = stat_adder( -seed , param , dummy , gscore , &d_pnvar , &d_a , &d_u );
+	  c.extension = seed;
+	  c.parent = -1;
+	  c.acnt = (int)d_a;
+	  c.ucnt = (int)d_u;
+	  endset->insert( c );
+	}
+ 
     }
 
   //
   // run for a last time with best model, to populate some stats
   //
 
-  return stat_adder( seed, inset , gscore , pnvar, pa , pu );
+  return stat_adder( seed, param , inset , gscore , pnvar, pa , pu );
   
 }
 
 
 double Pseq::Assoc::NetDB::stat_adder( const int seed , 
-				       std::set<int> & inset , 
+				       const Aux_net_param & param , 
+				       std::set<int> & inset , 				       
 				       const std::map<int, Aux_netdet > & s , 
 				       int * pnvar , double * pa , double * pu )
   
 {
   
   double ca = 0 , cu = 0;
+
+  // add 'seed' (optionally)
+
+  // note, if seed < 0 this means we want to force-add the seed
+
+  // this is because we use this function to calculate C/C counts for the
+  // 'endset' also, and so this is a cludge to ensure they are added
+  // in this case, 'inset' above will always be empty too.
   
-  std::map<int, Aux_netdet>::const_iterator i = s.find( seed );
-  if ( i == s.end() ) return 0;
+  bool eval_seed_only_kludge  = seed < 0 ;
   
-  if ( pnvar ) *pnvar += i->second.nvar;
-  std::map<int,double>::const_iterator ii = i->second.ind.begin();  
-  while ( ii != i->second.ind.end() )
+  if ( param.add_seed || eval_seed_only_kludge ) 
     {
-      if ( g.indmap( g.perm.pos( ii->first ) )->affected() == CASE ) ca += ii->second;
-      else cu += ii->second;
-      ++ii;
-    }  
-  
+      
+      std::map<int, Aux_netdet>::const_iterator i = s.find( eval_seed_only_kludge ? -seed : seed );
+      if ( i == s.end() ) return 0;
+      
+      if ( pnvar ) *pnvar += i->second.nvar;
+      std::map<int,double>::const_iterator ii = i->second.ind.begin();  
+      while ( ii != i->second.ind.end() )
+	{
+	  affType aff = g.indmap( g.perm.pos( ii->first ) )->affected();
+	  if ( aff == CASE ) ca += ii->second;
+	  else if ( aff == CONTROL ) cu += ii->second;
+	  ++ii;
+	}  
+    }
+
   
   // all partners in 'inset'
   std::set<int>::iterator k = inset.begin();
@@ -528,10 +605,11 @@ double Pseq::Assoc::NetDB::stat_adder( const int seed ,
       std::map<int,double>::const_iterator iii = ii->second.ind.begin();
       while ( iii != ii->second.ind.end() )
 	{
-	  if ( g.indmap( g.perm.pos( iii->first ) )->affected() == CASE ) ca += iii->second;
-	  else cu += iii->second;
+	  affType aff = g.indmap( g.perm.pos( iii->first ) )->affected();
+	  if ( aff == CASE ) ca += iii->second;
+	  else if ( aff == CONTROL ) cu += iii->second;
 	  ++iii;
-	}  
+	}
       
       ++k;
     }
@@ -539,7 +617,32 @@ double Pseq::Assoc::NetDB::stat_adder( const int seed ,
   if ( pa ) *pa = ca;
   if ( pu ) *pu = cu;
   
-  return ( ca / (ca+cu) ) * ( ca-cu ) ;
+
+  // based on dominant coding, determine chi-sq
+  
+  const int da = param.tot_case - ca;
+  const int du = param.tot_control - cu;
+  
+  if ( da < 0 || du < 0 ) 
+    Helper::halt( "internal error in net-assoc: da < 0 || du < 0" ); 
+  
+  bool zero_count = ca == 0 || cu == 0 || da == 0 || du == 0; 
+  
+  double odds = 0;
+  
+  if ( zero_count ) 
+    odds = ( ( ca + 0.5 ) * ( du + 0.5 ) ) / ( ( cu + 0.5 ) * ( da + 0.5 ) ) ;   
+  else
+    odds = (double)( ca * du ) / (double)( cu * da );
+
+  // 1-sided test -- looking only for increase in risk
+  if ( odds <= 1 ) return 0;
+  
+  // return chi-sq are test statistic
+  return Helper::chi2x2( ca , cu , da , du ) ; 
+	  
+  // Original statistic
+  //return ( ca / (ca+cu) ) * ( ca-cu ) ;
   
 }
 

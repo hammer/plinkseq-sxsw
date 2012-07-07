@@ -413,12 +413,11 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
   m.parse( d2, ' ', true ); // automatically add meta-flags 
   
- 
   std::vector<std::string> keys = m.keys();
   
   for( int i=0; i<keys.size(); i++)
   {	
-      
+
       if ( keys[i] != "" && known_commands.find( mask_command_t( keys[i] ) ) == known_commands.end() )
       {
 	

@@ -2,6 +2,7 @@
 #include "plinkseq.h"
 #include "util.h"
 #include "genic.h"
+#include "plinkseq/prob.h"
 
 #include <iostream>
 #include <vector>
@@ -1846,56 +1847,109 @@ void g_set_association( VariantGroup & vars , void * p )
 
 // Per-individual set-enrichment scan
 
-struct aux_set_enrichment{
-  std::vector<int> indiv;
-  std::vector<int> gene;
-  std::map<std::string,int> * genes_slot;
+struct aux_indiv_enrichment{
+
+  // counts per set/per individual
+  std::map<int,double> total_cnts;
+  std::map<int,double> total_sqrs;
+
+  std::map<std::string,std::map<int,double> > set_cnts;
+  std::map<std::string,std::map<int,double> > set_sqrs;
+  
+  // per individual, keep track of the rare alleles
+  std::map<int,std::set<std::string> > total_vars;
+  std::map<std::string,std::map<int,std::set<std::string> > > set_vars;
+
+  // for determining which sets to add to
+  std::map<std::string,std::set<int> > * g2s;
+  std::vector<std::string> * set_slot;
 };
 
 
 void g_set_enrichment( VariantGroup & vars , void * p )
 {
 
-  aux_set_enrichment * aux = (aux_set_enrichment*)p;
+  std::cout << "proc " << vars.name() << "\n";
   
-  // only consider scoring for genes that are in the gene-map we will be using
-  if ( aux->genes_slot->find( vars.name() ) == aux->genes_slot->end() ) return;
-  
-  // get numeric ID 
-  const int gn = (*aux->genes_slot)[ vars.name() ];
+  aux_indiv_enrichment * aux = (aux_indiv_enrichment*)p;
   
   int a = 0;
   const int n = g.indmap.size();
   const int s = vars.size();
   
   std::vector<bool> altmin(s);
+  std::vector<double> maf(s);
   for (int j = 0 ; j < s ; j++  )
     {
       int c, c_tot;      
       altmin[j] = vars(j).n_minor_allele( &c , &c_tot );      
+      maf[j] = (double)c/(double)c_tot;
+      if ( maf[j] > 0.5 ) maf[j] = 1-maf[j];
     }
+
 
   for ( int i = 0 ; i < n ; i++ )
     {
+
+      bool observed = false;
+      double w = 1; 
+      int added = 0;
+
       for (int j = 0 ; j < s ; j++  )
-	{
+	{	  	  
 	  if ( vars(j,i).minor_allele( altmin[j] ) )
-	    {
-	      aux->gene.push_back( gn );
-	      aux->indiv.push_back( i );
-	      ++a;
-	      break;
+	    {	      
+	      observed = true;
+	      if ( maf[j] < w ) { w = maf[j]; added = j; } 
 	    }
 	}
+      
+      // for an individual, we get a (weighted) score which is the 
+      // 1/MAF for the lowest frequency variant that have 
+      
+      if ( observed ) 
+	{
+	  std::cout << "  adding " << vars( added ) 
+		    << "  for indiv " << vars( added ).ind(i)->id() 
+		    << "  MAF = " << w << "\n";
+
+	  w = 1 / w;
+	  
+	  w = 1 ; // unweighted
+
+	  std::set<int> & ss = (*aux->g2s)[ vars.name() ];
+	  std::set<int>::iterator ii = ss.begin();
+	  while ( ii != ss.end() )
+	    {	
+	      std::cout << "   adding to set " << (*aux->set_slot)[*ii] << "\n";
+	      aux->set_cnts[ (*aux->set_slot)[ *ii ]][ i ]  += w;
+	      aux->set_sqrs[ (*aux->set_slot)[ *ii ]][ i ]  += w * w ;
+	      ++ii;
+	    }
+	  
+	  // add as background 
+	  aux->total_cnts[i] += w ;
+	  aux->total_sqrs[i] += w * w ;
+	}
+      
     }
-
-  std::cout << " added " << a << " for " << vars.name() << "\n";
-
+  
 }
 
 
 bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & args )
 {
+  
+  for (double i=-5 ; i<=5 ; i += 0.2 )
+    {
+      std::cout << i << "\t"
+		<< erfc(i) << "\t" 
+		<< Helper::PROB::gamma_inc( 0.5 , i*i ) / 1.772454 
+		<< "\n";
+    }
+
+
+  return false;
   
   // We assume the initial scan has to be based on genes --mask loc.group=refseq
 
@@ -1905,240 +1959,520 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   
   // Populate a list of individual / gene initially
   
-  aux_set_enrichment aux;
-  
   std::string locset = args.as_string( "locset" );
   std::string loc = args.as_string( "loc" );
-  
+
   //
-  // First, extract set information
+  // Speed-up by not pulling meta-info or subregions here
   //
 
-  plog << "pulling all set information\n";
+  bool orig_get_meta = g.locdb.get_meta();
+  bool orig_get_subregions = g.locdb.get_subregions();
 
-
-  // names of SETs
-  std::map<int,std::string> sets;
-
-  // names of GENEs
-  std::map<int,std::string> genes;
-  
-  // SET  -->  all GENES in the SET
-  std::map<int,std::set<int> > s2g;
-
-  // GENE --> all SETS that contain that GENE
-  std::map<int,std::set<int> > g2s;
-  
-  bool okay = g.locdb.populate_set_structures( loc , locset , &genes , &sets , &s2g , &g2s );
+  g.locdb.get_meta( false );
+  g.locdb.get_subregions( false );
 
 
   //
-  // Create gene-string --> numeric-ID mapping, and attach to aux
+  // 'Exclusion mask'
   //
-  
-  std::map<std::string,int> genes_slot;
-  std::map<int,int> genes_slot2map;  
-  std::map<int,std::string>::iterator i = genes.begin();
 
-  int slot = 0;
-  while ( i != genes.end() )
+  // the 'background' defines the parts of the experiment in which a
+  // variant could feasibly have occurred (i.e. if variants are only
+  // called in coding regions, etc; otherwise, the implied region by
+  // 'loc' alone would be (for example) all regions from transcription
+  // start to stop, not just coding exons, etc.  In this way, we allow
+  // for a more flexible joint specification of genes (that link to
+  // locus-sets) and the 'background' (that could include
+  // experimenter- defined regions of high-coverage, etc) and/or
+  // restriction of coding exons (with an optional 50bp flank, for
+  // example).  When calculating the effective extent of the gene
+  // groups, we extract out anything not in the background.
+  
+  // this is defined by --mask loc.req= and reg.req=
+
+
+  const std::set<int> & locus_requires = mask.required_loc();
+  const std::set<Region> & region_requires = mask.required_reg();
+
+  std::set<Region> requires = region_requires;
+  std::set<int>::iterator il = locus_requires.begin();
+  while ( il != locus_requires.end() ) 
     {
-      genes_slot[ i->second ] = slot;
-      genes_slot2map[ slot ] = i->first;
-      ++slot;
-      ++i;
+      std::set<Region> r = g.locdb.get_regions( *il );
+      std::set<Region>::iterator ri = r.begin();
+      while ( ri != r.end())
+	{
+	  requires.insert( *ri );
+	  ++ri;
+	}	     
+      ++il;
+    }
+ 
+  requires = RegionHelper::region_merge_overlap( requires );
+
+  
+  //
+  // All genes ( background )
+  // 
+  
+  std::set<Region> all_genes = g.locdb.get_regions( loc );
+  
+  // flatten
+  
+  all_genes = RegionHelper::region_merge_overlap( all_genes );
+  
+  // only include 'required' regions, if specifed (--mask reg.req=  loc.req= )
+  
+  if ( requires.size() > 0 ) 
+    all_genes = RegionHelper::region_require( all_genes , requires );
+  
+  // get total span
+  
+  double span = RegionHelper::region_span( all_genes );
+  
+  plog << "total gene list, " << all_genes.size() << " intervals spanning " << span << " bp\n";
+  
+  
+  //
+  // Gene-set genes
+  //
+  
+  std::map<std::string,std::set<Region> > targets = g.locdb.fetch_set_regions( loc , locset ); 
+  
+  std::cout << targets.size() << " set regions\n";
+
+  // get gene-name --> gene-sets mapping 
+  std::vector<std::string> sets = g.locdb.fetch_set_names( loc , locset );
+
+  std::cout << sets.size() << " sets found\n";
+
+  // track gene -> sets
+  std::map<std::string,std::set<int> > g2s;
+  for (int s=0;s<sets.size();s++)
+    {
+      std::vector<std::string> members = g.locdb.fetch_set_members( loc , locset , sets[s] );
+      std::cout << members.size() << " members in " << sets[s] << "\n";
+      for (int m = 0 ; m < members.size(); m++ ) 
+	g2s[ members[m] ].insert( s );      
     }
   
-  aux.genes_slot = &genes_slot;
-  
-  
-  
+  std::cout << "\n";
+
   //
-  // ensure that we iterate by gene initially, to build the gene table
-  // we want to do this for all genes (whether in set or not)
+  // get % hitting target by chance  (background rate 'f')
+  //
+
+  std::map<std::string,double> f;
+
+  std::map<std::string,std::set<Region> >::iterator ii = targets.begin();
+  while ( ii != targets.end() )
+    {
+      std::cout << "processing " << ii->first << "\n";
+
+      std::set<Region> target_genes = RegionHelper::region_merge_overlap( ii->second );
+      
+      if ( requires.size() > 0 ) 
+	target_genes = RegionHelper::region_require( target_genes , requires );
+       
+      double target_span = RegionHelper::region_span( target_genes );
+
+      std::cout << "set = " << ii->first << " : " 
+		<< ii->second.size() << " --> "
+		<< target_genes.size() << " intervals, " 
+		<< target_span << " bp, "
+		<< ( target_span / span ) * 100.0 << "%\n";
+      
+      f[ ii->first ] = ( target_span / span ) ; 
+      
+      ++ii;
+    }
+
+
+  //
+  // return LOCDB to original settings w.r.t. meta-info and subregions
+  //
+  
+  g.locdb.get_meta( orig_get_meta );
+  g.locdb.get_subregions( orig_get_meta );
+  
+  
+  // Now that we've calculated a simple estimate of the prior probability of hitting 
+  // a given target (given gene size and the total effective exome being used in the study)
+  // now get the empirical counts for the # of variants
+
+  // note: in future, you could imagine other things going into the
+  // calculation of 'f', such as base-context
+
+  //
+  // For each individual, calculate a) the total number of variants, b) for each set, the 
+  // number of variants in a gene.  Count a gene at a time, and collapse 2+ variants to 1
+  // (i.e. to try to help avoiding violations of the independence assumption).
   //
   
   mask.group_loc( loc );
   
+  aux_indiv_enrichment aux;
 
-  //
-  // iterate through each set; write number of individuals/genes that have 1+ allele
-  //
+  aux.set_slot = &sets;
+  aux.g2s = &g2s;
   
+  std::cout << "about to start iterating...\n";
+
   g.vardb.iterate( g_set_enrichment , &aux , mask ) ;
 
-
+  std::cout << "done iterating...\n";
+  
 
   //
-  // Set ID --> Set Slot mapping
+  // Now we should have populated for each set, for each individual, the total 
+  // number of genes they have with a variant of 'interest'; and also the 
   //
+  
+  // we have populated aux.total_cnts and aux.set_cnts[].  For each individual, for each set, 
+  // determine the probability that they have n of m (weighted) counts
 
-  std::map<int,std::string>::iterator si = sets.begin();
-  std::map<int,int> s2s;
-  slot = 0;
-  while ( si != sets.end() )
+  // Use weighted binominal heuristic test, as described here:
+  //   http://www.cv.nrao.edu/adass/adassVI/theilerj.html
+
+  // Li & Ma (1983) ratio of Poisson likelihoods method
+
+  // At = 'size of target genes'
+  // Ab = 'size of non-target genes'
+  // f = At / ( At + Ab ) 
+
+  // S( sqrt( 2 * ( Nt * ln( ( Nt / Et ) ) + nb * ln( ( Nb / Eb ) ) ) ) ) 
+  
+  // where Et = f ( Nt + Nb ) 
+  //       Rb = (1-f) ( Nt + Nb ) 
+
+  // S(s) = 0.5 * ( 1 - erfc( s / sqrt(2) ) )
+  // to get 1-tailed p-value
+
+  // erfc(z) = IG( 0.5 , z^2 ) / sqrt(pi)       
+  // 'complementary error function'   
+  // http://mathworld.wolfram.com/Erfc.html
+  //  where IG(a,b) is the incomplete gamma function
+  
+  // Weighted counts:
+  //   given sample frequencies (or any other types of arbitary weights), we wish 
+
+  //  Wt  = sum { w_i )       for all in target points
+  //  Qt  = sum { w_i ^2 }              "
+
+  // no assumptions about weights summing or averaging to unity. 
+  
+  // heuristic for P value
+
+  // S = ( sqrt(  ( ( 2 Wt + Wb ) / ( Qt + Qb )  )   *   ( Wt * ln( Wt / Et )  + Wb * ln ( Wb / Eb ) ) ) ) 
+
+  // where Et = f * ( Wt + Wb ) 
+  //       Eb = (1-f) * ( Wt + Wb ) 
+
+  // double Helper::PROB::gamma_inc ( double p, double x )
+  // double Helper::PROB::gamma_inc ( 0.5 , z * z ) ;
+
+  const int n = g.indmap.size();
+  
+  for (int i = 0 ; i < n ; i++ ) 
     {
-      s2s[ si->first ] = slot++;
-      ++si;
-    }
-
-
-  //
-  // Create large score matrix of INDIV x SET
-  //
-  
-  const int n = g.indmap.size();  
-  std::vector<std::vector<int> > scores(n);  
-  for (int k=0;k<n;k++) scores[k].resize( sets.size() , 0 );
-  
-
-  //
-  // Create per individual counts
-  //
-  
-  std::vector<int> indcnt( n , 0 );
-  std::map<int,int> gcnt;
-  
-  //
-  // Populate counts
-  //
-  
-  for (int k = 0 ; k < aux.indiv.size() ; k++)
-    {
-      const int i = aux.indiv[k];
-      const int gslot = aux.gene[k];                // col position in SCORES matrix
-      const int gmap  = genes_slot2map[ gslot ];    // ID from LOCDB that connects genes to sets
       
-      //      std::cout << "Individual/gene " << k << " of " << aux.indiv.size() << "\t" << i << " " << gslot << " " << gmap << "\n";
+      double w_total = aux.total_cnts[ i ];
+      double q_total = aux.total_sqrs[ i ];
       
-      // track total number of mutant genes per individual
-      indcnt[i]++;
-      
-      // similarly, for each gene
-      gcnt[gmap]++;
-      
-      // track number of mutants per set per individual
-      std::set<int> & gsets = g2s[ gmap ];
-      std::set<int>::iterator ii = gsets.begin();
-      while ( ii != gsets.end() ) 
+      for (int s = 0 ; s < sets.size() ; s++ ) 
 	{
-	  scores[i][ s2s[ *ii ] ]++;
-	  ++ii;
+
+	  double w_set = aux.set_cnts[ sets[s] ][ i ];
+	  double q_set = aux.set_sqrs[ sets[s] ][ i ];
+	  
+	  double w_bak = w_total - w_set;
+	  double q_bak = q_total - q_set;
+
+	  double e_set = f[ sets[s] ] * w_total;
+	  double e_bak = w_total - e_set ; 
+
+
+	  // double x = sqrt( ( ( ( 2 * ( w_set + w_bak ) ) ) / 
+	  // 		     ( q_set + q_bak ) ) * ( w_set * log( w_set / e_set ) + w_bak * log( w_bak / e_bak ) ) );
+	  
+
+	  double alpha =  f[ sets[s] ] / (1- f[ sets[s] ] );
+	  
+	  double x = ( w_set - alpha * w_bak ) /  sqrt( alpha * q_set + alpha * q_bak )  ; 
+
+	  // sqrt(PI) = 1.772454
+	  // sqrt(2) = 1.414214
+	  	  
+	  // S(x) = 0.5 * ( 1 - erfc( s / sqrt(2) ) )	  
+	  double myerfc = Helper::PROB::gamma_inc( 0.5 , ( x / 1.414214 ) * ( x / 1.414214 ) ) / 1.772454 ;
+
+	  double interfc = erfc( x / 1.414214 ) ;
+	  
+	  double S = 0.5 * ( 1 - interfc ) ; 
+	  
+	  // to get 1-tailed p-value, S
+
+	  std::cout << "Indiv=" << g.indmap(i)->id() << "\t"
+		    << "Set=" << sets[s] << "\t"
+		    << "f=" << f[ sets[s] ] << "\t"
+		    << "w=" << w_set << "," << w_bak << "," << w_total << "\t"
+		    << "q=" << q_set << "," << q_bak << "," << q_total << "\t"
+		    << "e=" << e_set << "," << e_bak << "\t" 
+		    << "s=" << x << "\t"
+		    << "erfc=" << myerfc << "," << interfc << "\t"
+		    << "p=" << S << "\n";
+	  
+	  // std::cout << sets[s] << "\t" 
+	  // 	    << g.indmap(i)->id() << "\t"	  
+	  // 	    << w_set << " " << w_bak << "\t"
+	  // 	    << x << " " << erfc << "\t"
+	  // 	    << S << "\n";
+	  
 	}
-      
+
+
     }
+		 
+  
+ 
+
+
+  return true ;
+
+
+
+
+
+  // //
+  // // First, extract set information
+  // //
+
+  // plog << "pulling all set information\n";
+
+
+  // // names of SETs
+  // std::map<int,std::string> sets;
+
+  // // names of GENEs
+  // std::map<int,std::string> genes;
+  
+  // // SET  -->  all GENES in the SET
+  // std::map<int,std::set<int> > s2g;
+
+  // // GENE --> all SETS that contain that GENE
+  // std::map<int,std::set<int> > g2s;
+  
+  // bool okay = g.locdb.populate_set_structures( loc , locset , &genes , &sets , &s2g , &g2s );
+  
+  // plog << "populated set structure" << "\n";
+  
+  
+  // //
+  // // Create gene-string --> numeric-ID mapping, and attach to aux
+  // //
+  
+  // std::map<std::string,int> genes_slot;
+  // std::map<int,int> genes_slot2map;  
+  // std::map<int,std::string>::iterator i = genes.begin();
+
+  // int slot = 0;
+  // while ( i != genes.end() )
+  //   {
+  //     genes_slot[ i->second ] = slot;
+  //     genes_slot2map[ slot ] = i->first;
+      
+  //     std::cout << "adding to genes-slot " << i->second << " " << slot << "\n";
+
+  //     ++slot;
+  //     ++i;
+  //   }
+  
+  // aux.genes_slot = &genes_slot;
+  
+  
+
+
+  // //
+  // // Set ID --> Set Slot mapping
+  // //
+  
+  // std::map<int,std::string>::iterator si = sets.begin();
+  // std::map<int,int> s2s;
+  // slot = 0;
+  // while ( si != sets.end() )
+  //   {
+  //     s2s[ si->first ] = slot++;
+  //     ++si;
+  //   }
+  
+
+  // //
+  // // Create large score matrix of INDIV x SET
+  // //
+  
+  // const int n = g.indmap.size();  
+  // std::vector<std::vector<int> > scores(n);  
+  // for (int k=0;k<n;k++) scores[k].resize( sets.size() , 0 );
+  
+
+  // //
+  // // Create per individual counts
+  // //
+  
+  // std::vector<int> indcnt( n , 0 );
+  // std::map<int,int> gcnt;
+  
+
+  // //
+  // // Populate counts
+  // //
+  
+  // for (int k = 0 ; k < aux.indiv.size() ; k++)
+  //   {
+  //     const int i = aux.indiv[k];
+  //     const int gslot = aux.gene[k];                // col position in SCORES matrix
+  //     const int gmap  = genes_slot2map[ gslot ];    // ID from LOCDB that connects genes to sets
+      
+  //     //      std::cout << "Individual/gene " << k << " of " << aux.indiv.size() << "\t" << i << " " << gslot << " " << gmap << "\n";
+      
+  //     // track total number of mutant genes per individual
+  //     indcnt[i]++;
+      
+  //     // similarly, for each gene
+  //     gcnt[gmap]++;
+      
+  //     // track number of mutants per set per individual
+  //     std::set<int> & gsets = g2s[ gmap ];
+  //     std::set<int>::iterator ii = gsets.begin();
+  //     while ( ii != gsets.end() ) 
+  // 	{
+  // 	  scores[i][ s2s[ *ii ] ]++;
+  // 	  ++ii;
+  // 	}
+      
+  //   }
 
 
   
-  //
-  // Calculate enrichment statistic per individual for each set
-  //
+  // //
+  // // Calculate enrichment statistic per individual for each set
+  // //
 
 
-  //           | Set | Not-Set
-  // ----------|-----|----------
-  // Indiv V   |     |       
-  // ----------|-----|----------
-  // Rest  V-1 |     |        
-  // ----------|-----|----------
+  // //           | Set | Not-Set
+  // // ----------|-----|----------
+  // // Indiv V   |     |       
+  // // ----------|-----|----------
+  // // Rest  V-1 |     |        
+  // // ----------|-----|----------
 
 
-  const int numgenes = g2s.size();
-  const int numsets = s2g.size();
+  // const int numgenes = g2s.size();
+  // const int numsets = s2g.size();
   
-  for ( int i = 0 ; i < n ; i++ ) 
-    plog << "ICNT" << "\t"
-	 << g.indmap.ind(i)->id() << "\t"
-	 << indcnt[i] << "\n";
+  // for ( int i = 0 ; i < n ; i++ ) 
+  //   plog << "ICNT" << "\t"
+  // 	 << g.indmap.ind(i)->id() << "\t"
+  // 	 << indcnt[i] << "\n";
   
-  // For each gene, number of mutations (per person)
-  std::map<int,int> genic_hits;
-  std::map<int,std::set<int> >::iterator gi = g2s.begin();
-  while ( gi != g2s.end() )
-    {
-      plog << "GCNT" << "\t"
-	   << gi->second.size() << "\t"
-	   << gcnt.find( gi->first )->second << "\t"
-	   << genes[ gi->first ] << "\n";
-	   ++gi;
-    }
+  // //
+  // // For each gene, number of mutations (per person)
+  // //
+
+  // std::map<int,int> genic_hits;
+  // std::map<int,std::set<int> >::iterator gi = g2s.begin();
+  // while ( gi != g2s.end() )
+  //   {
+  //     plog << "GCNT" << "\t"
+  // 	   << gi->second.size() << "\t"
+  // 	   << gcnt.find( gi->first )->second << "\t"
+  // 	   << genes[ gi->first ] << "\n";
+  // 	   ++gi;
+  //   }
       
 
-  // For each set, number of genes & number of mutations (per person)   
-  si = sets.begin();
-  while ( si != sets.end() )
-    {
+  // //
+  // // For each set, number of genes & number of mutations (per person)   
+  // //
 
-      plog << "SCNT" << "\t"
-	   << s2g[ si->first ].size() << "\t";
+  // si = sets.begin();
+  // while ( si != sets.end() )
+  //   {
       
-      int scnt = 0;
-      std::set<int> & gs = s2g.find( si->first )->second;
-      std::set<int>::iterator gi = gs.begin();
-      while ( gi != gs.end() )
-	{
-	  scnt += gcnt[ *gi ];
-	  ++gi;
-	}
-      plog << scnt << "\t"
-	   << si->second << "\n";
-      ++si;
-    }
-
-
-
-  // 
-  // Test each individual for each set
-  //
-
-  //  std::cout << "n = " << n << "\n";
-  
-  for ( int i = 0 ; i < n ; i++ ) 
-    {
+  //     plog << "SCNT" << "\t"
+  // 	   << s2g[ si->first ].size() << "\t";
       
-      int g0s0 = 0 , g0s1 = 0 , g1s0 = 0 , g1s2 = 0;
-      int slot = 0;
+  //     int scnt = 0;
+  //     std::set<int> & gs = s2g.find( si->first )->second;
+  //     std::set<int>::iterator gi = gs.begin();
+ 
+  //     while ( gi != gs.end() )
+  // 	{
+  // 	  scnt += gcnt[ *gi ];
+  // 	  ++gi;
+  // 	}
+      
+  //     plog << scnt << "\t"
+  // 	   << si->second << "\n";
 
-      //      std::cout << "set N = " << s2g.size() << "\n";
-
-      std::map<int,std::set<int> >::iterator si = s2g.begin();
-      while ( si != s2g.end() )
-	{
-	  
- 	  int g1s1 = scores[i][slot++];
- 	  int g1s0 = indcnt[i]  - g1s1;
- 	  int g0s1 = si->second.size() - g1s1; 
-	  int g0s0 = numgenes - g0s1 - g1s0 - g1s1;
-	  
-	  plog << g.indmap.ind(i)->id() << "\t";
-	  
-	  plog << g0s0 << " " << g0s1 << " / " << g1s0 << " " << g1s1 << "\t";
-	  
-	  // basic Fisher's test
- 	  double pval = 0;
- 	  if ( ! fisher( Table( g0s0 , g0s1 , g1s0 , g1s1 ) , &pval ) ) pval = -1;
-	  if ( pval < 0 ) plog << "NA";
-	  else plog << pval;
-	  
-	  plog << "\t" << sets[ si->first ] << "\n";
-	  
-	  ++si;
-	  
- 	}
-    }
-  
+  //     ++si;
+  //   }
 
 
-  //
-  // Permutation procedure is simply to shuffle the phenotype on the list of (i.e. disconnect aux.indiv[] and aux.gene[]
-  //
+
+  // // 
+  // // Test each individual for each set
+  // //
+
+  // //  std::cout << "n = " << n << "\n";
+  
+  // for ( int i = 0 ; i < n ; i++ ) 
+  //   {
+      
+  //     int g0s0 = 0 , g0s1 = 0 , g1s0 = 0 , g1s2 = 0;
+  //     int slot = 0;
+
+  //     //      std::cout << "set N = " << s2g.size() << "\n";
+
+  //     std::map<int,std::set<int> >::iterator si = s2g.begin();
+  //     while ( si != s2g.end() )
+  // 	{
+	  
+  // 	  int g1s1 = scores[i][slot++];
+  // 	  int g1s0 = indcnt[i]  - g1s1;
+  // 	  int g0s1 = si->second.size() - g1s1; 
+  // 	  int g0s0 = numgenes - g0s1 - g1s0 - g1s1;
+	  
+  // 	  plog << g.indmap.ind(i)->id() << "\t";
+	  
+  // 	  plog << g0s0 << " " << g0s1 << " / " << g1s0 << " " << g1s1 << "\t";
+	  
+  // 	  // basic Fisher's test
+  // 	  double pval = 0;
+  // 	  if ( ! fisher( Table( g0s0 , g0s1 , g1s0 , g1s1 ) , &pval ) ) pval = -1;
+  // 	  if ( pval < 0 ) plog << "NA";
+  // 	  else plog << pval;
+	  
+  // 	  plog << "\t" << sets[ si->first ] << "\n";
+	  
+  // 	  ++si;
+	  
+  // 	}
+  //   }
+  
+
+
+  // //
+  // // Permutation procedure is simply to shuffle the phenotype on the list of (i.e. disconnect aux.indiv[] and aux.gene[]
+  // //
   
   
   
-  //
-  //  
-  // 
+  // //
+  // //  
+  // // 
   
-  return true;
+  // return true;
 
 }

@@ -45,7 +45,7 @@ class OverlapResults {
   
   uint64_t target_id ;    
   
-  void load_regions(std::set<Region> r);
+  void load_regions( const std::set<Region> & r);
 };
 
 
