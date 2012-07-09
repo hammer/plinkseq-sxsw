@@ -51,7 +51,7 @@ namespace Pseq
 				 VARIABLE_TYPE } types;
 	    
 	    
-	    void load( int , char** );	
+	    std::string load( int , char** );	
 	    
 	    bool has( const std::string & ) const;
 	    
@@ -160,7 +160,6 @@ namespace Pseq
 	    std::map<std::string,std::set<std::string> >    comm2arg;
 	    std::map<std::string,std::map<std::string,std::set<std::string> > >   comm2key;
 	    
-	    
 	    // the first two entries always expected to be project and command
 	    // (unless 'help' mode)
 	    
@@ -193,7 +192,8 @@ namespace Pseq
 		    //             NOGENO means that, by default, we do not need to look at genotype data
 		    //             ARG:arg1,arg2
 		    //             OPT:opt1
-		    
+		    //             OUT:vars=human readable text
+
 		    // formats for options are registered separately
 		    
 		    std::vector<std::string> d = Helper::char_split( s, '|' );
@@ -229,18 +229,28 @@ namespace Pseq
 			if ( d[i] == "VCF" ) comm_single_vcf.insert( d[0] );
 			if ( d[i] == "NOGENO" ) comm_no_genotypes.insert( d[0] );
 			if ( d[i].substr(0,4) == "ARG:" ) pargs->attach( d[0] , d[i].substr(4) );					
+			if ( d[i].substr(0,4) == "OUT:" ) attach_output( d[0] , d[i].substr(4) );
 		    }
 		    
 		    return *this;
 		}
 	    
 	    void attach( Options * p ) { pargs = p; }
-	    
+
+	    void attach_output( const std::string & comm , const std::string & val )
+	    {
+	      // OUT:vars=vars,txt,groups
+	      std::vector<std::string> c = Helper::char_split( val , ',' );
+	      for (int i=0; i<c.size();i++)
+		comm2out[ comm ].insert( c[i] );
+	      
+	    }
+
 	    std::string group_description( const std::string & group ) const
-		{
-		    std::map<std::string,std::string>::const_iterator i = group_desc.find( group );
-		    return i == group_desc.end() ? "." : i->second;
-		}
+	      {
+		std::map<std::string,std::string>::const_iterator i = group_desc.find( group );
+		return i == group_desc.end() ? "." : i->second;
+	      }
 	    
 	    bool has_group( const std::string & g ) 
 		{
@@ -311,76 +321,76 @@ namespace Pseq
 		}
 	    
 	    void display( const std::string & n ) const
+	    {
+	      
+	      if ( group_group.find(n) != group_group.end() )
 		{
-		    
-		    if ( group_group.find(n) != group_group.end() )
+		  const std::vector<std::string> & s = group_group.find(n)->second;
+		  std::vector<std::string>::const_iterator i = s.begin();
+		  while ( i != s.end())
 		    {
-			const std::vector<std::string> & s = group_group.find(n)->second;
-			std::vector<std::string>::const_iterator i = s.begin();
-			while ( i != s.end())
-			{
-			    plog << "GROUP" << "\t"
-				 << *i << "\t"
-				 << group_desc.find( *i )->second << "\n";
-			    ++i;
-			}
+		      std::cout << "GROUP" << "\t"
+				<< *i << "\t"
+				<< group_desc.find( *i )->second << "\n";
+		      ++i;
 		    }
-		    
-		    if ( comm_group.find(n) != comm_group.end() )
-		    {
-			const std::vector<std::string> & s = comm_group.find(n)->second;
-			std::vector<std::string>::const_iterator i = s.begin();
-			while ( i != s.end())
-			{
-			    plog << "COMM" << "\t"
-				 << *i << "\t"
-				 << comm_desc.find( *i )->second << "\n";
-			    ++i;
-			}
-		    }
-		    
-	  // if a command (rather than a group) the list all args/opts
-		    
-		    if ( known(n) ) 
-		    {
-			plog << pargs->attached( n );		   
-		    }
-		    
 		}
+	      
+	      if ( comm_group.find(n) != comm_group.end() )
+		{
+		  const std::vector<std::string> & s = comm_group.find(n)->second;
+		  std::vector<std::string>::const_iterator i = s.begin();
+		  while ( i != s.end())
+		    {
+		      std::cout << "COMM" << "\t"
+				<< *i << "\t"
+				<< comm_desc.find( *i )->second << "\n";
+		      ++i;
+		    }
+		}
+	      
+	      // if a command (rather than a group) the list all args/opts
+	      
+	      if ( known(n) ) 
+		{
+		  std::cout << pargs->attached( n );		   
+		}
+	      
+	    }
 	    
 	    
 	    // simple list of command groups
 	    
 	    std::vector<std::string> groups( const std::string & g = "root" ) const 
-		{
-		    std::vector<std::string> s;	    
-		    std::map<std::string,std::vector<std::string> >::const_iterator i = group_group.find(g);
-		    if ( i == group_group.end() ) return s;
-		    return i->second;
-		}
+	      {
+		std::vector<std::string> s;	    
+		std::map<std::string,std::vector<std::string> >::const_iterator i = group_group.find(g);
+		if ( i == group_group.end() ) return s;
+		return i->second;
+	      }
 	    
 	    
 	    // given a group, give a list of commands
 	    std::vector<std::string> commands( const std::string g ) const 
-		{	    
-		    if ( comm_group.find( g ) != comm_group.end() )
-			return comm_group.find( g )->second;
-		    std::vector<std::string> s;
-		    return s;
-		}
+	      {	    
+		if ( comm_group.find( g ) != comm_group.end() )
+		  return comm_group.find( g )->second;
+		std::vector<std::string> s;
+		return s;
+	      }
 	    
 	    // list all commands (only once, alphabetically)
 	    std::vector<std::string> all_commands() const
-		{
-		    std::vector<std::string> s;	    
-		    std::map<std::string,std::set<std::string> >::const_iterator i = comm_group_rmap.begin();
-		    while ( i != comm_group_rmap.end() )
-		    {
-			s.push_back( i->first );
-			++i;
-		    }
-		    return s;
-		}
+	      {
+		std::vector<std::string> s;	    
+		std::map<std::string,std::set<std::string> >::const_iterator i = comm_group_rmap.begin();
+		while ( i != comm_group_rmap.end() )
+		  {
+		    s.push_back( i->first );
+		    ++i;
+		  }
+		return s;
+	      }
 	    
 	    // given a command, give the description and options       
 	    
@@ -392,6 +402,9 @@ namespace Pseq
 	    std::set<std::string> comm_group_iteration;
 	    std::set<std::string> comm_single_vcf;
 	    std::set<std::string> comm_no_genotypes;
+
+	    // map commands to output file extensions (and human description)
+	    std::map<std::string,std::set<std::string> > comm2out;
 	    
 	    std::map<std::string,std::vector<std::string> > comm_group;
 	    std::map<std::string,std::set<std::string> > comm_group_rmap;

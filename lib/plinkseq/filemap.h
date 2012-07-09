@@ -27,12 +27,12 @@
 #define GetCurrentDir getcwd
 #endif
 
-#include "helper.h"
 #include "defs.h"
 #include "meta.h"
 #include "zfstream.h"
 #include "bcf.h"
 #include "vcfz.h"
+#include "helper.h"
 
 #include <wordexp.h>
 

@@ -1,18 +1,29 @@
 
-This is the PLINK/SEQ repository, for developers of PLINK/SEQ only.
+This is the PLINK/SEQ repository, to provide the most current
+sourcecode for developers of PLINK/SEQ, and additionally for users who
+are willing to experiment with the new code (i.e. to try out new
+features not yet in the stable release). Please note that this
+snapshot comes with absolutly no guarantees as to its stability,
+completeness or correctness, and without the offer of any support
+besides the (in flux) notes at:
 
-If you trying to install PLINK/SEQ from source just to run it, please
-download the source code from http://atgu.mgh.harvard.edu/plinkseq/
+  http://atgu.mgh.harvard.edu/plinkseq/whatisnew.shtml
+
+If you trying to install PLINK/SEQ from source just to run it, you are
+almost certainly better off just downloading the source for the latest
+stable release from the main website download page:
+http://atgu.mgh.harvard.edu/plinkseq/download.shtml
+
 
 ** PREREQUISITES ** 
 
-PLINK/SEQ uses GNU Autotools for our build system. This is a suite of
-tools that generates configuration scripts and
-Makefiles. Specifically, the following tools are required:
+PLINK/SEQ uses GNU Autotools for its build system. This is a suite of
+tools that generates configuration scripts and Makefiles. Specifically, 
+the following tools are required:
 
--- Autoconf 2.61+
--- Automake 1.10+
--- Libtool 2.2+
+ -- Autoconf 2.61+
+ -- Automake 1.10+
+ -- Libtool 2.2+
 
 Please be sure these tools are set up (running, for example, "autoconf
 -v" to test your version of Autoconf) before you continue.
@@ -24,19 +35,9 @@ version 2.4.1 installed locally.
 
 ** GETTING THE SOURCE ** 
 
-The source is currently private, so you need to be listed as a
-collaborator. 
+To clone this repository, run:
 
-If you are reading this, presumably you have access to our Github
-repository.  The official PLINK/SEQ code is at
-http://brettpthomas.github.com/plinkseq.  To clone the repository,
-run:
-
-$ git clone git@github.com:brettpthomas/plinkseq.git [target dir]
-
-Before you can get the code, you need to configure Git on your
-machine. Github has a good guide here:
-http://help.github.com/mac-set-up-git/
+$ git clone https://bitbucket.org/statgen/plinkseq.git [target dir]
 
 
 ** INSTALLATION INSTRUCTIONS ** 
@@ -56,10 +57,6 @@ After this step is complete, you are ready to build - just follow the
 instructions on the website:
 http://atgu.mgh.harvard.edu/plinkseq/download.shtml.
 
-Note that while you are developing, you should probably use the
---enable-debug configuration option. This does a couple things:
-
--- Stops compiler optimizations, which makes code easier to debug and
-   speeds up the build
-
--- Links pseq as a static binary, without a wrapper shell script
+The configuration option --enable-debug will stop compiler
+optimizations (making code easier to debug and faster to build) and
+link pseq as a static binary, without a wrapper shell script.

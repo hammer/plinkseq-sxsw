@@ -16,6 +16,11 @@ extern Pseq::Util::Options args;
 
 void Pseq::finished()
 {  
+  
+  time_t curr=time(0);
+  std::string tdstamp = (std::string)ctime(&curr);
+  plog << "\n   Analysis finished " << tdstamp;
+
   if ( g.gseq_mode() )
     {
       std::ofstream O1( g.gseq_history().c_str() , std::ios::out | std::ios::app );
@@ -24,6 +29,7 @@ void Pseq::finished()
 	 << "Done" << "\n";
       O1.close();
     } 
+
   exit(0);
 }
 
@@ -225,7 +231,8 @@ bool Pseq::VarDB::vacuum()
 
 void f_vcf( Variant & v , void * p)
 {
-   plog << v.VCF();
+  Out & pout = Out::stream( "vcf" );
+  pout << v.VCF();
 }
 
 void f_vcfz( Variant & v , void * p )
@@ -236,6 +243,8 @@ void f_vcfz( Variant & v , void * p )
 
 bool Pseq::VarDB::write_VCF(Mask & m , bool compressed )
 {
+
+  Out & pout = Out::stream( "vcf" );
 
   // Either write a VCF to stream, or a compressed BGZF-zipped VCF to a file
 
@@ -263,7 +272,7 @@ bool Pseq::VarDB::write_VCF(Mask & m , bool compressed )
   
   // VCF headers
   
-  plog << "##fileformat=" << PLINKSeq::CURRENT_VCF_VERSION() << "\n"
+  pout << "##fileformat=" << PLINKSeq::CURRENT_VCF_VERSION() << "\n"
        << "##source=pseq\n"
        << MetaInformation<VarMeta>::headers( )
        << MetaInformation<GenMeta>::headers( META_GROUP_GEN )
@@ -272,9 +281,9 @@ bool Pseq::VarDB::write_VCF(Mask & m , bool compressed )
   // Header line containing Individual IDs
   
   const int n = g.indmap.size();
-  plog << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";  
-  for ( int i=0; i<n; i++) plog << "\t" << g.indmap(i)->id();
-  plog << "\n";
+  pout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";  
+  for ( int i=0; i<n; i++) pout << "\t" << g.indmap(i)->id();
+  pout << "\n";
   
   // Variants
   
@@ -286,7 +295,7 @@ bool Pseq::VarDB::write_VCF(Mask & m , bool compressed )
 }
 
 
-bool Pseq::VarDB::write_PED(Mask & m, string filename , bool use_family_id )
+bool Pseq::VarDB::write_PED(Mask & m, bool use_family_id )
 {
 
   // Need to write TPED and TFAM files
@@ -295,8 +304,8 @@ bool Pseq::VarDB::write_PED(Mask & m, string filename , bool use_family_id )
   if ( ! g.vardb.attached() ) return false;
 
   const int n = g.indmap.size();
-  
-  ofstream TFAM( ( filename + ".tfam").c_str(), std::ios::out );
+
+  Out & tfam = Out::stream( "tfam" );
   
   for (int i = 0 ; i < n ; i++) 
     {      
@@ -304,56 +313,54 @@ bool Pseq::VarDB::write_PED(Mask & m, string filename , bool use_family_id )
       Individual * pmapped = g.indmap.ind( i );      
 
       if ( use_family_id ) 
-	TFAM << pmapped->fid() << "\t"
+	tfam << pmapped->fid() << "\t"
 	     << pmapped->iid() << "\t";
       else
-	TFAM << pmapped->id() << "\t"
+	tfam << pmapped->id() << "\t"
 	     << "." << "\t";
-
+      
       if ( pmapped->father() == "." )
-	TFAM << "0\t";
+	tfam << "0\t";
       else
-	TFAM << pmapped->father() << "\t";
+	tfam << pmapped->father() << "\t";
       
       if ( pmapped->mother() == "." )
-	TFAM << "0\t";
+	tfam << "0\t";
       else
-	TFAM << pmapped->mother() << "\t";
-
+	tfam << pmapped->mother() << "\t";
+      
       // 1=male, 2=female, 0=unknown coding for sex
-      TFAM << pmapped->sex() << "\t";
+      tfam << pmapped->sex() << "\t";
       
       // Phenotype
       
       if ( g.phmap.type() == PHE_DICHOT )
 	{
-	  if ( pmapped->affected() == CASE ) TFAM << "2\n";
-	  else if ( pmapped->affected() == CONTROL ) TFAM << "1\n";
-	  else TFAM << "0\n";
+	  if ( pmapped->affected() == CASE ) tfam << "2\n";
+	  else if ( pmapped->affected() == CONTROL ) tfam << "1\n";
+	  else tfam << "0\n";
 	}
       else if ( g.phmap.type() == PHE_QT )
-	TFAM << pmapped->qt() << "\n";
+	tfam << pmapped->qt() << "\n";
       else if ( g.phmap.type() == PHE_FACTOR )
-	TFAM << pmapped->group_label() << "\n";
+	tfam << pmapped->group_label() << "\n";
       else
-	TFAM << "0\n";
+	tfam << "0\n";
     }
  
-  TFAM.close();
- 
+  tfam.close();
+  
   // Now MAP and genotype data
   
-  std::ofstream TPED( ( filename + ".tped" ).c_str() , std::ios::out );
+  IterationReport report = g.vardb.iterate( f_view_tped , NULL , m );
   
-  IterationReport report = g.vardb.iterate( f_view_tped , &TPED , m );
-  
-  TPED.close();
-
   return true;
 }
 
 bool Pseq::VarDB::dump_indiv()
 {
+  Out & pout = Out::stream( "indiv" );
+
   int cnt = 0;
   if ( ! g.vardb.attached() ) return false;
   std::map<int,std::string> files = g.vardb.fetch_files();
@@ -363,7 +370,7 @@ bool Pseq::VarDB::dump_indiv()
       std::vector<std::string> inds = g.vardb.fetch_individuals( i->first );
       for (int j = 0 ; j < inds.size(); j++)
 	{
-	  plog << ++cnt << "\t" 
+	  pout << ++cnt << "\t" 
 	       << j+1 << "\t"
 	       << inds[j] << "\t"
 	       << g.vardb.file_tag( i->first ) << "\t"
@@ -376,13 +383,15 @@ bool Pseq::VarDB::dump_indiv()
 
 bool Pseq::VarDB::write_lik(Mask & m)
 {
+  Out & pout = Out::stream( "lik" );
+
   std::vector<std::string> ids = g.indmap.ind_id();
-  plog << "VAR\tREF\tALT";
+  pout << "VAR\tREF\tALT";
   for (int i=0; i<ids.size(); i++) 
-    plog << "\t" << ids[i] 
+    pout << "\t" << ids[i] 
 	 << "\t" << ids[i] 
 	 << "\t" << ids[i] ;
-  plog << "\n";
+  pout << "\n";
   
   // Variants
 
@@ -461,17 +470,18 @@ bool Pseq::VarDB::write_haps(Mask & m , const std::string & rt )
   // write
   IterationReport report = g.vardb.iterate( f_write_haps , &filemap , m );
   
-  plog << "done... now, for each chromosome, concatenate, e.g:\n  cat " << rt << "-*-chr1 > all-chr1.haps\n";
+  std::cerr << "done... now, for each chromosome, concatenate, e.g:\n  cat " << rt << "-*-chr1 > all-chr1.haps\n";
 }
 
 
 bool Pseq::VarDB::write_matrix(Mask & m)
 {
+  Out & pout = Out::stream( "matrix" );
   std::vector<std::string> ids = g.indmap.ind_id();
-  plog << "VAR\tREF\tALT";
+  pout << "VAR\tREF\tALT";
   for (int i=0; i<ids.size(); i++) 
-    plog << "\t" << ids[i] ; 
-  plog << "\n";
+    pout << "\t" << ids[i] ; 
+  pout << "\n";
   
   IterationReport report = g.vardb.iterate( f_view_matrix , &g , m );
   return true;
@@ -479,22 +489,24 @@ bool Pseq::VarDB::write_matrix(Mask & m)
 
 bool Pseq::VarDB::write_meta_matrix( Mask & m )
 {
-  
+
+  Out & pout = Out::stream( "matrix" );
+
   std::map<int,string> files = g.vardb.fetch_files( &m );    
   
   // Display consensus meta-info, if >1 file
   
-  plog << "CHR\tPOS\tID";
+  pout << "CHR\tPOS\tID";
 
   // Variant level information
 
   int nelem_static = MetaInformation<VarMeta>::n_visible_keys_static();
   int nelem_nonstatic = MetaInformation<VarMeta>::n_visible_keys_nonstatic();
 
-  if ( nelem_static ) plog << "\t" << MetaInformation<VarMeta>::display_header_static();
+  if ( nelem_static ) pout << "\t" << MetaInformation<VarMeta>::display_header_static();
   
   // Consensus sample-variant
-  if ( nelem_nonstatic ) plog << "\t" << MetaInformation<VarMeta>::display_header_nonstatic();
+  if ( nelem_nonstatic ) pout << "\t" << MetaInformation<VarMeta>::display_header_nonstatic();
   
   if ( files.size() > 1 ) 
     {      
@@ -503,17 +515,17 @@ bool Pseq::VarDB::write_meta_matrix( Mask & m )
 	{ 
 	  std::string m = MetaInformation<VarMeta>::display_header_nonstatic( "F"+Helper::int2str(i->first)+"_" ) ;
 	  std::string f = MetaInformation<VarFilterMeta>::display_header( "F"+Helper::int2str(i->first)+"_" );
-	  if ( m != "" ) plog << "\t" << m;
-	  if ( f != "" ) plog << "\t" << f;
+	  if ( m != "" ) pout << "\t" << m;
+	  if ( f != "" ) pout << "\t" << f;
 	  ++i;
 	}  
     }
   else
     {      
       std::string f = MetaInformation<VarFilterMeta>::display_header( );
-      if ( f != "" ) plog << "\t" << f;
+      if ( f != "" ) pout << "\t" << f;
     }
-  plog << "\n";  
+  pout << "\n";  
   
   IterationReport report = g.vardb.iterate( f_view_meta_matrix , &files , m );
   
@@ -523,11 +535,14 @@ bool Pseq::VarDB::write_meta_matrix( Mask & m )
 
 bool Pseq::VarDB::write_var_meta_matrix(Mask & m, std::string & name)
 {
+  Out & pout = Out::stream( "matrix" );
+
   std::vector<std::string> ids = g.indmap.ind_id();
-  plog << "MARKER";
+  pout << "MARKER";
   for (int i=0; i<ids.size(); i++) 
-    plog << "\t" << ids[i] ; 
-  plog << "\n";
+    pout << "\t" << ids[i] ; 
+  pout << "\n";
+
   IterationReport report = g.vardb.iterate( f_view_var_meta_matrix , &name , m );
   return true;
 }
@@ -535,11 +550,12 @@ bool Pseq::VarDB::write_var_meta_matrix(Mask & m, std::string & name)
 
 bool Pseq::VarDB::write_gene_matrix(Mask & m, OptGMatrix & opt)
 {
+  Out & pout = Out::stream( "matrix" );
   std::vector<std::string> ids = g.indmap.ind_id();
-  plog << "GENE\tNV";
+  pout << "GENE\tNV";
   for (int i=0; i<ids.size(); i++) 
-    plog << "\t" << ids[i] ; 
-  plog << "\n";
+    pout << "\t" << ids[i] ; 
+  pout << "\n";
   IterationReport report = g.vardb.iterate( f_view_gene_matrix , &opt , m );
   return true;
 }
@@ -547,11 +563,12 @@ bool Pseq::VarDB::write_gene_matrix(Mask & m, OptGMatrix & opt)
 
 bool Pseq::VarDB::write_gene_meta_matrix(Mask & m, OptGMetaMatrix & opt)
 {
+  Out & pout = Out::stream( "matrix" );
   std::vector<std::string> ids = g.indmap.ind_id();
-  plog << "GENE\tNV";
+  pout << "GENE\tNV";
   for (int i=0; i<ids.size(); i++) 
-    plog << "\t" << ids[i] ; 
-  plog << "\n";
+    pout << "\t" << ids[i] ; 
+  pout << "\n";
   IterationReport report = g.vardb.iterate( f_view_gene_meta_matrix , &opt , m );
   return true;
 }
@@ -559,7 +576,7 @@ bool Pseq::VarDB::write_gene_meta_matrix(Mask & m, OptGMetaMatrix & opt)
 
 bool Pseq::VarDB::consolidate(Mask & m, std::string label)
 {
-  
+  return false;
 }
 
 
@@ -601,20 +618,21 @@ void f_uniq_report( Variant & v , void * p )
       
     }
 
+  Out & pout = Out::stream( "uniq" );
 
   // Did we see in all group members?
   
   if ( opt->ingroup_req == -1 )
     {
       if ( obs_group == opt->indiv.size() )
-	plog  << obs_group << "\t"
+	pout  << obs_group << "\t"
 	      << obs_outgroup << "\t"
 	      << v << "\t" << v.meta << "\n";
     }
   else
     {     
       if ( obs_group >= opt->ingroup_req ) 
- 	plog << obs_group << "\t"
+ 	pout << obs_group << "\t"
 	     << obs_outgroup << "\t"
 	     << v << "\t" << v.meta << "\n";
     } 
@@ -657,7 +675,7 @@ bool Pseq::VarDB::uniq_report( std::vector<std::string> & indiv ,
     
 bool Pseq::VarDB::variant_stats(Mask & m)
 {
-
+  return false;
 }
 	    
 
@@ -892,91 +910,92 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
     if ( db.lookup_group_id( group ) == 0 )
       Helper::halt("could not find group " + group );
 
-  //
-  // Read a vector of regions
-  //
+    Out & pout = Out::stream( "loci" );
+    
+    //
+    // Read a vector of regions
+    //
 
-  std::vector<Region> regions;
-  
-  std::ifstream IN1( filename.c_str() , std::ios::in );
+    std::vector<Region> regions;
+    
+    std::ifstream IN1( filename.c_str() , std::ios::in );
+    
+    int inv = 0, blank = 0;
+    
+    while ( ! IN1.eof() )
+      {
+	
+	std::vector<std::string> tok = Helper::tokenizeLine( IN1 );
+	
+	std::string region ;
+	
+	const int sz = tok.size();
+	
+	if ( sz == 1 ) 
+	  region = tok[0];
+	else if ( sz == 2 ) 
+	  region = tok[0] + ":" + tok[1] + ".." + tok[1] ;
+	else if ( sz == 3 )       
+	  region = tok[0] + ":" + tok[1] + ".." + tok[2] ;
+	else
+	  continue;
+	
+	bool valid = true;
+	
+	Region r(region,valid);
 
-  int inv = 0, blank = 0;
+	// Get overlap
+	
+	if ( valid )
+	  {
+	    
+	    std::set<Region> olaps = db.get_regions( group ,  r ) ;	  
+	    
+	    pout << r.coordinate() << "\t";
+	    
+	    if ( olaps.size() == 0 ) ++blank;
+	    std::set<Region>::iterator i = olaps.begin();
+	    std::set<string> genes;
+	    while ( i != olaps.end() )
+	      {
+		genes.insert( i->altname );
+		++i;
+	      }	  
+	    
+	    // report # of loci overlapping
+	    pout << genes.size() << "\t";
 
-  while ( ! IN1.eof() )
-    {
-
-      std::vector<std::string> tok = Helper::tokenizeLine( IN1 );
-
-      std::string region ;
-
-      const int sz = tok.size();
-
-      if ( sz == 1 ) 
-	region = tok[0];
-      else if ( sz == 2 ) 
-	region = tok[0] + ":" + tok[1] + ".." + tok[1] ;
-      else if ( sz == 3 )       
-	region = tok[0] + ":" + tok[1] + ".." + tok[2] ;
-      else
-	continue;
-      
-      bool valid = true;
-      
-      Region r(region,valid);
-
-      // Get overlap
-      
-      if ( valid )
-	{
-	  
-	  std::set<Region> olaps = db.get_regions( group ,  r ) ;	  
-
-	  plog << r.coordinate() << "\t";
-	  
-	  if ( olaps.size() == 0 ) ++blank;
-	  set<Region>::iterator i = olaps.begin();
-	  set<string> genes;
-	  while ( i != olaps.end() )
-	    {
-	      genes.insert( i->altname );
-	      ++i;
-	    }	  
-
-	  // report # of loci overlapping
-	  plog << genes.size() << "\t";
-
-	  if ( genes.size() == 0 ) 
-	    plog << ".";
-	  else
-	    {
-	      set<string>::iterator j = genes.begin();
-	      while ( j != genes.end() )
-		{
-		  if ( j != genes.begin() ) plog << "|";
-		  plog << *j;
-		  ++j;
-		}
-	    }
-	  
-	  plog << "\n";
-	  
+	    if ( genes.size() == 0 ) 
+	      pout << ".";
+	    else
+	      {
+		std::set<std::string>::iterator j = genes.begin();
+		while ( j != genes.end() )
+		  {
+		    if ( j != genes.begin() ) pout << "|";
+		    pout << *j;
+		    ++j;
+		  }
+	      }
+	    
+	    pout << "\n";
 	  
 	}
-      else
-	++inv;
-    }
-  
-  // plog << "read " << regions.size() << " regions\n";
-  
-  if( inv > 0 ) 
-    plog.warn( "found " + Helper::int2str( inv ) +  " invalid regions" );
-  
-  if( blank > 0 ) 
-    plog.warn( "found " + Helper::int2str( blank ) + " empty regions" );
-
-  IN1.close();
-  
-  return true;
+	else
+	  ++inv;
+      }
+    
+    plog << "read " << regions.size() << " regions\n";
+    
+    if( inv > 0 ) 
+      plog.warn( "found " + Helper::int2str( inv ) +  " invalid regions" );
+    
+    if( blank > 0 ) 
+      plog.warn( "found " + Helper::int2str( blank ) + " empty regions" );
+    
+    IN1.close();
+    
+    return true;
 }
 
 
@@ -1044,8 +1063,9 @@ bool Pseq::IndDB::load_phenotypes( std::string file )
 
 bool Pseq::IndDB::dump_table(Mask & m)
 {
-
-
+  
+  Out & pout = Out::stream( "indiv" );
+  
   if ( ! g.inddb.attached() ) 
     {
       plog.warn("no INDDB attached");
@@ -1061,7 +1081,7 @@ bool Pseq::IndDB::dump_table(Mask & m)
   
   while ( p != pheno.end() )
     {
-      plog << "#" << p->first << " "
+      pout << "#" << p->first << " "
 	   << "(" << p->second[0]  << ") "
 	   << p->second[1] << "\n";
       ++p;
@@ -1069,8 +1089,8 @@ bool Pseq::IndDB::dump_table(Mask & m)
 
   // Explicitly note phenotype/strata
   
-  plog << "#PHE\t" << ( g.phmap.phenotype_set() ? g.phmap.phenotype() : "." ) << "\n";
-  plog << "#STRATA\t" << ( g.phmap.strata_set() ? g.phmap.strata() : "." ) << "\n";
+  pout << "#PHE\t" << ( g.phmap.phenotype_set() ? g.phmap.phenotype() : "." ) << "\n";
+  pout << "#STRATA\t" << ( g.phmap.strata_set() ? g.phmap.strata() : "." ) << "\n";
 
 
   //
@@ -1092,10 +1112,10 @@ bool Pseq::IndDB::dump_table(Mask & m)
   
   if ( ! verbose ) 
     {
-      plog << "#ID\tFID\tIID\tMISS\tSEX\tPAT\tMAT\tMETA";
-      if ( g.phmap.phenotype_set() && g.phmap.type() == PHE_DICHOT ) plog << "\tPHE";
-      if ( g.phmap.strata_set() ) plog << "\tSTRATA";
-      plog << "\n";
+      pout << "#ID\tFID\tIID\tMISS\tSEX\tPAT\tMAT\tMETA";
+      if ( g.phmap.phenotype_set() && g.phmap.type() == PHE_DICHOT ) pout << "\tPHE";
+      if ( g.phmap.strata_set() ) pout << "\tSTRATA";
+      pout << "\n";
     }
 
 
@@ -1111,43 +1131,43 @@ bool Pseq::IndDB::dump_table(Mask & m)
       
       if ( ! verbose ) 
 	{
-	  plog << *pmapped;
+	  pout << *pmapped;
 	  
 	  if ( g.phmap.type() == PHE_DICHOT )
 	    {
-	      if ( pmapped->affected() == CASE ) plog << "\tCASE";
-	      else if ( pmapped->affected() == CONTROL ) plog << "\tCONTROL";
-	      else plog << "\t.";
+	      if ( pmapped->affected() == CASE ) pout << "\tCASE";
+	      else if ( pmapped->affected() == CONTROL ) pout << "\tCONTROL";
+	      else pout << "\t.";
 	    }
 	  
 	  if ( g.phmap.strata_set() )
 	    {
-	      plog << "\t" << pmapped->group_label();
+	      pout << "\t" << pmapped->group_label();
 	    }
 	}
       else // VERBOSE output mode
 	{
 	  
-	  plog << "ID:\t" << pmapped->id() << "\n";
+	  pout << "ID:\t" << pmapped->id() << "\n";
 	  
 	  if ( g.phmap.type() == PHE_DICHOT )
 	    {
-	      if ( pmapped->affected() == CASE ) plog << "\tPHENO:\tCASE\n";
-	      else if ( pmapped->affected() == CONTROL ) plog << "\tPHENO:\tCONTROL\n";
-	      else plog << "\tPHENO:\t.\n";
+	      if ( pmapped->affected() == CASE ) pout << "\tPHENO:\tCASE\n";
+	      else if ( pmapped->affected() == CONTROL ) pout << "\tPHENO:\tCONTROL\n";
+	      else pout << "\tPHENO:\t.\n";
 	    }
 	  
 	  if ( g.phmap.strata_set() )
 	    {
-	      plog << "\tSTRATA\t" << pmapped->group_label() << "\n";
+	      pout << "\tSTRATA\t" << pmapped->group_label() << "\n";
 	    }
 
 	  // Now all phenotypes, in long form:
-	  plog << pmapped->meta.display();
+	  pout << pmapped->meta.display();
 	  
 	}
       
-      plog << "\n";      
+      pout << "\n";      
       
       observed.insert( pmapped );
       
@@ -1177,123 +1197,123 @@ Mask Pseq::Util::construct_mask( std::string desc )
 void Pseq::Util::set_default( VStat & vstat )
 {
     
-    if ( args.has( "stats" , "hwe" ) )
-	vstat.add_hwe_p( args.as_string( "stats" , "hwe" ) ); // implicitly a comma-string
-    
-    if ( args.has( "stats" , "ref" ) )
+  if ( args.has( "stats" , "hwe" ) )
+    vstat.add_hwe_p( args.as_string( "stats" , "hwe" ) ); // implicitly a comma-string
+  
+  if ( args.has( "stats" , "ref" ) )
     {
-	std::vector<std::string> s = args.as_string_vector( "stats" , "ref" );
-	std::vector<std::string>::iterator i = s.begin();
-	while ( i != s.end() )
+      std::vector<std::string> s = args.as_string_vector( "stats" , "ref" );
+      std::vector<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
 	{
 	  vstat.add_refgroup( *i );
 	  ++i;
 	}
     }
-
-    if ( args.has( "stats" , "loc" ) )
+  
+  if ( args.has( "stats" , "loc" ) )
     {
-	std::vector<std::string> s = args.as_string_vector( "stats" , "loc" );
-	std::vector<std::string>::iterator i = s.begin();
-	while ( i != s.end() )
+      std::vector<std::string> s = args.as_string_vector( "stats" , "loc" );
+      std::vector<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
 	{
-	    vstat.add_locgroup( *i );
-	    ++i;
+	  vstat.add_locgroup( *i );
+	  ++i;
 	}
     }
-    
-    if ( args.has( "stats" , "mac" ) )
+  
+  if ( args.has( "stats" , "mac" ) )
     {
-	std::vector<std::string> s = args.as_string_vector( "stats" , "mac" );
-	std::vector<std::string>::iterator i = s.begin();
-	while ( i != s.end() )
+      std::vector<std::string> s = args.as_string_vector( "stats" , "mac" );
+      std::vector<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
 	{
-	    vstat.add_mac( *i );
-	    ++i;
+	  vstat.add_mac( *i );
+	  ++i;
 	}
     }
-    
-    if ( args.has( "stats" , "maf" ) )
+  
+  if ( args.has( "stats" , "maf" ) )
     {
-	std::vector<std::string> s = args.as_string_vector( "stats" , "maf" );
-	std::vector<std::string>::iterator i = s.begin();
-	while ( i != s.end() )
+      std::vector<std::string> s = args.as_string_vector( "stats" , "maf" );
+      std::vector<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
 	{
-	    vstat.add_maf( *i );
-	    ++i;
+	  vstat.add_maf( *i );
+	  ++i;
 	}
     }
-    
-    if ( args.has( "stats" , "qual" ) )
+  
+  if ( args.has( "stats" , "qual" ) )
     {
-	std::vector<std::string> s = args.as_string_vector( "stats" , "qual" );
-	std::vector<std::string>::iterator i = s.begin();
-	while ( i != s.end() )
+      std::vector<std::string> s = args.as_string_vector( "stats" , "qual" );
+      std::vector<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
 	{
-	    vstat.add_qual( *i );
-	    ++i;
+	  vstat.add_qual( *i );
+	  ++i;
 	}
     }
-    
-    if ( args.has( "stats", "dp" ) )
+  
+  if ( args.has( "stats", "dp" ) )
     {
-	std::vector<std::string> s = args.as_string_vector( "stats" , "dp" );
-	std::vector<std::string>::iterator i = s.begin();
-	while ( i != s.end() )
+      std::vector<std::string> s = args.as_string_vector( "stats" , "dp" );
+      std::vector<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
 	{
-	    vstat.add_depth( *i );
-	    ++i;
+	  vstat.add_depth( *i );
+	  ++i;
 	}
     }
-    
-    if ( args.has( "stats" , "mean" ) )
+  
+  if ( args.has( "stats" , "mean" ) )
     {
-	std::vector<std::string> s = args.as_string_vector( "stats" , "mean" );
-	std::vector<std::string>::iterator i = s.begin();
-	while ( i != s.end() )
+      std::vector<std::string> s = args.as_string_vector( "stats" , "mean" );
+      std::vector<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
 	{
-	    vstat.add_mean_tag( *i );
-	    ++i;
+	  vstat.add_mean_tag( *i );
+	  ++i;
 	}
     }
-    
+  
   // --options count=AN:2:3,DP
   //           count=AN,2:3  
   //           count=AN      //table
 
-    if ( args.has( "stats" , "count" ) )
+  if ( args.has( "stats" , "count" ) )
     {
-	std::vector<std::string> s = args.as_string_vector( "stats" , "count" );
-	std::vector<std::string>::iterator i = s.begin();
-	while ( i != s.end() )
+      std::vector<std::string> s = args.as_string_vector( "stats" , "count" );
+      std::vector<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
 	{
-	    std::vector<std::string> tok = Helper::char_split( *i , ':' );
-	    if ( tok.size() == 3 )  
-		vstat.add_count_tag( tok[0] , tok[1] + ":" + tok[2] );
-	    if ( tok.size() == 2 )  
-		vstat.add_count_tag( tok[0] , tok[1] );
-	    else if ( tok.size() == 1 )  // i.e. list all values
-		vstat.add_table_tag( tok[0] );
-	    ++i;
+	  std::vector<std::string> tok = Helper::char_split( *i , ':' );
+	  if ( tok.size() == 3 )  
+	    vstat.add_count_tag( tok[0] , tok[1] + ":" + tok[2] );
+	  if ( tok.size() == 2 )  
+	    vstat.add_count_tag( tok[0] , tok[1] );
+	  else if ( tok.size() == 1 )  // i.e. list all values
+	    vstat.add_table_tag( tok[0] );
+	  ++i;
 	}
     }
-    
-    bool all_istat_filter = false;
-    
-    if ( args.has( "stats" , "filter" ) )
+  
+  bool all_istat_filter = false;
+  
+  if ( args.has( "stats" , "filter" ) )
     {
-	std::vector<std::string> s = args.as_string_vector( "stats" , "filter" );
-	std::vector<std::string>::iterator i = s.begin();
-	while ( i != s.end() )
+      std::vector<std::string> s = args.as_string_vector( "stats" , "filter" );
+      std::vector<std::string>::iterator i = s.begin();
+      while ( i != s.end() )
 	{
-	    if ( *i != PLINKSeq::PASS_FILTER() )
+	  if ( *i != PLINKSeq::PASS_FILTER() )
 	    {
-		if ( *i == "." ) all_istat_filter = true;
-		else vstat.add_istat_filter( *i );
+	      if ( *i == "." ) all_istat_filter = true;
+	      else vstat.add_istat_filter( *i );
 	    }
-	    ++i;
+	  ++i;
 	}
-	
+      
     }
     
   // Add all non-PASS filters to the report fields
@@ -1307,36 +1327,36 @@ void Pseq::Util::set_default( VStat & vstat )
 	    vstat.add_istat_filter( f[i] );
 	}
     }
-
+  
 
   // G-TAGs
   
   if ( args.has( "stats" , "gmean" ) )
   {
-      std::vector<std::string> s = args.as_string_vector( "stats" , "gmean" );
-      std::vector<std::string>::iterator i = s.begin();
-      while ( i != s.end() )
+    std::vector<std::string> s = args.as_string_vector( "stats" , "gmean" );
+    std::vector<std::string>::iterator i = s.begin();
+    while ( i != s.end() )
       {
-	  vstat.add_mean_gtag( *i );
-	  ++i;
+	vstat.add_mean_gtag( *i );
+	++i;
       }
-    }
+  }
   
   
   if ( args.has( "stats" , "gcount" ) )
-  {
+    {
       std::vector<std::string> s = args.as_string_vector( "stats" , "gcount" );
       std::vector<std::string>::iterator i = s.begin();
       while ( i != s.end() )
-      {
+	{
 	  std::vector<std::string> tok = Helper::char_split( *i , ':' );
 	  if ( tok.size() == 3 )  
-	      vstat.add_count_gtag( tok[0] , tok[1] + ":" + tok[2] );
+	    vstat.add_count_gtag( tok[0] , tok[1] + ":" + tok[2] );
 	  if ( tok.size() == 2 )  
 	      vstat.add_count_gtag( tok[0] , tok[1] );
 	  ++i;
 	}
-  }
+    }
   
 }
 
@@ -1421,12 +1441,13 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
   
   RangeIntersector range_intersector( f_next_refvar , f_loc_stats_range_iterator_report );
   
-
+  Out & pout = Out::stream( "locstats" );
+  
   //
   // Header
   //
   
-  plog << "LOCUS" << "\t"
+  pout << "LOCUS" << "\t"
        << "ALIAS" << "\t"
        << "NSUB" << "\t"
        << ( sub ? "SUB\t" : "" ) 
@@ -1442,11 +1463,13 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
        << "\n";
     
 
+  //
+  // di- and tri-nucleotide counts per transcript
+  //
 
-  // RMOVE
-   std::map<std::string,int> dic;
-  // REMOVE
-
+  std::map<std::string,int> dic;
+  std::map<std::string,int> tri;
+  
 
   //
   // Start iterating over locus-group selected
@@ -1464,19 +1487,16 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
       // Also take whole region (must do this first, beause of how
       // RangeIntersector works, i.e. whole transcript < last exon )
       //
-      
-      
+            
       int gc0 = 0 , n0 = 0 , tot0 = 0;
       int refcnt_whole = 0;
       
       bool okay = g.seqdb.GC( *i , gc0 , tot0 );      
       g.seqdb.N( *i , n0 , tot0 ); 
-
       
-      // REMOVE
+      // count di- and tri-nuc contexts
       g.seqdb.dinucleotide( *i , dic );
-      // REMOVE
-      
+      g.seqdb.trinucleotide( *i , tri );      
       
       if ( refvars ) 
 	range_intersector.intersect( *i , &refcnt_whole );
@@ -1524,33 +1544,33 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
 	  
 	  if ( sub ) 
 	    {	      
-	      plog << i->name << "\t" 
+	      pout << i->name << "\t" 
 		   << alias << "\t"
 		   << "NA\t"
 		   << s+1 << "\t"
 		   << sr.coordinate() << "\t";
 	      
-	      plog << stot << "\t"
+	      pout << stot << "\t"
 		   << "NA" << "\t";
 	      
 	      if ( okay ) 		
 		{
 		  if ( stot-sn > 0 ) 
-		    plog << (double)sgc/(double)(stot-sn) << "\t";
+		    pout << (double)sgc/(double)(stot-sn) << "\t";
 		  else 
-		    plog << "NA" << "\t";
+		    pout << "NA" << "\t";
 		  
-		  plog << "NA" << "\t";
+		  pout << "NA" << "\t";
 
 		  if ( stot > 0 ) 
-		    plog << (double)sn/(double)stot << "\t";
+		    pout << (double)sn/(double)stot << "\t";
 		  else
-		    plog << "NA" << "\t";
+		    pout << "NA" << "\t";
 
-		  plog << "NA";
+		  pout << "NA";
 		}
 	      else
-		plog << "NA\tNA\tNA\tNA";
+		pout << "NA\tNA\tNA\tNA";
 	    }
 	  
 
@@ -1564,10 +1584,10 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
 	      range_intersector.intersect( sr , &c );
 	      refcnt += c;
 	      // display?
-	      if ( sub ) plog << "\t" << c << "\tNA";
+	      if ( sub ) pout << "\t" << c << "\tNA";
 	    }
 	  
-	  if ( sub ) plog << "\n";
+	  if ( sub ) pout << "\n";
 	  
 	}
 
@@ -1578,45 +1598,45 @@ bool Pseq::SeqDB::loc_stats( const std::string & grp , const std::string & refgr
       //
       
 
-      plog << i->name << "\t"
+      pout << i->name << "\t"
 	   << alias << "\t";
-      plog << ( nosubs ? 1 : nreg ) << "\t";
-      if (sub) plog << "0\t";	  
-      plog << i->coordinate() << "\t";
+      pout << ( nosubs ? 1 : nreg ) << "\t";
+      if (sub) pout << "0\t";	  
+      pout << i->coordinate() << "\t";
       
-      if ( nosubs ) plog << ".\t";
-      else plog << tot << "\t";
-      plog << tot0 << "\t";	  
+      if ( nosubs ) pout << ".\t";
+      else pout << tot << "\t";
+      pout << tot0 << "\t";	  
       
       bool only0 = tot == 0;
       
       if ( okay && ( nosubs || nreg > 0 ) )
 	{
-	  if ( only0 ) plog << ".\t"; 
+	  if ( only0 ) pout << ".\t"; 
 	  else
 	    {
 	      if ( tot-n != 0 )
-		plog << (double)gc/(double)(tot-n) << "\t";
+		pout << (double)gc/(double)(tot-n) << "\t";
 	      else
-		plog << "NA\t";
+		pout << "NA\t";
 	    }
 	  
 	  if ( tot0-n0 ) 
-	    plog << (double)gc0/(double)(tot0-n0) << "\t";
+	    pout << (double)gc0/(double)(tot0-n0) << "\t";
 	  else
-	    plog << "NA\t";
+	    pout << "NA\t";
 	  
-	  if ( only0 ) plog << ".\t"; else plog << (double)n/(double)tot << "\t";
-	  plog << (double)n0/(double)tot0 ;
+	  if ( only0 ) pout << ".\t"; else pout << (double)n/(double)tot << "\t";
+	  pout << (double)n0/(double)tot0 ;
 	}
       else
-	plog << "NA\tNA\tNA\tNA";
+	pout << "NA\tNA\tNA\tNA";
       
       if ( refvars ) 
-	plog << "\t" << refcnt 
+	pout << "\t" << refcnt 
 	     << "\t" << refcnt_whole ;
       
-      plog << "\n";
+      pout << "\n";
 
       //
       // next region
@@ -1654,14 +1674,16 @@ bool Pseq::PPH2DB::load( const std::string & dbname , const std::string & filena
 
 void f_pph2_scoring( Variant & v , void * p )
 {
+  Out & pout = Out::stream( "scores" );
+
   PPH2DBase * pph2 = (PPH2DBase*)p;
   double score = 0;   
   int prediction = 0;
   // only output scores for missense variants found in PPH2
   if ( pph2->score(v,score,prediction) )
-    plog << v << "\t" << score << "\t" << prediction << "\n";
+    pout << v << "\t" << score << "\t" << prediction << "\n";
   else
-    plog << v << "\tNA\t" << prediction << "\n";
+    pout << v << "\tNA\t" << prediction << "\n";
 }
 
 bool Pseq::PPH2DB::score( Mask & m , const std::string & dbname )
@@ -1688,6 +1710,8 @@ struct AuxCountReport
 void f_counts_report( Variant & v , void * p )
 {  
   
+  Out & pout = Out::stream( "vcf" );
+
   // one line per sample, per phenotype class, per allele
   
   AuxCountReport * aux = (AuxCountReport*)p;
@@ -1820,28 +1844,28 @@ void f_counts_report( Variant & v , void * p )
 
       // write to VCF
       
-      plog << v.chromosome() << "\t"
+      pout << v.chromosome() << "\t"
 	   << v.position() << "\t"
 	   << v.name() << "\t"
 	   << svar_meta.reference() << "\t"
 	   << svar_meta.alternate() << "\t";
       
       if ( svar_meta.quality() < 0 ) 
-	plog << ".\t";
+	pout << ".\t";
       else
-	plog << svar_meta.quality() << "\t";
+	pout << svar_meta.quality() << "\t";
       
-      plog << svar_meta.filter() << "\t";
+      pout << svar_meta.filter() << "\t";
       
-      if ( aux->acdb_format ) plog << "_S=" << g.vardb.file_tag( svar.fileset() ) << ";" ;
-      else plog << "SAMPLE=" << g.vardb.file_tag( svar.fileset() ) << ";" ;
+      if ( aux->acdb_format ) pout << "_S=" << g.vardb.file_tag( svar.fileset() ) << ";" ;
+      else pout << "SAMPLE=" << g.vardb.file_tag( svar.fileset() ) << ";" ;
  
-      plog << ginfo.str() << ";";
+      pout << ginfo.str() << ";";
 
-      if ( aux->acdb_format ) plog << cinfo.str() << ";"
+      if ( aux->acdb_format ) pout << cinfo.str() << ";"
 				   << pinfo.str() << ";";
 
-      plog << svar_meta.meta << "\n";
+      pout << svar_meta.meta << "\n";
       
       // next sample
     }
@@ -1853,6 +1877,8 @@ void f_counts_report( Variant & v , void * p )
 bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
 {
   
+  Out & pout = Out::stream( "vcf" );
+
   AuxCountReport aux;
   aux.label = name;
   aux.by_case_control = g.phmap.type() == PHE_DICHOT;
@@ -1861,7 +1887,7 @@ bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
 
   // VCF header
   
-  plog << "##fileformat=VCFv4.0\n"
+  pout << "##fileformat=VCFv4.0\n"
        << "##source=pseq\n"
        << "##_PROJ=" << name << "\n";
   
@@ -1869,24 +1895,24 @@ bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
   std::set<int>::iterator i = w.begin();
   while ( i != w.end() )
     {
-      plog << "##_N=" << *i << "," << g.indmap.size( *i ) << "\n";
+      pout << "##_N=" << *i << "," << g.indmap.size( *i ) << "\n";
       ++i;
     }
   
   
   if ( aux.acdb_format ) 
-    plog << "##INFO=<ID=_S,Number=1,Type=String,Description=\"Sample tag\">\n"
+    pout << "##INFO=<ID=_S,Number=1,Type=String,Description=\"Sample tag\">\n"
 	 << "##INFO=<ID=_GENO,Number=.,Type=String,Description=\"Genotypes\">\n"
 	 << "##INFO=<ID=_GCNT,Number=.,Type=Integer,Description=\"Genotype counts\">\n"
 	 << "##INFO=<ID=_PGRP,Number=.,Type=Integer,Description=\"Phenotypic groups (0=all;1=control;2=case)\">\n";
   else
-    plog << "##INFO=<ID=SAMPLE,Number=1,Type=String,Description=\"Sample tag\">\n"
+    pout << "##INFO=<ID=SAMPLE,Number=1,Type=String,Description=\"Sample tag\">\n"
 	 << "##INFO=<ID=GENO,Number=.,Type=String,Description=\"Genotype counts\">\n";
 
-      plog   << MetaInformation<VarMeta>::headers( )
+      pout   << MetaInformation<VarMeta>::headers( )
 	 << MetaInformation<VarFilterMeta>::headers( META_GROUP_FILTER );
   
-  plog << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
+  pout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
 
   g.vardb.iterate( f_counts_report , &aux , m );
 
@@ -1896,6 +1922,8 @@ bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
 
 bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
 {
+
+  Out & pout = Out::stream( genotypes ? "gcounts" : "counts" );
   
   OptSimpleCounts opt;
   opt.apply_annot = args.has( "annotate" );
@@ -1905,32 +1933,32 @@ bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
   opt.show_filter = args.has( "show-filters" );
   opt.genotypes = genotypes;
   
-  plog << "VAR";
-  plog << "\tREF/ALT";
+  pout << "VAR";
+  pout << "\tREF/ALT";
   
   if ( genotypes )
     {
-      plog << "\tGENOTYPES";
+      pout << "\tGENOTYPES";
     }
   else
     {      
-      plog << "\tMINOR";
+      pout << "\tMINOR";
 
       // binary phenotype?
       if ( g.phmap.type() == PHE_DICHOT )
-	plog << "\tCNTA"
+	pout << "\tCNTA"
 	     << "\tCNTU"
 	     << "\tTOTA\tTOTU";
       else
-	plog << "\tCNT\tTOT";
+	pout << "\tCNT\tTOT";
     }
 
   if ( opt.apply_annot )
-    plog << "\tFUNC"
+    pout << "\tFUNC"
 	 << "\tGENE";
   
   if ( opt.apply_full_annot )
-    plog << "\tFULL"
+    pout << "\tFULL"
 	 << "\tPROTEIN"	 
 	 << "\tALIAS";
   
@@ -1951,14 +1979,14 @@ bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
   std::set<std::string>::iterator i = opt.meta.begin();
   while ( i != opt.meta.end() )
     {
-      plog << "\t" << *i ;
+      pout << "\t" << *i ;
       ++i;
     }
 
   if ( opt.show_filter )
-    plog << "\tFILTER";
+    pout << "\tFILTER";
   
-  plog << "\n";
+  pout << "\n";
 
 
   //
@@ -2002,6 +2030,8 @@ bool Pseq::VarDB::write_BCF( Mask & mask , const std::string & bcffile )
 bool Pseq::IndDB::dump_phenotypes( const std::vector<std::string> & pheno , bool as_matrix )
 {
 
+  Out & pout = Out::stream( "phe" );
+
   std::vector<bool> m( pheno.size() , true );
   
   if ( ! as_matrix ) 
@@ -2010,12 +2040,12 @@ bool Pseq::IndDB::dump_phenotypes( const std::vector<std::string> & pheno , bool
       for (int p=0;p<pheno.size();p++)
 	{
 	  pType ptype = g.phmap.type( pheno[p] );
-	  if      ( ptype == PHE_DICHOT ) plog << "##" << pheno[p] << ",Integer,.,\"Integer phenotype\"\n";
-	  else if ( ptype == PHE_QT )     plog << "##" << pheno[p] << ",Float,.,\"Float phenotype\"\n";
-	  else if ( ptype == PHE_FACTOR ) plog << "##" << pheno[p] << ",String,.,\"Factor phenotype\"\n";
+	  if      ( ptype == PHE_DICHOT ) pout << "##" << pheno[p] << ",Integer,.,\"Integer phenotype\"\n";
+	  else if ( ptype == PHE_QT )     pout << "##" << pheno[p] << ",Float,.,\"Float phenotype\"\n";
+	  else if ( ptype == PHE_FACTOR ) pout << "##" << pheno[p] << ",String,.,\"Factor phenotype\"\n";
 	  else { m[p] = false; continue; } 
 	}
-      plog << "#";
+      pout << "#";
     }
   else
     {
@@ -2028,16 +2058,16 @@ bool Pseq::IndDB::dump_phenotypes( const std::vector<std::string> & pheno , bool
 	}
     }
 
-  plog << "ID";
+  pout << "ID";
   for (int p=0;p<pheno.size();p++)
-    if ( m[p] ) plog << "\t" << pheno[p];
-  plog << "\n";
+    if ( m[p] ) pout << "\t" << pheno[p];
+  pout << "\n";
   
   const int n = g.indmap.size();
 
   for (int i=0;i<n;i++)
     {
-      plog << g.indmap(i)->id() ;
+      pout << g.indmap(i)->id() ;
       for (int p=0;p<pheno.size();p++)
 	if ( m[p] ) 
 	  {
@@ -2045,17 +2075,17 @@ bool Pseq::IndDB::dump_phenotypes( const std::vector<std::string> & pheno , bool
 	    if ( person->meta.has_field( pheno[p] ) )
 	      {
 		pType ptype = g.phmap.type( pheno[p] );
-		if      ( ptype == PHE_DICHOT ) plog << "\t" << person->meta.get1_int( pheno[p] ) ;
-		else if ( ptype == PHE_QT )     plog << "\t" << person->meta.get1_double( pheno[p] ) ;
-		else if ( ptype == PHE_FACTOR ) plog << "\t" << person->meta.get1_string( pheno[p] ) ;
+		if      ( ptype == PHE_DICHOT ) pout << "\t" << person->meta.get1_int( pheno[p] ) ;
+		else if ( ptype == PHE_QT )     pout << "\t" << person->meta.get1_double( pheno[p] ) ;
+		else if ( ptype == PHE_FACTOR ) pout << "\t" << person->meta.get1_string( pheno[p] ) ;
 	      }
 	    else 
 	      {
 		pType ptype = g.phmap.type( pheno[p] );
-		if      ( as_matrix && ( ptype == PHE_DICHOT || ptype == PHE_QT ) ) plog << "\tNA";
-		plog << "\t.";
+		if      ( as_matrix && ( ptype == PHE_DICHOT || ptype == PHE_QT ) ) pout << "\tNA";
+		pout << "\t.";
 	      }
 	  }
-      plog << "\n";
+      pout << "\n";
     }
 }

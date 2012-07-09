@@ -80,6 +80,7 @@ class SeqDBase {
     bool GC( const Region & region , int & gc , int & tot );
     bool ACGT( const Region & region , int & a , int & c , int & g , int & t , int & n );
     bool dinucleotide( const Region & region , std::map<std::string,int> & counts );
+    bool trinucleotide( const Region & region , std::map<std::string,int> & counts );
 
     void dump( const Region & , bool compact = false );
     

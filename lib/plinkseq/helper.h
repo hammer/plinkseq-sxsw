@@ -10,6 +10,7 @@
 #include <map>
 #include <inttypes.h>
 
+
 // Provide "C" function for use in configure.ac of tools linking against library
 extern "C" char plinkseq_present();
 
@@ -48,39 +49,6 @@ class int2 {
 };
 
 
-///////////////////////////////
-// Primary output streams
-
-/* class Out {  */
-  
-/*   struct output_t */
-/*   { */
-/*     // one or more of these can be set */
-/*     bool            stdout;   // output to STDOUT */
-/*     std::ofstream * file;     // output to a file if non-NULL */
-/*     //    ResDBase *      dbout;    // output to a results DB if non-NULL */
-/*   }; */
-  
-/*   bool stdout;                   // write to STDOUT instead of a file */
-/*   std::<std::string,output_t>  streams; // various output streams */
-  
-/*   // create a new output stream, and define its properties */
-
-/*   // write a stream */
-  
-/*   // close a stream */
-  
-/*   ~Out()  */
-/*     { */
-/*       std::map<std::string,output_t>::iterator ii = streams.begin(); */
-/*       while ( ii != streams.end() ) */
-/* 	{ */
-/* 	  const output_t & o = ii->second; */
-/* 	  //if ( i.dbout ) { /\* close RESDB *\/ }  */
-/* 	  if ( i.file ) { i->close(); } */
-/* 	} */
-/*     } */
-/* }; */
 
 ///////////////////////////////
 // Logging and error handling
@@ -102,13 +70,6 @@ class Log {
   // in R mode, use this as buffer 
   std::stringstream rstream;
   
-  // data-dumper modes
-  std::string  igrp;              // track i-group IDs
-  std::string  igrp_header;       // used in tabular-mode
-  int          coln;              // and col max.
-  std::vector<std::string> cols;  // track header columns
-  bool mode_tabular;              // mode (long or tabular)
-  bool mode_header;               // header/numbers in long mode
   bool ignore_warnings; 
   bool early_warn;
 
@@ -125,9 +86,6 @@ class Log {
       ignore_warnings = false;
       early_warn = false;
 
-      mode_tabular = true;
-      mode_header = false;
-      igrp = igrp_header = "";
       
       if ( filename != "" ) logfile( filename );     
       if ( prolix_filename != "" ) prolix_logfile( prolix_filename );
@@ -140,176 +98,22 @@ class Log {
     }
 
 
-  //
-  // Long-format/tabular helper functions for data rows
-  //
-  
-  void tabular() { mode_tabular = true; }
-  void longmode() { mode_tabular = false; }
-  
-  void header() { mode_header = true; } 
-  void noheader() { mode_header = false; } 
-  
-  std::map<std::string,std::string> databuf0;
-  std::map<std::string,std::map<std::string,std::string> > databufk;
-  
-  void data_reset() 
-  { 
-    databuf0.clear();
-    databufk.clear();
-    igrp = "";
-    coln = 0; 
-    cols.clear(); 
-  }
-
-  void data_group_header( const std::string & s )
-  {
-    igrp_header = s;    
-    if ( mode_tabular ) 
-      {
-	// this should really be the first column, 
-	// and always be present
-	(*this) << s;
-      }   
-  }
-  
-  void data_header( const std::string & s ) 
-  { 
-    ++coln;    
-    if ( mode_tabular ) 
-      {
-	//we assume an igrp_header has already been written
-	//so always put in a tab here
-	(*this) << "\t" << s;
-      }    
-    cols.push_back(s);    
-  } 
-
-  
-  void data_header_done()
-  {
-    if ( mode_tabular ) (*this) << "\n"; 
-    coln = 0;
-  }
-
-  template<class T> bool data( const T & v )
-    {
-      return data( v , "0" );
-    }
-
-  template<class T> bool data( const T & v , int k )
-    {
-      return data( v , Helper::int2str(k) );
-    }
-
-  template<class T> bool data( const T & v , const std::string & k )
-    {
-      // start, coln will be 0; use 1-based codes for headers
-      if ( coln == cols.size() ) return false;
-      return data( v , cols[ coln++ ] , k );
-    }
-  
-  template<class T> bool data( const T & v , const std::string & j, int k )
-    {
-      return data( v , j , Helper::int2str(k) );
-    }
-  
-  template<class T> bool data( const T & v , const std::string & j , const std::string & k )
-    {
-           
-      if ( mode_tabular ) 
-	{
-	  std::stringstream ss;
-	  ss << v;
-	  if ( k == "0" ) databuf0[ j ] = ss.str();
-	  else databufk[ k ][ j ] = ss.str();
-	}
-      else
-	{
-	  (*this) << igrp << "\t"
-		  << j 
-		  << ( k == "0" ? "" : "{" + k + "}" ) 
-		  << "\t" 
-		  << v << "\n";
-	}
-      
-      return true;
-    }
-  
-  
-  template<class T> void data_group( const T & i )
-  {
-    std::stringstream ss;
-    ss << i;
-    igrp = ss.str();
-  }
-
-  void print_data_group()
-  { 
-
-    if ( mode_tabular )
-      {
-	
-	if ( databufk.size() == 0 )
-	  {
-	    (*this) << igrp;
-	    for (int i=0; i<cols.size(); i++)
-	      (*this) << "\t" << databuf0[ cols[i] ];
-	    (*this) << "\n";
-	  }
-	else
-	  {
-	    
-	    std::map<std::string,std::map<std::string,std::string> >::iterator ik = databufk.begin();
-	    while ( ik != databufk.end() )
-	      {
-
-		(*this) << igrp;
-				
-		for (int i=0; i<cols.size(); i++)
-		  {
-		    std::map<std::string,std::string>::iterator f0 = databuf0.find( cols[i] );
-		    if ( f0 != databuf0.end() )
-		      {
-			(*this) << "\t" << f0->second;
-		      }
-		    else
-		      {
-			std::map<std::string,std::string>::iterator f1 = ik->second.find( cols[i] );
-			if ( f1 != ik->second.end() )
-			  {
-			    (*this) << "\t" << f1->second;
-			  }
-			else
-			  (*this) << "\t.";
-		      }
-		  }
-		
-		(*this) << "\n";
-		
-		++ik;
-	      }
-	  }
-      }
-
-    // clear stores
-    databuf0.clear();
-    databufk.clear();
-    
-    // reset row counter
-    coln = 0;
-  }
-  
   // General mode switches
   void silent(const bool b) { silent_mode = b; }
   bool silent() const { return silent_mode; }
 
   void precision( const int p )
   {
-    std::cout.precision(p);
+    std::cerr.precision(p);
   }
   
   bool logfile() const { return output_file; } 
+
+  void set_fileroot( const std::string & f ) 
+  {
+    // open a LOG file
+    logfile( f + ".log" );
+  }
   
   void logfile( const std::string & f )     
   {
@@ -362,7 +166,7 @@ class Log {
 #ifdef R_SHLIB 
     rstream << msg;
 #else
-    std::cout << msg;
+    std::cerr << msg;
 #endif
 
     return *this;
@@ -374,7 +178,7 @@ class Log {
 #ifdef R_SHLIB 
     // nothing
 #else
-    if ( ! silent_mode ) std::cout.flush();
+    if ( ! silent_mode ) std::cerr.flush();
 #endif    
   }
 

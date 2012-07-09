@@ -3,6 +3,7 @@
 #include "plinkseq/variant.h"
 #include "plinkseq/gstore.h"
 #include "plinkseq/filemap.h"
+#include "plinkseq/output.h"
 
 #include <algorithm>
 #include <cmath>
@@ -1429,6 +1430,13 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
 
   if ( region.subregion.size() == 0 ) return "";
 
+
+  // assume output stream called 'loci' exists
+
+  Out & pout = Out::stream( "loci" );
+  Out & pbase = Out::stream( "bstats" );
+
+
   // Get strand
 
   int n_exons = region.subregion.size();
@@ -1486,7 +1494,7 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
   std::vector<std::string> ref_codon;
 
   std::string trans_ref = translate( ref_cds , frame, ref_codon );
-
+  
   if ( ! verbose ) return trans_ref;
 
   //
@@ -1499,22 +1507,22 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
     {
       for (int i=n_exons-1; i >= 0; i--)
 	{
-	  plog << "exon " << i+1 << "\t"
-		    << region.chromosome() << "\t"
-		    << region.subregion[ i ].start.position() << "\t"
-		    << region.subregion[ i ].stop.position() << "\t"
-		    << exon_start_idx[i] << "\n";
+	  pout << "exon " << i+1 << "\t"
+	       << region.chromosome() << "\t"
+	       << region.subregion[ i ].start.position() << "\t"
+	       << region.subregion[ i ].stop.position() << "\t"
+	       << exon_start_idx[i] << "\n";
 	}
     }
   else
     {
       for (int i=0; i < n_exons; i++)
 	{
-	  plog << "exon " << i+1 << "\t"
-		    << region.chromosome() << "\t"
-		    << region.subregion[ i ].start.position() << "\t"
-		    << region.subregion[ i ].stop.position() << "\t"
-		    << exon_start_idx[i] << "\n";
+	  pout << "exon " << i+1 << "\t"
+	       << region.chromosome() << "\t"
+	       << region.subregion[ i ].start.position() << "\t"
+	       << region.subregion[ i ].stop.position() << "\t"
+	       << exon_start_idx[i] << "\n";
 	}
     }
 
@@ -1540,7 +1548,7 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
   while ( 1 )
     {
 
-      // plog << ">>>--- exon " << x+1 << " of " << n_exons << " ----\n";
+      // pout << ">>>--- exon " << x+1 << " of " << n_exons << " ----\n";
 
       int offset = 0;
 
@@ -1571,16 +1579,16 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
 	      if ( codon_from_exon == x )
 		{
 
-		  plog << chr << "\t"
-			    << (x+1) << "/" << region.subregion.size() << "\t"
-			    << ( negative_strand ? "rev" : "fwd" ) << "\t"
-			    << bp1 << ".."
-			    << start + ( j * dir ) <<  "\t"
-			    << (i-1) << ".." << i+1 << "\t"
-			    << p+1 << "\t"
-			    << ref_codon[p] << "\t"
-			    << trans_ref.substr(p,1) << "\n";
-
+		  pout << chr << "\t"
+		       << (x+1) << "/" << region.subregion.size() << "\t"
+		       << ( negative_strand ? "rev" : "fwd" ) << "\t"
+		       << bp1 << ".."
+		       << start + ( j * dir ) <<  "\t"
+		       << (i-1) << ".." << i+1 << "\t"
+		       << p+1 << "\t"
+		       << ref_codon[p] << "\t"
+		       << trans_ref.substr(p,1) << "\n";
+		  
 		  bpcnt[ ref_codon[p].substr(0,1) ]++;
 		  bpcnt[ ref_codon[p].substr(1,1) ]++;
 		  bpcnt[ ref_codon[p].substr(2,1) ]++;
@@ -1590,50 +1598,48 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
 	      else
 		{
 		  // codon is split across two exons
-		  plog << chr << "\t"
-			    << (x+1) << "&" << (codon_from_exon+1) << "/" << region.subregion.size() << "\t"
-			    << ( negative_strand ? "rev" : "fwd" ) << "\t"
-			    << bp1 << ".."
-			    << start + ( j * dir ) <<  "\t"
-			    << (i-1) << ".." << i+1 << "\t"
-			    << p+1 << "\t"
-			    << ref_codon[p] << "\t"
-			    << trans_ref.substr(p,1) << "\n";
-
+		  pout << chr << "\t"
+		       << (x+1) << "&" << (codon_from_exon+1) << "/" << region.subregion.size() << "\t"
+		       << ( negative_strand ? "rev" : "fwd" ) << "\t"
+		       << bp1 << ".."
+		       << start + ( j * dir ) <<  "\t"
+		       << (i-1) << ".." << i+1 << "\t"
+		       << p+1 << "\t"
+		       << ref_codon[p] << "\t"
+		       << trans_ref.substr(p,1) << "\n";
+		  
 		}
 	      ++p;
 	    }
-
+	  
 	  ++i;
 
 	}
 
 
       // base-stats output
-
-      plog << "_BSTATS\t"
-		<< region.name << "\t"
-		<< region.coordinate() << "\t"
-		<< x << "\t"
-		<< ( negative_strand ? "rev" : "fwd" ) << "\t";
-
-      plog << bpcnt["A"] << "\t"
-		<< bpcnt["C"] << "\t"
-		<< bpcnt["G"] << "\t"
-		<< bpcnt["T"] << "\t"
-		<< bpcnt["a"] + bpcnt["c"] + bpcnt["g"] + bpcnt["t"] + bpcnt["N"] ;
-
+      
+      pbase << "_BSTATS\t"
+	    << region.name << "\t"
+	    << region.coordinate() << "\t"
+	    << x << "\t"
+	    << ( negative_strand ? "rev" : "fwd" ) << "\t";
+      
+      pbase << bpcnt["A"] << "\t"
+	   << bpcnt["C"] << "\t"
+	   << bpcnt["G"] << "\t"
+	   << bpcnt["T"] << "\t"
+	   << bpcnt["a"] + bpcnt["c"] + bpcnt["g"] + bpcnt["t"] + bpcnt["N"] ;
+      
       std::map<std::string,std::string>::const_iterator pp = Annotate::aa.begin();
       while ( pp != Annotate::aa.end() )
 	{
-	  plog << "\t" << aacnt[ pp->first ] ;
+	  pbase << "\t" << aacnt[ pp->first ] ;
 	  ++pp;
 	}
-      plog << "\n";
+      pbase << "\n";
 
-
-
-
+      
       // next exon;
       x += dir;
 

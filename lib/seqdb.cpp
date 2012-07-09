@@ -3,6 +3,7 @@
 #include "plinkseq/filemap.h"
 #include "plinkseq/gstore.h"
 #include "plinkseq/sqlz.h"
+#include "plinkseq/output.h"
 
 #include <algorithm>
 #include <cmath>
@@ -432,12 +433,28 @@ bool SeqDBase::dinucleotide( const Region & region , std::map<std::string,int> &
   if ( ! attached() ) return false;
   std::string s = lookup( region );  
   int totm1 = s.size()-1;
-  if ( totm1 < 0 ) return false;  
+  if ( totm1 < 1 ) return false;  
   for (int i=0; i<totm1; i++)
     {
       if ( !( s[i] == 'A' || s[i] == 'C' || s[i] == 'G' || s[i] == 'T' ) ) continue;
       if ( !( s[i+1] == 'A' || s[i+1] == 'C' || s[i+1] == 'G' || s[i+1] == 'T' ) ) continue;      
       counts[ s.substr(i,2) ]++;
+    }
+  return true;
+}
+
+bool SeqDBase::trinucleotide( const Region & region , std::map<std::string,int> & counts )
+{
+  if ( ! attached() ) return false;
+  std::string s = lookup( region );  
+  int totm1 = s.size()-1;
+  if ( totm1 < 2 ) return false;  
+  for (int i=1; i<totm1; i++)
+    {
+      if ( !( s[i] == 'A' || s[i] == 'C' || s[i] == 'G' || s[i] == 'T' ) ) continue;
+      if ( !( s[i-1] == 'A' || s[i-1] == 'C' || s[i-1] == 'G' || s[i-1] == 'T' ) ) continue;      
+      if ( !( s[i+1] == 'A' || s[i+1] == 'C' || s[i+1] == 'G' || s[i+1] == 'T' ) ) continue;      
+      counts[ s.substr(i-1,3) ]++;
     }
   return true;
 }
@@ -512,6 +529,8 @@ std::string SeqDBase::summary( bool ugly )
 void SeqDBase::dump( const Region & region , bool compact )
 {
   
+  Out & pout = Out::stream( "seq" );
+
   std::string s = lookup( region );
   
   std::string chr = Helper::chrCode( region.chromosome() );
@@ -521,13 +540,13 @@ void SeqDBase::dump( const Region & region , bool compact )
   if ( compact ) 
     {
       for (int i=0; i<s.size(); i++)
-	plog << s[i];
-      plog << "\n";
+	pout << s[i];
+      pout << "\n";
     }
   else
     for (int i=0; i<s.size(); i++)
       {
-	plog << chr << "\t"
+	pout << chr << "\t"
 	     << bp++ << "\t"
 	     << s[i] << "\n";
       }

@@ -10,6 +10,7 @@
 #include "plinkseq/regions.h"
 #include "plinkseq/variant.h"
 #include "plinkseq/gstore.h"
+#include "plinkseq/filemap.h"
 
 #ifdef R_SHLIB
 #include "rint.h"
@@ -26,6 +27,8 @@ extern GStore * GP;
 using namespace std;
 using namespace Helper;
 
+
+
 //////////////////////////////////////////////////////////////////////
 // Logging and error handling
 
@@ -35,7 +38,7 @@ void Helper::halt( const std::string & msg )
 #ifdef R_SHLIB
  R_error( msg );
 #else
- std::cerr << "pseq error : " << msg << "\n";
+ plog << "pseq error : " << msg << "\n";
  if ( GP && GP->gseq_mode() )
    {
      std::ofstream O1( GP->gseq_history().c_str() , std::ios::out | std::ios::app );
@@ -58,26 +61,21 @@ void Log::warn(const std::string & msg , const std::string & spec )
 
   if ( ignore_warnings ) return;
 
-  if ( ! silent_mode )
-    {
 #ifdef R_SHLIB
   R_warning( msg );
 #else
   if ( warnings[ msg ] == 0 && early_warn )
     {
-      std::cerr << "plinkseq warning: " << msg << " : " << spec << "\n";
-      std::cerr.flush();      
+      plog << "plinkseq warning: " << msg << " : " << spec << "\n";
     }
 #endif
-    }
-
+     
   // keep track of how many times each warning issued
   warnings[ msg ]++;
   if ( spec != "" && warnings[ msg ] < 10 ) 
     warnings_specific[ msg ].push_back( spec );
 
 }
-
 
 
 
@@ -109,22 +107,24 @@ void Log::print_warnings()
 #ifdef R_SHLIB
       // R should keep track of warning count, so no need for further action here?
 #else
-      if ( ! silent_mode ) std::cerr << msg ;
+      plog << msg ;
 #endif
 
-      if ( output_file ) file << msg ;
       ++i;
     }
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////////
+
 
 void Helper::NoMem()
 {
+
   std::cerr << "*****************************************************\n"
 	    << "* FATAL ERROR    Exhausted system memory            *\n"
 	    << "*****************************************************\n\n";
-
+  
   if ( GP && GP->gseq_mode() )
     {
       std::ofstream O1( GP->gseq_history().c_str() , std::ios::out | std::ios::app );

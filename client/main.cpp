@@ -22,12 +22,12 @@ Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.09";
-std::string PSEQ_DATE    = "4-Jul-2012";
+std::string PSEQ_DATE    = "04-Jul-12";
+
 
 
 int main(int argc, char ** argv)
 {
-
   
 
   //
@@ -36,7 +36,7 @@ int main(int argc, char ** argv)
 
   // pseq {project} {command} {--options}
   
-  args.load( argc , argv );
+  std::string pp_args = args.load( argc , argv );
 
 
   // connect with GSEQ job tracking?
@@ -80,35 +80,66 @@ int main(int argc, char ** argv)
   // Reporting and logging options
   //
   
-  if ( args.has("debug") ) 
-    debug.silent( false );
 
   if ( args.has("ignore-warnings") )
     plog.show_warnings( false );
 
   if ( args.has("early-warnings") )
     plog.early_warnings( true );
+  
+  if ( args.has("silent" ) )
+    plog.silent( true );
+
+  std::string fileroot = args.has("out") ? args.as_string("out") : "pseq" ;   
+  plog.set_fileroot( fileroot ) ;
+
+  if ( args.has("out") ) 
+    Out::set_fileroot( fileroot ) ;
+
+  
+  // send all output to stdout
+  // (note Log goes to stderr by default, unless --silent)
+  if ( args.has( "stdout" ) )
+    Out::set_stdout( true );
+
+  if ( args.has("debug") ) 
+    debug.silent( false );
 
   if ( args.has("debug-file") )
     debug.logfile( args.as_string("debug-file") ); 
   
-  if ( args.has("silent" ) )
-    plog.silent( true );
+
+  // ---- obsolete Log functions: can be removed
+  // if ( args.has("out-file") ) 
+  //   plog.logfile( args.as_string("out-file") );
+  // if ( args.has("prolix-file") ) 
+  //   plog.prolix_logfile( args.as_string("prolix-file") );
   
-  if ( args.has("out-file") ) 
-    plog.logfile( args.as_string("out-file") );
+
+  // ----- likely remove support for 'long-mode' from Out class
+  // if ( args.has("long") )
+  //   Out::longmode();
+  // if ( args.has("long-header") )
+  //   { Out::longmode(); Out::header(); } 
+
+
+  //
+  // Opening banner
+  //
   
-  if ( args.has("prolix-file") ) 
-    plog.prolix_logfile( args.as_string("prolix-file") );
+  time_t curr=time(0);
+  std::string tdstamp = (std::string)ctime(&curr);
+  plog << "|+---------------------------------------------------------------------------+|\n"
+       << "|+------------------------- PSEQ (v" << PSEQ_VERSION << "; " << PSEQ_DATE << ") -------------------------+|\n"
+       << "|+---------------------------------------------------------------------------+|\n\n";
+
+  plog << "   Analysis started " << tdstamp << "\n";
   
-  if ( args.has("long") )
-    plog.longmode();
+  plog << pp_args << "\n";
 
-  if ( args.has("long-header") )
-    { plog.longmode(); plog.header(); } 
+  if ( ! args.has( "silent" ) ) plog << "Copying this log to file [ " << fileroot << ".log ]\n";
 
-
-
+  
   //
   // Process 'command'
   //
@@ -213,6 +244,7 @@ int main(int argc, char ** argv)
 
   if ( command == "simple-sim" ) 
     {
+      Out output( "assoc.sim" , "output from simple-sim command" );
       Pseq::VarDB::simple_sim();
       Pseq::finished();
     }
@@ -320,10 +352,6 @@ int main(int argc, char ** argv)
   // Misc. formatting/display options
   //
 
-  
-  //
-  // Misc. formatting/display options
-  //
   
   if ( args.has("whitespace") )
     {
@@ -438,7 +466,9 @@ int main(int argc, char ** argv)
       
       LocDBase * db = g.resolve_locgroup( grp[0] );
       if ( ! db ) Helper::halt("group not found");
-            
+
+      Out output( "loci" , "intersecing locus list" );
+      
       Pseq::LocDB::intersection( s[0] , grp[0] , *db );
       
       Pseq::finished();
@@ -489,13 +519,18 @@ int main(int argc, char ** argv)
       if ( ! args.has( "name" ) ) Helper::halt( "no --name specified" );
       if ( ! args.has( "netdb" ) ) Helper::halt( "no --netdb specified" );
       if ( ! args.has( "group" ) ) Helper::halt( "no --group specified" );
+
+      Out output( "partners" , "network partners of a given gene/element" );
+
       Pseq::NetDB::lookup( args.as_string( "netdb" ) , args.as_string( "name" ) , args.as_string( "group" ) );
+
       Pseq::finished();
     }
 
 
   if ( command == "segset-load" )
     {
+
       if ( ! args.has("name") )
 	Helper::halt("no name specified");	
       
@@ -1373,6 +1408,7 @@ int main(int argc, char ** argv)
 	 command == "mv-view" ||
 	 command == "mrv-view" )
       {		
+
 	const bool rview = command == "rv-view" || command == "mrv-view";
 	const bool mview = command == "mv-view" || command == "mrv-view";
 	
@@ -1388,8 +1424,11 @@ int main(int argc, char ** argv)
 	opt.show_only_alt        =   args.has( "only-alt" ) ;
 	if ( opt.show_only_alt || opt.show_only_minor ) opt.show_nonmissing_geno = false;
 	opt.mview = mview;
-
-
+	
+	// Output stream
+	
+	Out output( "vars" , "variant/genotype output" );
+	
 	IterationReport report = g.vardb.iterate( f_view , &opt , m );
 
 	// Use g-view code to display a set of multiple variants; fix options for display here
@@ -1408,6 +1447,7 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
     
+
     if ( command == "g-view" )
       {
 	OptGView opt;
@@ -1419,6 +1459,8 @@ int main(int argc, char ** argv)
 	opt.transpose = args.has("transpose");
 	opt.rarelist = args.has("rarelist");
 	opt.show_phenotype = args.has("phenotype");
+
+	Out output( "groups" , "variant-group output" );
 	
 	IterationReport report = g.vardb.iterate( g_view , &opt , m );	
 
@@ -1434,13 +1476,20 @@ int main(int argc, char ** argv)
 	opt.pheno = g.phmap.type() == PHE_DICHOT;
 	if ( ! g.seqdb.attached() ) Helper::halt( "no SEQDB attached" );
 	if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
+
+	Out output( "gsview" , "variants in sequence context" );
+
 	IterationReport report = g.vardb.iterate( g_geneseq , &opt , m );
+	
 	Pseq::finished();
       }
 
 
     if ( command == "i-view" )
       {	
+
+	Out output( "indiv" , "per-individual information" );
+
 	if ( g.single_file_mode() )
 	  Pseq::VarDB::header_VCF( false , true , m );
 	else if ( args.has( "from-vardb" ) )
@@ -1454,6 +1503,8 @@ int main(int argc, char ** argv)
 
     if ( command == "write-phe" || command == "i-matrix" )
       {	
+
+
 	std::vector<std::string> names;	
 
 	if ( ! args.has( "name" ) ) 
@@ -1463,7 +1514,10 @@ int main(int argc, char ** argv)
 	  }
 	else names = args.as_string_vector( "name" ) ;
 	
+	Out output( command == "i-matrix" ? "indiv.matrix" : "phe" , "individual phenotype data" );
+	
 	Pseq::IndDB::dump_phenotypes( names , command == "i-matrix" ) ;
+	
 	Pseq::finished();
       }
 
@@ -1475,6 +1529,9 @@ int main(int argc, char ** argv)
 
     if ( command == "seg-view" )
       {
+
+	Out output( "segs" , "segments from SEGDB group" );
+	
 	if ( ! args.has( "group" ) ) 
 	  Helper::halt("requires a locus-group to be specified");
 	std::string grp = args.as_string( "group" );
@@ -1502,6 +1559,10 @@ int main(int argc, char ** argv)
 
     if ( command == "v-dist" )
       {	
+
+	Out output( "vdist" , "output from v-dist command" );
+
+
 	long int nrep = args.has( "perm" ) ? args.as_int( "perm" ) : 1000 ;
 	Pseq::VarDB::vdist_summary( m , nrep );
 	Pseq::finished();
@@ -1514,10 +1575,13 @@ int main(int argc, char ** argv)
 
     if ( command == "v-freq" )
       {
+
+	Out output( "vfreq" , "output from v-freq command" );
+
 	XQCstats x;
 	
 	// ensure EM phasing
-
+	
 	if ( args.has( "em" ) )
 	  {
 	    m.EM_caller( true );
@@ -1528,35 +1592,35 @@ int main(int argc, char ** argv)
 
 	// header
 
-	plog.data_reset();	
-	plog.data_group_header( "VAR" );
+	output.data_reset();	
+	output.data_group_header( "VAR" );
 
-	plog.data_header( "CHR" );
-	plog.data_header( "POS" );
-	plog.data_header( "REF" );
-	plog.data_header( "ALT" );
+	output.data_header( "CHR" );
+	output.data_header( "POS" );
+	output.data_header( "REF" );
+	output.data_header( "ALT" );
 
-	plog.data_header( "FILTER" );
-	plog.data_header( "QUAL" );
-	plog.data_header( "TI" );  // flag to indicate Ti/Tv
+	output.data_header( "FILTER" );
+	output.data_header( "QUAL" );
+	output.data_header( "TI" );  // flag to indicate Ti/Tv
 
-	plog.data_header( "GENO" );
-	plog.data_header( "MAF" );
-	plog.data_header( "REFMIN" );
-	plog.data_header( "HWE" );
-	plog.data_header( "HET" );
+	output.data_header( "GENO" );
+	output.data_header( "MAF" );
+	output.data_header( "REFMIN" );
+	output.data_header( "HWE" );
+	output.data_header( "HET" );
 		
 	if ( x.em_stats ) 
 	  {
-	    plog.data_header( "MPP" );
-	    plog.data_header( "H" );
-	    plog.data_header( "HALT" );
-	    plog.data_header( "EMMAF" ); 
+	    output.data_header( "MPP" );
+	    output.data_header( "H" );
+	    output.data_header( "HALT" );
+	    output.data_header( "EMMAF" ); 
 	  }
 
-	plog.data_header( "NSNP" );	
+	output.data_header( "NSNP" );	
 
-	plog.data_header_done();
+	output.data_header_done();
 
 	// Run 
 
@@ -1573,9 +1637,10 @@ int main(int argc, char ** argv)
     //
     // PolyPhen2 scoring of variants in database 
     //
-
+    
     if ( command == "score-weights" )
       {
+	Out output( "scores" , "output from score-weights command" );
 	//Helper::halt("obsolete command score-weights");
  	std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
  	Pseq::PPH2DB::score( m , dbname );
@@ -1589,6 +1654,7 @@ int main(int argc, char ** argv)
 
     if ( command == "clusters" )
       {
+	Out output( "clusters" , "output from clusters command" );
 	Pseq::VarDB::cluster_scan( m );
 	Pseq::finished();
       }
@@ -1600,6 +1666,7 @@ int main(int argc, char ** argv)
     
     if ( command == "proximity-scan" )
       {
+	Out output( "proximity" , "output from proximity-scan" );
 	Pseq::VarDB::proximity_scan( m );
 	Pseq::finished();
       }
@@ -1614,11 +1681,14 @@ int main(int argc, char ** argv)
       {
 	if ( args.has( "output-vcf" ) )
 	  {
+	    Out output( "vcf" , command == "counts" ? "VCF from counts" : "VCF from g-counts" );
 	    std::string proj = Pseq::Util::single_argument<std::string>( args , "name" );
 	    Pseq::VarDB::make_counts_file( m , proj );
 	  }
 	else
 	  {	 	    
+	    Out output( command == "counts" ? "counts" : "gcounts" , 
+			command == "counts" ? "VCF from counts" : "VCF from g-counts" );
 	    bool genotypes = command == "g-counts" ;
 	    Pseq::VarDB::simple_counts( m , genotypes );
 	  }
@@ -1632,6 +1702,8 @@ int main(int argc, char ** argv)
 
     if ( command == "lookup" )
       {
+	
+	Out output( "meta" , "output from lookup command" );
 	
 	if ( args.has( "file" ) )
 	  {
@@ -1669,6 +1741,7 @@ int main(int argc, char ** argv)
 
     if ( command == "summary" )
       {
+
 	bool ugly = args.has( "ugly" ); 
 	if ( ! ugly ) plog << "\n";
 	Pseq::VarDB::summary(m , ugly );
@@ -1738,22 +1811,26 @@ int main(int argc, char ** argv)
 
     if ( command == "v-stats" )
       {	
-
-	  // Hard-code some of these values for now
+	
+	Out output( "vstats" , "output from v-stats command" );
+	
+	// Hard-code some of these values for now
+	
+	Pseq::VStat vstat(&g);
+	
+	Pseq::Util::set_default( vstat );
+	
+	IterationReport report = g.vardb.iterate( f_vstat , &vstat , m );	
+	
+	vstat.report();
 	  
-	  Pseq::VStat vstat(&g);
-	  
-	  Pseq::Util::set_default( vstat );
-	  
-	  IterationReport report = g.vardb.iterate( f_vstat , &vstat , m );	
-	  
-	  vstat.report();
-	  
-	  Pseq::finished();
+	Pseq::finished();
       }
     
     if ( command == "g-stats" )
       {
+	
+	Out output( "gstats" , "output from g-stats command" );
 
 	if ( ! m.any_grouping() )
 	  Helper::halt("no gene-grouping specified for g-stat");
@@ -1772,8 +1849,10 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
     
+
     if ( command == "i-stats" )
       {
+	Out output( "istats" , "output from i-stats command" );
 	Pseq::IStat istat(&g);
 	IterationReport report = g.vardb.iterate( f_istat , &istat , m );	
 	istat.report();
@@ -1788,23 +1867,28 @@ int main(int argc, char ** argv)
 
     if ( command == "loc-view" )
     {
-	if ( ! ( g.locdb.attached() | g.segdb.attached() ) ) Helper::halt("no LOCDB or SEGDB attached");
-	if ( ! args.has( "group" ) ) Helper::halt("requires a locus-group to be specified");
-	
-	std::vector<std::string> grp = args.as_string_vector( "group" );
-	if ( grp.size() != 1 ) Helper::halt("requires a single locus-group to be specified");	
-	
-	std::vector<std::string> alias;
-	if ( args.has( "alias" ) ) alias = args.as_string_vector( "alias" );
 
-	Pseq::LocDB::loc_view( grp[0] , alias , ! args.has("no-meta") , args.has("show-subregions") );
+      Out output( "loci" , "output from loc-view command" );
+
+      if ( ! ( g.locdb.attached() | g.segdb.attached() ) ) Helper::halt("no LOCDB or SEGDB attached");
+      if ( ! args.has( "group" ) ) Helper::halt("requires a locus-group to be specified");
 	
-	Pseq::finished();
+      std::vector<std::string> grp = args.as_string_vector( "group" );
+      if ( grp.size() != 1 ) Helper::halt("requires a single locus-group to be specified");	
+      
+      std::vector<std::string> alias;
+      if ( args.has( "alias" ) ) alias = args.as_string_vector( "alias" );
+      
+      Pseq::LocDB::loc_view( grp[0] , alias , ! args.has("no-meta") , args.has("show-subregions") );
+      
+      Pseq::finished();
       }
 
 
     if ( command == "intersect" )
       {
+
+	Out output( "loci" , "output of intersect command" );
 
 	// print LOC group names that have 1+ VARDB variants, according to 
 	// the mask
@@ -1818,6 +1902,9 @@ int main(int argc, char ** argv)
 
     if ( command == "loc-stats" )
       {	
+	
+	Out output( "locstats" , "output from loc-stats command" );
+
 	if ( ! ( g.locdb.attached() | g.segdb.attached() ) ) Helper::halt("no LOCDB or SEGDB attached");
 	
 	if ( ! g.seqdb.attached() ) Helper::halt("no SEQDB attached");
@@ -1841,6 +1928,10 @@ int main(int argc, char ** argv)
 
     if ( command == "loc-translate" )
       {	
+
+	Out output1( "loci" , "output from loc-translate" );
+	Out output2( "bstats" , "nucleotide base-level statistics" );
+
 	if ( ! ( g.locdb.attached() | g.segdb.attached() ) ) Helper::halt("no LOCDB or SEGDB attached");       
 	if ( ! g.seqdb.attached() ) Helper::halt("no SEQDB attached");	
 	std::string grp = Pseq::Util::single_argument<std::string>( args , "group" );	
@@ -1855,6 +1946,8 @@ int main(int argc, char ** argv)
 
     if ( command == "ref-view" )
       {
+	Out output( "refvars" , "output from ref-view" );
+
 	if ( ! g.refdb.attached() ) Helper::halt("no REFDB attached");
 	if ( ! args.has( "group" ) ) Helper::halt("no group specified");
 	std::string grp = Pseq::Util::single_argument<std::string>( args , "group" );
@@ -1870,7 +1963,9 @@ int main(int argc, char ** argv)
 
     if ( command == "seq-view" )
       {	
-	
+
+	Out output( "seq" , "output from seq-view" );
+
 	if ( ! g.seqdb.attached() ) Helper::halt("no SEQDB attached");
 	
 	if ( ! args.has( "region" ) )
@@ -1899,6 +1994,8 @@ int main(int argc, char ** argv)
 
     if ( command == "denovo" ) 
       {
+	Out output1( "denovo.vars" , "per-site output from denovo" );
+	Out output2( "denovo.indiv" , "per-trio output from denovo" );
 	Pseq::VarDB::denovo_scan( m );
 	Pseq::finished();
       }
@@ -1907,8 +2004,10 @@ int main(int argc, char ** argv)
     // Family-based operations for XHMM-like output
     //
 
-    if ( command == "CNV-denovo" )
+    if ( command == "cnv-denovo" )
     {
+	Out output1( "denovo.cnv" , "per-site output from denovo" );
+	Out output2( "denovo.indiv" , "per-trio output from denovo" );
     	Pseq::VarDB::cnv_denovo_scan( m );
     	Pseq::finished();
     }
@@ -1919,6 +2018,8 @@ int main(int argc, char ** argv)
     
     if ( command == "unique" )
       {
+	
+	Out output( "uniq" , "output from unique command" );
 
 	if ( ! args.has("indiv") ) 
 	  Helper::halt("no individuals specified");
@@ -1944,6 +2045,11 @@ int main(int argc, char ** argv)
 
     if ( command == "concordance" )
       {
+	Out output1( "concord" , "summary from concordance command" );
+	Out output2( "concord.geno" , "discordant genotypes" );
+	Out output3( "concord.indiv" , "per-individual concordance data" );
+	Out output4( "concord.vars" , "per-site concordance data" );
+	
 	Pseq::VarDB::check_concordance(m);
 	Pseq::finished();
       }
@@ -1954,6 +2060,7 @@ int main(int argc, char ** argv)
 
     if ( command == "ibs-matrix" )
       {
+	Out output( "ibs" , "output from ibs-matrix command" );
 	Pseq::IBS::calculate(m);
 	Pseq::finished();
       }
@@ -1964,11 +2071,14 @@ int main(int argc, char ** argv)
 
     if ( command == "group-comparison" )
       {
+	Out output( "comp" , "output from group-comparison command" );
 	Pseq::Assoc::group_comparison( m );
       }
 
     if ( command == "assoc" )
       {
+	
+	Out output( "assoc" , "output from assoc command" );
 
 	// if no perms specified, use adaptive permutation mode
 	Pseq::Assoc::set_assoc_test( m , args );
@@ -1979,6 +2089,8 @@ int main(int argc, char ** argv)
     
     if ( command == "net-assoc" )
       {
+	Out output( "net.assoc" , "output from net-assoc command" );
+
 	if ( g.phmap.type() != PHE_DICHOT ) 
 	  Helper::halt("no dichotomous phenotype specified");
 	Pseq::Assoc::net_assoc_test( m , args );
@@ -1988,6 +2100,7 @@ int main(int argc, char ** argv)
 
     if ( command == "indiv-enrich" )
       {
+	Out output( "indiv.enrich" , "output from indiv-enrich command" );
  	Pseq::Assoc::set_enrich_wrapper( m , args );
  	Pseq::finished();
       }
@@ -1995,6 +2108,8 @@ int main(int argc, char ** argv)
 
     if ( command == "s-assoc" )
       {
+	Out output( "sassoc" , "output from s-assoc command" );
+
 	if ( g.phmap.type() != PHE_DICHOT ) 
 	  Helper::halt("no dichotomous phenotype specified");
 	
@@ -2024,6 +2139,9 @@ int main(int argc, char ** argv)
     
     if ( command == "ibd-sharing" )
       {
+
+	Out output( "ibd" , "output from ibd-sharing command" );
+
 	if ( g.phmap.type() != PHE_DICHOT ) 
 	  Helper::halt("no dichotomous phenotype specified");
 	if ( !args.has("ibddb") ) Helper::halt("need to specify --ibddb");
@@ -2034,6 +2152,7 @@ int main(int argc, char ** argv)
     
     if ( command == "mutation-screen" )
       {
+	Out output( "mut" , "output from mutation-screen command" );
 	if ( ! args.has( "ibddb" ) ) Helper::halt( "need to specify --ibddb {filename}" );
 	if ( ! args.has( "indiv" ) ) Helper::halt( "need to specify --indiv {ID}" );
 	if ( ! args.has( "region" ) ) Helper::halt( "need to specify --region {chr1:1234567}" );
@@ -2052,6 +2171,8 @@ int main(int argc, char ** argv)
     
     if ( command == "v-assoc" )
       {
+
+	Out output( "vassoc" , "output from v-assoc command" );
 
 	Pseq::Assoc::Aux_vassoc_options aux;
 	if ( args.has( "info" ) ) aux.show_istat = true;
@@ -2075,7 +2196,9 @@ int main(int argc, char ** argv)
 
     if ( command == "glm" )
       {
-	
+
+	Out output( "glm" , "output from glm command" );	
+
 	// allow phenotpe not to be specified yet, if reading from a file a list of tests:
 	if ( g.phmap.type() != PHE_DICHOT && g.phmap.type() != PHE_QT && ! args.has("file" ) ) 
 	  Helper::halt("no dichotomous or quantitative phenotype specified");	
@@ -2142,6 +2265,9 @@ int main(int argc, char ** argv)
     
     if ( command == "write-vcf" )
       {
+
+	Out output( "vcf" , "output write-vcf command" );
+	
 	bool compressed = args.has( "format" , "BGZF" );
 	Pseq::VarDB::write_VCF( m , compressed );
 	Pseq::finished();
@@ -2150,6 +2276,9 @@ int main(int argc, char ** argv)
     
     if ( command == "write-bcf" )
       {	
+
+	Out output( "bcf" , "BCF file from write-bcf" );
+
 	if ( ! args.has( "bcf" ) ) 
 	  Helper::halt( "need to specify --bcf output.bcf" );
 	Pseq::VarDB::write_BCF( m , args.as_string( "bcf" ) );
@@ -2159,10 +2288,11 @@ int main(int argc, char ** argv)
     
     if ( command == "write-ped" )
       {
-	if ( ! args.has("name") )
-	  Helper::halt("no output file given, use --name");
-	string filename = args.as_string( "name" );
-	Pseq::VarDB::write_PED(m,filename, args.has( "family-id" ) );
+
+	Out output1( "tped" , "transposed PED file" );
+	Out output2( "tfam" , "associated FAM file" );
+	
+	Pseq::VarDB::write_PED( m , args.has( "family-id" ) );
 	Pseq::finished();
       }
 

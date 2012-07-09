@@ -4,6 +4,7 @@
 #include "util.h"
 
 #include <cmath>
+#include <iomanip>
 
 extern GStore g;
 extern Pseq::Util::Options args;
@@ -369,11 +370,13 @@ void f_vstat( Variant & v , void * p)
 void g_gstat( VariantGroup & vars, void * p )
 {
   
+  Out & pout = Out::stream( "gstats" );
+
   // Calculate and display relevant per-gene statistics
   
   Pseq::GStat * aux = (Pseq::GStat*)p;
   
-  plog << vars.name() << "\t";
+  pout << vars.name() << "\t";
   
   bool empty = vars.size() == 0;
   
@@ -407,24 +410,24 @@ void g_gstat( VariantGroup & vars, void * p )
     }
   
 
-  plog << Helper::chrCode( chr ) << ":" 
+  pout << Helper::chrCode( chr ) << ":" 
        << bp1 << ".." << bp2 << "\t";
   
-  plog << (bp2-bp1+1)/1000.0 << "\t";
+  pout << (bp2-bp1+1)/1000.0 << "\t";
   
-  plog << n_bp << "\t"
+  pout << n_bp << "\t"
        << n_exons << "\t";
   
   // rate of variants per bp
   
-  plog << n_bp/(double)n << "\t"; 
+  pout << n_bp/(double)n << "\t"; 
   
 
   // Use the variant counter for each gene; also gives 
   // thresholds etc
   
   aux->vstat.reset();
-
+  
   // Accumulate statistics for all variants in this gene
 
   for (int v = 0 ; v < n ; v++ ) 
@@ -432,29 +435,31 @@ void g_gstat( VariantGroup & vars, void * p )
       
   // Report 
   
-  aux->vstat.row_report( aux->vstat.nvar , aux->vstat.nvar , true );  
+  pout << aux->vstat.row_report( aux->vstat.nvar , aux->vstat.nvar , true );  
   
-  plog << "\n";
+  pout << "\n";
   
-  plog.flush();
+  pout.flush();
 }
 
 
 bool Pseq::VarDB::gene_stats_header( VStat & vstat )
 {
   
-  plog << "NAME" << "\t"
+  Out & pout = Out::stream( "gstats" );
+
+  pout << "NAME" << "\t"
        << "POS" << "\t"
        << "KB" << "\t"
        << "BP" << "\t"
        << "N_EXON" << "\t"
        << "DENS" << "\t";
   
-  vstat.row_headers();
+  pout << vstat.row_headers();
   
-  plog << "\n";
+  pout << "\n";
 
-  plog.flush();
+  pout.flush();
   
   return true;
 }
@@ -462,75 +467,78 @@ bool Pseq::VarDB::gene_stats_header( VStat & vstat )
 
 void Pseq::VStat::report()
 {
+
+  Out & pout = Out::stream( "vstats" );
   
-  plog << "NVAR" << "\t"
+  pout << "NVAR" << "\t"
        << nvar  << "\n";
   
-  plog << "RATE" << "\t"
+  pout << "RATE" << "\t"
        << display_mean( call_rate , nvar ) << "\n";
   
-  plog << "MAC\t" 
+  pout << "MAC\t" 
        << display_mean( mean_mac , cnt_ma ) << "\n";
-  display( "MAC" , n_mac );
 
-  plog << "MAF\t" 
+  pout << display( "MAC" , n_mac );
+  
+  pout << "MAF\t" 
        << display_mean( mean_maf , cnt_ma ) << "\n";
 
-  display( "MAF" , n_maf );
+  pout << display( "MAF" , n_maf );
 
-  plog << "SING" << "\t"
+  pout << "SING" << "\t"
        << n_singleton << "\n";
   
-  plog << "MONO" << "\t"
+  pout << "MONO" << "\t"
        << n_mono << "\n";
 
   if ( tv )
-    plog << "TITV" << "\t"
+    pout << "TITV" << "\t"
 	 << (double)ti/(double)tv << "\n";
   else
-    plog << "TITV\tNA\n";
+    pout << "TITV\tNA\n";
 
   if ( tv_singleton ) 
-    plog << "TITV_S" << "\t"
+    pout << "TITV_S" << "\t"
 	 << (double)ti_singleton/(double)tv_singleton << "\n";
   else
-    plog << "TITV_S\tNA\n";
+    pout << "TITV_S\tNA\n";
 
-  plog << "DP" << "\t"
+  pout << "DP" << "\t"
        << display_mean( mean_dp , cnt_dp ) << "\n";
   
-  display( "DP", depth );
+  pout << display( "DP", depth );
   
-  plog << "QUAL\t"
+  pout << "QUAL\t"
        << display_mean( mean_qual , cnt_qual ) << "\n";
 
-  display( "QUAL", qual );
+  pout << display( "QUAL", qual );
   
-  display( "HWE", hwe_failure );
+  pout << display( "HWE", hwe_failure );
 
-  plog << "PASS\t"
+  pout << "PASS\t"
        << n_pass / ( nvar ? (double)nvar : 1.0 ) << "\n";
 
-  display( "FILTER", n_filter , nvar );
-
-  plog << "PASS_S\t"
+  pout << display( "FILTER", n_filter , nvar );
+  
+  pout << "PASS_S\t"
        << n_pass_singleton / ( n_singleton ? (double)n_singleton : 1.0 ) << "\n";
 
-  display( "FILTER_S", n_filter_singleton , n_singleton );
+  pout << display( "FILTER_S", n_filter_singleton , n_singleton );
   
   // REF groups
-  display( "REF" , refgrp , nvar );
-  display( "LOC" , locgrp , nvar );
+  pout << display( "REF" , refgrp , nvar );
+  pout << display( "LOC" , locgrp , nvar );
 
   
   // Generic tags: means
-  display( "MEAN" , mean_tag , mean_cnt_tag );
+  pout << display( "MEAN" , mean_tag , mean_cnt_tag );
   
   // Generic tags: int_ranges
   std::map<std::string,std::map<int_range,long int> >::iterator i_int = cnt_itag.begin();
   while ( i_int != cnt_itag.end() )
     { 
-      display( i_int->first , i_int->second );
+      pout << display( i_int->first , i_int->second );
       ++i_int;
     }
 
@@ -538,7 +546,7 @@ void Pseq::VStat::report()
   std::map<std::string,std::map<dbl_range,long int> >::iterator i_dbl = cnt_ftag.begin();
   while ( i_dbl != cnt_ftag.end() )
     { 
-      display( i_dbl->first , i_dbl->second );
+      pout << display( i_dbl->first , i_dbl->second );
       ++i_dbl;
     }
   
@@ -546,14 +554,14 @@ void Pseq::VStat::report()
   std::map<std::string,std::map<std::string,long int> >::iterator i_tab = table_tag.begin();
   while ( i_tab != table_tag.end() )
     { 
-      display( i_tab->first , i_tab->second );
+      pout << display( i_tab->first , i_tab->second );
       ++i_tab;
     }
   
 
   // Generic tags: genotypic tag means  
-  display( "G" , mean_gtag , cnt_gtag );
-  display( "NRG" , mean_nrgtag , cnt_nrgtag );
+  pout << display( "G" , mean_gtag , cnt_gtag );
+  pout << display( "NRG" , mean_nrgtag , cnt_nrgtag );
 
   // Generic tags: genotypic table-counts; reuse iterators
   
@@ -565,11 +573,11 @@ void Pseq::VStat::report()
 	{  
 	  double denom = cnt_gtag[ i_int->first ];
 	  if ( denom )
-	    plog << "G|" + i_int->first << "|"
+	    pout << "G|" + i_int->first << "|"
 		 << ii->first << "\t"
 		 << ii->second / denom << "\n";
 	  else
-	    plog << "G|" + i_int->first << "|"
+	    pout << "G|" + i_int->first << "|"
 		 << ii->first << "\t"
 		 << "NA" << "\n";
 	  ++ii;
@@ -585,11 +593,11 @@ void Pseq::VStat::report()
 	{  
 	  double denom = cnt_nrgtag[ i_int->first ];
 	  if ( denom )
-	    plog << "NRG|" + i_int->first << "|"
+	    pout << "NRG|" + i_int->first << "|"
 		 << ii->first << "\t"
 		 << ii->second / denom << "\n";
 	  else
-	    plog << "NRG|" + i_int->first << "|"
+	    pout << "NRG|" + i_int->first << "|"
 		 << ii->first << "\t"
 		 << "NA" << "\n";
 	  ++ii;
@@ -606,11 +614,11 @@ void Pseq::VStat::report()
 	{  
 	  double denom = cnt_gtag[ i_dbl->first ];
 	  if ( denom )
-	    plog << "G|" + i_dbl->first << "|"
+	    pout << "G|" + i_dbl->first << "|"
 		 << ii->first << "\t"
 		 << ii->second / denom << "\n";
 	  else
-	    plog << "G|" + i_dbl->first << "|"
+	    pout << "G|" + i_dbl->first << "|"
 		 << ii->first << "\t"
 		 << "NA" << "\n";
 	  ++ii;
@@ -627,11 +635,11 @@ void Pseq::VStat::report()
 	{  
 	  double denom = cnt_nrgtag[ i_dbl->first ];
 	  if ( denom )
-	    plog << "NRG|" + i_dbl->first << "|"
+	    pout << "NRG|" + i_dbl->first << "|"
 		 << ii->first << "\t"
 		 << ii->second / denom << "\n";
 	  else
-	    plog << "NRG|" + i_dbl->first << "|"
+	    pout << "NRG|" + i_dbl->first << "|"
 		 << ii->first << "\t"
 		 << "NA" << "\n";
 	  ++ii;
@@ -642,54 +650,56 @@ void Pseq::VStat::report()
 }
 
 
-void Pseq::VStat::row_report( const int totnvar , const int actnvar , bool show_nvar )
+std::string Pseq::VStat::row_report( const int totnvar , const int actnvar , bool show_nvar )
 {
-  
-  plog << ( show_nvar ? totnvar : call_rate )
+
+  std::stringstream ss; 
+ 
+  ss << ( show_nvar ? totnvar : call_rate )
        << "\t" << call_rate / (double)totnvar   
        << "\t" << n_singleton;
   
   // FREQs 
   
-  row_display( "MAC" , n_mac , actnvar );
-  row_display( "MAF" , n_maf , actnvar );
-  row_display( "HWE" , hwe_failure , actnvar );
+  ss << row_display( "MAC" , n_mac , actnvar ) 
+       << row_display( "MAF" , n_maf , actnvar )
+       << row_display( "HWE" , hwe_failure , actnvar );
   
   // Ti/Tv
-  if ( tv > 0 ) plog << "\t" << (double)ti/(double)tv ;
-  else plog << "\tNA";
+  if ( tv > 0 ) ss << "\t" << (double)ti/(double)tv ;
+  else ss << "\tNA";
   
   // FILTERs
-  plog << "\t" << n_pass 
+  ss << "\t" << n_pass 
        << "\t" << n_pass_singleton ;
   
-  row_display( "FILTER", n_istat_filter , actnvar );
+  ss << row_display( "FILTER", n_istat_filter , actnvar );
   
   // QUAL scores
   
-  plog << "\t" << display_mean( mean_qual , cnt_qual );
-  row_display( "QUAL", qual );
+  ss << "\t" << display_mean( mean_qual , cnt_qual );
+  ss << row_display( "QUAL", qual );
   
   // Read DP
   
-  plog << "\t" << display_mean( mean_dp , cnt_dp );
-  row_display( "DP", qual );
+  ss << "\t" << display_mean( mean_dp , cnt_dp );
+  ss << row_display( "DP", qual );
   
   // REF groups
   
-  row_display( "REF" , refgrp , actnvar );
-  row_display( "LOC" , locgrp , actnvar );
+  ss << row_display( "REF" , refgrp , actnvar )
+       << row_display( "LOC" , locgrp , actnvar );
   
   // Generic tags: Means
   
-  row_display( "MEAN" , mean_tag , mean_cnt_tag );
+  ss << row_display( "MEAN" , mean_tag , mean_cnt_tag );
   
   // Generic tags: int_ranges
   
   std::map<std::string,std::map<int_range,long int> >::iterator i_int = cnt_itag.begin();
   while ( i_int != cnt_itag.end() )
     { 
-      row_display( i_int->first , i_int->second );
+      ss << row_display( i_int->first , i_int->second );
       ++i_int;
     }
   
@@ -698,7 +708,7 @@ void Pseq::VStat::row_report( const int totnvar , const int actnvar , bool show_
   std::map<std::string,std::map<dbl_range,long int> >::iterator i_dbl = cnt_ftag.begin();
   while ( i_dbl != cnt_ftag.end() )
     { 
-      row_display( i_dbl->first , i_dbl->second );
+      ss << row_display( i_dbl->first , i_dbl->second );
       ++i_dbl;
     }
   
@@ -707,87 +717,92 @@ void Pseq::VStat::row_report( const int totnvar , const int actnvar , bool show_
   // 2) Mean per-individual gtags
   //
   
-  row_display( "G" , mean_gtag , cnt_gtag );
-  row_display( "NRG" , mean_nrgtag , cnt_nrgtag );
+  ss << row_display( "G" , mean_gtag , cnt_gtag );
+  ss << row_display( "NRG" , mean_nrgtag , cnt_nrgtag );
   
   // Range-counts
   
   i_int = in_range_int_gtag.begin();
   while ( i_int != in_range_int_gtag.end() )
     { 
-      row_display( i_int->first , i_int->second , cnt_gtag[ i_int->first ] );
+      ss << row_display( i_int->first , i_int->second , cnt_gtag[ i_int->first ] );
       ++i_int;
     }
   
   i_dbl = in_range_dbl_gtag.begin();
   while ( i_dbl != in_range_dbl_gtag.end() )
     { 
-      row_display( i_dbl->first , i_dbl->second , cnt_gtag[ i_int->first ] );
+      ss << row_display( i_dbl->first , i_dbl->second , cnt_gtag[ i_int->first ] );
       ++i_dbl;
     }
   
   i_int = in_range_int_nrgtag.begin();
   while ( i_int != in_range_int_nrgtag.end() )
     { 
-      row_display( i_int->first , i_int->second , cnt_nrgtag[ i_int->first ] );
+      ss << row_display( i_int->first , i_int->second , cnt_nrgtag[ i_int->first ] );
       ++i_int;
     }
   
   i_dbl = in_range_dbl_nrgtag.begin();
   while ( i_dbl != in_range_dbl_nrgtag.end() )
     { 
-      row_display( i_int->first , i_int->second , cnt_nrgtag[ i_int->first ] );
+      ss << row_display( i_int->first , i_int->second , cnt_nrgtag[ i_int->first ] );
       ++i_dbl;
     }
-  
+
+  return ss.str();
+
 }
 
-void Pseq::VStat::row_headers()
+std::string Pseq::VStat::row_headers()
 {
-  
-  plog << "NVAR" 
-       << "\t" << "RATE" 
-       << "\t" << "SING";
-  
-  headers( "MAC", n_mac );
-  headers( "MAF", n_maf );
-  headers( "HWE", hwe_failure );
-  
-  plog << "\tTITV";
-  
-  plog << "\tPASS"
-       << "\tPASS_S";
 
+  std::stringstream ss;
+
+  ss << "NVAR" 
+     << "\t" << "RATE" 
+     << "\t" << "SING";
+  
+  ss << headers( "MAC", n_mac )
+       << headers( "MAF", n_maf )
+       << headers( "HWE", hwe_failure );
+  
+  ss << "\tTITV";
+  
+  ss << "\tPASS"
+     << "\tPASS_S";
+  
   // For v-stats, we will tabulate all FILTERs
   // To make i-stats more manageable, look at a user-specified list only
 
-  headers( "FILTER", n_istat_filter );
+  ss << headers( "FILTER", n_istat_filter );
 
-  plog << "\tQUAL";
-  headers( "QUAL" , qual );
+  ss << "\tQUAL";
+  ss << headers( "QUAL" , qual );
 
-  plog << "\tDP";
-  headers( "DP" , depth );
+  ss << "\tDP";
+  ss << headers( "DP" , depth );
 
-  headers( "REF", refgrp );
-  headers( "LOC" , locgrp );
-  headers( "MEAN" , mean_tag );
+  ss << headers( "REF", refgrp )
+       << headers( "LOC" , locgrp )
+       << headers( "MEAN" , mean_tag );
   
   // Generic tags: int_ranges
-  headers2( "" , cnt_itag );
-  headers2( "" , cnt_ftag );
+  ss << headers2( "" , cnt_itag )
+     << headers2( "" , cnt_ftag );
 
   // G-TAGs: means
-  headers( "G" , mean_gtag );  
-  headers( "NRG" , mean_nrgtag );  
+  ss << headers( "G" , mean_gtag )
+       << headers( "NRG" , mean_nrgtag );  
   
   // G-TAGs: range counts
-  headers2( "G" , in_range_int_gtag );
-  headers2( "G" , in_range_dbl_gtag );
+  ss << headers2( "G" , in_range_int_gtag )
+       << headers2( "G" , in_range_dbl_gtag );
   
-  headers2( "NRG" , in_range_int_nrgtag );
-  headers2( "NRG" , in_range_dbl_nrgtag );
+  ss << headers2( "NRG" , in_range_int_nrgtag )
+     << headers2( "NRG" , in_range_dbl_nrgtag );
   
+  return ss.str();
 }
 
 
@@ -937,25 +952,27 @@ void f_istat( Variant & v , void * p)
 void Pseq::IStat::report() 
 {
 
+  Out & pout = Out::stream( "istats" );
+
   // N=0. nothing to do
   if ( stat.size() == 0 ) return;
   
   // All keys will be 0 or 1, i.e. seen or not seen
   
-  plog << "ID" << "\t";
+  pout << "ID" << "\t";
   
   if ( g->phmap.type() != PHE_NONE ) 
-      plog << "PHE" << "\t";
-
-  plog  << "NALT" << "\t"
+    pout << "PHE" << "\t";
+  
+  pout  << "NALT" << "\t"
 	<< "NMIN" << "\t"
 	<< "NHET" << "\t";
   
   // display all other VStat headers
   
-  vstat.row_headers();
+  pout << vstat.row_headers();
   
-  plog << "\n";
+  pout << "\n";
 
 
   // One row of output per individual
@@ -964,30 +981,30 @@ void Pseq::IStat::report()
   while ( i != stat.end() )
     {
       
-      plog << i->first;
+      pout << i->first;
       
 
       Individual * person = g->indmap.ind( i->first );
 
       if ( g->phmap.type() == PHE_DICHOT )
       {
-	  if ( ! person ) plog << "\t.";
+	  if ( ! person ) pout << "\t.";
 	  else
 	  {
-	      if ( person->affected() == CASE ) plog << "\tCASE";
-	      else if ( person->affected() == CONTROL ) plog << "\tCONTROL";
-	      else plog << "\t.";
+	      if ( person->affected() == CASE ) pout << "\tCASE";
+	      else if ( person->affected() == CONTROL ) pout << "\tCONTROL";
+	      else pout << "\t.";
 	  }
       }
       else if ( g->phmap.type() == PHE_QT )
       {
-	  if ( ! person ) plog << "\t.";
-	  else plog << "\t" << person->qt() ;
+	  if ( ! person ) pout << "\t.";
+	  else pout << "\t" << person->qt() ;
       }
       else if ( g->phmap.type() == PHE_FACTOR )
 	  {
-	      if ( ! person ) plog << "\t.";
-	      else plog << "\t" << person->group_label() ;
+	      if ( ! person ) pout << "\t.";
+	      else pout << "\t" << person->group_label() ;
 	  }
 
     
@@ -995,13 +1012,13 @@ void Pseq::IStat::report()
       
       int actnvar = nmin[i->first]; 
       
-      plog << "\t" << nalt[i->first]  
+      pout << "\t" << nalt[i->first]  
 	   << "\t" << nmin[i->first] 
 	   << "\t" << nhet[i->first] << "\t";
       
-      s.row_report( nvar , actnvar );
+      pout << s.row_report( nvar , actnvar );
 
-      plog << "\n";
+      pout << "\n";
       
       ++i;
     }
@@ -1251,6 +1268,7 @@ std::vector<double> vdist_calc( Pseq::AuxVDist & aux )
 bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
 {
   
+  Out & pout = Out::stream( "vdist" );
 
   if ( g.phmap.type() != PHE_DICHOT ) 
     Helper::halt( "v-dist requires a dichotomous phenotype" );
@@ -1334,7 +1352,7 @@ bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
   
  
   int cnt = 0 ;
-  plog.precision(4);
+  pout << std::setprecision(4);
   
   std::map<std::string, std::map<int2,int> >::iterator s = aux.phe_counts.begin();
   
@@ -1415,7 +1433,7 @@ bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
       // display 
       //
 
-      plog << "--------------------------- " 
+      pout << "--------------------------- " 
  	   << ( strata == "." ? "All cases & controls" : ( g.phmap.strata() + " = " + strata ) )
  	   << " ( " 
  	   << ta << " cases, " 
@@ -1425,9 +1443,9 @@ bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
       if ( cnt_0 + cnt_1 > 0 )
  	{
 	  
- 	  plog << "Singletons : p = " << g.perm.pvalue( cnt ) << "\n";
+ 	  pout << "Singletons : p = " << g.perm.pvalue( cnt ) << "\n";
 	  
- 	  plog << "  A / U  \tExp\tObs\tRatio\n"
+ 	  pout << "  A / U  \tExp\tObs\tRatio\n"
  	       << "  0 / 1  \t" << e_0 << "\t" << cnt_0 << "\t" << cnt_0 / e_0 << "\n"
  	       << "  1 / 0  \t" << e_1 << "\t" << cnt_1 << "\t" << cnt_1 / e_1 << "\n\n";
  	}
@@ -1437,9 +1455,9 @@ bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
        if ( cnt_00 + cnt_01 + cnt_11 > 0 ) 
  	{
  	  
- 	  plog << "Doubletons : p = " << g.perm.pvalue( cnt ) << "\n";
+ 	  pout << "Doubletons : p = " << g.perm.pvalue( cnt ) << "\n";
 	  
- 	  plog << "  A / U  \tExp\tObs\tRatio\n"
+ 	  pout << "  A / U  \tExp\tObs\tRatio\n"
  	       << "  0 / 2  \t" << e_00 << "\t" << cnt_00 << "\t" << cnt_00 / e_00 << "\n"
  	       << "  1 / 1  \t" << e_01 << "\t" << cnt_01 << "\t" << cnt_01 / e_01 << "\n"
  	       << "  2 / 0  \t" << e_11 << "\t" << cnt_11 << "\t" << cnt_11 / e_11 << "\n\n";
@@ -1450,9 +1468,9 @@ bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
        if ( cnt_000 + cnt_001 + cnt_011 + cnt_111 > 0 )
  	{
 
- 	  plog << "Tripletons : p = " << g.perm.pvalue( cnt ) << "\n";
+ 	  pout << "Tripletons : p = " << g.perm.pvalue( cnt ) << "\n";
 	  
- 	  plog << "  A / U  \tExp\tObs\tRatio\n"
+ 	  pout << "  A / U  \tExp\tObs\tRatio\n"
  	       << "  0 / 3  \t" << e_000 << "\t" << cnt_000 << "\t" << cnt_000/e_000 << "\n"
  	       << "  1 / 2  \t" << e_001 << "\t" << cnt_001 << "\t" << cnt_001/e_001 << "\n"
  	       << "  2 / 1  \t" << e_011 << "\t" << cnt_011 << "\t" << cnt_011/e_011 << "\n"
@@ -1464,9 +1482,9 @@ bool Pseq::VarDB::vdist_summary( Mask & mask , long int nrep )
        if ( cnt_0000 + cnt_0001 + cnt_0011 + cnt_0111 + cnt_1111 > 0 )
 	 {
 
- 	  plog << "Quadruples : p = " << g.perm.pvalue( cnt ) << "\n";
+ 	  pout << "Quadruples : p = " << g.perm.pvalue( cnt ) << "\n";
 	  
- 	  plog << "  A / U  \tExp\tObs\tRatio\n"
+ 	  pout << "  A / U  \tExp\tObs\tRatio\n"
  	       << "  0 / 4  \t" << e_0000 << "\t" << cnt_0000 << "\t" << cnt_0000/e_0000 << "\n"
  	       << "  1 / 3  \t" << e_0001 << "\t" << cnt_0001 << "\t" << cnt_0001/e_0001 << "\n"
  	       << "  2 / 2  \t" << e_0011 << "\t" << cnt_0011 << "\t" << cnt_0011/e_0011 << "\n"

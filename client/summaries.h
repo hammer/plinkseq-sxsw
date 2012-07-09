@@ -58,80 +58,92 @@ namespace Pseq
     }
     
     
-    template<typename T, typename U> void display( const std::string & label , std::map<T,U> & x , double denom = 0 ) 
+    template<typename T, typename U> std::string display( const std::string & label , std::map<T,U> & x , double denom = 0 ) 
     { 
+      std::stringstream ss;
       typename std::map<T,U>::iterator ii = x.begin();  
       while ( ii != x.end() )  
 	{  
-	  plog << label << "|"
-	       << ii->first << "\t"
-	       << ( denom ? ii->second / denom : ii->second ) << "\n";
+	  ss << label << "|"
+	     << ii->first << "\t"
+	     << ( denom ? ii->second / denom : ii->second ) << "\n";
 	  ++ii;  
 	}  
+      return ss.str();
     }
     
-    template<typename T, typename U> void display( const std::string & label , std::map<T,U> & x , std::map<std::string,long int> & mn_cnt )
+    template<typename T, typename U> std::string display( const std::string & label , std::map<T,U> & x , std::map<std::string,long int> & mn_cnt )
     { 
+      std::stringstream ss;
       typename std::map<T,U>::iterator ii = x.begin();  
       while ( ii != x.end() )  
 	{  
 	  double denom = mn_cnt[ ii->first ];
 	  if ( denom )
-	    plog << label << "|"
-		 << ii->first << "\t"
-		 << ii->second / denom << "\n";
+	    ss << label << "|"
+	       << ii->first << "\t"
+	       << ii->second / denom << "\n";
 	  else
-	    plog << label << "|"
-		 << ii->first << "\t"
-		 << "NA" << "\n";
+	    ss << label << "|"
+	       << ii->first << "\t"
+	       << "NA" << "\n";
 	  ++ii;  
 	}  
+      return ss.str();
     }
 
-
-    template<typename T, typename U> void headers2( const std::string & label , std::map<std::string,std::map<T,U> > & x ) 
+    
+    template<typename T, typename U> std::string headers2( const std::string & label , std::map<std::string,std::map<T,U> > & x ) 
     {
+      std::stringstream ss;
       typename std::map<std::string, std::map<T,U> >::iterator ii = x.begin();
       while ( ii != x.end() )
 	{
-	  headers( label + "|" + ii->first , ii->second );
+	  ss << headers( label + "|" + ii->first , ii->second );
 	  ++ii;
 	}
+      return ss.str();
     }
 
-    template<typename T, typename U> void headers( const std::string & label , std::map<T,U> & x ) 
+    template<typename T, typename U> std::string headers( const std::string & label , std::map<T,U> & x ) 
     { 
+      std::stringstream ss;
       typename std::map<T,U>::iterator ii = x.begin();  
       while ( ii != x.end() )  
 	{  
-	  plog << "\t" << label << "|"<< ii->first;
+	  ss << "\t" << label << "|"<< ii->first;
 	  ++ii;  
-	}  
+	}
+      return ss.str();
     }
 
 
-    template<typename T, typename U> void row_display( const std::string & label , std::map<T,U> & x , double denom = 0 ) 
+    template<typename T, typename U> std::string row_display( const std::string & label , std::map<T,U> & x , double denom = 0 ) 
     { 
+      std::stringstream ss;
       typename std::map<T,U>::iterator ii = x.begin();  
       while ( ii != x.end() )  
 	{  
-	  plog << "\t" << ( denom ? ii->second / denom : ii->second );
+	  ss << "\t" << ( denom ? ii->second / denom : ii->second );
 	  ++ii;  
 	}  
+      return ss.str();
     }
     
-    template<typename T, typename U> void row_display( const std::string & label , std::map<T,U> & x , std::map<std::string,long int> & mn_cnt )
+    template<typename T, typename U> std::string row_display( const std::string & label , std::map<T,U> & x , std::map<std::string,long int> & mn_cnt )
     { 
+      std::stringstream ss;
       typename std::map<T,U>::iterator ii = x.begin();  
       while ( ii != x.end() )  
 	{  
 	  double denom = mn_cnt[ ii->first ];
 	  if ( denom )
-	    plog << "\t" << ii->second / denom;
+	    ss << "\t" << ii->second / denom;
 	  else
-	    plog << "\tNA";
+	    ss << "\tNA";
 	  ++ii;  
 	}  
+      return ss.str();
     }
 
     template <class T , class U, class V  > void score( std::map<T,U> & x , V v ) 
@@ -384,8 +396,8 @@ namespace Pseq
     //
     
     void report();
-    void row_headers();
-    void row_report( const int , const int , const bool show_genic = false );
+    std::string row_headers();
+    std::string row_report( const int , const int , const bool show_genic = false );
 
     //
     // Data members

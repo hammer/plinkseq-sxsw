@@ -3,6 +3,7 @@
 #include "plinkseq/variant.h"
 #include "plinkseq/gstore.h"
 #include "plinkseq/filemap.h"
+#include "plinkseq/output.h"
 
 #include <algorithm>
 #include <cmath>
@@ -1203,14 +1204,16 @@ std::map< std::string, std::map<std::string,std::string> > RefDBase::get_metatyp
 void RefDBase::dump( const std::string & grp , bool with_meta )
 {
 
+  Out & pout = Out::stream( "refvars" );
+  
   if ( ! init_iterate( grp ) ) return;
   
   RefVariant rv;
   while ( iterate( &rv ) )
     {
-      plog << rv;
-      if ( with_meta ) plog << "\t" << rv.value();
-      plog << "\n";
+      pout << rv;
+      if ( with_meta ) pout << "\t" << rv.value();
+      pout << "\n";
     }
   return;
 }

@@ -17,6 +17,8 @@ bool Pseq::VarDB::cluster_scan( Mask & m )
 void g_clusterscan( VariantGroup & vars , void * p )
 {
 
+  Out & pout = Out::stream( "clusters" );
+
   // checks
   
   //  1) report any homozygote singletons (i.e. clusters within individuals)
@@ -52,7 +54,7 @@ void g_clusterscan( VariantGroup & vars , void * p )
 	  for (int i=0; i<n; i++ )
 	    if ( vars.geno(v,i).minor_allele_count( altmin[v] )  == 2 )
 	      { 
-		plog << "UNIQ_HOMOZYG" << "\t"
+		pout << "UNIQ_HOMOZYG" << "\t"
 		     << vars.name() << "\t"
 		     << vars(v) << "\t"
 		     << vars.ind(i)->id() << "\n";		
@@ -84,7 +86,7 @@ void g_clusterscan( VariantGroup & vars , void * p )
   // any individuals above 5SDs in count?
   for ( int i=0; i<n; i++ )
     if ( vcnt[ i] > thresh )
-      plog << "EXCESS_VARS" << "\t"
+      pout << "EXCESS_VARS" << "\t"
 	   << vars.name() << "\t"
 	   << vars.size() << "\t"
 	   << vars.coordinate() << "\t"

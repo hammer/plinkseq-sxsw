@@ -50,7 +50,7 @@ namespace Pseq
 
       bool write_BCF(Mask & m, const std::string & );
 
-      bool write_PED(Mask & m, std::string, bool);
+      bool write_PED(Mask & m, bool);
 
       bool write_lik(Mask & m);
 

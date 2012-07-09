@@ -22,6 +22,7 @@ plinkseq/genotype.h \
 plinkseq/glm.h \
 plinkseq/gstore.h \
 plinkseq/helper.h \
+plinkseq/output.h \
 plinkseq/inddb.h \
 plinkseq/individual.h \
 plinkseq/indmap.h \
@@ -75,6 +76,7 @@ vcf.cpp \
 bcf.cpp \
 zfstream.cpp \
 sqlwrap.cpp \
+output.cpp \
 helper.cpp \
 locdb.cpp \
 vardb.cpp \

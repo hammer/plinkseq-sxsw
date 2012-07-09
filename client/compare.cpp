@@ -11,6 +11,8 @@ extern GStore g;
 bool Pseq::Assoc::group_comparison( Mask & m )
 {
   
+  Out & pout = Out::stream( "comp" );
+
   // Assume an n-level group (PHE_FACTOR) has been specified: tabulate
   // variants by these groups
   
@@ -22,8 +24,8 @@ bool Pseq::Assoc::group_comparison( Mask & m )
   std::map<std::string,int>::iterator i = groups.begin();
   while ( i != groups.end() )
     {
-      plog << i->first << "\t" 
-		<< i->second << "\n";
+      pout << i->first << "\t" 
+	   << i->second << "\n";
       ++i;
     }
   
@@ -46,7 +48,7 @@ bool Pseq::Assoc::group_comparison( Mask & m )
   // Display results
   //
     
-  plog << "\n\n";
+  pout << "\n\n";
   
   for (unsigned int s = 1; s< groups.size(); s++)
     {
@@ -60,16 +62,16 @@ bool Pseq::Assoc::group_comparison( Mask & m )
 	      continue;
 	    }
 	  
-	  plog << j->second << "\t";
+	  pout << j->second << "\t";
 	  
 	  std::set<int>::iterator k = j->first.begin();
 	  while ( k != j->first.end() )
 	    {
-	      if ( k != j->first.begin() ) plog << ",";
-	      plog << Individual::label( *k );
+	      if ( k != j->first.begin() ) pout << ",";
+	      pout << Individual::label( *k );
 	      ++k;
 	    }
-	  plog << "\n";
+	  pout << "\n";
 	  ++j;
 	}
     }

@@ -9,6 +9,7 @@ extern GStore g;
 
 void g_geneseq( VariantGroup & vars , void * p )
 {
+  Out & pout = Out::stream( "gsview" );
 
   Opt_geneseq * aux = (Opt_geneseq*)p;
   
@@ -60,13 +61,13 @@ void g_geneseq( VariantGroup & vars , void * p )
       ++i;
     }
   
-  plog << vars.name() << " | "
+  pout << vars.name() << " | "
        << region.subregion.size() << " exons | "
        << ( positive_strand ? "+ve strand | " : "-ve strand | " )
        << vars.size() << " variants | ";
   if ( rvars.size() > 0 ) 
-    plog << rvars.size() << " refvars | ";      
-  plog << ( region.stop.position() - region.start.position() + 1 )/1000.0 << " kb | "      
+    pout << rvars.size() << " refvars | ";      
+  pout << ( region.stop.position() - region.start.position() + 1 )/1000.0 << " kb | "      
        << cds_bp << " coding bases\n";
   
   
@@ -139,7 +140,7 @@ void g_geneseq( VariantGroup & vars , void * p )
 	    }
 	  
 	  if ( hide && ! ohide ) // going into hiding...
-	    plog << "  ...\n";	  
+	    pout << "  ...\n";	  
 	}
 
 
@@ -149,7 +150,7 @@ void g_geneseq( VariantGroup & vars , void * p )
 	  cds = true;
 	  exon = elocstart[ searchbp ];
 	  if ( ! hide ) 
-	    plog << "---- start exon " << exon+1 << ( positive_strand ? "(+)" : "(-)" ) << " ---- \n";
+	    pout << "---- start exon " << exon+1 << ( positive_strand ? "(+)" : "(-)" ) << " ---- \n";
 	  print_pos = true;
 	}
       
@@ -161,16 +162,16 @@ void g_geneseq( VariantGroup & vars , void * p )
 	  // are we mid-frame? 
 	  if ( cpos == 1 ) 
 	    {
-	      if ( ! hide ) plog << "\t" << codon << "..\n" ; 
+	      if ( ! hide ) pout << "\t" << codon << "..\n" ; 
 	      prt_codon = ".";
 	    }
 	  else if ( cpos == 2 ) 
 	    {
-	      if ( ! hide ) plog << "\t" << codon << ".\n" ; 
+	      if ( ! hide ) pout << "\t" << codon << ".\n" ; 
 	      prt_codon = "..";
 	    }
 	  
-	  if ( ! hide ) plog << "----   end exon " << exon+1 << "    ---- \n";
+	  if ( ! hide ) pout << "----   end exon " << exon+1 << "    ---- \n";
 	}
       
       if ( bp == stop_here ) continue;
@@ -247,7 +248,7 @@ void g_geneseq( VariantGroup & vars , void * p )
 
       if ( print_pos ) 
 	{	  
-	  if ( ! hide ) plog << ( cds ? "exon "+Helper::int2str(exon+1) + " " : "       " ) + "chr" << chr << ":" << bp;	      
+	  if ( ! hide ) pout << ( cds ? "exon "+Helper::int2str(exon+1) + " " : "       " ) + "chr" << chr << ":" << bp;	      
 	  print_pos = false;
 	}
       
@@ -270,9 +271,9 @@ void g_geneseq( VariantGroup & vars , void * p )
 
 	      if ( ! hide ) 
 		{
-		  plog << "\t" << prt_codon << " " << aa_code << " " << aa_name;
+		  pout << "\t" << prt_codon << " " << aa_code << " " << aa_name;
 		  
-		  plog << "\t" << (varannot == "" ? "." : varannot ) 
+		  pout << "\t" << (varannot == "" ? "." : varannot ) 
 		       << "\t" << (refannot == "" ? "." : refannot ) 
 		       << "\n";
 		}
@@ -289,10 +290,10 @@ void g_geneseq( VariantGroup & vars , void * p )
 	{
 	  if ( ! hide )
 	    {
-	      plog << "\t" << g.seqdb.lookup( chr , bp ) 
+	      pout << "\t" << g.seqdb.lookup( chr , bp ) 
 		   << "   . .";
 	      
-	      plog << "\t" << (varannot == "" ? "." : varannot ) 
+	      pout << "\t" << (varannot == "" ? "." : varannot ) 
 		   << "\t" << (refannot == "" ? "." : refannot ) 
 		   << "\n";
 	    }
@@ -309,8 +310,7 @@ void g_geneseq( VariantGroup & vars , void * p )
 //   std::map<int,int> elocstop;
 //   std::map<int,const RefVariant*> erefvars;
 
-
   // foooter
-  plog << "\n------------------------------------------------------------\n\n";
+  pout << "\n------------------------------------------------------------\n\n";
 }
 

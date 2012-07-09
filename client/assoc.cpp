@@ -58,46 +58,48 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   //   1 is alternate allele 1
   //   2 is alternate allele 2, etc
 
-  plog.data_reset();
+  Out & pout = Out::stream( "vassoc" );
+
+  pout.data_reset();
   
-  plog.data_group_header( "VAR" );
-  plog.data_header( "REF" );
-  plog.data_header( "SAMPLES" );
-  plog.data_header( "FILTER" );
-  plog.data_header( "VMETA" );
-  plog.data_header( "CONMETA" );
-  plog.data_header( "ALT" );
+  pout.data_group_header( "VAR" );
+  pout.data_header( "REF" );
+  pout.data_header( "SAMPLES" );
+  pout.data_header( "FILTER" );
+  pout.data_header( "VMETA" );
+  pout.data_header( "CONMETA" );
+  pout.data_header( "ALT" );
 
-  plog.data_header( "MAF" );
-  plog.data_header( "HWE" );
+  pout.data_header( "MAF" );
+  pout.data_header( "HWE" );
 
-  plog.data_header( "MINA" );
-  plog.data_header( "MINU" );
+  pout.data_header( "MINA" );
+  pout.data_header( "MINU" );
 
-  plog.data_header( "OBSA" );
-  plog.data_header( "OBSU" );
+  pout.data_header( "OBSA" );
+  pout.data_header( "OBSU" );
 
-  plog.data_header( "REFA" );
-  plog.data_header( "HETA" );
-  plog.data_header( "HOMA" );
+  pout.data_header( "REFA" );
+  pout.data_header( "HETA" );
+  pout.data_header( "HOMA" );
 
-  plog.data_header( "REFU" );
-  plog.data_header( "HETU" );
-  plog.data_header( "HOMU" );
+  pout.data_header( "REFU" );
+  pout.data_header( "HETU" );
+  pout.data_header( "HOMU" );
 
-  plog.data_header( "P" );
-  plog.data_header( "OR" );
-  if ( aux.nrep ) plog.data_header( "I" );
+  pout.data_header( "P" );
+  pout.data_header( "OR" );
+  if ( aux.nrep ) pout.data_header( "I" );
 
-  plog.data_header( "PDOM" );
-  plog.data_header( "ORDOM" );
-  if ( aux.nrep ) plog.data_header( "IDOM" );
+  pout.data_header( "PDOM" );
+  pout.data_header( "ORDOM" );
+  if ( aux.nrep ) pout.data_header( "IDOM" );
 
-  plog.data_header( "PREC" );
-  plog.data_header( "ORREC" );
-  if ( aux.nrep ) plog.data_header( "IREC" );
+  pout.data_header( "PREC" );
+  pout.data_header( "ORREC" );
+  if ( aux.nrep ) pout.data_header( "IREC" );
 
-  plog.data_header_done();
+  pout.data_header_done();
 
   
   //
@@ -124,14 +126,14 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   // Post-processing to obtain corrected p-values
   //
 
-  //  plog << Helper::sw( "TEST" , 10 ) 
+  //  pout << Helper::sw( "TEST" , 10 ) 
   // 	    << Helper::sw( "VAR" , 10 )
   // 	    << Helper::sw( "PCORR" , 10 )
   // 	    << "\n";
   
   //   for (int t=0; t < g.perm.n_tests(); t++)
   //     for (int s=0; s < g.perm.n_stats(); s++)
-  //       plog << Helper::sw( s , 10 ) 
+  //       pout << Helper::sw( s , 10 ) 
   // 		<< Helper::sw( t , 10 ) 
   // 		<< Helper::sw( g.perm.max_pvalue(s,t) , 10 ) 
   // 		<< "\n";
@@ -472,46 +474,48 @@ void f_variant_association( Variant & v , void * p )
   //
   // Output empirical p-value (and minimum obtainable, optionally)
   //
+
+  Out & pout = Out::stream( "vassoc" );
   
-  plog.data_group( v );
+  pout.data_group( v );
 
-  plog.data( v.reference() );
-  plog.data( v.print_samples() );
-  plog.data( v.print_meta_filter() );
-  plog.data( v.meta );
-  plog.data( v.consensus.meta );
+  pout.data( v.reference() );
+  pout.data( v.print_samples() );
+  pout.data( v.print_meta_filter() );
+  pout.data( v.meta );
+  pout.data( v.consensus.meta );
   
-  plog.data( v.alternate() , 1 );
-  plog.data( obs_maf , 1 );
-  plog.data( obs_hwe , 1 );
+  pout.data( v.alternate() , 1 );
+  pout.data( obs_maf , 1 );
+  pout.data( obs_hwe , 1 );
 
-  plog.data( obs_a , 1 );
-  plog.data( obs_u , 1 );
+  pout.data( obs_a , 1 );
+  pout.data( obs_u , 1 );
 
-  plog.data( obs_tota , 1 );
-  plog.data( obs_totu , 1 );
+  pout.data( obs_tota , 1 );
+  pout.data( obs_totu , 1 );
   
-  plog.data( obs_refa , 1 );
-  plog.data( obs_heta , 1 );
-  plog.data( obs_homa , 1 );
+  pout.data( obs_refa , 1 );
+  pout.data( obs_heta , 1 );
+  pout.data( obs_homa , 1 );
 
-  plog.data( obs_refu , 1 );
-  plog.data( obs_hetu , 1 );
-  plog.data( obs_homu , 1 );
+  pout.data( obs_refu , 1 );
+  pout.data( obs_hetu , 1 );
+  pout.data( obs_homu , 1 );
 
-  plog.data( R == 1 ? fisher_pv0 : g->perm.pvalue(0) , 1 );
-  plog.data( obs_odds , 1 );  
-  if ( R != 1 ) plog.data( g->perm.min_pvalue(0) , 1 );
+  pout.data( R == 1 ? fisher_pv0 : g->perm.pvalue(0) , 1 );
+  pout.data( obs_odds , 1 );  
+  if ( R != 1 ) pout.data( g->perm.min_pvalue(0) , 1 );
   
-  plog.data( R == 1 ? fisher_pv1 : g->perm.pvalue(1) , 1 );
-  plog.data( obs_odds_dom , 1 );
-  if ( R != 1 ) plog.data( g->perm.min_pvalue(1) , 1 );
+  pout.data( R == 1 ? fisher_pv1 : g->perm.pvalue(1) , 1 );
+  pout.data( obs_odds_dom , 1 );
+  if ( R != 1 ) pout.data( g->perm.min_pvalue(1) , 1 );
 
-  plog.data( R == 1 ? fisher_pv2 : g->perm.pvalue(2) , 1 );
-  plog.data( obs_odds_rec , 1 );
-  if ( R != 1 ) plog.data( g->perm.min_pvalue(2) , 1 );
+  pout.data( R == 1 ? fisher_pv2 : g->perm.pvalue(2) , 1 );
+  pout.data( obs_odds_rec , 1 );
+  if ( R != 1 ) pout.data( g->perm.min_pvalue(2) , 1 );
 
-  plog.print_data_group();
+  pout.print_data_group();
 
 }
 
@@ -556,41 +560,41 @@ bool Pseq::Assoc::variant_qtassoc_test( Mask & m ,
 //   //   2 is alternate allele 2, etc
 
 
-//   plog.data_reset();
+//   pout.data_reset();
   
-//   plog.data_group_header( "VAR" );
-//   plog.data_header( "REF" );
-//   plog.data_header( "SAMPLES" );
-//   plog.data_header( "FILTER" );
-//   plog.data_header( "VMETA" );
-//   plog.data_header( "CONMETA" );
-//   plog.data_header( "ALT" );
+//   pout.data_group_header( "VAR" );
+//   pout.data_header( "REF" );
+//   pout.data_header( "SAMPLES" );
+//   pout.data_header( "FILTER" );
+//   pout.data_header( "VMETA" );
+//   pout.data_header( "CONMETA" );
+//   pout.data_header( "ALT" );
 
-//   plog.data_header( "MAF" );
-//   plog.data_header( "HWE" );
+//   pout.data_header( "MAF" );
+//   pout.data_header( "HWE" );
 
-//   plog.data_header( "REFMEAN" );
-//   plog.data_header( "REFSD" );
-//   plog.data_header( "REFOBS" );
+//   pout.data_header( "REFMEAN" );
+//   pout.data_header( "REFSD" );
+//   pout.data_header( "REFOBS" );
   
-//   plog.data_header( "HETMEAN" );
-//   plog.data_header( "HETSD" );
-//   plog.data_header( "HETOBS" );
+//   pout.data_header( "HETMEAN" );
+//   pout.data_header( "HETSD" );
+//   pout.data_header( "HETOBS" );
   
-//   plog.data_header( "HOMMEAN" );
-//   plog.data_header( "HOMSD" );
-//   plog.data_header( "HOMOBS" );
+//   pout.data_header( "HOMMEAN" );
+//   pout.data_header( "HOMSD" );
+//   pout.data_header( "HOMOBS" );
 
-//   plog.data_header( "P" );
-//   plog.data_header( "BETA" );
+//   pout.data_header( "P" );
+//   pout.data_header( "BETA" );
 
-//   plog.data_header( "PDOM" );
-//   plog.data_header( "BETADOM" );
+//   pout.data_header( "PDOM" );
+//   pout.data_header( "BETADOM" );
 
-//   plog.data_header( "PREC" );
-//   plog.data_header( "BETAREC" );
+//   pout.data_header( "PREC" );
+//   pout.data_header( "BETAREC" );
   
-//   plog.data_header_done();
+//   pout.data_header_done();
 
   
 //   //
@@ -637,14 +641,14 @@ bool Pseq::Assoc::variant_qtassoc_test( Mask & m ,
 //   // Post-processing to obtain corrected p-values
 //   //
 
-//   //  plog << Helper::sw( "TEST" , 10 ) 
+//   //  pout << Helper::sw( "TEST" , 10 ) 
 //   // 	    << Helper::sw( "VAR" , 10 )
 //   // 	    << Helper::sw( "PCORR" , 10 )
 //   // 	    << "\n";
   
 //   //   for (int t=0; t < g.perm.n_tests(); t++)
 //   //     for (int s=0; s < g.perm.n_stats(); s++)
-//   //       plog << Helper::sw( s , 10 ) 
+//   //       pout << Helper::sw( s , 10 ) 
 //   // 		<< Helper::sw( t , 10 ) 
 //   // 		<< Helper::sw( g.perm.max_pvalue(s,t) , 10 ) 
 //   // 		<< "\n";
@@ -806,71 +810,71 @@ void f_variant_qtassociation( Variant & v , void * p )
 
 //       // For now, let's ignore long-format potential for output. 
      
-//       plog.data_group( v );
+//       pout.data_group( v );
 
-//       plog.data( v.reference() );
+//       pout.data( v.reference() );
       
-//       plog.data( v.alternate() , 1 );  
+//       pout.data( v.alternate() , 1 );  
             
-//       plog.data( an , 1 );
+//       pout.data( an , 1 );
 
-//       plog.data( maf , 1 );
+//       pout.data( maf , 1 );
           
 //       if ( data->dichot_pheno )
 // 	{
 // 	  if ( ! data->has_covar ) 
 // 	    {
-// 	      plog.data( mafa );
-// 	      plog.data( mafu );
+// 	      pout.data( mafa );
+// 	      pout.data( mafu );
 // 	    }
-// 	  plog.data( coef );
+// 	  pout.data( coef );
 // 	}
 //       else
 // 	{
-// 	  plog.data( coef );      
+// 	  pout.data( coef );      
 // 	}
       
-//       plog.data( se );  
-//       plog.data( statistic );
-//       plog.data( pval );
+//       pout.data( se );  
+//       pout.data( statistic );
+//       pout.data( pval );
       
-//       plog.print_data_group();
+//       pout.print_data_group();
       
 //     }
 //   else
 //     {
      
-//       plog.data_group( v );
+//       pout.data_group( v );
 
-//       plog.data( v.reference() );
-//       plog.data( v.alternate() , 1 );  
+//       pout.data( v.reference() );
+//       pout.data( v.alternate() , 1 );  
 
-//       plog.data( an , 1 );      
+//       pout.data( an , 1 );      
 
-//       plog.data( maf , 1 );    
+//       pout.data( maf , 1 );    
 
 //       if ( data->dichot_pheno )
 // 	{
 // 	  if ( data->has_covar ) 
-// 	    plog.data( maf );
+// 	    pout.data( maf );
 // 	  else
 // 	    {
-// 	      plog.data( mafa );
-// 	      plog.data( mafu );
+// 	      pout.data( mafa );
+// 	      pout.data( mafu );
 // 	    }
-// 	  plog.data( "NA" );
+// 	  pout.data( "NA" );
 // 	}
 //       else
 // 	{
-// 	  plog.data( maf );
-// 	  plog.data( "NA" );      
+// 	  pout.data( maf );
+// 	  pout.data( "NA" );      
 // 	}
       
-//       plog.data( "NA" );  
-//       plog.data( "NA" );
-//       plog.data( "NA" );
+//       pout.data( "NA" );  
+//       pout.data( "NA" );
+//       pout.data( "NA" );
       
-//       plog.print_data_group();
+//       pout.print_data_group();
       
 //     }
 
@@ -1197,45 +1201,45 @@ void f_variant_qtassociation( Variant & v , void * p )
 //   // Output empirical p-value (and minimum obtainable, optionally)
 //   //
   
-//   plog.data_group( v );
+//   pout.data_group( v );
 
-//   plog.data( v.reference() );
-//   plog.data( v.print_samples() );
-//   plog.data( v.print_meta_filter() );
-//   plog.data( v.meta );
-//   plog.data( v.consensus.meta );
+//   pout.data( v.reference() );
+//   pout.data( v.print_samples() );
+//   pout.data( v.print_meta_filter() );
+//   pout.data( v.meta );
+//   pout.data( v.consensus.meta );
   
-//   plog.data( v.alternate() , 1 );
-//   plog.data( obs_maf , 1 );
-//   plog.data( obs_hwe , 1 );
+//   pout.data( v.alternate() , 1 );
+//   pout.data( obs_maf , 1 );
+//   pout.data( obs_hwe , 1 );
 
-//   plog.data( obs_a , 1 );
-//   plog.data( obs_u , 1 );
+//   pout.data( obs_a , 1 );
+//   pout.data( obs_u , 1 );
 
-//   plog.data( obs_tota , 1 );
-//   plog.data( obs_totu , 1 );
+//   pout.data( obs_tota , 1 );
+//   pout.data( obs_totu , 1 );
   
-//   plog.data( obs_refa , 1 );
-//   plog.data( obs_heta , 1 );
-//   plog.data( obs_homa , 1 );
+//   pout.data( obs_refa , 1 );
+//   pout.data( obs_heta , 1 );
+//   pout.data( obs_homa , 1 );
 
-//   plog.data( obs_refu , 1 );
-//   plog.data( obs_hetu , 1 );
-//   plog.data( obs_homu , 1 );
+//   pout.data( obs_refu , 1 );
+//   pout.data( obs_hetu , 1 );
+//   pout.data( obs_homu , 1 );
 
-//   plog.data( R == 1 ? fisher_pv0 : g->perm.pvalue(0) , 1 );
-//   plog.data( obs_odds , 1 );  
-//   if ( R != 1 ) plog.data( g->perm.min_pvalue(0) , 1 );
+//   pout.data( R == 1 ? fisher_pv0 : g->perm.pvalue(0) , 1 );
+//   pout.data( obs_odds , 1 );  
+//   if ( R != 1 ) pout.data( g->perm.min_pvalue(0) , 1 );
   
-//   plog.data( R == 1 ? fisher_pv1 : g->perm.pvalue(1) , 1 );
-//   plog.data( obs_odds_dom , 1 );
-//   if ( R != 1 ) plog.data( g->perm.min_pvalue(1) , 1 );
+//   pout.data( R == 1 ? fisher_pv1 : g->perm.pvalue(1) , 1 );
+//   pout.data( obs_odds_dom , 1 );
+//   if ( R != 1 ) pout.data( g->perm.min_pvalue(1) , 1 );
 
-//   plog.data( R == 1 ? fisher_pv2 : g->perm.pvalue(2) , 1 );
-//   plog.data( obs_odds_rec , 1 );
-//   if ( R != 1 ) plog.data( g->perm.min_pvalue(2) , 1 );
+//   pout.data( R == 1 ? fisher_pv2 : g->perm.pvalue(2) , 1 );
+//   pout.data( obs_odds_rec , 1 );
+//   if ( R != 1 ) pout.data( g->perm.min_pvalue(2) , 1 );
 
-//   plog.print_data_group();
+//   pout.print_data_group();
 
 }
 
@@ -1274,35 +1278,42 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 
 
   //
+  // Get main output stream
+  //
+
+  Out & pout = Out::stream( "assoc" );
+
+
+  //
   // Write header, if in stanard OUTPUT mode
   //
 
   if ( ! a.dump_stats_matrix )
     {
   
-      plog.data_reset();
+      pout.data_reset();
       
-      plog.data_group_header( "LOCUS" );
+      pout.data_group_header( "LOCUS" );
       
-      plog.data_header( "POS" );
+      pout.data_header( "POS" );
       
       if ( a.show_midbp ) 
 	{
-	  plog.data_header( "MID" );
-	  plog.data_header( "BP" );
+	  pout.data_header( "MID" );
+	  pout.data_header( "BP" );
 	}
       
-      plog.data_header( "ALIAS" );
+      pout.data_header( "ALIAS" );
       
-      plog.data_header( "NVAR" );
+      pout.data_header( "NVAR" );
       
-      plog.data_header( "TEST" );
+      pout.data_header( "TEST" );
       
-      plog.data_header( "P" );
-      plog.data_header( "I" );
-      plog.data_header( "DESC" );
+      pout.data_header( "P" );
+      pout.data_header( "I" );
+      pout.data_header( "DESC" );
       
-      plog.data_header_done();
+      pout.data_header_done();
     }
 
 
@@ -1365,12 +1376,14 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 
   if ( a.dump_stats_matrix ) 
     {
-      plog << nrep ;
-      if ( a.burden ) plog << "\t" << "BURDEN"; 
-      if ( a.uniq )   plog << "\t" << "UNIQ"; 
-      if ( a.skat )   plog << "\t" << "SKAT"; 
-      if ( a.skato )  plog << "\t" << "SKAT-O"; 
-      plog << "\n";
+      Out & pmat = Out::stream( "matrix" );
+
+      pmat << nrep ;
+      if ( a.burden ) pmat << "\t" << "BURDEN"; 
+      if ( a.uniq )   pmat << "\t" << "UNIQ"; 
+      if ( a.skat )   pmat << "\t" << "SKAT"; 
+      if ( a.skato )  pmat << "\t" << "SKAT-O"; 
+      pmat << "\n";
     }
 
   
@@ -1436,8 +1449,9 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   // Initialize TWO-HIT test
   //
 
-  Pseq::Assoc::Aux_two_hit::initialize();
-
+  if ( a.two_hit )
+    Pseq::Assoc::Aux_two_hit::initialize();
+  
 
   //
   // Apply tests to dataset
@@ -1458,7 +1472,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 	  for (int t=0; t < g.perm.n_tests(); t++)
 	    for (int s=0; s < g.perm.n_stats(); s++) 
 	      {      
-		plog << "_PCORR\t" 
+		pout << "_PCORR\t" 
 		     << s << "\t"
 		     << t << "\t"
 		     << g.perm.max_pvalue(s,t) << "\n";      
@@ -1536,9 +1550,13 @@ void g_set_association( VariantGroup & vars , void * p )
   // If in dump-stats-matrix mode, this is the second header row -- output vars.nam()
   //
 
+  Out * pmat = NULL;
+  Out & pout = Out::stream( "assoc" );
+
   if ( data->dump_stats_matrix ) 
     {
-      plog << vars.name() ;
+      pmat = &Out::stream( "matrix" );
+      *pmat << vars.name() ;
     }
 
 
@@ -1549,12 +1567,6 @@ void g_set_association( VariantGroup & vars , void * p )
   std::vector<double> test_statistic;
   std::vector<std::string> test_name;
   std::map<std::string,std::string> test_text;
-  
-
-
-
-  
-
 
 
 
@@ -1577,14 +1589,14 @@ void g_set_association( VariantGroup & vars , void * p )
 	{ 
 	  test_name.push_back("BURDEN");
 	  test_statistic.push_back( aux_burden.stat_burden );
-	  if ( data->dump_stats_matrix ) plog << "\t" << aux_burden.stat_burden ;
+	  if ( data->dump_stats_matrix ) *pmat << "\t" << aux_burden.stat_burden ;
 	}
       
       if ( data->uniq ) 
 	{ 
 	  test_name.push_back("UNIQ");
 	  test_statistic.push_back( aux_burden.stat_uniq );	  
-	  if ( data->dump_stats_matrix ) plog << "\t" << aux_burden.stat_uniq ;
+	  if ( data->dump_stats_matrix ) *pmat << "\t" << aux_burden.stat_uniq ;
 	}
       
       if ( data->mhit )
@@ -1676,7 +1688,7 @@ void g_set_association( VariantGroup & vars , void * p )
       aux_skat.set_optimal_mode( false );
       double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , &test_text , true ); 
       test_statistic.push_back( statistic );
-      if ( data->dump_stats_matrix ) plog << "\t" << -log10( statistic );
+      if ( data->dump_stats_matrix ) *pmat << "\t" << -log10( statistic );
     }
 
 
@@ -1686,7 +1698,7 @@ void g_set_association( VariantGroup & vars , void * p )
       aux_skat.set_optimal_mode( true );
       double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , &test_text , true ); 
       test_statistic.push_back( statistic );
-      if ( data->dump_stats_matrix ) plog << "\t" << -log10( statistic );
+      if ( data->dump_stats_matrix ) *pmat << "\t" << -log10( statistic );
     }
 
 
@@ -1717,8 +1729,8 @@ void g_set_association( VariantGroup & vars , void * p )
 
 	  if ( data->dump_stats_matrix )
 	    {
-	      if ( data->burden ) plog << "\t" << aux_burden.stat_burden;
-	      if ( data->uniq ) plog << "\t" << aux_burden.stat_uniq;
+	      if ( data->burden ) *pmat << "\t" << aux_burden.stat_burden;
+	      if ( data->uniq ) *pmat << "\t" << aux_burden.stat_uniq;
 	    }
 
 	}
@@ -1771,7 +1783,7 @@ void g_set_association( VariantGroup & vars , void * p )
 	{	  
 	  double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , NULL , false  );
 	  test_statistic.push_back( statistic );
-	  if ( data->dump_stats_matrix ) plog << "\t" << statistic;
+	  if ( data->dump_stats_matrix ) *pmat << "\t" << statistic;
 	}
 
 
@@ -1792,52 +1804,50 @@ void g_set_association( VariantGroup & vars , void * p )
   // Output and return for next gene
   //
 
-  if ( ! data->dump_stats_matrix ) 
-    {
-      plog.data_group( vars.name() );
-      plog.data( vars.coordinate() );
-      plog.data( g->locdb.alias( vars.name() , false ) );
-      //plog.data( "." );
-      plog.data( vars.size() );
-      
-      if ( data->show_midbp)
-	{
-	  plog.data( vars.midposition() );
-	  plog.data( vars.span() );
-	}
-      
-      for (int t=0; t<test_name.size(); t++ )
-	{      
-	  std::string output = test_text[ test_name[t] ];      
-	  plog.data( test_name[t] , "TEST" , test_name[t] );      
 
-	  if ( R != 1 ) 
-	    {
-	      plog.data( g->perm.pvalue(t) , "P", test_name[t] );
-	      plog.data( g->perm.min_pvalue(t) , "I" , test_name[t] ); 
-	    }
-	  else // asymptotic p-values for SKAT
-	    { 
-	      if ( test_name[t] == "SKAT" || test_name[t] == "SKAT-O" ) 
-		{
-		  plog.data( aux_skat.returned_pvalue , "P", test_name[t] );
-		  plog.data( "." , "I", test_name[t] );
-		}
-	      else
-		{
-		  plog.data( "." , "P", test_name[t] );
-		  plog.data( "." , "I" , test_name[t] ); 
-		}
-	    }
-	  plog.data( output == "" ? "." : output , "DESC" , test_name[t] );
-	}
+  pout.data_group( vars.name() );
+  pout.data( vars.coordinate() );
+  pout.data( g->locdb.alias( vars.name() , false ) );
+  //pout.data( "." );
+  pout.data( vars.size() );
       
-      plog.print_data_group();
-    }
-  else // in dump-stats-mode
+  if ( data->show_midbp)
     {
-      plog << "\n";
+      pout.data( vars.midposition() );
+      pout.data( vars.span() );
     }
+  
+  for (int t=0; t<test_name.size(); t++ )
+    {      
+      std::string output = test_text[ test_name[t] ];      
+      pout.data( test_name[t] , "TEST" , test_name[t] );      
+      
+      if ( R != 1 ) 
+	{
+	  pout.data( g->perm.pvalue(t) , "P", test_name[t] );
+	  pout.data( g->perm.min_pvalue(t) , "I" , test_name[t] ); 
+	}
+      else // asymptotic p-values for SKAT
+	{ 
+	  if ( test_name[t] == "SKAT" || test_name[t] == "SKAT-O" ) 
+	    {
+	      pout.data( aux_skat.returned_pvalue , "P", test_name[t] );
+	      pout.data( "." , "I", test_name[t] );
+	    }
+	  else
+	    {
+	      pout.data( "." , "P", test_name[t] );
+	      pout.data( "." , "I" , test_name[t] ); 
+	    }
+	}
+      pout.data( output == "" ? "." : output , "DESC" , test_name[t] );
+    }
+  
+  pout.print_data_group();
+  
+  // if writing null-matrix, add new-line here
+  if ( data->dump_stats_matrix ) *pmat << "\n";
+  
   return;
 
 }
@@ -1869,8 +1879,6 @@ struct aux_indiv_enrichment{
 void g_set_enrichment( VariantGroup & vars , void * p )
 {
 
-  std::cout << "proc " << vars.name() << "\n";
-  
   aux_indiv_enrichment * aux = (aux_indiv_enrichment*)p;
   
   int a = 0;
@@ -1909,19 +1917,21 @@ void g_set_enrichment( VariantGroup & vars , void * p )
       
       if ( observed ) 
 	{
-	  std::cout << "  adding " << vars( added ) 
-		    << "  for indiv " << vars( added ).ind(i)->id() 
-		    << "  MAF = " << w << "\n";
+	  // std::cout << "  adding " << vars( added ) 
+	  // 	    << "  for indiv " << vars( added ).ind(i)->id() 
+	  // 	    << "  MAF = " << w << "\n";
 
 	  w = 1 / w;
 	  
+	  // TEMP
 	  w = 1 ; // unweighted
-
+	  // TEMP
+	  
 	  std::set<int> & ss = (*aux->g2s)[ vars.name() ];
 	  std::set<int>::iterator ii = ss.begin();
 	  while ( ii != ss.end() )
 	    {	
-	      std::cout << "   adding to set " << (*aux->set_slot)[*ii] << "\n";
+	      //  std::cout << "   adding to set " << (*aux->set_slot)[*ii] << "\n";
 	      aux->set_cnts[ (*aux->set_slot)[ *ii ]][ i ]  += w;
 	      aux->set_sqrs[ (*aux->set_slot)[ *ii ]][ i ]  += w * w ;
 	      ++ii;
@@ -1940,16 +1950,19 @@ void g_set_enrichment( VariantGroup & vars , void * p )
 bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & args )
 {
   
-  for (double i=-5 ; i<=5 ; i += 0.2 )
-    {
-      std::cout << i << "\t"
-		<< erfc(i) << "\t" 
-		<< Helper::PROB::gamma_inc( 0.5 , i*i ) / 1.772454 
-		<< "\n";
-    }
+  Out & pout = Out::stream( "indiv.enrich" );
 
 
-  return false;
+  // for (double i=-5 ; i<=5 ; i += 0.2 )
+  //   {
+  //     std::cout << i << "\t"
+  // 		<< erfc(i) << "\t" 
+  // 		<< Helper::PROB::gamma_inc( 0.5 , i*i ) / 1.772454 
+  // 		<< "\n";
+  //   }
+
+
+  // return false;
   
   // We assume the initial scan has to be based on genes --mask loc.group=refseq
 
@@ -2040,13 +2053,13 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   
   std::map<std::string,std::set<Region> > targets = g.locdb.fetch_set_regions( loc , locset ); 
   
-  std::cout << targets.size() << " set regions\n";
+  plog << targets.size() << " set regions\n";
 
   // get gene-name --> gene-sets mapping 
   std::vector<std::string> sets = g.locdb.fetch_set_names( loc , locset );
 
-  std::cout << sets.size() << " sets found\n";
-
+  plog << sets.size() << " sets found\n";
+  
   // track gene -> sets
   std::map<std::string,std::set<int> > g2s;
   for (int s=0;s<sets.size();s++)
@@ -2068,7 +2081,8 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   std::map<std::string,std::set<Region> >::iterator ii = targets.begin();
   while ( ii != targets.end() )
     {
-      std::cout << "processing " << ii->first << "\n";
+
+      //      std::cout << "processing " << ii->first << "\n";
 
       std::set<Region> target_genes = RegionHelper::region_merge_overlap( ii->second );
       
@@ -2077,11 +2091,11 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
        
       double target_span = RegionHelper::region_span( target_genes );
 
-      std::cout << "set = " << ii->first << " : " 
-		<< ii->second.size() << " --> "
-		<< target_genes.size() << " intervals, " 
-		<< target_span << " bp, "
-		<< ( target_span / span ) * 100.0 << "%\n";
+      // std::cout << "set = " << ii->first << " : " 
+      // 		<< ii->second.size() << " --> "
+      // 		<< target_genes.size() << " intervals, " 
+      // 		<< target_span << " bp, "
+      // 		<< ( target_span / span ) * 100.0 << "%\n";
       
       f[ ii->first ] = ( target_span / span ) ; 
       
@@ -2117,11 +2131,11 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   aux.set_slot = &sets;
   aux.g2s = &g2s;
   
-  std::cout << "about to start iterating...\n";
+  plog << "about to start iterating...\n";
 
   g.vardb.iterate( g_set_enrichment , &aux , mask ) ;
 
-  std::cout << "done iterating...\n";
+  plog << "done iterating...\n";
   
 
   //
@@ -2212,16 +2226,16 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 	  double S = 0.5 * ( 1 - interfc ) ; 
 	  
 	  // to get 1-tailed p-value, S
-
-	  std::cout << "Indiv=" << g.indmap(i)->id() << "\t"
-		    << "Set=" << sets[s] << "\t"
-		    << "f=" << f[ sets[s] ] << "\t"
-		    << "w=" << w_set << "," << w_bak << "," << w_total << "\t"
-		    << "q=" << q_set << "," << q_bak << "," << q_total << "\t"
-		    << "e=" << e_set << "," << e_bak << "\t" 
-		    << "s=" << x << "\t"
-		    << "erfc=" << myerfc << "," << interfc << "\t"
-		    << "p=" << S << "\n";
+	  
+	  pout  << "Indiv=" << g.indmap(i)->id() << "\t"
+		<< "Set=" << sets[s] << "\t"
+		<< "f=" << f[ sets[s] ] << "\t"
+		<< "w=" << w_set << "," << w_bak << "," << w_total << "\t"
+		<< "q=" << q_set << "," << q_bak << "," << q_total << "\t"
+		<< "e=" << e_set << "," << e_bak << "\t" 
+		<< "s=" << x << "\t"
+		<< "erfc=" << myerfc << "," << interfc << "\t"
+		<< "p=" << S << "\n";
 	  
 	  // std::cout << sets[s] << "\t" 
 	  // 	    << g.indmap(i)->id() << "\t"	  

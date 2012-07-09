@@ -16,7 +16,6 @@ void Pseq::Util::Options::shortform( const std::string & sht , const std::string
 }
 
 
-
 void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 {
 
@@ -120,15 +119,15 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "write-vardb|output,varop|write a new VARDB|ARG:new-vardb,new-project"
 	
-	  << "write-vcf|output|write a new VCF file|VCF|file,format$BGZF"
+	  << "write-vcf|output|write a new VCF file|VCF|file,format$BGZF|OUT:vcf"
 
-	  << "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name,use-family-id" 
+	  << "write-ped|output|write a new PLINK TPED fileset|VCF|ARG:name,use-family-id|OUT:tped,tfam" 
 	
-	  << "write-lik|output|write a BEALGE likelihood file|VCF"
+	  << "write-lik|output|write a BEALGE likelihood file|VCF|OUT:lik"
 
 	  << "*write-haps|output|write a MaCH format haplotype file|VCF"
       
-	  << "*write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf"
+	  << "*write-bcf|output|output from VARDB to BCF|VCF|ARG:bcf|OUT:bcf"
       
       
       	
@@ -138,35 +137,35 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	
 	
-	  << "v-view|views|view variant data|VCF|ARG:simple,vmeta,verbose,geno,gmeta,samples,hide-null,only-minor,only-alt,pheno" 
+	  << "v-view|views|view variant data|VCF|ARG:simple,vmeta,verbose,geno,gmeta,samples,hide-null,only-minor,only-alt,pheno|OUT:vars" 
 	
-	  << "rv-view|views|view rare alleles|VCF|ARG:pheno" 
+	  << "rv-view|views|view rare alleles|VCF|ARG:pheno|OUT:vars" 
 	
-	  << "mv-view|views|view multiple variants|VCF" 
+	  << "mv-view|views|view multiple variants|VCF|OUT:vars" 
     
-	  << "mrv-view|views|view multiple rare variants|VCF" 
+	  << "mrv-view|views|view multiple rare variants|VCF|OUT:vars" 
     
-	  << "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta,rarelist,phenotype,verbose"
+	  << "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta,rarelist,phenotype,verbose|OUT:groups"
     
 	  << "*gs-view|views|view gene variants in sequence|GRP|ARG:ref-variants"
 	
-	  << "i-view|views|individuals in project/file|VCF|ARG:phenotype,from-vardb"
+	  << "i-view|views|individuals in project/file|VCF|ARG:phenotype,from-vardb|OUT:indiv"
 
-	  << "i-matrix|views|individual phenotype matrix|ARG:phenotype"
+	  << "i-matrix|views|individual phenotype matrix|ARG:phenotype|OUT:indiv.matrix"
 
-	  << "write-phe|views|dump phenotypes in .phe file format|ARG:name"
+	  << "write-phe|views|dump phenotypes in .phe file format|ARG:name|OUT:phe"
 
-	  << "v-matrix|output|write a matrix of allele counts|VCF"
+	  << "v-matrix|output|write a matrix of allele counts|VCF|OUT:matrix"
 
  //	  << "v-lookup|output|write a matrix of allele counts for a specific set of variants|ARG:file,region"
       
-	  << "g-matrix|output|write a matix of gene-based allele counts|GRP|ARG:hide-invariant,collapse"
+	  << "g-matrix|output|write a matix of gene-based allele counts|GRP|ARG:hide-invariant,collapse|OUT:matrix"
 	
-	  << "g-meta-matrix|output|matix of gene-based per-individual meta-information|GRP|ARG:name"
+	  << "g-meta-matrix|output|matix of gene-based per-individual meta-information|GRP|ARG:name|OUT:matrix"
 	
-	  << "meta-matrix|output|write a matrix of variant meta-information|VCF|NOGENO"
+	  << "meta-matrix|output|write a matrix of variant meta-information|VCF|NOGENO|OUT:matrix"
 	
-	  << "v-meta-matrix|output|write a matrix of individual genotype meta-information|VCF|ARG:name|NOGENO"
+	  << "v-meta-matrix|output|write a matrix of individual genotype meta-information|VCF|ARG:name|NOGENO|OUT:matrix"
 	
 
 	
@@ -217,22 +216,22 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	
 
-	  << "*intersect|views,locop|view loci from a LOCDB group with 1 or more variants"
+	  << "*intersect|views,locop|view loci from a LOCDB group with 1 or more variants|OUT:loci"
 	
-	  << "loc-view|views,locop|show all loci in a LOCDB group|ARG:group,alias,no-meta,show-subregions"
+	  << "loc-view|views,locop|show all loci in a LOCDB group|ARG:group,alias,no-meta,show-subregions|OUT:loci"
 	
-	  << "loc-stats|views,locop|locus-based stats|ARG:no-subregions,show-subregions,group,ref"
+	  << "loc-stats|views,locop|locus-based stats|ARG:no-subregions,show-subregions,group,ref|OUT:locstats"
 	
-	  << "loc-translate|locop|AA sequence of loci"
+	  << "loc-translate|locop|AA sequence of loci|OUT:loci"
 
-	  << "loc-annotate|locop,annot|annotate loci|ARG:group,show-subregions"
+	  << "loc-annotate|locop,annot|annotate loci|ARG:group,show-subregions:OUT:loci"
 	
-	  << "*loc-overlap|locop|show loci in groups Y, Z that overlap each locus in X|ARG:group,alias,comma,tab,row"
+	  << "*loc-overlap|locop|show loci in groups Y, Z that overlap each locus in X|ARG:group,alias,comma,tab,row|OUT:loci"
 
       
 	  << "seg-load|input,segop|input segment data to SEGDB" 
 
-	  << "seg-view|views|individual segments|ARG:group"
+	  << "seg-view|views|individual segments|ARG:group|OUT:segs"
 
 	  << "*seg-merge|segop|merge intervals in SEGDB" 
 	  << "*segset-load|input,segop|load locus-sets in SEGDB" 
@@ -252,15 +251,15 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "*load-weights|input,refop|load weight table|ARG:name,file" 
 	
-	  << "*score-weights|annot|score variants for weights|VCF|ARG:name"
+	  << "*score-weights|annot|score variants for weights|VCF|ARG:name|OUT:scores"
 	
 	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:format$build$repeat-mode$iupac,file,name,description,"
 	
-	  << "lookup|misc,annot|lookup various annotatations for a list of positions|ARG:loc,alias,ref,annotate"
+	  << "lookup|misc,annot|lookup various annotatations for a list of positions|ARG:loc,alias,ref,annotate|OUT:meta"
 	
-	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta"
+	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta|OUT:refvars"
 	
-	  << "seq-view|views|view regions of sequence from SEQDB|ARG:compact,region"
+	  << "seq-view|views|view regions of sequence from SEQDB|ARG:compact,region|OUT:seq"
 
 
 
@@ -293,15 +292,15 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 
 
-	  << "v-stats|stats|variant statistics|VCF|ARG:stats$hwe$qual$dp$mac$maf$count$mean$gcount$gmean"
+	  << "v-stats|stats|variant statistics|VCF|ARG:stats$hwe$qual$dp$mac$maf$count$mean$gcount$gmean|OUT:vstats"
 	
-	  << "g-stats|stats|gene-based summary statistics|GRP|ARG:stats"
+	  << "g-stats|stats|gene-based summary statistics|GRP|ARG:stats|OUT:gstats"
 	
-	  << "i-stats|stats|per-individual statistics|VCF|ARG:stats"
+	  << "i-stats|stats|per-individual statistics|VCF|ARG:stats|OUT:istats"
 	
-	  << "v-dist|stats,tests|comparison of rare-variant group distributions|VCF|ARG:whole-sample-counts,perm"
+	  << "v-dist|stats,tests|comparison of rare-variant group distributions|VCF|ARG:whole-sample-counts,perm|OUT:vdist"
 	
-	  << "v-freq|stats,qc|variant frequency data|VCF|ARG:em"
+	  << "v-freq|stats,qc|variant frequency data|VCF|ARG:em|OUT:vfreq"
 
 
 
@@ -310,27 +309,27 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 
 
-	  << "counts|views,tests|summary/count statistics|VCF|ARG:output-vcf,name,annotate,full-annotate,show-filters,meta,phenotype"
+	  << "counts|views,tests|summary/count statistics|VCF|ARG:output-vcf,name,annotate,full-annotate,show-filters,meta,phenotype|OUT:counts"
 	
-	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name"
+	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name|OUT:gcounts"
 	
-	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$burden$calpha$uniq$vt$fw$sumstat$two-hit$skat$skato,info,fix-null,perm,dump-null-matrix,midpoint"
+	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$burden$calpha$uniq$vt$fw$sumstat$two-hit$skat$skato,info,fix-null,perm,dump-null-matrix,midpoint|OUT:assoc"
     
-	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta"
+	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta|OUT:vassoc"
 	
-	  << "glm|tests|general linear models|VCF|ARG:phenotype,perm,vmeta,use-postprobs,use-dosages,covar,show-covar,show-intercept,residuals,file"
+	  << "glm|tests|general linear models|VCF|ARG:phenotype,perm,vmeta,use-postprobs,use-dosages,covar,show-covar,show-intercept,residuals,file|OUT:glm"
 
-	  << "unique|views,tests|view variants specific to individual groups|VCF|ARG:indiv,require,allow"
+	  << "unique|views,tests|view variants specific to individual groups|VCF|ARG:indiv,require,allow|OUT:uniq"
 
-	  << "indiv-enrich|tests|test per individual for greater-than-expected burden of variants per set|ARG:phenotype,perm,locset,loc,loc.ex,reg.ex"
+	  << "indiv-enrich|tests|test per individual for greater-than-expected burden of variants per set|ARG:phenotype,perm,locset,loc,loc.ex,reg.ex|OUT:indiv.enrich"
 
 
     //
     // Family-based operations
     //
 
-	  << "*denovo|views|filter for de-novo mutations|VCF|ARG:param"
-	  << "CNV-denovo|views|filter for de-novo CNV mutations|VCF|ARG:param"
+	  << "*denovo|views|filter for de-novo mutations|VCF|ARG:param|OUT:denovo.vars,denovo.indiv"
+	  << "*cnv-denovo|views|filter for de-novo CNV mutations|VCF|ARG:param|OUT:denovo.cnv,denovo.indiv"
 
     //
     // IBD database 
@@ -339,11 +338,11 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "*ibd-load|input,ibd|load IBD segment data|ARG:ibddb,file"
 	
-	  << "*ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb"
+	  << "*ibd-sharing|views,ibd|pairwise IBD sharing around rare variants|VCF|ARG:ibddb|OUT:ibd"
 	
-	  << "*s-assoc|tests,ibd|segment-based IBD test|ARG:perm,file"
+	  << "*s-assoc|tests,ibd|segment-based IBD test|ARG:perm,file|OUT:sassoc"
 
-	  << "*mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv,region"
+	  << "*mutation-screen|views,ibd|screen for new mutations given shared IBD|ARG:ibddb,indiv,region|OUT:mut"
       
       
     
@@ -353,9 +352,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
       
 	  << "net-load|input,net|populate a NETDB|ARG:netdb,file"
       
-	  << "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb"
+	  << "net-view|views,net|view gene connections in a NETDB|GRP|ARG:name,group,netdb|OUT:nets"
       
-	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,mask,pheno,file,outfile"
+	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,mask,pheno,file,outfile|OUT:net.assoc"
             
 
 
@@ -364,17 +363,17 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     //
 
 
-	  << "clusters|qc|."
+	  << "clusters|qc|.|OUT:clusters"
 	
-	  << "proximity-scan|qc|VCF|ARG:distance"
+	  << "proximity-scan|qc|VCF|ARG:distance|OUT:proximity"
 	
-	  << "concordance|qc|genotypic concordance checks|ARG:report-all"
+	  << "concordance|qc|genotypic concordance checks|ARG:report-all|OUT:concord.indiv,concord.geno,concord.vars,concord"
 	
-	  << "group-comparison|qc,tests|"
+	  << "group-comparison|qc,tests|OUT:group.comparison"
 	
-	  << "ibs-matrix|qc|IBS matrix calculation|VCF|ARG:long-format,two-counts"
+	  << "ibs-matrix|qc|IBS matrix calculation|VCF|ARG:long-format,two-counts|OUT:ibs"
 	
-	  << "loc-intersect|locop|intersect locus groups|ARG:file,group"
+	  << "loc-intersect|locop|intersect locus groups|ARG:file,group|OUT:loci"
 
 
 
@@ -390,10 +389,18 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 
 
-void Pseq::Util::Options::load( int n , char ** argv )
+std::string Pseq::Util::Options::load( int n , char ** argv )
 {
 
     reg( "help" , NONE , "produce help message" );
+
+    // output options
+    reg( "out" , STRING , "output root filename" );
+    reg( "silent", NONE , "set silent mode");
+    reg( "stdout" , NONE , "output goes to STDOUT" );
+    
+    reg( "debug", NONE , "set debug mode");    
+
     reg( "vcf" , STRING_VECTOR , "VCF file locations" );
     reg( "bcf" , STRING_VECTOR , "BCF file locations" );
     reg( "resources" , STRING , "central resource folder" );
@@ -403,6 +410,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "description", STRING , "file description" );
 
     reg( "history" , STRING_VECTOR , "use a .history file with GSEQ" );
+
     
     reg( "vardb", STRING, "variant database location" );
     reg( "inddb", STRING, "individual database location" );
@@ -440,8 +448,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     reg( "new-project" , STRING , "new project specification filename" );
     reg( "new-vardb" , STRING , "new VARDB name, for write-vardb" );
     
-    reg( "debug", NONE , "set debug mode");
-    reg( "silent", NONE , "set silent mode");
+
     reg( "ignore-warnings" , NONE , "turn off warnings");
     reg( "early-warnings" , NONE , "display warning as soon as happens");
     
@@ -704,7 +711,6 @@ void Pseq::Util::Options::load( int n , char ** argv )
     shortform( "help" , "--help" );
 
     shortform( "--string" , "--text" );
-    shortform( "--out"    , "--output" );
     shortform( "--pheno"  , "--phenotype" );
     shortform( "--phe"    , "--phenotype" );
     shortform( "--weight" , "--weights" );
@@ -721,7 +727,7 @@ void Pseq::Util::Options::load( int n , char ** argv )
     {      
 	if ( n == 2 ) help_str = std::string(argv[1]).substr(0,1) == "m" ? "mask" : "." ;
 	else if ( n > 2 ) help_str = argv[2];
-	return;
+	return "";
     }
     
 
@@ -729,6 +735,10 @@ void Pseq::Util::Options::load( int n , char ** argv )
     //  Process actual arguments from command line
     //
     
+    // create a friendly version of it for LOG
+    
+    std::stringstream ss;
+
     // arg 0 is filename
     // position 1 should be project
     // position 2 should be command
@@ -739,23 +749,35 @@ void Pseq::Util::Options::load( int n , char ** argv )
     
     project_str = argv[1];
     command_str = argv[2];
+
+    ss << "Project : " << project_str << "\n"
+       << "Command : " << command_str << "\n";
+    if ( n > 3 ) 
+      ss << "Options : " ;
     
     for (int i=3 ; i < n ; i++ )
     {
-	std::string s = argv[i];
-	
-	// Swap in long-form from short-form? e.g. -o to --options
-	if ( shortcuts.find( s ) != shortcuts.end() ) s = shortcuts[s];
-	
-	if ( s.substr(0,2) != "--" ) Helper::halt("unknown option: " + s ); 
-	s =  s.substr(2); 
-	if ( ! known(s) ) Helper::halt("unknown option: " + s );
-	
-	// now read values/keywords for this command, up to next arg (--x) or end
 
-	std::vector<std::string> a;
+      std::string s = argv[i];
 	
-	while ( 1 ) 
+      // Swap in long-form from short-form? e.g. -o to --options
+      if ( shortcuts.find( s ) != shortcuts.end() ) s = shortcuts[s];
+	
+      if ( s.substr(0,2) != "--" ) Helper::halt("unknown option: " + s ); 
+      s =  s.substr(2); 
+      if ( ! known(s) ) Helper::halt("unknown option: " + s );
+      
+      // pretty-printing
+      if ( i > 3 ) ss << "          ";
+      ss << "--" << s ;
+      const int len_first = s.size() + 2 ;
+      const int pos_root = i;
+
+      // now read values/keywords for this command, up to next arg (--x) or end
+      
+      std::vector<std::string> a;
+      
+      while ( 1 ) 
 	{
 	  ++i;
 	
@@ -772,55 +794,62 @@ void Pseq::Util::Options::load( int n , char ** argv )
 	  }
 	  else
 	  {
-	      // this is an argument for 's'.  Either just add, unless 's' is of KEYWORD type, 
-	      // in which case we need to check that 'b' is valid
-	      
-	      // --arg value value=x,y,y-2,"a,b"
-
-	      if ( arg_type[s] == KEYWORD )
+	    
+	    // this is an argument for 's'.  Either just add, unless 's' is of KEYWORD type, 
+	    // in which case we need to check that 'b' is valid
+	    
+	    if ( i - pos_root > 1 ) 
+	      ss << "          " << std::string( len_first , ' ' );
+	    ss << " " << b << "\n";
+	    
+	    // --arg value value=x,y,y-2,"a,b"
+	    
+	    if ( arg_type[s] == KEYWORD )
 	      {
-		  
-		  std::string root = b.substr( 0 , b.find( "=" ) );
-		  
-		  if ( known( s , root ) ) 
+		
+		std::string root = b.substr( 0 , b.find( "=" ) );
+		
+		if ( known( s , root ) ) 
 		  {
-		      // comma-delimited
-		      
-		      
-		      if ( b.find("=") == std::string::npos )
+		    // comma-delimited
+		    
+		    
+		    if ( b.find("=") == std::string::npos )
 		      {
-			  // just set s/root pair
-			  data_kw[s][root].clear();
+			// just set s/root pair
+			data_kw[s][root].clear();
 		      }
-		      else
+		    else
 		      {
-			  // or add actual --s root=arg1,arg2
-
-			  std::string val = b.substr( b.find("=")+1 );			  
-			  std::vector<std::string> vals = Helper::quoted_char_split( val , ',' );
-			  for (int i=0;i<vals.size();i++)
+			// or add actual --s root=arg1,arg2
+			
+			std::string val = b.substr( b.find("=")+1 );			  
+			std::vector<std::string> vals = Helper::quoted_char_split( val , ',' );
+			for (int i=0;i<vals.size();i++)
 			  {
-			      data_kw[s][root].push_back( vals[i] );
+			    data_kw[s][root].push_back( vals[i] );
 			  }
 		      }
 		  }
-		  else Helper::halt( "unknown keyword " + root + " for argument " + s );
+		else Helper::halt( "unknown keyword " + root + " for argument " + s );
 	      }
-	      else a.push_back( b );
-		  	      
+	    else a.push_back( b );
+	    
 	  }
-
+	  
 	}
-
-	
-	
-	// store, or add in as extras
-
-	if ( data.find(s) == data.end() ) data[s] = a;      
-	else Helper::append( data[s] , a );      
-	
+      
+      if ( i == pos_root ) // no options given
+	ss << "\n";
+    	
+      // store, or add in as extras
+      
+      if ( data.find(s) == data.end() ) data[s] = a;      
+      else Helper::append( data[s] , a );      
+      
     }
     
+    return ss.str();
 }
 
 

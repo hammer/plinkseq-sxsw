@@ -20,52 +20,54 @@ bool Pseq::Assoc::glm_assoc_test( Mask & m ,
   
 {
 
-  plog.data_reset();
+  Out & pout = Out::stream( "glm" );
 
-  plog.data_group_header( "VAR" );
+  pout.data_reset();
+
+  pout.data_group_header( "VAR" );
   
   // if will be running many tests, we need to be explicit...
   
-  plog.data_header( "REF" );
-  plog.data_header( "ALT" );
+  pout.data_header( "REF" );
+  pout.data_header( "ALT" );
   
-  plog.data_header( "N" );
+  pout.data_header( "N" );
 
-  plog.data_header( "F" );
+  pout.data_header( "F" );
   
 
   if ( aux.test_list )
     {
-      plog.data_header("SET");  
-      plog.data_header("PHE");      
+      pout.data_header("SET");  
+      pout.data_header("PHE");      
     }
 
   if ( aux.show_all_covar ) 
-    plog.data_header( "TERM" );  
+    pout.data_header( "TERM" );  
 
   if ( aux.test_list )
     {
-      plog.data_header( "BETA" );
+      pout.data_header( "BETA" );
     }
   else if ( aux.dichot_pheno )
     {
       if ( ! aux.has_covar ) 
 	{
-	  plog.data_header( "F_A" );
-	  plog.data_header( "F_U" );
+	  pout.data_header( "F_A" );
+	  pout.data_header( "F_U" );
 	}
-      plog.data_header( "OR" );
+      pout.data_header( "OR" );
     }
   else
     {
-      plog.data_header( "BETA" );      
+      pout.data_header( "BETA" );      
     }
 
-  plog.data_header( "SE" );
-  plog.data_header( "STAT" );
-  plog.data_header( "P" );
+  pout.data_header( "SE" );
+  pout.data_header( "STAT" );
+  pout.data_header( "P" );
   
-  plog.data_header_done();
+  pout.data_header_done();
   
   //
   // Either just iterate through each SNP in the mask, given a single phenotype and covariate set
@@ -271,6 +273,8 @@ void f_glm_association( Variant & v , void * p )
   if ( pval < 0 ) valid = false;
   
   // Output results
+  
+  Out & pout = Out::stream( "glm" );
 
   if ( valid )
     {
@@ -292,35 +296,35 @@ void f_glm_association( Variant & v , void * p )
 	    {
 	      if ( term == 0 && ! data->show_intercept ) continue;
 
-	      plog.data_group( v );	      
-	      plog.data( v.reference() );
-	      plog.data( v.alternate() , 1 );              
-	      plog.data( an , 1 );
+	      pout.data_group( v );	      
+	      pout.data( v.reference() );
+	      pout.data( v.alternate() , 1 );              
+	      pout.data( an , 1 );
 
 	      if ( term != 1 || data->use_dosage || data->use_postprobs ) 
-		plog.data( "." , 1 );
+		pout.data( "." , 1 );
 	      else
-		plog.data( maf , 1 );
+		pout.data( maf , 1 );
 	      
 	      if ( data->test_list ) 
 		{
-		  plog.data( data->test_list );
-		  plog.data( g.phmap.phenotype() );
+		  pout.data( data->test_list );
+		  pout.data( g.phmap.phenotype() );
 		}
 	      
 	      if ( term == 0 ) 
-		plog.data( "b0" );
+		pout.data( "b0" );
 	      else if ( term == 1 )
-		plog.data( v.name() );
+		pout.data( v.name() );
 	      else 
-		plog.data( data->covars[ term - 2 ] ) ;
+		pout.data( data->covars[ term - 2 ] ) ;
 	      
-	      plog.data( beta[ term ] );      
+	      pout.data( beta[ term ] );      
 	      
-	      plog.data( se[ term ] );  
-	      plog.data( statistic[ term ] );
-	      plog.data( pvalue[ term ] );	      
-	      plog.print_data_group();	      
+	      pout.data( se[ term ] );  
+	      pout.data( statistic[ term ] );
+	      pout.data( pvalue[ term ] );	      
+	      pout.print_data_group();	      
 	    }
 	  
 	}
@@ -334,83 +338,83 @@ void f_glm_association( Variant & v , void * p )
 	  // For now, let's ignore long-format potential for output. 
 	  //  So everything has 'group' == 1 
 	  
-	  plog.data_group( v );
+	  pout.data_group( v );
 	  
-	  plog.data( v.reference() );
-	  plog.data( v.alternate() , 1 );              
-	  plog.data( an , 1 );
+	  pout.data( v.reference() );
+	  pout.data( v.alternate() , 1 );              
+	  pout.data( an , 1 );
 	  
 	  if ( data->use_dosage || data->use_postprobs ) 
-	    plog.data( "." , 1 );
+	    pout.data( "." , 1 );
 	  else
-	    plog.data( maf , 1 );
+	    pout.data( maf , 1 );
 	  
 	  if ( data->test_list ) 
 	    {
-	      plog.data( data->test_list );
-	      plog.data( g.phmap.phenotype() );
+	      pout.data( data->test_list );
+	      pout.data( g.phmap.phenotype() );
 	    }
 	  
 	  if ( data->show_all_covar )
-	    plog.data( v.name() );
+	    pout.data( v.name() );
 	   
 	  if ( data->dichot_pheno )
 	    {
 	      if ( ! data->has_covar ) 
 		{
-		  plog.data( mafa );
-		  plog.data( mafu );
+		  pout.data( mafa );
+		  pout.data( mafu );
 		}
-	      plog.data( coef );
+	      pout.data( coef );
 	    }
 	  else
 	    {
-	      plog.data( coef );      
+	      pout.data( coef );      
 	    }
 	  
-	  plog.data( se );  
-	  plog.data( statistic );
-	  plog.data( pval );
+	  pout.data( se );  
+	  pout.data( statistic );
+	  pout.data( pval );
 	  
-	  plog.print_data_group();
+	  pout.print_data_group();
 	}
     }
   else
     {
      
-      plog.data_group( v );
-      plog.data( v.reference() );
-      plog.data( v.alternate() , 1 );  
+      pout.data_group( v );
+      pout.data( v.reference() );
+      pout.data( v.alternate() , 1 );  
 
-      plog.data( an , 1 );      
+      pout.data( an , 1 );      
 
-      plog.data( maf , 1 );    
+      pout.data( maf , 1 );    
 
       if ( data->show_all_covar )
-	plog.data( v.name() );
+	pout.data( v.name() );
       
       if ( data->dichot_pheno )
 	{
 	  if ( data->has_covar ) 
-	    plog.data( maf );
+	    pout.data( maf );
 	  else
 	    {
-	      plog.data( mafa );
-	      plog.data( mafu );
+	      pout.data( mafa );
+	      pout.data( mafu );
 	    }
-	  plog.data( "NA" );
+	  pout.data( "NA" );
 	}
       else
 	{
-	  plog.data( maf );
-	  plog.data( "NA" );      
+	  pout.data( maf );
+	  pout.data( "NA" );      
 	}
       
-      plog.data( "NA" );  
-      plog.data( "NA" );
-      plog.data( "NA" );
+      pout.data( "NA" );  
+      pout.data( "NA" );
+      pout.data( "NA" );
       
-      plog.print_data_group();
+      pout.print_data_group();
       
     }
 

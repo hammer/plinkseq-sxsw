@@ -41,6 +41,8 @@ struct Aux_ibd_sharing {
 void f_ibd_sharing( Variant & v , void * p )
 {
 
+  Out & pout = Out::stream( "ibd" );
+
   Aux_ibd_sharing * aux = (Aux_ibd_sharing*)p;
   
   // Find all individuals who carry a rare variant (which will
@@ -94,7 +96,7 @@ void f_ibd_sharing( Variant & v , void * p )
 	    ++ii;
 	  }
 	
-	plog << "_P" << "\t" 
+	pout << "_P" << "\t" 
 	     << v << "\t"	     
 	     << carrier.size() << "\t"
 	     << regions.size() << "\t"
@@ -104,17 +106,17 @@ void f_ibd_sharing( Variant & v , void * p )
 	     << ( v.ind( carrier[j] )->affected() == CASE ) << "\t"	  
 	     << overlap << "\t";
 	if ( overlap ) 
-	  plog << olap.coordinate() << "\t"
+	  pout << olap.coordinate() << "\t"
 	       << olap.length() << "\n";
 	else 
-	  plog << "NA\tNA" << "\n";       
+	  pout << "NA\tNA" << "\n";       
 	
 	++pcnt;
 	if ( overlap ) ++scnt;
 	
       }
   
-  plog << "_S" << "\t"
+  pout << "_S" << "\t"
        << v << "\t"
        << carrier.size() << "\t"
        << scnt << "\t"
@@ -474,8 +476,10 @@ void Pseq::IBD::test_wrapper( const std::string & segment_list ,
   a.rseed = time(0);
 
   g.perm.initiate( nrep );
+
+  Out & pout = Out::stream( "sassoc" );
   
-  plog << "SET" << "\t"
+  pout << "SET" << "\t"
        << "ALIAS" << "\t"
        << "NVAR" << "\t"
        << "AA" << "\t"
@@ -514,6 +518,7 @@ void g_STEST_association( VariantGroup & vars , void * p )
   Pseq::IBD::Aux * data = (Pseq::IBD::Aux*)p;
   GStore * g = data->g;
   
+  Out & pout = Out::stream( "sassoc" );
 
   //
   // Set up permutations
@@ -681,7 +686,7 @@ void g_STEST_association( VariantGroup & vars , void * p )
   //
 
   
-  plog << vars.name() << "\t"
+  pout << vars.name() << "\t"
        << g->locdb.alias( vars.name() , false ) << "\t"
        << vars.size() << "\t"
        << original_aa << "\t"
@@ -749,6 +754,9 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
   
   Helper::checkFileExists( ibddb_filename );
   IBDDBase ibddb( ibddb_filename );
+
+  Out & pout = Out::stream( "mut" );
+
   
   bool okay = true;
   Region region( region_str , okay );
@@ -1005,7 +1013,7 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	  if ( pcnt2 < 0.05 ) n_pct05_close++;
 	}
 
-      plog << "IBD" << "\t"
+      pout << "IBD" << "\t"
 	   << proband_id_str << " - " 
 	   << xi->first << "\t"                     // parnter ID
 	   << reg.coordinate() << "\t"              // shared region
@@ -1057,7 +1065,7 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
       
       if ( n_invalid[v] ) ++total_invalid;
       
-      plog << vars(v) << "\t" 
+      pout << vars(v) << "\t" 
 	   << vars(v).label( id ) << "\t"
 	   << n_ibd[v] << "\t"            // number of other individuals who are IBD with proband here
 	   << is_het[v] << "\t"           // flag for whether proband is a HET or not
@@ -1068,12 +1076,12 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
       std::vector<std::string>::iterator ii = implied_haps.begin();
       while ( ii != implied_haps.end() )
 	{
-	  plog <<  (*ii)[phet_cnt]; 
+	  pout <<  (*ii)[phet_cnt]; 
 	  ++ii;
 	}
       ++phet_cnt;
       
-      plog << "\n";
+      pout << "\n";
           
 
     }
@@ -1135,33 +1143,33 @@ void Pseq::IBD::mutation_wrapper( const std::string & ibddb_filename ,
 	    }
 
 	}
-
-
-  plog << "#2HET" << "\t" 
-       << "ID\t"
-       << "REGION\t"
-       << "NVAR\t"
-       << "NHET\t"
-       << "NOLAP\t"
-       << "CLOSET_TO_EDGE\t"
-       << "PCT5\t"
-       << "NINVALID\t"
-       << "NEITHER\t"
-       << "ONE\t"
-       << "BOTH\n";
-  
-  plog << "2HET" << "\t" 
-       << proband_id_str << "\t" 
-       << region_str << "\t"
-       << nv << "\t" 
-       << nhet << "\t"
-       << xolap.size() << "\t"
-       << closest << "\t"
-       << n_pct05_close / (double)xolap.size() << "\t"
-       << total_invalid << "\t"
-       << neither_supported << "\t"
-       << one_supported << "\t"        
-       << both_supported << "\n";
-  
+      
+      
+      pout << "#2HET" << "\t" 
+	   << "ID\t"
+	   << "REGION\t"
+	   << "NVAR\t"
+	   << "NHET\t"
+	   << "NOLAP\t"
+	   << "CLOSET_TO_EDGE\t"
+	   << "PCT5\t"
+	   << "NINVALID\t"
+	   << "NEITHER\t"
+	   << "ONE\t"
+	   << "BOTH\n";
+      
+      pout << "2HET" << "\t" 
+	   << proband_id_str << "\t" 
+	   << region_str << "\t"
+	   << nv << "\t" 
+	   << nhet << "\t"
+	   << xolap.size() << "\t"
+	   << closest << "\t"
+	   << n_pct05_close / (double)xolap.size() << "\t"
+	   << total_invalid << "\t"
+	   << neither_supported << "\t"
+	   << one_supported << "\t"        
+	   << both_supported << "\n";
+      
 }
 

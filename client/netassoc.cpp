@@ -15,6 +15,7 @@ extern Pseq::Util::Options args;
 
 bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , const std::string & grp )
 {
+
   if ( ! g.locdb.attached() ) Helper::halt( "no attacged LOCDB" ); 
 
   NetDBase netdb;
@@ -25,10 +26,12 @@ bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , co
   // depth=1, threshold=0.0; add-self = T
   std::set<std::string> regs = netdb.connections( gene , 1 , 0 , true );
 
+  Out & pout = Out::stream( "partners" );
+
   std::set<std::string>::iterator ii = regs.begin();
   while ( ii != regs.end() )
     {
-      plog << *ii << "\n";
+      pout << gene << " <---> " << *ii << "\n";
       ++ii;
     }
   return true;
@@ -73,7 +76,7 @@ bool Pseq::Assoc::net_assoc_test( Mask & m , const Pseq::Util::Options & args )
   // Call actual network test, need only gscore
   // 
 
-  if ( args.has("netdb" ) )
+  if ( args.has( "netdb" ) )
     Pseq::Assoc::NetDB::driver( gscore , args , m );
   
   return true;
@@ -258,13 +261,12 @@ bool Pseq::Assoc::NetDB::driver( const std::map<std::string,Aux_netdet> & gscore
 
 void g_net_assoc_collector( VariantGroup & vars , void * p )
 {
+
   std::map<std::string,Pseq::Assoc::NetDB::Aux_netdet> * aux = (std::map<std::string,Pseq::Assoc::NetDB::Aux_netdet>*)p;
   
   const std::string name = vars.name();
   
-  plog << "\n" << name << "\n";
-
-  (*aux)[ name ].nvar = vars.size();
+    (*aux)[ name ].nvar = vars.size();
   
   // Current weighting is simply 0 or 1 for at least one variant in gene
   // No weights
@@ -280,7 +282,7 @@ void g_net_assoc_collector( VariantGroup & vars , void * p )
 	  if ( ! vars.geno(v,i).null() )
 	    {
 	      // note, also using a dominent coding here
-	      if ( vars.geno(v,i).minor_allele_count( altmin ) )  { (*aux)[ name ].ind[i] = 1; plog << "."; } 
+	      if ( vars.geno(v,i).minor_allele_count( altmin ) )  { (*aux)[ name ].ind[i] = 1; }
 	    }
 	}
     }
@@ -332,41 +334,42 @@ void Pseq::Assoc::NetDB::net_test( const int seed ,
       if ( ! g.perm.score( stat ) ) break; 
     }
 
+  Out & pout = Out::stream( "net.assoc" );
 
   // report : first seed 
 
-  plog << "SEED" << "\t"
+  pout << "SEED" << "\t"
        << gname << "\t" 
        << connections.size() << "\t" 
        << endset.size() << "\t"
        << nvar << "\t" ;
   
   if ( ca + cu == 0 )  // can happen when --exclude-seed but no PPI partners
-    plog  << 0 << ":" << 0 << "\t" 
+    pout  << 0 << ":" << 0 << "\t" 
 	  << 1 << "\t";
   else
-    plog  << ca << ":" << cu << "\t" 
+    pout  << ca << ":" << cu << "\t" 
 	  << g.perm.pvalue(0) << "\t";
   
-  plog << g.locdb.alias( gname , false ) << "\n";
+  pout << g.locdb.alias( gname , false ) << "\n";
   
   // partners
 
   std::set<Aux_connection>::iterator i = endset.begin();
   while ( i != endset.end() ) 
     {
-      plog << "PARTNER" << "\t"
+      pout << "PARTNER" << "\t"
 	   << gname << "\t";
-
+      
       std::string n = gscore.find( i->extension )->second.name ; 
       
       if ( n != gname && i->parent != seed && i->parent != -1 ) 
-	plog << gscore.find( i->parent )->second.name << " --> ";
+	pout << gscore.find( i->parent )->second.name << " --> ";
 
-      plog << n << "\t"
+      pout << n << "\t"
 	   << i->acnt << "\t"
 	   << i->ucnt << "\t";
-      plog << g.locdb.alias( gscore.find( i->extension )->second.name , false ) << "\n";
+      pout << g.locdb.alias( gscore.find( i->extension )->second.name , false ) << "\n";
       ++i;
     }
 }

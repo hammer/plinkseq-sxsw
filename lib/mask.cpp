@@ -96,6 +96,7 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "reg.group" , "str-list" , "group variants by list of regions (not implemented)" ); 
   //  mask_add( s , g , c++ , gl , "reg.force" , "str-list" , "force output on variants, whether present or not" ); 
 
+
   // variant-IDs
   ++g; c=0; gl="ids";
   mask_add( s , g , c++ , gl , "id" , "str-list" , "include variants based on ID" ); 
@@ -346,6 +347,7 @@ std::string Mask::list_groups( bool verbose )
   return ss.str();
 }
 
+
 std::string Mask::list_masks( const std::string & g )
 {
   std::stringstream ss;
@@ -433,6 +435,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
       }
   }
+
   
   if ( m.has_field( "v-include" ) )
     { 
@@ -1569,13 +1572,18 @@ int Mask::include_loc( int x )
     {
       in_locset.insert(x); 
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "could not find locus group in mask" );
+      return 0;
+    }
   return x;
 }
 
 int Mask::include_seg( int x ) 
 {
   if ( segdb ) { in_segset.insert(x); return x; } 
+  Helper::halt( "could not find segment group in mask" );
   return 0;
 }
 
@@ -1586,6 +1594,8 @@ void Mask::include_reg( const std::vector<std::string> & k )
       bool okay = false;
       Region r( k[i] , okay );
       if ( okay ) include_reg( r );
+      else 
+	Helper::halt( "problem with reg specification in mask" );
     }
 }
 
@@ -1617,34 +1627,61 @@ int Mask::include_var( int x )
       {
 	in_varset.insert(x); 
       }
-    else return 0;
+    else 
+      {
+	Helper::halt( "problem with var specification in mask" );
+	return 0;
+      }
     return x;
 }
 
 
 int Mask::include_loc( const std::string & n )
 {
-  if ( ! locdb ) return 0;
+  if ( ! locdb ) 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = locdb->lookup_group_id( n );
   if ( id > 0 ) return include_loc(id);
-  else return 0;
+  else {
+    Helper::halt( "problem with loc specification in mask" );
+    return 0;
+  }
 }
 
 int Mask::include_seg( const std::string & n )
 {
-  if ( ! segdb ) return 0;
+  if ( ! segdb ) 
+    {
+      Helper::halt( "SEGDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = segdb->lookup_group_id( n );
   if ( id > 0 ) return include_seg(id);
-  else return 0;
+  else 
+    {
+      Helper::halt(" problem with seg specification in mask" );
+      return 0;
+    }
 }
 
 int Mask::include_var( const std::string & n )
 {
-  if ( ! vardb ) return 0;
+  if ( ! vardb ) 
+    {
+      Helper::halt( "VARDB not attached, but requested in mask" );
+      return 0;
+    }
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( n , "" , DO_NOT_ADD );
   if ( id > 0 ) return include_var(id);
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with var specification in mask" );
+      return 0;
+    }
 }
 
 
@@ -1655,16 +1692,28 @@ int Mask::include_ref( int x )
       in_refset.insert(x);
       append_ref(x);
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with ref specification in mask" );
+      return 0;
+    }
   return x;
 }
 
 int Mask::include_ref( const std::string & n )
 {
-  if ( ! refdb ) return 0;
+  if ( ! refdb ) 
+    {
+      Helper::halt( "REFDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = refdb->lookup_group_id( n );
   if ( id > 0 ) return include_ref( id );
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with ref specification in mask" );
+      return 0;
+    }
 }
 
 
@@ -1678,7 +1727,11 @@ int Mask::require_loc( int x )
     {
       req_locset.insert(x); 
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   return x;
 }
 
@@ -1688,24 +1741,44 @@ int Mask::require_seg( int x )
     {
       req_segset.insert(x); 
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "SEGDB not attached, but requested in mask" );
+      return 0;
+    }
   return x;
 }
 
 int Mask::require_loc( const std::string & n )
 {
-  if ( ! locdb ) return 0;
+  if ( ! locdb ) 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = locdb->lookup_group_id( n );
   if ( id > 0 ) return require_loc(id);
-  else return 0;  
+  else 
+    {
+      Helper::halt( "problem with loc.req specification in mask" );
+      return 0;  
+    }
 }
 
 int Mask::require_seg( const std::string & n )
 {
-  if ( ! segdb ) return 0;
+  if ( ! segdb ) 
+    {
+      Helper::halt( "SEGDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = segdb->lookup_group_id( n );
   if ( id > 0 ) return require_seg(id);
-  else return 0;  
+  else 
+    {
+      Helper::halt( "problem with seg.req specification in mask" );
+      return 0;  
+    }
 }
 
 int Mask::require_var( int x )
@@ -1714,17 +1787,29 @@ int Mask::require_var( int x )
       {
 	req_varset.insert(x); 
       }
-    else return 0;
+    else 
+      {
+	Helper::halt( "VARDB not attached, but requested in mask" );
+	return 0;
+      }
     return x;
 }
 
 int Mask::require_var( const std::string & n )
 {
-  if ( ! vardb ) return 0;
+  if ( ! vardb ) 
+    {
+      Helper::halt( "VARDB not attached, but requested in mask" );
+      return 0;
+    }
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( n , "" , DO_NOT_ADD );
   if ( id > 0 ) return require_var(id);
-  else return 0;  
+  else 
+    {
+      Helper::halt( "problem with var.req specification in mask" );
+      return 0;  
+    }
 }
 
 int Mask::require_ref( int x )
@@ -1734,16 +1819,28 @@ int Mask::require_ref( int x )
       req_refset.insert(x);      
       append_ref(x);
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "REFDB not attached, but requested in mask" );
+      return 0;
+    }
   return x;
 }
 
 int Mask::require_ref( const std::string & n )
 {
-  if ( ! refdb ) return 0;
+  if ( ! refdb )
+    {
+      Helper::halt( "REFDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = refdb->lookup_group_id( n );
   if ( id > 0 ) return require_ref( id );
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with ref.req specification in mask" );
+      return 0;
+    }
 }
 
 
@@ -1756,7 +1853,11 @@ int Mask::exclude_loc( int x )
       {
 	ex_locset.insert(x); 
       }
-    else return 0;
+    else 
+      {
+	Helper::halt( "LOCDB not attached, but requested in mask" );
+	return 0;
+      }
     return x;
 }
 
@@ -1766,7 +1867,11 @@ int Mask::exclude_seg( int x )
       {
 	ex_segset.insert(x); 
       }
-    else return 0;
+    else 
+      {
+	Helper::halt( "SEGDB not attached, but requested in mask" );
+	return 0;
+      }
     return x;
 }
 
@@ -1776,34 +1881,62 @@ int Mask::exclude_var( int x )
     {
       ex_varset.insert(x); 
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "VARDB not attached, but requested in mask" );
+      return 0;
+    }
   return x;
 }
 
 
 int Mask::exclude_loc( const std::string & n )
 {
-  if ( ! locdb ) return 0;
+  if ( ! locdb )
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = locdb->lookup_group_id( n );
   if ( id > 0 ) return exclude_loc(id);
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with loc.ex specification in mask" );
+      return 0;
+    }
 }
 
 int Mask::exclude_seg( const std::string & n )
 {
-  if ( ! segdb ) return 0;
+  if ( ! segdb ) 
+    {
+      Helper::halt( "SEGDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = segdb->lookup_group_id( n );
   if ( id > 0 ) return exclude_seg(id);
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with seg.ex specification in mask" );
+      return 0;
+    }
 }
 
 int Mask::exclude_var( const std::string & n )
 {
-  if ( ! vardb ) return 0;
+  if ( ! vardb ) 
+    {
+      Helper::halt( "VARDB not attached, but requested in mask" );
+      return 0;
+    }
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( n , "" , DO_NOT_ADD );
   if ( id > 0 ) return exclude_var(id);
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with var.ex specification in mask" );
+      return 0;
+    }
 }
 
 
@@ -1814,16 +1947,28 @@ int Mask::exclude_ref( int x )
       ex_refset.insert(x);
       append_ref(x);
     }
-  else return 0;
+  else
+    {
+      Helper::halt( "REFDB not attached, but requested in mask" );
+      return 0;
+    }
   return x;
 }
 
 int Mask::exclude_ref( const std::string & n )
 {
-  if ( ! refdb ) return 0;
+  if ( ! refdb )
+    {
+      Helper::halt( "REFDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = refdb->lookup_group_id( n );
   if ( id > 0 ) return exclude_ref( id );
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with ref.ex specification in mask" );
+      return 0;
+    }
 }
 
 
@@ -1834,7 +1979,11 @@ int Mask::exclude_ref( const std::string & n )
 void Mask::subset_loc(const int s, const std::string & d)
 {
   include_loc(s);
-  if ( in_locset.find(s) == in_locset.end() ) return;
+  if ( in_locset.find(s) == in_locset.end() ) 
+    {
+      Helper::halt( "invalid loc.subset specification" );
+      return;
+    }
   std::map<int, std::set<std::string> >::iterator i = subset_locset.find( s );
   if ( i == subset_locset.end() ) 
     {
@@ -1849,11 +1998,15 @@ void Mask::subset_loc(const int s, const std::string & d)
 void Mask::skip_loc(const int s, const std::string & d)
 {
   include_loc(s);
-  if ( in_locset.find(s) == in_locset.end() ) return;
-  map<int, set<string> >::iterator i = skip_locset.find( s );
+  if ( in_locset.find(s) == in_locset.end() ) 
+    {
+      Helper::halt( "invalid loc.skip specification" );
+      return;
+    }
+  std::map<int, std::set<std::string> >::iterator i = skip_locset.find( s );
   if ( i == skip_locset.end() ) 
     {
-      set<string> t;
+      std::set<std::string> t;
       t.insert( d );
       skip_locset.insert( make_pair( s , t ) );
     }
@@ -1871,6 +2024,7 @@ void Mask::subset_loc_set( const std::string & s1 ,
 {
   int gid = include_loc_set( s1, s2 );
   if ( gid ) subset_locset_set[ gid ].insert( s3 );
+  else Helper::halt( "invalud loc.subset specification" );
 }
 
 void Mask::skip_loc_set( const std::string & s1 , 
@@ -1884,11 +2038,11 @@ void Mask::skip_loc_set( const std::string & s1 ,
 bool Mask::insert_locset( const int j , const std::string & n ) const
 {
   
-  // if no subsets specified, this is fine.
+  // if no subsets specified, this is fine. (??)
   if ( subset_locset_set.size() == 0 ) return true;
   
   std::map<int, std::set<std::string> >::const_iterator i = subset_locset_set.find(j);
-
+  
   if ( i == subset_locset_set.end() ) 
     Helper::halt( "internal prob in Mask::insert_locset()" );
   
@@ -1926,6 +2080,7 @@ void Mask::subset_var(const int s, const std::string & d)
 
 void Mask::skip_var(const int s, const string & d)
 {
+
   Helper::halt( "var.skip not currently supported" );
 
   include_var(s);
@@ -1974,6 +2129,7 @@ void Mask::subset_loc_altname(const std::string & group , const std::string & al
   std::vector<std::string> s = locdb->fetch_name_given_altname( group , altname );
   if ( s.size() > 0 ) 
     subset_loc( group , s );
+  else plog.warn( "coult not find any alternate gene names" , group + ":" + altname );
 }
 
 void Mask::subset_loc_altname(const std::string & grp, const std::vector<std::string>& n)
@@ -1988,72 +2144,130 @@ void Mask::subset_loc_altname(const std::string & grp, const std::vector<std::st
 // Allow string-idenitification of sets
 //
 
-void Mask::subset_loc(const string & n, const string& d)
+void Mask::subset_loc(const std::string & n, const std::string & d)
 {
-    if ( ! locdb ) return;
+    if ( ! locdb ) 
+      {
+	Helper::halt( "LOCDB not attached, but requested in mask" );
+	return;
+      }
     int id = locdb->lookup_group_id( n );
     if ( id > 0 ) return subset_loc(id,d);    
+    Helper::halt( "problem with loc.subset specification in mask" );
     return;
 }
 
-void Mask::subset_loc(const string & n, const vector<string>& d)
+void Mask::subset_loc(const std::string & n, const std::vector<std::string>& d)
 {
-  if ( ! locdb ) return;
+  if ( ! locdb ) 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return;
+    }
   int id = locdb->lookup_group_id( n );
   if ( id > 0 ) return subset_loc(id,d);
+  Helper::halt( "problem with loc.subset specification in mask" );
 }
 
 void Mask::skip_loc(const string & n, const string& d)
 {
-    if ( ! locdb ) return;
+    if ( ! locdb ) 
+      {
+	Helper::halt( "LOCDB not attached, but requested in mask" );
+	return;
+      }
     int id = locdb->lookup_group_id( n );
     if ( id > 0 ) return skip_loc(id,d);
-    else return;
+    else 
+      {
+	Helper::halt( "problem with loc.skip specification in mask" );
+	return;
+      }
 }
 
 void Mask::skip_loc(const string & n, const vector<string>& d)
 {
-    if ( ! locdb ) return;
+    if ( ! locdb ) 
+      {
+	Helper::halt( "LOCDB not attached, but requested in mask" );
+	return;
+      }
     int id = locdb->lookup_group_id( n );
     if ( id > 0 ) return skip_loc(id,d);
-    else return;
+    else 
+      {
+	Helper::halt( "problem with loc.skip specification in mask" );
+	return;
+      }
 }
 
 
 void Mask::subset_var(const string & n, const string& d)
 {
-  if ( ! vardb ) return;
+  if ( ! vardb ) 
+    {
+      Helper::halt( "VARDB not attached, but requested in mask" );
+      return;
+    }
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( n , "" , DO_NOT_ADD);
   if ( id > 0 ) return subset_var(id,d);
-  else return;
+  else 
+    {
+      Helper::halt( "problem with var.subset specification in mask" );
+      return;
+    }
 }
 
 void Mask::subset_var(const string & n, const vector<string>& d)
 {
-  if ( ! vardb ) return;
+  if ( ! vardb ) 
+    {
+      Helper::halt ("VARDB not attached, but specified in mask" );
+      return;
+    }
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( n , "" , DO_NOT_ADD );
   if ( id > 0 ) return subset_var(id,d);
-  else return;
+  else 
+    {
+      Helper::halt( "problem with var.subset specification in mask" );
+      return;
+    }
 }
 
 void Mask::skip_var(const string & n, const string& d)
 {
-  if ( ! vardb ) return;
+  if ( ! vardb ) 
+    {
+      Helper::halt( "VARDB not attached, but requested in mask" );
+      return;
+    }
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( n , "" , DO_NOT_ADD );
   if ( id > 0 ) return skip_var(id,d);
-  else return;
+  else 
+    {
+      Helper::halt( "problem with var.skip specification in mask" );
+      return;
+    }
 }
 
 void Mask::skip_var(const string & n, const vector<string>& d)
 {
-  if ( ! vardb ) return;
+  if ( ! vardb ) 
+    {
+      Helper::halt( "VARDB not attached, but requested in mask" );
+      return;
+    }
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( n , "" , DO_NOT_ADD );
   if ( id > 0 ) return skip_var(id,d);
-  else return;
+  else 
+    {
+      Helper::halt( "problem with var.skip specification in mask" );
+      return;
+    }
 }
 
 
@@ -2071,6 +2285,9 @@ int Mask::include_file( const string & filetag )
     {
       in_files.insert(id);
     }
+  else 
+    Helper::halt( "problem with file mask specification" );
+
   return in_files.size();
 }
 
@@ -2089,6 +2306,9 @@ int Mask::exclude_file( const string & filetag )
     {
       ex_files.insert(id); 
     }
+  else 
+    Helper::halt( "problem with file.ex mask specification" );
+
   return ex_files.size();
 }
 
@@ -2104,16 +2324,28 @@ int Mask::append_loc( int x )
       app_locset.insert(x); 
       //include_loc(x);
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with loc.append mask specification" );
+      return 0;
+    }
   return x;
 }
 
 int Mask::append_loc( const string & n )
 {
-  if ( ! locdb ) return 0;
+  if ( ! locdb ) 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = locdb->lookup_group_id( n );
   if ( id > 0 ) return append_loc(id);
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with loc.append mask specification" );
+      return 0;
+    }
 }
 
 
@@ -2128,17 +2360,29 @@ int Mask::append_var( int x )
 	app_varset.insert(x); 
 	// include_var(x);
       }
-    else return 0;
+    else 
+      {
+	Helper::halt( "VARDB not attached, but requested in mask" );
+	return 0;
+      }
     return x;
 }
 
 int Mask::append_var( const std::string & n )
 {
-  if ( ! vardb ) return 0;
+  if ( ! vardb ) 
+    {
+      Helper::halt( "VARDB not attached, but requested in mask" );
+      return 0;
+    }
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( n , "" , DO_NOT_ADD );
   if ( id > 0 ) return append_var(id);
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with var.append mask specification");
+      return 0;
+    }
 }
 
 int Mask::append_var_set( int x )
@@ -2164,16 +2408,28 @@ int Mask::append_ref( int x )
     {
       app_refset.insert(x); 
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "REFDB not attached, but requested in mask" );
+      return 0;
+    }
   return x;
 }    
 
-int Mask::append_ref( const string & n )
+int Mask::append_ref( const std::string & n )
 {
-  if ( ! refdb ) return 0;
+  if ( ! refdb ) 
+    {
+      Helper::halt( "REFDB not attached, but requested in mask" );
+      return 0;
+    }
   int id = refdb->lookup_group_id( n );
   if ( id > 0 ) return append_ref(id);
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with ref.append mask specification" );
+      return 0;
+    }
 }
 
 
@@ -2201,7 +2457,11 @@ void Mask::group_loc(const int g)
 
 void Mask::group_var(const string & g) 
 { 
-  if ( ! vardb ) return;
+  if ( ! vardb ) 
+    {
+      Helper::halt( "VARDB not attached, but requested in mask" );
+      return;
+    }
   include_var(g); 
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( g , "" , DO_NOT_ADD );
@@ -2219,11 +2479,16 @@ void Mask::group_var_set( const int g )
 
 void Mask::group_var_set( const std::string & g )
 {
-  if ( ! vardb )return;
+  if ( ! vardb ) 
+    {
+      Helper::halt( "VARDB not attached, but requested in mask" );
+      return;
+    }
   include_varset(g);
   const bool DO_NOT_ADD = true;
   int pid = vardb->add_superset( g , "" , DO_NOT_ADD );
   if ( pid > 0 ) return group_var_set(pid);  
+  Helper::halt( "problme with varset specification in mask" );
   return;
 }
 
@@ -2241,10 +2506,15 @@ void Mask::group_var_set( const std::string & g )
 
 void Mask::group_loc(const string & g) 
 { 
-  if ( ! locdb ) return;
+  if ( ! locdb ) 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return;
+    }
   include_loc(g);
   int id = locdb->lookup_group_id( g );
   if ( id > 0 ) group_loc(id);    
+  Helper::halt( "problem with loc.group specification in mask" );
 }
 
 void Mask::group_reg( const std::vector<std::string> & g )
@@ -2384,14 +2654,20 @@ int Mask::include_loc_set( int x )
     {
       in_locset_set.insert( x ); 
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   return x;
 }
 
 int Mask::include_loc_set( std::string n , std::string p )
 {
   int pid = locdb ? locdb->lookup_set_id( n, p ) : 0 ;
-  return  pid > 0 ? include_loc_set(pid) : 0 ;    
+  if ( pid > 0 ) return include_loc_set(pid) ;
+  Helper::halt( "problem with locset specification in mask" );
+  return 0;
 }
 
 int Mask::append_loc_set( int x )
@@ -2400,17 +2676,28 @@ int Mask::append_loc_set( int x )
     {
       app_locset_set.insert(x); 
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   return x;
 }
 
 int Mask::append_loc_set( const string & n , const string & p )
 {
-  if ( ! locdb ) return 0;
+  if ( ! locdb ) 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   int pid = locdb->lookup_set_id( n,p );
   if ( pid > 0 ) return append_loc(pid);
-  else return 0;
-
+  else 
+    {
+      Helper::halt( "problem with locset.append specification in mask" );
+      return 0;
+    }
 }
 
 void Mask::group_loc_set(const int g)
@@ -2424,10 +2711,15 @@ void Mask::group_loc_set(const int g)
 
 void Mask::group_loc_set(const string & n, const string & p)
 {  
-  if ( ! locdb ) return;
+  if ( ! locdb ) 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return;
+    }
   include_loc_set(n,p);
   int pid = locdb->lookup_set_id( n,p );
   if ( pid > 0 ) return group_loc_set(pid);  
+  Helper::halt( "problem with locset.group specification in mask" ); 
   return;
 }
 
@@ -2438,16 +2730,28 @@ int Mask::require_loc_set( int x )
     {
       req_locset_set.insert(x); 
     }
-  else return 0;
+  else 
+    {
+      Helper::halt ( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   return x;
 }
 
 int Mask::require_loc_set( string n , string p )
 {
-  if ( ! locdb ) return 0;
+  if ( ! locdb ) 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   int pid = locdb->lookup_set_id( n, p );
   if ( pid > 0 ) return require_loc_set(pid);
-  else return 0;
+  else 
+    {
+      Helper::halt( "problem with locset.req specification in mask" );
+      return 0;
+    }
 
 }
 
@@ -2458,17 +2762,28 @@ int Mask::exclude_loc_set( int x )
     {
       ex_locset_set.insert(x); 
     }
-  else return 0;
+  else 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   return x;
 }
 
 int Mask::exclude_loc_set( string n , string p )
 {
-  if ( ! locdb ) return 0;
+  if ( ! locdb ) 
+    {
+      Helper::halt( "LOCDB not attached, but requested in mask" );
+      return 0;
+    }
   int pid = locdb->lookup_set_id( n, p );
   if ( pid > 0 ) return exclude_loc_set(pid);
-  else return 0;
-
+  else 
+    {
+      Helper::halt( "problem with locset.ex specification in mask" );
+      return 0;
+    }
 }
 
 
@@ -2544,7 +2859,7 @@ bool Mask::eval_filters( const SampleVariant & v )
 
   // Excludes
     
-  set<string>::iterator i = exc_filter.begin();
+  std::set<std::string>::iterator i = exc_filter.begin();
   while ( i != exc_filter.end() )
     {
       std::vector< std::string > keys = v.meta_filter.keys();
@@ -4203,7 +4518,14 @@ bool Mask::forced( int achr , int abp1, int abp2,
 		   int bchr , int bbp1 , int bbp2 , 
 		   Region * next ) const 
 {
-  
+
+  //   --------   NOT CURRENTLY USED -------------
+
+  //   ( code to be incorporated when we add a 'force' component to the mask, 
+  //     which forces certain pre-defined sites to be emitted, whether they 
+  //     are present or not in the VARDB / VCF ) 
+
+
   // 'previous' variant is 'a'
   // next in varbd iteration is 'b'
 

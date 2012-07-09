@@ -14,17 +14,19 @@ extern Pseq::Util::Options args;
 
 void f_view( Variant & v , void * p )
 {
-
+  
+  Out & pout = Out::stream( "vars" );
+  
   OptVView * opt = (OptVView*)p;
   
   if ( opt->simple ) 
   {
-      plog << v.coordinate() << "\t" 
-	   << v.consensus.reference() << "\t"
-	   << v.consensus.alternate() << "\n";
-      return;
+    pout << v.coordinate() << "\t" 
+	 << v.consensus.reference() << "\t"
+	 << v.consensus.alternate() << "\n";
+    return;
   }
-
+  
   // do not show now: accumulate for a ind x var display of (rare) genotypes:
   if ( opt->mview ) 
     {
@@ -32,24 +34,24 @@ void f_view( Variant & v , void * p )
       return;
     }
   
-  plog << v << "\t"
+  pout << v << "\t"
        << v.name() << "\t"
        << v.consensus << "\t"      
        << "." << "\t" 
        << v.n_samples() << "\t";
 
-  plog << v.print_meta_filter();
+  pout << v.print_meta_filter();
 
   if ( opt->vmeta )
     {
-      if ( opt->vexpand ) plog << "\n" << v.meta.display();
-      else plog << "\t" << v.meta ;      
+      if ( opt->vexpand ) pout << "\n" << v.meta.display();
+      else pout << "\t" << v.meta ;      
 
-      if ( opt->vexpand ) plog << "\n" << v.consensus.meta.display();
-      else plog << "\t" << v.consensus.meta ;      
+      if ( opt->vexpand ) pout << "\n" << v.consensus.meta.display();
+      else pout << "\t" << v.consensus.meta ;      
     }
 
-  plog << "\n";
+  pout << "\n";
   
   //
   // Show separaetly specific sample information? 
@@ -65,7 +67,7 @@ void f_view( Variant & v , void * p )
 
 	  const SampleVariant & sample = v.sample(s);
 	  
-	  plog << v << "\t"
+	  pout << v << "\t"
 	       << v.name() << "\t"
 	       << sample << "\t"	       
 	       << sample.file_name() << "\t"	    
@@ -73,11 +75,11 @@ void f_view( Variant & v , void * p )
 	  
 	  if ( opt->vmeta ) 
 	    {
-	      if ( opt->vexpand ) plog << "\n" << sample.meta.display();
-	      else plog << "\t" << sample.meta ;
+	      if ( opt->vexpand ) pout << "\n" << sample.meta.display();
+	      else pout << "\t" << sample.meta ;
 	    }
 	  
-	  plog << "\n";
+	  pout << "\n";
 	  
 	}      
     }
@@ -107,9 +109,9 @@ void f_view( Variant & v , void * p )
 	  if ( opt->show_only_alt   && ! v(i).nonreference() ) continue;
 	  if ( opt->show_only_minor && v(i).minor_allele_count( altmin ) <= 0 ) continue;
 	  
-	  plog << v.ind( i )->id() << "\t";
+	  pout << v.ind( i )->id() << "\t";
 	  
-	  plog << v.sample_label( i, "," ) << "\t";
+	  pout << v.sample_label( i, "," ) << "\t";
 	  
 	  //
 	  // Optionally, phenotype
@@ -117,30 +119,30 @@ void f_view( Variant & v , void * p )
 
 	  if ( g.phmap.type() == PHE_DICHOT )
 	    {
-	      if ( v.ind(i)->affected() == CASE ) plog << "CASE\t";
-	      else if ( v.ind(i)->affected() == CONTROL ) plog << "CONTROL\t";
-	      else plog << ".\t";
+	      if ( v.ind(i)->affected() == CASE ) pout << "CASE\t";
+	      else if ( v.ind(i)->affected() == CONTROL ) pout << "CONTROL\t";
+	      else pout << ".\t";
 	    }
 	  else if ( g.phmap.type() == PHE_QT )
-	    plog << v.ind(i)->qt() << "\t";
+	    pout << v.ind(i)->qt() << "\t";
 	  else if ( g.phmap.type() == PHE_FACTOR )
-	    plog << v.ind(i)->group_label() << "\t";
+	    pout << v.ind(i)->group_label() << "\t";
 
 	  //
 	  // Genotype
 	  //
 
-	  plog << v.label( i , "," );
+	  pout << v.label( i , "," );
 
 	  //
 	  // Gentype meta-information
 	  //
-
+	  
 	  if ( opt->gmeta )
-	    plog << "\t[" << v.gmeta_label(i) << "]";
+	    pout << "\t[" << v.gmeta_label(i) << "]";
 
 	  
-	  plog << "\n";
+	  pout << "\n";
 	}
     }
 
@@ -151,46 +153,50 @@ void f_view( Variant & v , void * p )
 
 void g_view( VariantGroup & vars , void * p )
 {
+
   OptGView * opt = (OptGView*)p;
-  
-  plog << vars.dump( opt->vmeta , 
-			  opt->vexpand , 
-			  opt->geno , 
-			  opt->gmeta , 
-			  opt->transpose , 
-			  opt->rarelist , 
-			  opt->show_phenotype ) << "\n";
+  Out & pout = Out::stream( "groups" );  
+
+  pout << vars.dump( opt->vmeta , 
+		     opt->vexpand , 
+		     opt->geno , 
+		     opt->gmeta , 
+		     opt->transpose , 
+		     opt->rarelist , 
+		     opt->show_phenotype ) << "\n";
   
 }
 
+
 void f_view_tped( Variant & v , void * p )
 {
-  std::ofstream * TPED = (std::ofstream*)p;
 
-  *TPED << v.chromosome() << "\t";
+  Out & tped = Out::stream( "tped" );
+  
+  tped << v.chromosome() << "\t";
   
   if ( v.name() == "." )
-    *TPED << "var_" 
-	  << Helper::chrCode( v.chromosome() ) << "_" 
-	  << v.position() << "\t";
+    tped << "var_" 
+	 << Helper::chrCode( v.chromosome() ) << "_" 
+	 << v.position() << "\t";
   else
-    *TPED << v.name() << "\t";
-
-  *TPED << "0\t"
+    tped << v.name() << "\t";
+  
+  tped  << "0\t"
 	<< v.position();
   
   int n = v.size();
   
   for (int i=0;i<n;i++)
-    *TPED << "\t" << v.print_PED( v(i) );
+    tped << "\t" << v.print_PED( v(i) );
 
-  *TPED << "\n";
+  tped << "\n";
 
 }
 
 void f_view_lik( Variant & v , void * p )
 {
-
+  
   //
   // output genotype likelihoods from GENO_LIK field ("GL" or "PL" by default
   // in GATK, specified in lib/defs.*)
@@ -201,8 +207,10 @@ void f_view_lik( Variant & v , void * p )
   GStore * g = (GStore*)p;
   
   int n = v.size();
+
+  Out & pout = Out::stream( "lik" );
   
-  plog << v << "\t" 
+  pout << v << "\t" 
        << v.reference() << "\t"
        << v.alternate();
   
@@ -287,10 +295,10 @@ void f_view_lik( Variant & v , void * p )
 	  
 	  if ( ! ( Helper::realnum( g0 ) && Helper::realnum( g1 ) && Helper::realnum( g2 ) ) )
 	    {
-	      plog << "\t0.333\t0.333\t0.333";
+	      pout << "\t0.333\t0.333\t0.333";
 	    }
 	  else
-	    plog << "\t" << g0 
+	    pout << "\t" << g0 
 		 << "\t" << g1 
 		 << "\t" << g2;
 	}   
@@ -304,21 +312,21 @@ void f_view_lik( Variant & v , void * p )
 	  // flat ratio ~ missing data point
 	  if ( g.null() ) 	
 	    {	      
-	      plog << "\t0.333\t0.333\t0.333";
+	      pout << "\t0.333\t0.333\t0.333";
 	    }
 	  else
 	    {
 	      int ac = g.allele_count( );
-	      if ( ac == 0 ) plog << "\t1\t0\t0";
-	      else if ( ac == 1 ) plog << "\t0\t1\t0";
-	      else if ( ac == 2 ) plog << "\t0\t0\t1"; 
-	      else plog << "\t0.333\t0.333\t0.333";
+	      if ( ac == 0 ) pout << "\t1\t0\t0";
+	      else if ( ac == 1 ) pout << "\t0\t1\t0";
+	      else if ( ac == 2 ) pout << "\t0\t0\t1"; 
+	      else pout << "\t0.333\t0.333\t0.333";
 	    }
 	}	    
 
     }
   
-  plog << "\n"; 
+  pout << "\n"; 
    
 }
 
@@ -326,10 +334,13 @@ void f_view_lik( Variant & v , void * p )
 
 void f_view_matrix( Variant & v , void * p )
 {
+
+
+  Out & pout = Out::stream( "matrix" );
   
   // output simple 0/1/2/NA calls 
   
-  plog << v << "\t" 
+  pout << v << "\t" 
        << v.reference() << "\t"
        << v.alternate();
   
@@ -338,11 +349,11 @@ void f_view_matrix( Variant & v , void * p )
   for (int i = 0 ; i < n ; i++)
     {
 	if ( v(i).null() ) 
-	    plog << "\tNA";
+	    pout << "\tNA";
 	else
-	    plog << "\t" << v(i).score();
+	    pout << "\t" << v(i).score();
     }
-  plog << "\n";
+  pout << "\n";
   
 }
 
@@ -350,12 +361,14 @@ void f_view_matrix( Variant & v , void * p )
 void f_view_meta_matrix( Variant & v , void * p )
 {
 
+  Out & pout = Out::stream( "matrix" );
+
   std::map<int,std::string> * samples = (std::map<int,std::string>*)p;
   
 
   // Core variant information
   
-  plog << v.chromosome() << "\t" 
+  pout << v.chromosome() << "\t" 
        << v.position() << "\t"
        << v.name();
   
@@ -368,17 +381,17 @@ void f_view_meta_matrix( Variant & v , void * p )
   // (SampleVariant/Consensus) information
   
   // Static, population/variant-level meta-fields (if any)
-  if ( nelem_static ) plog << "\t" << v.meta.display_row_static("NA");
+  if ( nelem_static ) pout << "\t" << v.meta.display_row_static("NA");
   
   // Consensus information
 
-  if ( nelem_nonstatic ) plog << "\t" << v.consensus.meta.display_row_nonstatic("NA");  
+  if ( nelem_nonstatic ) pout << "\t" << v.consensus.meta.display_row_nonstatic("NA");  
 
   // Filters, if only a single sample
   if ( samples->size() == 1 ) 
     {
       std::string f = v.consensus.meta_filter.display_row("NA");
-      if ( f != "" ) plog << "\t" << f;
+      if ( f != "" ) pout << "\t" << f;
     }
 
   // Per-sample information
@@ -404,10 +417,10 @@ void f_view_meta_matrix( Variant & v , void * p )
 	      // If sample for this variant not present, insert missing values
 	      
 	      int nelem = MetaInformation<VarMeta>::n_visible_keys_nonstatic();
-	      for (int i=0; i<nelem; i++) plog << "\tNA";
+	      for (int i=0; i<nelem; i++) pout << "\tNA";
 	      
 	      nelem = MetaInformation<VarFilterMeta>::n_visible_keys();
-	      for (int i=0; i<nelem; i++) plog << "\tNA";
+	      for (int i=0; i<nelem; i++) pout << "\tNA";
 	      
 	    }
 	  else
@@ -417,10 +430,10 @@ void f_view_meta_matrix( Variant & v , void * p )
 	      std::string f = s->meta_filter.display_row("NA"); 
 
 	      // Variant INFO tags
-	      if ( m != "" ) plog << "\t" << m;
+	      if ( m != "" ) pout << "\t" << m;
 	      
 	      // Variant FILTER tags
-	      if ( f != "" ) plog << "\t" << f;
+	      if ( f != "" ) pout << "\t" << f;
 	      
 	    }
 	  ++i;
@@ -428,26 +441,31 @@ void f_view_meta_matrix( Variant & v , void * p )
     }
 
   // next row
-  plog << "\n";
+  pout << "\n";
 }
 
 
 
 void f_view_var_meta_matrix( Variant & v , void * p )
 {
+
+  Out & pout = Out::stream( "matrix" );
+
   std::string name = *(std::string*)p; 
-  plog << v << "\t";
+  pout << v << "\t";
   for (int i=0; i<v.size(); i++)
-    plog << ( v(i).meta.has_field(name) ? 
+    pout << ( v(i).meta.has_field(name) ? 
 	      v(i).meta.as_string(name) : 
 	      "NA" ) << "\t";
-  plog << "\n";
+  pout << "\n";
 }
 
 
 
 void f_view_gene_matrix( VariantGroup & vars , void * p )
 {
+
+  Out & pout = Out::stream( "matrix" );
   
   OptGMatrix * opt = (OptGMatrix*)p;
   
@@ -491,8 +509,8 @@ void f_view_gene_matrix( VariantGroup & vars , void * p )
   
   if( ! ( opt->hide_zero_variance && ! variation ) )
     {
-      plog << s;    
-      plog << "\n";
+      pout << s;    
+      pout << "\n";
     }
 
 }
@@ -502,6 +520,7 @@ void f_view_gene_matrix( VariantGroup & vars , void * p )
 void f_view_gene_meta_matrix( VariantGroup & vars , void * p )
 {
   
+  Out & pout = Out::stream( "matrix" );
   
   // Output a region x individual matrix in which a genotype-level meta-field
   // is summarised for each individual across the region
@@ -559,7 +578,7 @@ void f_view_gene_meta_matrix( VariantGroup & vars , void * p )
       
     }
     
-  plog << s << "\n";
+  pout << s << "\n";
 
 }
 
@@ -567,53 +586,57 @@ void f_view_gene_meta_matrix( VariantGroup & vars , void * p )
 std::map<XQC_varid,std::set<int> >::iterator XQCstats::flush( std::map<XQC_varid,std::set<int> >::iterator n )
 {
   
-    XQC_varid pos = n->first;
-    std::vector<std::string> & d = data[pos];
-    std::vector<int> & k = datak[pos];
-    
-    if ( d.size() > 0 )
+  Out & pout = Out::stream( "vfreq" );
+
+  XQC_varid pos = n->first;
+  std::vector<std::string> & d = data[pos];
+  std::vector<int> & k = datak[pos];
+  
+  if ( d.size() > 0 )
     {
+      
+      pout.data_group( d[0] );
+      for (int i=1; i<d.size(); i++)
+	pout.data( d[i] , k[i]);      
+      
+      pout.data( neighbours[ pos ].size() ); 
 	
-	plog.data_group( d[0] );
-	for (int i=1; i<d.size(); i++)
-	    plog.data( d[i] , k[i]);      
-	
-	plog.data( neighbours[ pos ].size() ); 
-	
-	// end of data for this variant
-	plog.print_data_group();    
+      // end of data for this variant
+      pout.print_data_group();    
     }
     
-    data.erase( data.find( pos ) );
-    datak.erase( datak.find( pos ) );
-    
-    neighbours.erase( n++ );
-    return n;
+  data.erase( data.find( pos ) );
+  datak.erase( datak.find( pos ) );
+  
+  neighbours.erase( n++ );
+  return n;
 } 
 
 
 void XQCstats::flush() 
 {
-    
-    std::map<XQC_varid, std::vector<std::string> >::iterator i = data.begin();
-    while ( i != data.end() )
+  
+  Out & pout = Out::stream( "vfreq" );
+  
+  std::map<XQC_varid, std::vector<std::string> >::iterator i = data.begin();
+  while ( i != data.end() )
     {	
-	std::vector<std::string> & d = i->second;
-	std::vector<int> & k = datak[ i->first ];
+      std::vector<std::string> & d = i->second;
+      std::vector<int> & k = datak[ i->first ];
+      
+      pout.data_group( d[0] );
+      for (int j=1; j<d.size(); j++)
+	pout.data( d[j] , k[j]);
+      
+      pout.data( neighbours[ i->first ].size() , 0 );
 	
-	plog.data_group( d[0] );
-	for (int j=1; j<d.size(); j++)
-	    plog.data( d[j] , k[j]);
-	
-	plog.data( neighbours[ i->first ].size() , 0 );
-	
-	plog.print_data_group();
-	
-	++i;
+      pout.print_data_group();
+      
+      ++i;
     }
-    data.clear();
-    datak.clear();
-    neighbours.clear();
+  data.clear();
+  datak.clear();
+  neighbours.clear();
 }
 
 
@@ -753,6 +776,9 @@ void f_extra_qc_metrics( Variant & var , void * p )
 
 bool Pseq::LocDB::loc_view( const std::string & group , const std::vector<std::string> & alias , const bool meta , const bool subregions )
 {
+  
+  Out & pout = Out::stream( "loci" );
+
   LocDBase * db = g.resolve_locgroup( group ) ;
   if ( ! db ) return false;
 
@@ -764,24 +790,24 @@ bool Pseq::LocDB::loc_view( const std::string & group , const std::vector<std::s
   while ( i != loc.end() ) 
     {
 
-      plog << i->name << "\t"
+      pout << i->name << "\t"
 	   << i->coordinate() << "\t"
 	   << i->altname << "\t"
 	   << db->alias( i->name , false );
       if ( meta ) 
-	plog << "\t" << i->meta;
-      plog << "\n";
+	pout << "\t" << i->meta;
+      pout << "\n";
 
       if ( subregions ) 
 	{
 	  for (int s=0; s<i->subregion.size(); s++)
 	    {
 	      const Subregion & sub =  i->subregion[s];
-	      plog << "_S" << " " << i->name << "\t" 
+	      pout << "_S" << " " << i->name << "\t" 
 		   << sub;
 	      if ( meta ) 
-		plog << "\t" << sub.meta ;
-	      plog << "\n"; 
+		pout << "\t" << sub.meta ;
+	      pout << "\n"; 
 	    }
 	}
 
@@ -794,7 +820,10 @@ bool Pseq::LocDB::loc_view( const std::string & group , const std::vector<std::s
 
 bool Pseq::SeqDB::loc_translate( const std::string & group )
 {
-  
+
+  Out & pout = Out::stream( "loci" );
+  Out & pbase = Out::stream( "bstats" );
+
   bool verbose = args.has( "verbose" );
   
   LocDBase * db = g.resolve_locgroup( group ) ;
@@ -813,27 +842,26 @@ bool Pseq::SeqDB::loc_translate( const std::string & group )
   // Header row
   //
 
-  plog << "ID\tPOS\tNEXON\tNAA\tAASEQ\n";
+  pout << "ID\tPOS\tNEXON\tNAA\tAASEQ\n";
   
   if ( verbose )
     {
-      plog << "_BSTATS\t"
-	   << "GENE" << "\t"
-	   << "POS" << "\t"
-	   << "EXON" << "\t"
-	   << "STRAND" << "\t";
-      plog << "A\tC\tG\tT\tN";
+      pbase << "GENE" << "\t"
+	    << "POS" << "\t"
+	    << "EXON" << "\t"
+	    << "STRAND" << "\t"
+	    << "A\tC\tG\tT\tN";
       
       std::map<std::string,std::string>::iterator pp = Annotate::aa.begin();
       while ( pp != Annotate::aa.end() )
 	{
-	  plog << "\t" << pp->second ;
+	  pbase << "\t" << pp->second ;
 	  ++pp;
 	}
-      plog << "\n";
+      pbase << "\n";
     }
   
-
+  
   //
   // Process each locus
   //
@@ -844,20 +872,20 @@ bool Pseq::SeqDB::loc_translate( const std::string & group )
       
       std::string aa = Annotate::translate_reference( *i , verbose );
       
-      plog << i->name << "\t"
+      pout << i->name << "\t"
 	   << i->coordinate() << "\t"
 	   << i->subregion.size() << "\t"
 	   << aa.size() << "\t";
       
-      if ( aa.size() == 0 ) plog << ".";
+      if ( aa.size() == 0 ) pout << ".";
       
       for (int p=0; p<aa.size(); p++)
 	{
-	  if ( p > 0 && p % 10 == 0 ) plog << " ";
-	  plog << aa[p];
+	  if ( p > 0 && p % 10 == 0 ) pout << " ";
+	  pout << aa[p];
 	}
       
-      plog << "\n";
+      pout << "\n";
 
       ++i;
     }
@@ -867,8 +895,10 @@ bool Pseq::SeqDB::loc_translate( const std::string & group )
 
 void f_simple_counts( Variant & var , void * p )
 {
-
+  
   OptSimpleCounts * data = (OptSimpleCounts*)p;
+
+  Out & pout = Out::stream( data->genotypes ? "gcounts" : "counts" );
   
   std::string gene = ".";
   std::vector<std::string> genevec;
@@ -911,7 +941,7 @@ void f_simple_counts( Variant & var , void * p )
   
   // Output
 
-  plog << Helper::chrCode( var.chromosome() ) << ":" << var.position() ;
+  pout << Helper::chrCode( var.chromosome() ) << ":" << var.position() ;
 
   
 
@@ -920,7 +950,7 @@ void f_simple_counts( Variant & var , void * p )
   if ( data->genotypes )
     {
       // print ref/alt allele(s)
-      plog << "\t" << var.reference() << "/" << var.alternate();
+      pout << "\t" << var.reference() << "/" << var.alternate();
 
       std::map<std::string,int> gcnta;
       std::map<std::string,int> gcntu;
@@ -930,12 +960,12 @@ void f_simple_counts( Variant & var , void * p )
 	  gcnta = var.genotype_counts( CASE );
 	  gcntu = var.genotype_counts( CONTROL );
 
-	  plog << "\t";
+	  pout << "\t";
 	  std::map<std::string,int>::iterator ii = gcnta.begin();
 	  while ( ii != gcnta.end() )
 	    {
-	      if ( ii != gcnta.begin() ) plog << " ";
-	      plog << ii->first << "=" << ii->second << ":" << gcntu[ ii->first ] ;
+	      if ( ii != gcnta.begin() ) pout << " ";
+	      pout << ii->first << "=" << ii->second << ":" << gcntu[ ii->first ] ;
 	      ++ii;
 	    }	  
 	}
@@ -944,12 +974,12 @@ void f_simple_counts( Variant & var , void * p )
 
 	  gcntu = var.genotype_counts( UNKNOWN_PHE );
       
-	  plog << "\t";
+	  pout << "\t";
 	  std::map<std::string,int>::iterator ii = gcntu.begin();
 	  while ( ii != gcntu.end() )
 	    {
-	      if ( ii != gcntu.begin() ) plog << " ";
-	      plog << ii->first << "=" << ii->second ;
+	      if ( ii != gcntu.begin() ) pout << " ";
+	      pout << ii->first << "=" << ii->second ;
 	      ++ii;
 	    }
 	}
@@ -974,34 +1004,34 @@ void f_simple_counts( Variant & var , void * p )
 
       // print REF / ALT / Minor
       
-      plog << "\t" << var.reference() << "/" << var.alternate() ;
+      pout << "\t" << var.reference() << "/" << var.alternate() ;
 
       // print minor/major allele(s)
       
-      plog << "\t" << ( ma ? var.alternate()  : var.reference() ) ;            
+      pout << "\t" << ( ma ? var.alternate()  : var.reference() ) ;            
       
       if ( data->dichot_pheno )
-	plog << "\t" << case_count
+	pout << "\t" << case_count
 	     << "\t" << control_count ;
       else
-	plog << "\t" << case_count ;
+	pout << "\t" << case_count ;
       
       if ( data->dichot_pheno )
-	plog << "\t" << case_tot 
+	pout << "\t" << case_tot 
 	     << "\t" << control_tot;
       else
-	plog << "\t" << case_tot;
+	pout << "\t" << case_tot;
     }
 
 
   if ( data->apply_annot ) 
     {
-      plog << "\t" << annot1
+      pout << "\t" << annot1
 	   << "\t" << ( gene == "" ? "." : gene ) ;
 
       if ( data->apply_full_annot )
 	{
-	  plog << "\t" << annotfull	       
+	  pout << "\t" << annotfull	       
 	       << "\t" << protein;
 	  std::set<std::string> aliases;
 	  for (int s=0;s<genevec.size();s++) aliases.insert( g.locdb.alias( genevec[s] ) );
@@ -1009,8 +1039,8 @@ void f_simple_counts( Variant & var , void * p )
 	  std::set<std::string>::iterator i = aliases.begin();
 	  while ( i != aliases.end() )
 	    {
-	      if ( i != aliases.begin() ) plog << ","; else plog << "\t";
-	      plog << *i ;
+	      if ( i != aliases.begin() ) pout << ","; else pout << "\t";
+	      pout << *i ;
 	      ++i;
 	    }
 	}
@@ -1023,19 +1053,19 @@ void f_simple_counts( Variant & var , void * p )
       while ( i != data->meta.end() )
 	{
 	  if ( var.meta.has_field( *i ) )
-	    plog << "\t" << var.meta.as_string( *i );
+	    pout << "\t" << var.meta.as_string( *i );
 	  else if ( var.consensus.meta.has_field( *i) )
-	    plog << "\t" << var.consensus.meta.as_string( *i );
+	    pout << "\t" << var.consensus.meta.as_string( *i );
 	  else
-	    plog << "\t.";
+	    pout << "\t.";
 	  ++i;
 	}
     }
 
   if ( data->show_filter ) 
-    plog << "\t" << var.print_meta_filter();
+    pout << "\t" << var.print_meta_filter();
   
-  plog << "\n";
+  pout << "\n";
   
 }
 
@@ -1045,7 +1075,9 @@ bool Pseq::VarDB::header_VCF( const bool show_meta ,
 			      const bool show_header , 
 			      Mask & mask )
 {
-  
+
+  Out & pout = Out::stream( "indiv" );
+
   // Assumes we are in single-VCF mode, or else do nothing
   if ( ! g.single_file_mode() ) return false;
   
@@ -1079,10 +1111,10 @@ bool Pseq::VarDB::header_VCF( const bool show_meta ,
 	  int n = imap.populate( tmpdb , g.phmap , mask );
 	  for (int i=0; i<n; i++)
 	    {	      
-	      plog << imap(i)->id();
-	      if ( show_dichot_pheno ) plog << "\t" << imap(i)->affected();
-	      else if (show_qt ) plog << "\t" << imap(i)->qt();   
-	      plog << "\n";
+	      pout << imap(i)->id();
+	      if ( show_dichot_pheno ) pout << "\t" << imap(i)->affected();
+	      else if ( show_qt ) pout << "\t" << imap(i)->qt();   
+	      pout << "\n";
 	    }
 	}
       
@@ -1092,7 +1124,7 @@ bool Pseq::VarDB::header_VCF( const bool show_meta ,
   
   if ( show_meta ) 
     {
-      plog << MetaInformation<VarMeta>::list_fields("META_VARIANT")
+      pout << MetaInformation<VarMeta>::list_fields("META_VARIANT")
 	   << MetaInformation<VarFilterMeta>::list_fields("META_FILTER")
 	   << MetaInformation<GenMeta>::list_fields("META_GENOTYPE");
       
@@ -1105,6 +1137,7 @@ bool Pseq::VarDB::header_VCF( const bool show_meta ,
 
 void g_loc_view( VariantGroup & vars , void * p )
 {
-  plog << vars.name() << "\t" 
+  Out & pout = Out::stream( "loci" );
+  pout << vars.name() << "\t" 
        << vars.coordinate() << "\n";
 }

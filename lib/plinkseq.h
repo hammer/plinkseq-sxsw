@@ -6,6 +6,7 @@
 #include "plinkseq/genotype.h"
 #include "plinkseq/gstore.h"
 #include "plinkseq/sqlite3.h"
+#include "plinkseq/output.h"
 #include "plinkseq/helper.h"
 #include "plinkseq/individual.h"
 #include "plinkseq/inddb.h"

@@ -16,16 +16,16 @@ struct IterationReport {
   {
 
     if ( ! valid ) 
-      return "Invalid specification: no variants or groups processed";
+      return "Invalid specification: no variants or groups processed\n";
 
     if ( grouping ) 
-      return "Processed " + Helper::int2str( v_accept ) 
+      return "Included " + Helper::int2str( v_accept ) 
 	+ " of " + Helper::int2str( v_consid ) 
 	+ " variants considered, in " + Helper::int2str( g_count ) 
-	+ " distinct groups";
+	+ " distinct groups\n";
 
-    return "Processed " + Helper::int2str( v_accept ) 
-      + " of " + Helper::int2str( v_consid ) + " variants considered";
+    return "Included " + Helper::int2str( v_accept ) 
+      + " of " + Helper::int2str( v_consid ) + " variants considered\n";
   }
 
   bool reached_limit()

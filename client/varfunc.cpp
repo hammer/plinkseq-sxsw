@@ -32,7 +32,7 @@ struct AuxConcordanceCheck
   // total dataset
   AuxConcordanceStats tstats;
   
-  
+
   void evaluate( const Variant & v )
   {
     
@@ -117,9 +117,8 @@ struct AuxConcordanceCheck
 		record( v.ind(i)->id() , j1->first );
 		++nobs;
 		
-		//		uniq_obs.insert( v.psample( j1->first )->label( *(j1->second) , true ) );
-		
-		
+		// uniq_obs.insert( v.psample( j1->first )->label( *(j1->second) , true ) );
+				
 		// Insert unphased genotype label here
 		uniq_obs.insert( v.geno_label( j1->first , *(j1->second) ) );
 
@@ -139,8 +138,7 @@ struct AuxConcordanceCheck
 	      ++n_concordant_obs;
 	    else
 	      {
-		disc_indiv.insert( v.ind(i)->id() );
-		
+		disc_indiv.insert( v.ind(i)->id() );		
 	      }
 	  }
 	
@@ -151,47 +149,57 @@ struct AuxConcordanceCheck
     // Report per-variant stats
     //
     
+
     if ( n_multiple_obs > 0 || report_all )
       {
-	plog << "_VARIANT" << "\t"
-		  << v << "\t" 
-		  << v.n_samples() << "\t"
-		  << n_multiple_obs << "\t"
-		  << n_concordant_obs << "\t";
-
+	
+	Out & pvar = Out::stream( "concord.vars" ); 
+	
+	pvar << v << "\t" 
+	     << v.n_samples() << "\t"
+	     << n_multiple_obs << "\t"
+	     << n_concordant_obs << "\t";
+	
 	if ( n_multiple_obs > 1 )
-	  plog << (double)(n_concordant_obs)/(double)n_multiple_obs << "\t";
+	  pvar << (double)(n_concordant_obs)/(double)n_multiple_obs << "\t";
 	else
-	  plog << "NA\t";
+	  pvar << "NA\t";
 
 	if ( v.n_samples() == 2 ) 
-	  plog << cnt_ra << "\t" 
-		    << cnt_ar << "\t"
-		    << cnt_aa << "\t";
+	  pvar << cnt_ra << "\t" 
+	       << cnt_ar << "\t"
+	       << cnt_aa << "\t";
  	else
-	  plog << "NA" << "\t" 
-		    << "NA" << "\t"
-		    << "NA" << "\t";
-
+	  pvar << "NA" << "\t" 
+	       << "NA" << "\t"
+	       << "NA" << "\t";
+	
 	if ( disc_indiv.size() == 0 ) 
-	  plog << ".";
+	  pvar << ".";
 	else
 	  {
 	    std::set<std::string>::iterator i = disc_indiv.begin();
 	    while ( i != disc_indiv.end() )
 	      {
-		if ( i != disc_indiv.begin() ) plog << ",";
-		plog << *i;
+		if ( i != disc_indiv.begin() ) pvar << ",";
+		pvar << *i;
 		++i;
 	      }
 	  }
-	plog << "\n";
+	pvar << "\n";
       }
   }
 
 
   void report_helper( AuxConcordanceStats & stats , const std::string & label )
   {
+
+    // if label == "" implies total sample
+    // otherwise an individual ID
+    
+    bool whole_sample = label == "";
+
+    Out & pout = Out::stream(  whole_sample ? "concord" : "concord.indiv" );
     
     std::map<int,int>::iterator i = stats.once.begin();
     while ( i != stats.once.end() )
@@ -202,11 +210,11 @@ struct AuxConcordanceCheck
 	    
 	    if ( i == j ) { ++j; continue; }
 	    
-	    plog << label << "\t"
-		      << g.vardb.file_tag( i->first ) << "\t"
-		      << g.vardb.file_tag( j->first ) << "\t"
-		      << i->second << "\t"
-		      << j->second << "\t";
+	    pout << (whole_sample ? "TOTAL" : label ) << "\t"
+		 << g.vardb.file_tag( i->first ) << "\t"
+		 << g.vardb.file_tag( j->first ) << "\t"
+		 << i->second << "\t"
+		 << j->second << "\t";
 	    
 	    int conc = i->first < j->first ? 
 	      stats.conc[int2(  i->first ,  j->first ) ] :
@@ -219,22 +227,22 @@ struct AuxConcordanceCheck
 	    int disc_ref_nonref = stats.disc_ref_nonref[ int2(  i->first ,  j->first ) ] ;
 	    int disc_nonref_ref = stats.disc_ref_nonref[ int2(  j->first ,  i->first ) ] ;
 	    
-	    plog << disc << "\t" 
-		      << conc << "\t"
-		      << ( conc+disc>0 ? Helper::flt2str((double)conc/(double)(conc+disc)) : "NA" ) << "\t"
-		      << disc_ref_nonref << "\t" 
-		      << disc_nonref_ref << "\t"
-		      << ( disc - disc_ref_nonref - disc_nonref_ref ) << "\n";
-
+	    pout << disc << "\t" 
+		 << conc << "\t"
+		 << ( conc+disc>0 ? Helper::flt2str((double)conc/(double)(conc+disc)) : "NA" ) << "\t"
+		 << disc_ref_nonref << "\t" 
+		 << disc_nonref_ref << "\t"
+		 << ( disc - disc_ref_nonref - disc_nonref_ref ) << "\n";
+	    
 	    ++j;
 	  }
-
+	
 	++i;
-    }
+      }
 
   }
 
-
+  
   //
   // Final report after all variants considered
   //
@@ -249,7 +257,7 @@ struct AuxConcordanceCheck
     std::map< std::string , AuxConcordanceStats >::iterator ii = istats.begin();
     while ( ii != istats.end() )
       {
-	report_helper( ii->second , "_INDIV\t" + ii->first );
+	report_helper( ii->second , ii->first );
 	++ii;
       }
 	
@@ -258,7 +266,7 @@ struct AuxConcordanceCheck
     // for all files seen, give total variant count
     //
 
-    report_helper( tstats , "_TOTAL" );    
+    report_helper( tstats , "" );
     
   }
 
@@ -309,16 +317,20 @@ struct AuxConcordanceCheck
       }
 
     if ( ! conc )
-      plog << "_GENO" << "\t"
-	   << id << "\t"
-	   << f1 << "\t"
-	   << f2 << "\t"
-	   << v << "\t"
-	   << v.geno_label( f1 , *g1 ) << "\t"
-	   << v.geno_label( f2 , *g2 ) << "\t"
-	   << g1->nonreference() << "\t"
-	   << g2->nonreference() << "\n";
-    
+      {
+	Out & pgeno = Out::stream( "concord.geno" );
+
+	pgeno << id << "\t"
+	      << f1 << "\t"
+	      << f2 << "\t"
+	      << v << "\t"
+	      << v.geno_label( f1 , *g1 ) << "\t"
+	      << v.geno_label( f2 , *g2 ) << "\t"
+	      << g1->nonreference() << "\t"
+	      << g2->nonreference() << "\n";
+
+      }
+
   }
 
   //
@@ -347,15 +359,17 @@ bool Pseq::VarDB::check_concordance( Mask & m )
   if ( args.has("report-all") )
     aux.report_all = true;
 
-  plog << "_VARIANT" << "\t"
-	    << "VAR" << "\t" 
-	    << "N_SAMPLES" << "\t"
-	    << "N_MULT_OBS" << "\t"
-	    << "N_CONC_OBS" << "\t"
-	    << "CONC_RATE" << "\t"
-	    << "DISC_INDIV" << "\n";
+  Out & pvar = Out::stream( "concord.vars" );
 
+  pvar << "VAR" << "\t" 
+       << "N_SAMPLES" << "\t"
+       << "N_MULT_OBS" << "\t"
+       << "N_CONC_OBS" << "\t"
+       << "CONC_RATE" << "\t"
+       << "DISC_INDIV" << "\n";
+  
   g.vardb.iterate( f_conc , &aux , m );
+
   aux.report();  
 }
 
@@ -385,6 +399,8 @@ void f_lookup_annotator( Variant & var , void * p )
   AuxLookup * aux = (AuxLookup*)p;
 
   Region region( var );
+
+  Out & pout = Out::stream( "meta" );
   
   if ( aux->append_annot ) 
     {
@@ -396,35 +412,35 @@ void f_lookup_annotator( Variant & var , void * p )
 	  
       // detailed annotation vector, primary annotation
   
-      plog << var.coordinate() << "\t"
+      pout << var.coordinate() << "\t"
 	   << "func" << "\t"
 	   << var.meta.as_string( PLINKSeq::ANNOT_TYPE() , "," ) << "\n";
       
-      plog << var.coordinate() << "\t"
+      pout << var.coordinate() << "\t"
 	   << "transcript" << "\t"
 	   << var.meta.as_string( PLINKSeq::ANNOT_GENE() , "," ) << "\n";
       
-      plog << var.coordinate() << "\t"
+      pout << var.coordinate() << "\t"
 	   << "genomic" << "\t"
 	   << var.meta.as_string( PLINKSeq::ANNOT_CHANGE() , "," ) << "\n";
       
-      plog << var.coordinate() << "\t"
+      pout << var.coordinate() << "\t"
 	   << "codon" << "\t"
 	   << var.meta.as_string( PLINKSeq::ANNOT_CODON() , "," ) << "\n";
       
-      plog << var.coordinate() << "\t"
+      pout << var.coordinate() << "\t"
 	   << "protein" << "\t"
 	   << var.meta.as_string( PLINKSeq::ANNOT_PROTEIN() , "," ) << "\n";
       
       // worst-case consensus annotation
       
-      plog << var.coordinate() << "\t"
+      pout << var.coordinate() << "\t"
 	   << "worst" << "\t"
 	   << annot << "\n";
       
       // summary annotation
       
-      plog << var.coordinate() << "\t"
+      pout << var.coordinate() << "\t"
 	   << "class" << "\t"
 	   << var.meta.get1_string( PLINKSeq::ANNOT_SUMMARY()) << "\n";
       
@@ -433,7 +449,7 @@ void f_lookup_annotator( Variant & var , void * p )
 
   std::string s = var.coordinate();
 
-  plog << s << "\t"
+  pout << s << "\t"
        << "allele_ref\t"
        << var.reference() << "\n"
        << s << "\t"
@@ -446,11 +462,11 @@ void f_lookup_annotator( Variant & var , void * p )
   if ( aux->append_seq ) 
     {
       if ( region.length() <= 10 )
-	plog << s << "\t" 
+	pout << s << "\t" 
 	     << "seqdb_ref" << "\t"
 	     << g.seqdb.lookup( region ) << "\n";	        
       else
-	plog << s << "\t" 
+	pout << s << "\t" 
 	     << "seqdb_ref" << "\t"
 	     << "." << "\n";	        
 
@@ -467,12 +483,12 @@ void f_lookup_annotator( Variant & var , void * p )
       if ( aux->vardb ) 
 	{
 	  
-	  plog << s << "\t"
+	  pout << s << "\t"
 	       << "var" << "\t"
 	       << "NA" << "\n";
 	  
 	  if ( aux->append_phe ) 
-	    plog << s << "\t"
+	    pout << s << "\t"
 		 << "case" << "\t"
 		 << "NA" << "\n"
 		 << s << "\t"
@@ -481,7 +497,7 @@ void f_lookup_annotator( Variant & var , void * p )
 	}
     }
 
-  plog << s << "\t"
+  pout << s << "\t"
        << "nvar" << "\t"
        << vars.size() << "\n";		    
 
@@ -494,11 +510,11 @@ void f_lookup_annotator( Variant & var , void * p )
       ++cnt;
 
       if ( vars.size() > 1 ) 
-	plog << s << "\t"
+	pout << s << "\t"
 	     << "var_" << cnt << "\t"
 	     << *v << "\n";		    
       else
-	plog << s << "\t"
+	pout << s << "\t"
 	     << "var" << "\t"
 	     << *v << "\n";		    	
       
@@ -528,14 +544,14 @@ void f_lookup_annotator( Variant & var , void * p )
       if ( aux->append_phe )
 	{
 	  if ( vars.size() > 1 ) 
-	    plog << s << "\t"
+	    pout << s << "\t"
 		 << "case_" << cnt << "\t" 
 		 << case_n << "\n" 
 		 << s << "\t"
 		 << "con_" << cnt << "\t" 
 		 << control_n << "\n";
 	  else
-	    plog << s << "\t"
+	    pout << s << "\t"
 		 << "case" << "\t" 
 		 << case_n << "\n" 
 		 << s << "\t"
@@ -545,11 +561,11 @@ void f_lookup_annotator( Variant & var , void * p )
       else
 	{
 	  if ( vars.size() > 1 )
-	    plog << s << "\t"
+	    pout << s << "\t"
 		 << "cnt_" << cnt << "\t" 
 		 << control_n << "\n";
 	  else
-	    plog << s << "\t"
+	    pout << s << "\t"
 		 << "cnt" << "\t" 
 		 << control_n << "\n";
 	}
@@ -571,7 +587,7 @@ void f_lookup_annotator( Variant & var , void * p )
 	  std::set<Region> rregs = g.locdb.get_regions( *i , region );
 	  if ( rregs.size() == 0 ) 
 	    {
-	      plog << s << "\t"
+	      pout << s << "\t"
 		   << "loc_" << *i << "\t"
 		   << "." << "\n";
 	    }
@@ -579,7 +595,7 @@ void f_lookup_annotator( Variant & var , void * p )
 	  std::set<Region>::iterator j = rregs.begin();
 	  while ( j != rregs.end() )
 	    {
-	      plog << s << "\t"
+	      pout << s << "\t"
 		   << "loc_" << *i << "\t"
 		   << j->coordinate() << ":"
 		   << j->name << "\n";
@@ -594,7 +610,7 @@ void f_lookup_annotator( Variant & var , void * p )
 		      std::set<std::string>::iterator ia = a.begin();
 		      while ( ia != a.end() )
 			{
-			  plog << s << "\t"
+			  pout << s << "\t"
 			       << "loc_" << *jj << "\t"			       
 			       << *ia << "\n";
 			  ++ia;
@@ -627,7 +643,7 @@ void f_lookup_annotator( Variant & var , void * p )
 	  
 	  if ( rvars.size() == 0 ) 
 	    {
-	      plog << s << "\t"
+	      pout << s << "\t"
 		   << "ref_" << *i << "\t"
 		   << "." << "\t"
 		   << "." << "\n";
@@ -636,7 +652,7 @@ void f_lookup_annotator( Variant & var , void * p )
 	  std::set<RefVariant>::iterator j = rvars.begin();
 	  while ( j != rvars.end() )
 	    {
-	      plog << s << "\t"
+	      pout << s << "\t"
 		   << "ref_" << *i << "\t"
 		   << *j << "\t"
 		   << j->value() << "\n";
@@ -655,6 +671,8 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 {
  
   AuxLookup aux;
+
+  Out & pout = Out::stream( "meta" );
 
   // From LOCDB, take set of gene-groups
   // From REFDB, take set of ref-variants
@@ -686,13 +704,13 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 
   if ( aux.vardb )
     {
-      plog << "##nvar,1,Integer,\"Number of overlapping variants\"\n";
-      plog << "##var,1,String,\"Variant ID\"\n";
+      pout << "##nvar,1,Integer,\"Number of overlapping variants\"\n";
+      pout << "##var,1,String,\"Variant ID\"\n";
       if ( aux.append_phe ) {
-	plog << "##case,1,Integer,\"Case minor allele counts\"\n";
-	plog << "##con,1,Integer,\"Control minor allele counts\"\n";
+	pout << "##case,1,Integer,\"Case minor allele counts\"\n";
+	pout << "##con,1,Integer,\"Control minor allele counts\"\n";
       }
-      else plog << "##cnt,1,Integer,\"Minor allele counts\"\n";
+      else pout << "##cnt,1,Integer,\"Minor allele counts\"\n";
     }
   
   if ( aux.append_loc )
@@ -700,7 +718,7 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
       std::set<std::string>::iterator i = aux.locs.begin();
       while ( i != aux.locs.end() )
 	{
-	  plog << "##" << "loc_" << *i << ",.,String,\"LOCDB group\"\n";
+	  pout << "##" << "loc_" << *i << ",.,String,\"LOCDB group\"\n";
 	  ++i;
 	}
     }
@@ -710,28 +728,28 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
       std::set<std::string>::iterator i = aux.refs.begin();
       while ( i != aux.refs.end() )
 	{
-	  plog << "##" << "ref_" << *i << ",.,String,\"REFDB group\"\n";
+	  pout << "##" << "ref_" << *i << ",.,String,\"REFDB group\"\n";
 	  ++i;
 	}
     }
   
   if ( aux.append_annot )
     {
-      plog << "##func,.,String,\"Genomic annotation\"\n";
-      plog << "##transcript,.,String,\"Transcript ID\"\n";
-      plog << "##genomic,.,String,\"Genomic DNA change\"\n";
-      plog << "##codon,.,String,\"Codon change\"\n";
-      plog << "##protein,.,String,\"Any nonsynon amino acid change\"\n";
-      plog << "##worst,1,String,\"Worst annotation\"\n";
-      plog << "##class,.,String,\"Summary of all annotations\"\n";
+      pout << "##func,.,String,\"Genomic annotation\"\n";
+      pout << "##transcript,.,String,\"Transcript ID\"\n";
+      pout << "##genomic,.,String,\"Genomic DNA change\"\n";
+      pout << "##codon,.,String,\"Codon change\"\n";
+      pout << "##protein,.,String,\"Any nonsynon amino acid change\"\n";
+      pout << "##worst,1,String,\"Worst annotation\"\n";
+      pout << "##class,.,String,\"Summary of all annotations\"\n";
     }
   
-  plog << "##allele_ref,1,String,\"VCF reference sequence\"\n"
+  pout << "##allele_ref,1,String,\"VCF reference sequence\"\n"
        << "##allele_alt,.,String,\"VCF alternate sequence(s)\"\n";
 
   if ( aux.append_seq )
     {
-      plog << "##seqdb_ref,1,String,\"SEQDB reference sequence\"\n";
+      pout << "##seqdb_ref,1,String,\"SEQDB reference sequence\"\n";
     }
 
     
@@ -834,19 +852,22 @@ struct Aux_annotate_loc {
 
 void f_annotate_loc( Variant & v , void * p )
 {
+
   Aux_annotate_loc * aux = (Aux_annotate_loc*)p;
 
   std::set<Region> loc = aux->locdb->get_regions( aux->grp , v );
-
+  
+  Out & pout = Out::stream( "loci" );
+  
   if ( loc.size() == 0 ) 
     {
-      plog << v << "\t"
+      pout << v << "\t"
 	   << 0 << "\t"
 	   << "." << "\t"
 	   << "." << "\t"
 	   << ( aux->show_sub ? "." : "" ) << "\t";
-      for (int j=0;j<aux->nm;j++) plog << (j!=0 ? "\t" : "" ) << ".";
-      plog << "\n";
+      for (int j=0;j<aux->nm;j++) pout << (j!=0 ? "\t" : "" ) << ".";
+      pout << "\n";
     }
   else
     {
@@ -854,7 +875,7 @@ void f_annotate_loc( Variant & v , void * p )
       std::set<Region>::iterator i = loc.begin();
       while ( i != loc.end() ) 
 	{
-	  plog << v << "\t"
+	  pout << v << "\t"
 	       << cnt++ << "\t"
 	       << i->name << "\t"
 	       << aux->locdb->alias( i->name , false ) << "\t"
@@ -868,13 +889,14 @@ void f_annotate_loc( Variant & v , void * p )
 bool Pseq::VarDB::annotate_loc( const std::string & grp, Mask & m )
 {  
   
-  plog << "VAR" << "\t"
+  Out & pout = Out::stream( "loci" );
+
+  pout << "VAR" << "\t"
        << "N" << "\t"
        << "LOC" << "\t"
        << "ALIAS" << "\t"
        << MetaInformation<LocMeta>::display_header() << "\n";
   
-
   int nm = MetaInformation<LocMeta>::n_keys();
   
   // display headers for LOCDB group 'grp'
@@ -882,6 +904,7 @@ bool Pseq::VarDB::annotate_loc( const std::string & grp, Mask & m )
 			grp , 
 			nm , 
 			args.has("show-subregions"));
+  
   g.vardb.iterate( f_annotate_loc , &aux , m );
 
   return true;
@@ -892,6 +915,8 @@ bool Pseq::VarDB::annotate_loc( const std::string & grp, Mask & m )
 bool Pseq::VarDB::simple_sim()
 {
 
+  Out & pout = Out::stream( "assoc.sim" );
+
   // a very basic wrapper purely to generate some data to be fed to 
   // to various genic tests, primarily in a sanity-check/debug mode
   // although could also be used for power calculations, etc
@@ -900,16 +925,16 @@ bool Pseq::VarDB::simple_sim()
   a.g     = &g;
   a.rseed = time(0);
 
-  plog.data_reset();  
-  plog.data_group_header( "LOCUS" );
-  plog.data_header( "POS" );
-  plog.data_header( "ALIAS" );
-  plog.data_header( "NVAR" );
-  plog.data_header( "TEST" );
-  plog.data_header( "P" );
-  plog.data_header( "I" );
-  plog.data_header( "DESC" );  
-  plog.data_header_done();
+  pout.data_reset();  
+  pout.data_group_header( "LOCUS" );
+  pout.data_header( "POS" );
+  pout.data_header( "ALIAS" );
+  pout.data_header( "NVAR" );
+  pout.data_header( "TEST" );
+  pout.data_header( "P" );
+  pout.data_header( "I" );
+  pout.data_header( "DESC" );  
+  pout.data_header_done();
   
   a.vanilla = a.burden = a.uniq = true;
   a.mhit = args.has( "assoc" , "mhit" );
@@ -1144,6 +1169,8 @@ struct Aux_proximity{
 void f_proxscan( Variant & var , void * p )
 {
 
+  Out & pout = Out::stream( "proximity" );
+
   Aux_proximity * aux = (Aux_proximity*)p;
   
   // Is this close enough to the last variant seen?
@@ -1160,7 +1187,7 @@ void f_proxscan( Variant & var , void * p )
       while ( i != aux->store.end() )
 	{
 
-	  plog.data_group( i->displaycore() + "," + var.displaycore() );
+	  pout.data_group( i->displaycore() + "," + var.displaycore() );
 	  
 	  // Counts
 
@@ -1169,7 +1196,7 @@ void f_proxscan( Variant & var , void * p )
 	  bool altmin2 = aux->lastvar.n_minor_allele( &n2, &m2 );
 	  
 	  // DIST
-	  plog.data( var.position() - aux->lastvar.stop() );
+	  pout.data( var.position() - aux->lastvar.stop() );
 
 	  // Calculate correlation coefficient between pair of SNPs
 	  
@@ -1215,26 +1242,26 @@ void f_proxscan( Variant & var , void * p )
 	  // Non-ref genotype counts
 	  
 	  // FREQ1, OBS1
-	  plog.data( n1 ) ; 
-	  plog.data( n2 ) ; 
+	  pout.data( n1 ) ; 
+	  pout.data( n2 ) ; 
 
-	  plog.data( g1 );
-	  plog.data( g2 );
-	  plog.data( na );	  
+	  pout.data( g1 );
+	  pout.data( g2 );
+	  pout.data( na );	  
 
 	  // Both/Either
 
-	  plog.data( both  );
-	  plog.data( either  );
+	  pout.data( both  );
+	  pout.data( either  );
 	  if ( either ) 
-	    plog.data( both/(double)either );
+	    pout.data( both/(double)either );
 	  else 
-	    plog.data( "NA" );
+	    pout.data( "NA" );
 
-	  if ( Helper::realnum( r ) ) plog.data( r ) ; 
-	  else plog.data( "NA" ) ; 	  
+	  if ( Helper::realnum( r ) ) pout.data( r ) ; 
+	  else pout.data( "NA" ) ; 	  
 	  
-	  plog.print_data_group();    
+	  pout.print_data_group();    
 
 	  ++i;
 	}
@@ -1250,30 +1277,33 @@ void f_proxscan( Variant & var , void * p )
 
 bool Pseq::VarDB::proximity_scan( Mask & mask )
 {
-  
+
+  Out & pout = Out::stream( "proximity" );
+
   Aux_proximity aux;
+
   aux.dist = args.has( "distance" ) ? args.as_int( "distance" ) : 2 ;
   
-  plog.data_reset();	
+  pout.data_reset();	
 
-  plog.data_group_header( "PAIR" );
+  pout.data_group_header( "PAIR" );
 
-  plog.data_header( "DIST" );
+  pout.data_header( "DIST" );
 
-  plog.data_header( "FRQ1" );
-  plog.data_header( "FRQ2" );
+  pout.data_header( "FRQ1" );
+  pout.data_header( "FRQ2" );
 
-  plog.data_header( "GENO1" );
-  plog.data_header( "GENO2" );
+  pout.data_header( "GENO1" );
+  pout.data_header( "GENO2" );
 
-  plog.data_header( "NP" );
-  plog.data_header( "BOTH" );
-  plog.data_header( "EITHER" );
-  plog.data_header( "CONC" );
+  pout.data_header( "NP" );
+  pout.data_header( "BOTH" );
+  pout.data_header( "EITHER" );
+  pout.data_header( "CONC" );
 
-  plog.data_header( "R" );
+  pout.data_header( "R" );
 
-  plog.data_header_done();
+  pout.data_header_done();
   
   IterationReport report = g.vardb.iterate( f_proxscan , &aux , mask );
   
@@ -1484,6 +1514,8 @@ struct Aux_transmission_summary
 
 void f_denovo_scan( Variant & v , void * p )
 {
+
+  Out & pout = Out::stream( "denovo.vars" );
   
   Aux_transmission_summary * aux = (Aux_transmission_summary*)p;
   
@@ -1704,7 +1736,7 @@ void f_denovo_scan( Variant & v , void * p )
 	  int c = 0 , c_tot = 0;
 	  v.n_minor_allele( &c , &c_tot ); 
 	  
-	  plog << "Variant\tRefxRef->Het\t" 
+	  pout << "Variant\tRefxRef->Het\t" 
 	       << v << "\t" 
 	       << c << "\t"
 	       << c_tot << "\t"
@@ -1731,6 +1763,7 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
   // store summary transmission data 
   Aux_transmission_summary aux(n);
 
+  
   if ( args.has("param") )
     {
       std::vector<double> p = args.as_float_vector( "param" );
@@ -1764,21 +1797,23 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
   g.vardb.iterate( f_denovo_scan , &aux , mask );
   
   // display summaries
+
+  Out & pindiv = Out::stream( "denovo.indiv" );
   
   for (int i=0;i<n;i++)
     {
       aux_transmission_summary * p = aux.indiv(i);
       if ( p->has_parents ) 
-	plog << "Individual\t" 
-	     << g.indmap(i)->id() << "\t" 
-	     << p->complete_transmissions() << "\t"
-	     << p->missing << "\t"
-	     << p->trans_ref_from_het() << "\t"
-	     << p->trans_alt_from_het() << "\t"
-	     << p->trans_alt_from_het() / (double)( p->trans_ref_from_het() + p->trans_alt_from_het() ) << "\t"
-	     << p->nonmendelian() << "\t"
-	     << p->potential_denovo() << "\t"
-	     << p->passing_denovo() << "\n";
+	pindiv << "Individual\t" 
+	       << g.indmap(i)->id() << "\t" 
+	       << p->complete_transmissions() << "\t"
+	       << p->missing << "\t"
+	       << p->trans_ref_from_het() << "\t"
+	       << p->trans_alt_from_het() << "\t"
+	       << p->trans_alt_from_het() / (double)( p->trans_ref_from_het() + p->trans_alt_from_het() ) << "\t"
+	       << p->nonmendelian() << "\t"
+	       << p->potential_denovo() << "\t"
+	       << p->passing_denovo() << "\n";
     }
   
   return true;
@@ -1821,5 +1856,5 @@ bool Pseq::VarDB::write_lookup_matrix(Mask & m , const std::string & filename, c
 //   std::cout << "found " << lookups.size() << " regions to lookup\n";
  
 
-return false;
+  return false;
  }

@@ -6,12 +6,16 @@ extern Pseq::Util::Options args;
 
 void Pseq::IBS::regargs( Pseq::Util::Options * args )
 {
-    args->reg( "long-format" , Pseq::Util::Options::NONE , "output one row per line (instead of n-by-n matrix)" );
-    args->reg( "two-counts"  , Pseq::Util::Options::NONE , "only consider variants seen twice in the sample" );
+  args->reg( "long-format" , Pseq::Util::Options::NONE , "output one row per line (instead of n-by-n matrix)" );
+  args->reg( "two-counts"  , Pseq::Util::Options::NONE , "only consider variants seen twice in the sample" );
 }
+
 
 bool Pseq::IBS::calculate( Mask & m ) 
 {
+  
+  Out & pout = Out::stream( "ibs" );
+  
   const int n = g.indmap.size();
   
   class Pseq::IBS::Aux aux( n ) ;
@@ -23,16 +27,16 @@ bool Pseq::IBS::calculate( Mask & m )
   
   if ( matrix ) 
     {
-      plog << "IBS";
-      for (int i=0; i<n; i++) plog << "\t" << g.indmap(i)->id();
-      plog << "\n";
+      pout << "IBS";
+      for (int i=0; i<n; i++) pout << "\t" << g.indmap(i)->id();
+      pout << "\n";
       
       for (int i=0; i<n; i++)
 	{
-	  plog << g.indmap(i)->id() << "\t";
+	  pout << g.indmap(i)->id() << "\t";
 	  for (int j=0; j<n; j++)
-	    plog << ( aux.obs(i,j) > 0 ? (double)aux.ibs(i,j) / (double)aux.obs(i,j) : 0 ) << "\t";
-	  plog << "\n";
+	    pout << ( aux.obs(i,j) > 0 ? (double)aux.ibs(i,j) / (double)aux.obs(i,j) : 0 ) << "\t";
+	  pout << "\n";
 	}
     }
   else
@@ -40,13 +44,13 @@ bool Pseq::IBS::calculate( Mask & m )
       for (int i=0; i<n; i++)
 	for (int j=i+1; j<n; j++)
 	  {
-	    plog << g.indmap(i)->id() << "\t" 
+	    pout << g.indmap(i)->id() << "\t" 
 		 << g.indmap(j)->id() << "\t";
-
+	    
 	    if ( two_counts ) 
-	      plog << aux.ibs(i,j) << "\t" << aux.obs(i,j) << "\n";
+	      pout << aux.ibs(i,j) << "\t" << aux.obs(i,j) << "\n";
 	    else 
-	      plog << ( aux.obs(i,j) > 0 ? (double)aux.ibs(i,j) / (double)aux.obs(i,j) : 0 ) << "\n";
+	      pout << ( aux.obs(i,j) > 0 ? (double)aux.ibs(i,j) / (double)aux.obs(i,j) : 0 ) << "\n";
 	  }
     }
 
