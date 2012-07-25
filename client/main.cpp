@@ -2330,20 +2330,23 @@ int main(int argc, char ** argv)
 
     if ( command == "v-matrix" )
       {	
-	Pseq::VarDB::write_matrix(m);
+			Out output( "matrix" , "variant/genotype matrix output" );
+				Pseq::VarDB::write_matrix(m);
 	Pseq::finished();
       }
 
 
     if ( command == "meta-matrix" )
       {	
-	Pseq::VarDB::write_meta_matrix(m);
+			Out output( "matrix" , "variant/genotype matrix output" );
+				Pseq::VarDB::write_meta_matrix(m);
 	Pseq::finished();
       }
 
     if ( command == "v-meta-matrix" )
       {	
-	std::string name = Pseq::Util::single_argument<std::string>( args, "name" );
+			Out output( "matrix" , "variant/genotype matrix output" );
+				std::string name = Pseq::Util::single_argument<std::string>( args, "name" );
 	Pseq::VarDB::write_var_meta_matrix(m,name);
 	Pseq::finished();
       }
@@ -2365,7 +2368,7 @@ int main(int argc, char ** argv)
       {	
 	// options:
 	// 1) only show genes with non-zero variance
-
+			Out output( "matrix" , "variant/genotype matrix output" );
 	OptGMatrix opt(&g);
 	if ( args.has( "hide-invariant" )  )
 	  opt.hide_zero_variance = true;
@@ -2378,6 +2381,7 @@ int main(int argc, char ** argv)
     
     if ( command == "g-meta-matrix" )
       {	
+				Out output( "matrix" , "variant/genotype matrix output" );
 	OptGMetaMatrix opt;
 	opt.name = Pseq::Util::single_argument<std::string>( args, "name" );
 	opt.show_mean = true;
