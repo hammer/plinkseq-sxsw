@@ -197,7 +197,7 @@ class Genotype {
   }
 
   // genotype scoring function
-  double score( genotype_model_t model = GENOTYPE_MODEL_UNSPEC );
+  double score( genotype_model_t model = GENOTYPE_MODEL_UNSPEC ) const;
 
   // Used when recalling a genotype (i.e. merging SampleVariants with 
   // different alt-alleles
