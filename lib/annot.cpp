@@ -100,6 +100,7 @@ void Annotate::setDB( LocDBase * p , SeqDBase * s )
 std::string Annotate::translate(std::string & seq, int frame , std::vector<std::string> & codons )
 {
 
+
     Helper::str2upper(seq);
 
     if ( seq.size() - frame == 1 ) seq += "-";
@@ -994,7 +995,6 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      var_cds.replace( pos_extracted_seq-1 , 1 , var_allele );
 	    }
 	  
-	  std::cout << "(2)so far, so good\n";
 	  
 	  //
 	  // Are reference and variant sequences identical for this gene?
@@ -1104,7 +1104,6 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		    }
 		  
 		}
-
 	      if ( trans_ref[i] != trans_var[i] )
 		{
 	    	  // Single base substitution changes - manny.
@@ -1211,13 +1210,13 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 
 		      if (  ( reference.size() > 1 && modtmpr != 0 ) || ( alternate.size() > 1 && ( modtmpa != 0 ) ) )
 			{
-			  
 			  newpos_stop++;
 			  if(newpos_stop == 1)
 			    {
 			      firstfs_codon = i;
 			      pposfs = i+1;
 			    }
+
 			  // Stop of new transcript.
 			  if(trans_var[i] == '*' && firststop_codon == 0)
 			    {
@@ -1251,12 +1250,14 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			      //uncommented the line below - change back to comment
 			      
 			      annot.insert( si );
-			      			      
+			      
+			      			     
 			      
 			    }
 			  
-			  if (i == longest - 1 && firststop_codon == 0) 
+			  if (i == longest - 1 && firststop_codon == 0 ) 
 			    {
+			      
 			      firststop_codon++;
 			      seq_annot_t type = FRAMESHIFT;
 			      
@@ -1327,19 +1328,28 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  }
 		      }
 		      else 
-			{
-			  
-			  seq_annot_t type = INDEL;
-			
-			  
-			}
-		      
-		      
+			{ 
+			    seq_annot_t type = INDEL;
+			}		      
  		    }
-		  
-		  
-		  
 		}
+	      if ( trans_ref[i] == '*' && trans_var[i] == '*' ){
+		seq_annot_t type = INDEL;
+		annot.insert( SeqInfo( r->name ,
+				       type ,
+				       reference ,
+				       *a ,
+				       pos_whole_transcript ,
+				       ref_codon[i] ,
+				       alt_codon[i] ,
+				       (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
+				       trans_ref.substr(i,1) ,
+				       trans_var.substr(i,1) ) );
+		
+		i = longest;
+	      }
+	      
+	      
 	    }
 	  
 	  ++r;
@@ -1349,7 +1359,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
       ++a;
       
     }
-
+  
   return annot;
   
 }
