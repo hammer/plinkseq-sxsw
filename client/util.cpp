@@ -87,7 +87,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id,iid,fid,check-reference,fix-strand" 
       
-	  << "load-dosage|input|load dosage data|ARG:file,file-list,id,check-reference,format$space-delimited$skip-header$position-map$allele-map$dose1$dose2$prob2$prob3$as-dosage$as-posteriors,name"
+	  << "load-dosage|input|load dosage data|ARG:file,file-list,id,check-reference,hard-call-threshold,format$space-delimited$skip-header$position-map$allele-map$dose1$dose2$prob2$prob3$as-dosage$as-posteriors,name"
 
 	  << "attach-meta|input|load meta-information for existing VARDB variants|ARG:file,id,group"
 	
@@ -398,7 +398,8 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "out" , STRING , "output root filename" );
     reg( "silent", NONE , "set silent mode");
     reg( "stdout" , NONE , "output goes to STDOUT" );
-    
+    reg( "noweb" , NONE , "skip web-check" );
+
     reg( "debug", NONE , "set debug mode");    
 
     reg( "vcf" , STRING_VECTOR , "VCF file locations" );
@@ -427,6 +428,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "map-file" , STRING , "map file" );  // primarily for load-dosage
     reg( "indiv-file" , STRING , "individual ID list"); // primarily for load-dosage
     reg( "meta-file" , STRING , "meta-information file" ); // primarily for load-dosage
+    reg( "hard-call-threshold" , FLOAT , "hard-call threshold" ); // primarily for load-dosage
 
     reg( "group" , STRING_VECTOR , "generic group label(s)" );
     reg( "members" , STRING_VECTOR , "super-set members" );
@@ -542,7 +544,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     keyword( "format" , "BGZF" , NONE , "write VCF in BGZF-compressed form" );
 
     keyword( "format" , "position-map" , NONE , "dosage map only contains chr/bp" );
-    keyword( "format" , "allele-map" , NONE , "dosage map only contains a1/a2" );
+    keyword( "format" , "allele-map" , NONE , "dosage map only contains a1/a2" );    
     keyword( "format" , "dose1" , NONE , "dosage data 0..1" );
     keyword( "format" , "dose2" , NONE , "dosage data 0..2" );
     keyword( "format" , "prob2" , NONE , "2 posterior probabilities" );
@@ -551,6 +553,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     keyword( "format" , "as-posteriors" , NONE , "store as 3 posterior probailities" );
     keyword( "format" , "skip-header" , NONE , "ignore header in dosage file(s)" );
     keyword( "format" , "space-delimited" , NONE , "use spaces, not tabs, as delimiters in dosag file(s)" );
+    keyword( "format" , "no-ids" , NONE , "dosage file does not contain any ID column" );
 
     keyword( "format" , "chr" , STRING , "" ) ;
     keyword( "format" , "bp1" , STRING , "" );
@@ -699,15 +702,15 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     // Register some short-cuts
     //
     
-    shortform( "-o" , "--options" );
     shortform( "-m" , "--mask" );
     shortform( "-f" , "--file" );
     shortform( "-g" , "--group" );
     shortform( "-p" , "--phenotype" );
-    shortform( "-h" , "--help" );  
     shortform( "-n" , "--name" );
-    shortform( "-w" , "--weights" );
+    shortform( "-s" , "--stdout" );
+    shortform( "-o" , "--out" );
 
+    shortform( "-h" , "--help" );  
     shortform( "help" , "--help" );
 
     shortform( "--string" , "--text" );
@@ -780,9 +783,14 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
       while ( 1 ) 
 	{
 	  ++i;
-	
-	  if ( i == n ) break;
 	  
+	  if ( i == n )
+	    {
+	      if ( i == pos_root + 1 ) 
+		ss << "\n";
+	      break;
+	    }
+
 	  std::string b = argv[i];
 	  
 	  if ( shortcuts.find( b ) != shortcuts.end() ) b = shortcuts[b];
@@ -841,14 +849,14 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
       
       if ( i == pos_root ) // no options given
 	ss << "\n";
-    	
+      
       // store, or add in as extras
       
       if ( data.find(s) == data.end() ) data[s] = a;      
       else Helper::append( data[s] , a );      
       
     }
-    
+
     return ss.str();
 }
 

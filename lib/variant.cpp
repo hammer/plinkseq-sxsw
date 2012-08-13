@@ -1161,16 +1161,28 @@ std::string Variant::print_meta(const std::string & key , const std::string & de
 
 std::string Variant::print_meta_filter(const std::string & delim) const
 {  
+
   if ( align->single_sample() ) return consensus.filter();  
-  std::string r = "";
+  
+  std::set<std::string> fs;  
+  
   for (int i=0; i < svar.size(); i++ )
-    {
-      std::string s = svar[i].filter();
-      if ( s == "" ) s = ".";
-      if ( i != 0 ) r += delim;
-      r += s;	
-    }
-  return r;
+    if ( svar[i].filter() != "" && svar[i].filter() != "." )
+      fs.insert( svar[i].filter() );
+  
+  if ( fs.size() == 0 ) return ".";
+ 
+ std::string r = "";
+
+ std::set<std::string>::iterator ii = fs.begin();
+ while ( ii != fs.end() )
+   {
+     if ( ii != fs.begin() ) r += delim;
+     r += *ii;      
+     ++ii;
+   }
+ 
+ return r;
 }
 
 std::set<std::string> Variant::meta_filter( ) const

@@ -3635,6 +3635,7 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   
 
   if ( ! Helper::fileExists( project_path ) )
+    if ( ! Helper::fileExists( project_path +".pseq" ) )
     {
       std::cout << "File [ " << project_path << " ] could not be found "
 		<< "</BODY></HTML>";

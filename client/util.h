@@ -16,7 +16,12 @@ namespace Pseq
 	
 	void populate_commands( Pseq::Util::Commands & );	
 
+	void webcheck( const std::string & cmd );
 
+	std::vector<std::string> socket_connection( const std::string & ip_addr ,  
+						    int port , 
+						    const std::string & message );
+	
 	class Options { 
 	    
 	public:	

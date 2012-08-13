@@ -20,6 +20,8 @@ util.cpp \
 ibs.cpp \
 main.cpp \
 func.cpp \
+webcheck.cpp \
+sockets.cpp \
 summaries.cpp \
 views.cpp \
 assoc.cpp \
@@ -43,10 +45,10 @@ chet.cpp
 # note that we don't need to link to any shared libs here
 # they are all linked transitively from libplinkseq
 # we still need to include headers until we create public headers for the lib
-pseq_LDADD = ../lib/libplinkseq.la
+pseq_LDADD = ../lib/libplinkseq.la -lz -ldl
 
 pseq_CPPFLAGS = -I../lib
-pseq_LDFLAGS = -lz -ldl
+pseq_LDFLAGS = 
 
 if WITH_PROTOBUF
 pseq_CPPFLAGS += -I $(PROTOBUF_PREFIX)/include

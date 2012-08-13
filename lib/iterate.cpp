@@ -23,7 +23,7 @@ IterationReport VarDBase::iterate( void (*f)(Variant&, void *) ,
   if ( f ) 
     {
       IterationReport report = generic_iterate( f, NULL , data , mask );
-      plog << "\n" << report.report() ;
+      plog << report.report() ;
       return report;
     }
 
@@ -48,7 +48,7 @@ IterationReport VarDBase::iterate( void (*f)(VariantGroup &, void *) ,
   if ( f ) 
     {
       IterationReport report = generic_iterate( NULL , f, data , mask );
-      plog << "\n" << report.report();
+      plog << report.report();
       return report;
     }
 
@@ -790,6 +790,9 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      
 	      if ( ! mask.any_grouping() ) 
 		{
+
+		  if ( rep.processed() % 100 == 0 ) 
+		    plog.counter( Helper::int2str( rep.processed() ) + " accepted variants" );
 		  
 		  // Update our current 'variant'
 		  // and add the meta-fields
@@ -799,7 +802,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 		  sample = var.psample( 0 ) ;
 		  
 		  addMetaFields( var , s, mask );	
-
+		  
 		  continue;
 		}
 	      
@@ -810,7 +813,10 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      
  	      if ( vars.complete() )
  		{	    
-		  		  		  
+		  
+		  if ( rep.groups() % 10 == 0 ) 
+		    plog.counter( Helper::int2str( rep.groups() ) + " accepted variant-groups" );
+		  
  		  // If the above is true, it means that the last 
  		  // variant could not be added to the group. Therefore, 
  		  // process the group as-is, then begin a new group, 
@@ -943,11 +949,11 @@ bool VarDBase::eval_and_call( Mask & mask,
   
   int ngood = 0; // track # of passing sampels
       
-  for (int s = 0 ; s < n ; s++ ) 
-  {
-
+  for ( int s = 0 ; s < n ; s++ ) 
+    {
+      
       SampleVariant & svar = var.sample( s );
-
+      
       SampleVariant * target = ( ! align->multi_sample() ) ? &(var.consensus) : &svar ;
       
       SampleVariant * vmeta_target = MetaMeta::force_consensus() ? &(var.consensus) : target ;
@@ -983,28 +989,28 @@ bool VarDBase::eval_and_call( Mask & mask,
       //
 
       if ( mask.attach_meta() ) 
-      {	  
-	if ( mask.attach_all_meta() ) 
-	  {
-	    attach_indep_metadata( svar.index() , *vmeta_target , var , NULL );
-	  }
-	else
+	{	  
+	  if ( mask.attach_all_meta() ) 
+	    {
+	      attach_indep_metadata( svar.index() , *vmeta_target , var , NULL );
+	    }
+	  else
 	    {
 	      std::set<std::string> s = mask.attach_meta_fields();
 	      attach_indep_metadata( svar.index() , *vmeta_target , var , &s );
-	  }
-      }
+	    }
+	}
       
       
       // These filters are based on QUAL and FILTER fields -- these
       // will travel with target, not vmeta_target 
       
       if ( ! mask.eval_filters( *target ) ) 
-      {	  
-	if ( mask.fail_on_sample_variant() ) return false;
-	else sample_okay = false;	
-      }
-
+	{	  
+	  if ( mask.fail_on_sample_variant() ) return false;
+	  else sample_okay = false;	
+	}
+      
       if ( ! sample_okay ) { svar_rlist.push_back( s - svar_rlist.size() ); continue; } 
       
       //
@@ -1019,8 +1025,13 @@ bool VarDBase::eval_and_call( Mask & mask,
 	  else sample_okay = false;
 	}
       
-      if ( ! sample_okay ) { svar_rlist.push_back( s - svar_rlist.size() ); continue; } 
+      if ( ! sample_okay ) 
+	{ 
+	  svar_rlist.push_back( s - svar_rlist.size() ); 
+	  continue; 
+	} 
       
+
       //
       // Assign all genotypes (and genotype meta-information) to
       // either a normal sample variant, or directly to the consensus
@@ -1030,13 +1041,19 @@ bool VarDBase::eval_and_call( Mask & mask,
       // SampleVariant at this level because of that
       //
       
+
+
       if ( ! svar.decode_BLOB_genotype( align , &mask , &var, &svar , target , genotype_target ) )
 	{
 	  if ( mask.fail_on_sample_variant() ) return false;
 	  else sample_okay = false;
 	}
 
-      if ( ! sample_okay ) { svar_rlist.push_back( s - svar_rlist.size() ); continue; } 
+      if ( ! sample_okay ) 
+	{ 
+	  svar_rlist.push_back( s - svar_rlist.size() ); 
+	  continue; 
+	} 
       
       //
       // Apply vmeta filters (include statements) if they depend on genotype (
@@ -1082,9 +1099,11 @@ bool VarDBase::eval_and_call( Mask & mask,
 
   if ( ! good ) return false;
 
-
+  
+  //
   // Evaluate fail.nfile (i.e. that we did not fail on more than nfailed
   // samples, and that we have at least 'ngood' good samples)
+  //
 
   if ( ! mask.test_fail_on_sample_variant( var.n_samples() - ngood , ngood  ) ) return false;
 
@@ -1096,9 +1115,7 @@ bool VarDBase::eval_and_call( Mask & mask,
   if ( svar_rlist.size() > 0 ) 
     {
       for ( int i = 0 ; i < svar_rlist.size(); i++)
-	{
-	  var.remove( svar_rlist[i] );      
-	}
+	var.remove( svar_rlist[i] );      
     }
 
   

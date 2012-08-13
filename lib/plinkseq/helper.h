@@ -56,6 +56,7 @@ class int2 {
 class Log {
   
   bool     silent_mode;   // write to STOUT?
+  bool     silent_except_errors_mode;  // like silent_mode, except show errors
   bool     output_file;   // write main output to file?
   bool     prolix_mode;   // write any prolix output to file?
   
@@ -81,6 +82,7 @@ class Log {
     { 	        
       
       silent_mode = !s;
+      silent_except_errors_mode = false;
       output_file = false;
       prolix_mode = false;      
       ignore_warnings = false;
@@ -101,6 +103,9 @@ class Log {
   // General mode switches
   void silent(const bool b) { silent_mode = b; }
   bool silent() const { return silent_mode; }
+
+  void silent_except_errors(const bool b) { silent_except_errors_mode = b; }
+  bool silent_except_errors() const { return silent_except_errors_mode; }
 
   void precision( const int p )
   {
@@ -192,6 +197,13 @@ class Log {
   //
   // Warnings and errors, to be handled separately
   //
+
+  void stderr(const std::string & msg)
+  {
+    if ( silent_mode )
+      if ( ! silent_except_errors_mode ) return;
+    std::cerr << msg ;
+  }
 
   void warn(const std::string & msg, const std::string & spec = "" );
 

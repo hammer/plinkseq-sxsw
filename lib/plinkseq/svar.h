@@ -36,6 +36,7 @@ class SampleVariant {
   friend class Variant;
   friend class VarDBase;
   friend class Eval;
+  friend class BCF;
 
  public:
      
@@ -140,30 +141,27 @@ class SampleVariant {
   // calling function will have taken care of what is target for meta-information vs. 
   // genotypes, etc
   //
+  
+  //
+  // If reading from BCF, here is pointer to that class. The BCF class does all the work of 
+  // parsing, and is also given then IndividualMap and Mask, so it will only extract what 
+  // is needed.  (Note: this is in contrast to BGZF-compressed VCF, where the fine-grained
+  // extraction logic is done here in SamplVariant, because the whole text line needs to be 
+  // read from disk first).
+  //
 
-  void set_for_bcf_genotypes( const int n ,           // expected # of genotypes
-			      const std::string & f ) // format string 
-  {
-    calls.size(n);
-    bcf_format = f;
-    bcf_genotype_buf.clear();
-  }
+  void set_pointer_to_bcf( BCF * p , int64_t offset ) { bcf = p; bcf_offset = offset; } 
   
-  void bcf_genotype_buf_resize( const int s ) { bcf_genotype_buf.resize(s); }
-  
-  uint8_t * bcf_pointer( const int p ) { return &(bcf_genotype_buf)[p]; }
-  
-  void set_pointer_to_bcf( BCF * p ) { bcf = p; } 
   
 
   //
-  // As above, for for BGZF-compressed VCFs (note; when procesing a single VCF from the
+  // As above, for BGZF-compressed VCFs (note; when procesing a single VCF from the
   // command line (i.e. that isn't indexed in the VARDB, this is handled differently, from
   // vcfiterate.cpp and the setting of the buffer is done via the parent Variant 
   //
 
   void set_vcfz_buffer( const Helper::char_tok & buffer ,      // genotypes and meta-information
-			int gt_field ,                   // from FORMAT, slot containing GT
+			int gt_field ,                         // from FORMAT, slot containing GT
 			std::vector<meta_index_t*> * formats ) // parsed meta-key vector for FORMAT
   {
     vcf_direct = true;
@@ -192,7 +190,9 @@ class SampleVariant {
   
  private:
 
+
   /// Unique index from VARDB, used in construction
+
   uint64_t              vindex;
 
   
@@ -283,9 +283,7 @@ class SampleVariant {
   // Or, from a BCF (and so no BLOB to decode)
 
   BCF *                 bcf;
-  std::string           bcf_format;
-  std::vector<uint8_t>  bcf_genotype_buf;
-
+  int64_t               bcf_offset;
 
   /// Genotypes on 1 or more individuals for this variant
 
@@ -320,7 +318,7 @@ class SampleVariant {
     
     // for BCF --> SV
     bcf = NULL;
-    bcf_genotype_buf.clear();
+    
   }
   
   

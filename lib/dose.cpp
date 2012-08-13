@@ -5,7 +5,7 @@
 #include "plinkseq/seqdb.h"
 
 #include <fstream>
-
+#include <cmath>
 
 int DoseReader::read_fam( const int file_id ) 
 {
@@ -38,7 +38,7 @@ int DoseReader::read_fam( const int file_id )
   return ni;
 }
 
-void DoseReader::read_meta()
+void DoseReader::read_meta( const int file_id )
 {
 
   if ( ! has_meta ) return;
@@ -48,14 +48,16 @@ void DoseReader::read_meta()
   
   InFile meta(meta_filename);
   std::string l = meta.readLine();
-  if ( l.size() == 0 ) Helper::halt("could not open");
+  if ( l.size() == 0 ) Helper::halt( "could not open meta-information file [" + meta_filename + "]" );
   if ( l[0] != '#' ) Helper::halt("expecting header row to start with '#' for " + meta_filename );
-  metas = Helper::parse( l , "\t " );
+  metas = Helper::parse( l.substr(1) , "\t " );
   
   // register all as floats for scalar Variant-meta tags
   for (int m=0;m<metas.size();m++)
-    registerMetatype( metas[m] , META_FLOAT , 1, META_GROUP_VAR , "." );
-  
+    {
+      registerMetatype( metas[m] , META_FLOAT , 1, META_GROUP_VAR , "." );
+      vardb->insert_metatype( file_id , metas[m] , META_FLOAT, 1, META_GROUP_VAR , "." );
+    }
   meta.close();  
 }
 
@@ -79,19 +81,6 @@ bool DoseReader::read_dose( const std::string & f )
   InFile inp_dosage( dose_filename );
   
 
-  
-  //
-  // Do we need a separate meta-file?
-  //
-  
-  InFile inp_meta;
-
-  if ( has_meta )
-    {
-      read_meta();
-      Helper::checkFileExists( meta_filename );
-      inp_meta.open( meta_filename.c_str() );
-    }
 
 
   //
@@ -105,23 +94,47 @@ bool DoseReader::read_dose( const std::string & f )
       inp_map.open( map_filename.c_str() );
     }
 
+  //
+  // If no IDs in the main doseage file, we require a separate map
+  //
+
+  if ( ! has_rsid )
+    {
+      if ( ! separate_map ) 
+	Helper::halt( "must specify a separate map if --no-ids in primary dosage file" );
+    }
 
 
   //
   // Get slot in VARDB, and track file-source, if we have not already seen this fileset
   //
-
+  
 
   uint64_t file_id = vardb->lookup_file_id( filetag );   
   
-  bool already_loaded_header = file_id == 0 ;
-
-  if ( file_id == 0 ) 
+  bool already_loaded_header = file_id != 0 ;
+  
+  if ( ! already_loaded_header )
     {
       file_id = vardb->insert( dose_filename , filetag );      
       vardb->insert_header( file_id , "format", "dosage-data" );
     }
   
+
+  
+  //
+  // Do we need a separate meta-file?
+  //
+  
+  InFile inp_meta;
+
+  if ( has_meta )
+    {
+      read_meta( file_id );
+      Helper::checkFileExists( meta_filename );
+      inp_meta.open( meta_filename.c_str() );
+      std::string skip_hdr = inp_meta.readLine();
+    }
 
   //
   // Get individual map
@@ -156,11 +169,10 @@ bool DoseReader::read_dose( const std::string & f )
       // insert people, if not already done
       if ( ! already_loaded_header ) 
 	for (int i=0;i<ni;i++)
-	  vardb->insert( file_id , Individual( ids[i] ) );      
-
+	  vardb->insert( file_id , Individual( ids[i] ) );      	        
     }
   
-  if ( ni == 0 ) Helper::halt("no inividuals specified");
+  if ( ni == 0 ) Helper::halt( "no inividuals specified in either header or --indiv-file" );
 
 
   //
@@ -171,7 +183,8 @@ bool DoseReader::read_dose( const std::string & f )
   if      ( format_prob2 ) per_term = 2;
   else if ( format_prob3 ) per_term = 3;
   
-  int expected_fields = 1 + ni * per_term ;
+  int expected_fields = ni * per_term ;
+  if ( has_rsid ) ++expected_fields;
   if ( separate_map ) 
     {
       if ( map_pos_only ) expected_fields += 2;    // implies A1 and A2 in main dosage file
@@ -232,6 +245,7 @@ bool DoseReader::read_dose( const std::string & f )
       std::string id = "", chr = "", a1 = "" , a2 = "";
       int bp = 0;
       
+
       // are we reading from a separate MAP file?
       
       if ( separate_map ) 
@@ -243,62 +257,94 @@ bool DoseReader::read_dose( const std::string & f )
 	  if ( map_pos_only ) 
 	    {
 
-	      if ( mtok.size() != 3 ) Helper::halt( "problem with map line" );	      
+	      if ( mtok.size() != 3 ) 
+		Helper::halt( "problem with map, expecting 3 fields:\n[" + Helper::stringize( mtok , "\t") + "]" );	      
+
+	      // missing chr/bp code implies skip
+	      if ( mtok[1] == "." || mtok[2] == "." ) continue;
+
 	      id = mtok[0];
 	      chr = mtok[1];
 	      if ( ! Helper::str2int( mtok[2] , bp ) ) 
-		Helper::halt( "problem with map line base position" );	      
+		Helper::halt( "problem with map line base position: " + mtok[2] );	      
 	    }
 	  else if ( map_allele_only ) 
 	    {
-	      if ( mtok.size() != 3 ) Helper::halt( "problem with map line" );
+	      if ( mtok.size() != 3 ) Helper::halt( "problem with map line, expecting 3 fields:\n[" + Helper::stringize( mtok , "\t" ) +"]" );
 	      id = mtok[0];
 	      a1 = mtok[1];
 	      a2 = mtok[2];
 	    }
 	  else
 	    {
-	      if ( mtok.size() != 5 ) Helper::halt( "problem with map line" );
+	      if ( mtok.size() != 5 ) Helper::halt( "problem with map line, expecting five fields\n[" + Helper::stringize( mtok , "\t" ) + "]" );
+	      // missing chr/bp code implies skip
+	      if ( mtok[1] == "." || mtok[2] == "." ) continue;
+
 	      id = mtok[0];
 	      chr = mtok[1];
 	      if ( ! Helper::str2int( mtok[2] , bp ) ) 
-		Helper::halt( "problem with map line base position" );	      
+		Helper::halt( "problem with map line base position: " + mtok[2] );	      
 	      a1 = mtok[3];
 	      a2 = mtok[4];
 	    }	  
 	}
       
+
+      // if no ID in the main file, skip that column;
+
+      const int id_offset = has_rsid ? 0 : -1;      
       
       if ( separate_map )
 	{
 	  if ( map_pos_only ) // .dose contains a1,a2
 	    {
-	      a1 = toks[1];
-	      a2 = toks[2];
+	      a1 = toks[ 1 + id_offset ];
+	      a2 = toks[ 2 + id_offset ];
 	    }
 	  else if ( map_allele_only ) // .dose contains chr/bp
 	    {
-	      chr = toks[1];
-	      if ( ! Helper::str2int( toks[2] , bp ) ) Helper::halt("invalid base-position");	      
+	      // missing chr/bp code implies skip
+	      if ( toks[ 1 + id_offset ] == "." || toks[ 2 + id_offset ] == "." ) continue;
+
+	      chr = toks[ 1 + id_offset ];	      	      
+	      if ( ! Helper::str2int( toks[ 2 + id_offset ] , bp ) ) Helper::halt( "invalid base-position: " + toks[ 2 + id_offset ] );	      
 	    }
 	}
       else
 	{
-	  chr = toks[1];
-	  if ( ! Helper::str2int( toks[2] , bp ) ) Helper::halt("invalid base-position");	      
-	  a1 = toks[3];
-	  a2 = toks[4];	  
+	  // missing chr/bp code implies skip
+	  if ( toks[ 1 + id_offset ] == "." || toks[ 2 + id_offset ] == "." ) continue;
+
+	  chr = toks[ 1 + id_offset ];
+	  if ( ! Helper::str2int( toks[ 2 + id_offset ] , bp ) ) Helper::halt( "invalid base-position: " + toks[ 2 + id_offset ] );	      
+	  a1 = toks[ 3 + id_offset ];
+	  a2 = toks[ 4 + id_offset ];	  
 	}
       
+
       //
       // check that ID matches
       //
-    
-      if ( separate_map && id != toks[0] ) 
+
+      if ( has_rsid ) 
 	{
-	  std::string tid = toks[0];
-	  Helper::halt("mismatch of ID codes: [" + tid + "] in dosage, but [" + id + "] in map-file" );
+	  if ( separate_map )
+	    {
+	      if ( id != toks[0] ) 
+		{
+		  std::string tid = toks[0];
+		  Helper::halt( "mismatch of ID codes: [" + tid + "] in dosage, but [" + id + "] in map-file" );
+		}
+	    }
+	  else
+	    {
+	      // need to set ID from first column (required)
+	      id = toks[0];
+	    }	  
 	}
+
+
       
       //
       // We seem to be all set
@@ -313,19 +359,21 @@ bool DoseReader::read_dose( const std::string & f )
       
       bool ref1 = true;  // A1 is reference allele
       
-      if ( a1 == "0" ||  a1 == "X" )
+      if ( a1 == "." || a1 == "0" ||  a1 == "X" )
 	{
 	  std::string t = a2;
 	  a2 = a1;
 	  a1 = t;
 	}
       
+      // TODO: this currently only works for SNPs
+      // TODO: handle symbolic alleles (e.g. R, I, D)
       
       if ( seqdb )
 	{
 
 	  std::string ref = seqdb->lookup( v.chromosome() , bp );
-
+	  
 	  Helper::str2upper(ref);
 
 	  if ( ref != "N" ) 
@@ -517,8 +565,8 @@ bool DoseReader::read_dose( const std::string & f )
 
 		      std::vector<double> pp(3);
 
-		      // fudge, but probably not too bad??
-		      // no other choice...
+		      // 'impute' probabilities assuming HWE
+
 		      if ( d > 1 ) 
 			{
 			  pp[0] = 0;
@@ -539,14 +587,14 @@ bool DoseReader::read_dose( const std::string & f )
 		    {
 		      if      ( d <= hard_call_dosage_threshold ) geno = 1;
 		      else if ( d >= 2.0 - hard_call_dosage_threshold ) geno = 3;
-		      else if ( abs( d - 1.0 ) <= hard_call_dosage_threshold ) geno = 2;
+		      else if ( fabs( d - 1.0 ) <= hard_call_dosage_threshold ) geno = 2;
 		    }
 		}
 	    }
 	  else if ( format_dose1 ) 
 	    {	      
 	      double d;
-
+	      
 	      if ( Helper::str2dbl( toks[p++] , d ) ) 
 		{		  
 
@@ -586,8 +634,8 @@ bool DoseReader::read_dose( const std::string & f )
 		  if ( make_hard_call ) 
 		    {
 		      if      ( d <= hard_call_dosage_threshold ) geno = 1;
-		      else if ( d >= 2 - hard_call_dosage_threshold ) geno = 3;
-		      else if ( abs( d - 1.0 ) <= hard_call_dosage_threshold ) geno = 2;
+		      else if ( d >= 2.0 - hard_call_dosage_threshold ) geno = 3;
+		      else if ( fabs( d - 1.0 ) <= hard_call_dosage_threshold ) geno = 2;		      
 		    }
 		  
 		}
@@ -611,13 +659,25 @@ bool DoseReader::read_dose( const std::string & f )
 
       if ( has_meta ) 
 	{
+	  
+	  std::string id_meta;
+	  inp_meta >> id_meta;
+	  
+	  if ( id_meta != "." && id != id_meta ) 
+	    Helper::halt( "mismatching rows in meta-information file: " + id_meta + " vs " + id );
+
 	  for (int m=0;m<metas.size();m++)
 	    {
+	      
 	      double d;
 	      std::string x = "";
 	      inp_meta >> x;
+	      
 	      if ( Helper::str2dbl( x , d ) ) 
-		v.consensus.meta.set( metas[m] , d );
+		{
+		  v.consensus.meta.set( metas[m] , d );
+		}
+
 	    }
 	}
            

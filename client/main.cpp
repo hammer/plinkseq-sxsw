@@ -55,7 +55,7 @@ int main(int argc, char ** argv)
   pcomm.attach( &args );
 
   Pseq::Util::populate_commands( pcomm );
-       
+
 
   //
   // help message?
@@ -88,7 +88,10 @@ int main(int argc, char ** argv)
     plog.early_warnings( true );
   
   if ( args.has("silent" ) )
-    plog.silent( true );
+    {
+      plog.silent( true );
+      plog.silent_except_errors( false ); // even silent for errors
+    }
 
   std::string fileroot = args.has("out") ? args.as_string("out") : "pseq" ;   
   plog.set_fileroot( fileroot ) ;
@@ -100,13 +103,23 @@ int main(int argc, char ** argv)
   // send all output to stdout
   // (note Log goes to stderr by default, unless --silent)
   if ( args.has( "stdout" ) )
-    Out::set_stdout( true );
+    {
+      // unless out also explicitly specified
+      // then no log either 
 
-  if ( args.has("debug") ) 
+      if ( ! args.has( "out" ) ) 
+	{
+	  plog.silent( true );
+	  plog.silent_except_errors( true ); // do show errors
+	}
+      Out::set_stdout( true );
+    }
+
+  if ( args.has( "debug" ) ) 
     debug.silent( false );
 
-  if ( args.has("debug-file") )
-    debug.logfile( args.as_string("debug-file") ); 
+  if ( args.has( "debug-file" ) )
+    debug.logfile( args.as_string( "debug-file" ) ); 
   
 
   // ---- obsolete Log functions: can be removed
@@ -129,17 +142,11 @@ int main(int argc, char ** argv)
   
   time_t curr=time(0);
   std::string tdstamp = (std::string)ctime(&curr);
-  plog << "|+---------------------------------------------------------------------------+|\n"
-       << "|+------------------------- PSEQ (v" << PSEQ_VERSION << "; " << PSEQ_DATE << ") -------------------------+|\n"
-       << "|+---------------------------------------------------------------------------+|\n\n";
 
-  plog << "   Analysis started " << tdstamp << "\n";
-  
-  plog << pp_args << "\n";
+  plog << "=========================== PSEQ (v" 
+       << PSEQ_VERSION << "; " << PSEQ_DATE 
+       << ") ===========================\n";
 
-  if ( ! args.has( "silent" ) ) plog << "Copying this log to file [ " << fileroot << ".log ]\n";
-
-  
   //
   // Process 'command'
   //
@@ -157,6 +164,34 @@ int main(int argc, char ** argv)
   if ( ! pcomm.known( command ) ) 
     Helper::halt("command " + command + " not recognised" );
 
+
+  //
+  // Basics to the log
+  //
+
+  if ( ! args.has( "silent" ) ) 
+    plog << "Copying this log to file [ " << fileroot << ".log ]\n";
+
+  // Time-stamp 
+
+  plog << "Analysis started " << tdstamp;
+
+  //
+  // Web-based version check
+  //
+
+  if ( ! args.has( "noweb" ) ) 
+    Pseq::Util::webcheck( command );
+
+  
+  //
+  // show actual input command lines in log
+  //
+
+  plog << "-------------------------------------------------------------------------------\n"
+       << pp_args;
+   
+  plog << "-------------------------------------------------------------------------------\n";
 
   
   //
@@ -221,14 +256,13 @@ int main(int argc, char ** argv)
   if ( command == "version" ) 
     {
       
-      plog << "PSEQ" << "\t" 
-	   << PSEQ_VERSION << "("
-	   << PSEQ_DATE << ")\n";
-      
+      plog << "PSEQ:" << PSEQ_VERSION << "\n"
+	   << "PSEQ DATE: " << PSEQ_DATE << "\n";
+	   
       g.show_version();
-
+      
 #ifdef ZLIB_VERNUM
-      plog << "ZLIB\t" << ZLIB_VERSION << "\n";
+      plog << "ZLIB: " << ZLIB_VERSION << "\n";
 #endif
 
       Pseq::finished();
@@ -522,7 +556,9 @@ int main(int argc, char ** argv)
 
       Out output( "partners" , "network partners of a given gene/element" );
 
-      Pseq::NetDB::lookup( args.as_string( "netdb" ) , args.as_string( "name" ) , args.as_string( "group" ) );
+      Pseq::NetDB::lookup( args.as_string( "netdb" ) , 
+			   args.as_string( "name" ) , 
+			   args.as_string( "group" ) );
 
       Pseq::finished();
     }
@@ -648,64 +684,63 @@ int main(int argc, char ** argv)
   
   if ( command == "index-bcf" ) 
   {
-      
-      if ( ! args.has( "bcf" ) ) 
-	  Helper::halt( "no BCF files specified, use --bcf file(s)" );
-      
-      std::vector<std::string> t = args.as_string_vector( "bcf" );
-
-      g.vardb.drop_index();
-      
-      for (int f=0; f<t.size(); f++)
+    
+    if ( ! args.has( "bcf" ) ) 
+      Helper::halt( "no BCF files specified, use --bcf file(s)" );
+    
+    std::vector<std::string> t = args.as_string_vector( "bcf" );
+    
+    g.vardb.drop_index();
+    
+    for (int f=0; f<t.size(); f++)
       {
-	  
-	  if ( ! Helper::fileExists( t[f] ) )
+	
+	if ( ! Helper::fileExists( t[f] ) )
 	  {
-	      plog.warn( "could not find BCF" , t[f] );
-	      continue;
+	    plog.warn( "could not find BCF" , t[f] );
+	    continue;
 	  }
-	  
-	  // ensure we are using the full path
-	  t[f] = Helper::fullpath( t[f] );
-	  
-	  // Add to project index
-	  g.fIndex.append_to_projectfile( Helper::fullpath( t[f] ) , "BCF" );
-	  
-	  // Add to file-map, and create a BCF instance
-	  BCF * bcf = g.fIndex.add_BCF( t[f] );
-	  
-	  // Open BCF via BGZF interface	    
-	  bcf->reading();
-	  bcf->open();
-	  
-	  // Iterate through file, adding index	    	    
-	  g.vardb.begin();
-	  
-	  // Get header information, and add to VARDB
-	  
-	  bcf->read_header( &g.vardb );
-	  
-	  uint64_t inserted = 0;
-	  while ( bcf->index_record() )
+	
+	// ensure we are using the full path
+	t[f] = Helper::fullpath( t[f] );
+	
+	// Add to project index
+	g.fIndex.append_to_projectfile( Helper::fullpath( t[f] ) , "BCF" );
+	
+	// Add to file-map, and create a BCF instance
+	BCF * bcf = g.fIndex.add_BCF( t[f] );
+	
+	// Open BCF via BGZF interface	    
+	bcf->reading();
+	bcf->open();
+	
+	// Iterate through file, adding index	    	    
+	g.vardb.begin();
+	
+	// Get header information, and add to VARDB
+	bcf->read_header( &g.vardb );
+	
+	uint64_t inserted = 0;
+	while ( bcf->index_record() )
 	  {
-	      if ( ++inserted % 1000 == 0 )
-		  plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	    if ( ++inserted % 1000 == 0 )
+	      plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
 	  }
-	  plog.counter("\n");
-	  
-	  plog << "inserted " << inserted << " variants from BCF; now finishing index...\n";
-	  
-	  g.vardb.commit();
-	  bcf->close();
-	  
-	  // and calculate summary Ns
-	  int2 niv = g.vardb.make_summary( t[f] );
-	  
+	plog.counter("\n");
+	
+	plog << "inserted " << inserted << " variants from BCF; now finishing index...\n";
+	
+	g.vardb.commit();
+	bcf->close();
+	
+	// and calculate summary Ns
+	int2 niv = g.vardb.make_summary( t[f] );
+	
       }
+    
+    g.vardb.index();
       
-      g.vardb.index();
-      
-      Pseq::finished();
+    Pseq::finished();
   }
   
   
@@ -2277,11 +2312,13 @@ int main(int argc, char ** argv)
     if ( command == "write-bcf" )
       {	
 
-	Out output( "bcf" , "BCF file from write-bcf" );
-
+	//	Out output( "bcf" , "BGZF-compressed BCF file from write-bcf" );
+	
 	if ( ! args.has( "bcf" ) ) 
-	  Helper::halt( "need to specify --bcf output.bcf" );
+	  Helper::halt( "need to specify --bcf {output.bcf}" );
+	
 	Pseq::VarDB::write_BCF( m , args.as_string( "bcf" ) );
+	
 	Pseq::finished();
       }
     
@@ -2330,6 +2367,7 @@ int main(int argc, char ** argv)
 
     if ( command == "v-matrix" )
       {	
+	Out output( "matrix" , "matrix of genotypes as allele counts" );	
 	Pseq::VarDB::write_matrix(m);
 	Pseq::finished();
       }
@@ -2337,12 +2375,14 @@ int main(int argc, char ** argv)
 
     if ( command == "meta-matrix" )
       {	
+	Out output( "matrix" , "matrix of variant-level meta-data" );
 	Pseq::VarDB::write_meta_matrix(m);
 	Pseq::finished();
       }
 
     if ( command == "v-meta-matrix" )
       {	
+	Out output( "matrix" , "matrix of genotype-level meta-data" );
 	std::string name = Pseq::Util::single_argument<std::string>( args, "name" );
 	Pseq::VarDB::write_var_meta_matrix(m,name);
 	Pseq::finished();

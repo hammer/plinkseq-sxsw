@@ -38,7 +38,8 @@ void Helper::halt( const std::string & msg )
 #ifdef R_SHLIB
  R_error( msg );
 #else
- plog << "pseq error : " << msg << "\n";
+ plog.stderr( "pseq error : " + msg + "\n" );
+
  if ( GP && GP->gseq_mode() )
    {
      std::ofstream O1( GP->gseq_history().c_str() , std::ios::out | std::ios::app );
@@ -92,22 +93,23 @@ void Log::print_warnings()
       if ( arr.size() == 0 ) 
 	{
 	  if ( i->second > 1 ) 
-	    msg += "plinkseq warning: " + i->first + " (repeated " + Helper::int2str( i->second ) + " times)\n";
+	    msg += " plinkseq warning: " + i->first + " (repeated " + Helper::int2str( i->second ) + " times)\n";
 	  else
-	    msg += "plinkseq warning: " + i->first + "\n";
+	    msg += " plinkseq warning: " + i->first + "\n";
 	}
       else
 	{
 	  for (int j=0; j<arr.size(); j++)
-	    msg += "plinkseq warning: " + i->first + " : " + arr[j] + "\n";
+	    msg += " plinkseq warning: " + i->first + " : " + arr[j] + "\n";
 	  if ( i->second > arr.size() )
-	    msg += "plinkseq warning: " + i->first + " (repeated " + Helper::int2str( i->second ) + " times)\n";
+	    msg += " plinkseq warning: " + i->first + " (repeated " + Helper::int2str( i->second ) + " times)\n";
 	}	  
       
 #ifdef R_SHLIB
       // R should keep track of warning count, so no need for further action here?
 #else
-      plog << msg ;
+      plog << msg 
+	   << "===============================================================================\n";
 #endif
 
       ++i;
@@ -763,9 +765,11 @@ std::string Helper::filelist2commalist( const std::string & f )
 
 void Helper::inserter( std::set< std::string > & strset , const std::string & filespec )
 {
+
   int col = 0;
   int comma = filespec.find("#");
-  std::string filename = filespec;
+  std::string filename = FileMap::tilde_expansion( filespec );
+   
   if ( comma != string::npos )
     {
       filename = filespec.substr( 0 , comma ) ;
@@ -798,7 +802,10 @@ void Helper::inserter( std::set< std::string > & strset , const std::string & fi
       if ( cols.size() <= col ) 
 	{
 	  if ( cols.size() != 0 )
-	    plog.warn( filename + " row with " + Helper::int2str( cols.size() ) + " fields when field " + Helper::int2str(col+1) + " requested" ); 
+	    plog.warn( filename + " row with " 
+		       + Helper::int2str( cols.size() ) 
+		       + " fields when field " 
+		       + Helper::int2str(col+1) + " requested" ); 
 	  continue;
 	}
       strset.insert( cols[col] );
