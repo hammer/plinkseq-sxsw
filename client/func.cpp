@@ -19,7 +19,7 @@ void Pseq::finished()
   
   time_t curr=time(0);
   std::string tdstamp = (std::string)ctime(&curr);
-  plog << "Analysis finished " << tdstamp    
+  plog << "\nAnalysis finished " << tdstamp    
        << "===============================================================================\n";
 
 

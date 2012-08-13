@@ -20,8 +20,8 @@ util.cpp \
 ibs.cpp \
 main.cpp \
 func.cpp \
-webcheck.cpp \
 sockets.cpp \
+webcheck.cpp \
 summaries.cpp \
 views.cpp \
 assoc.cpp \

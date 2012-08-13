@@ -22,7 +22,7 @@ Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.09";
-std::string PSEQ_DATE    = "04-Jul-12";
+std::string PSEQ_DATE    = "13-Aug-12";
 
 
 
@@ -143,9 +143,11 @@ int main(int argc, char ** argv)
   time_t curr=time(0);
   std::string tdstamp = (std::string)ctime(&curr);
 
-  plog << "=========================== PSEQ (v" 
+  plog << "-------------------------------------------------------------------------------\n"    
+       << "||||||||||||||||||||||||||| PSEQ (v" 
        << PSEQ_VERSION << "; " << PSEQ_DATE 
-       << ") ===========================\n";
+       << ") |||||||||||||||||||||||||||\n"
+       << "-------------------------------------------------------------------------------\n\n";
 
   //
   // Process 'command'
@@ -188,10 +190,11 @@ int main(int argc, char ** argv)
   // show actual input command lines in log
   //
 
-  plog << "-------------------------------------------------------------------------------\n"
+  plog << "\n"
+       << "-------------------------------------------------------------------------------\n\n"
        << pp_args;
    
-  plog << "-------------------------------------------------------------------------------\n";
+  plog << "\n-------------------------------------------------------------------------------\n\n";
 
   
   //
@@ -256,7 +259,7 @@ int main(int argc, char ** argv)
   if ( command == "version" ) 
     {
       
-      plog << "PSEQ:" << PSEQ_VERSION << "\n"
+      plog << "PSEQ: " << PSEQ_VERSION << "\n"
 	   << "PSEQ DATE: " << PSEQ_DATE << "\n";
 	   
       g.show_version();

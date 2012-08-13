@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <zlib.h>
+#include <sys/types.h>
 
 #define BGZF_BLOCK_SIZE 0x10000 // 64k
 

@@ -108,7 +108,8 @@ void Log::print_warnings()
 #ifdef R_SHLIB
       // R should keep track of warning count, so no need for further action here?
 #else
-      plog << msg 
+      plog << "\n" 
+	   << msg 
 	   << "===============================================================================\n";
 #endif
 
@@ -124,7 +125,7 @@ void Helper::NoMem()
 {
 
   std::cerr << "*****************************************************\n"
-	    << "* FATAL ERROR    Exhausted system memory            *\n"
+	    << "***  FATAL ERROR !!!  Exhausted system memory     ***\n"
 	    << "*****************************************************\n\n";
   
   if ( GP && GP->gseq_mode() )
