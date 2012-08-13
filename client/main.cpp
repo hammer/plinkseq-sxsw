@@ -2405,7 +2405,7 @@ int main(int argc, char ** argv)
       {	
 	// options:
 	// 1) only show genes with non-zero variance
-
+			Out output( "matrix" , "variant/genotype matrix output" );
 	OptGMatrix opt(&g);
 	if ( args.has( "hide-invariant" )  )
 	  opt.hide_zero_variance = true;
@@ -2418,6 +2418,7 @@ int main(int argc, char ** argv)
     
     if ( command == "g-meta-matrix" )
       {	
+				Out output( "matrix" , "variant/genotype matrix output" );
 	OptGMetaMatrix opt;
 	opt.name = Pseq::Util::single_argument<std::string>( args, "name" );
 	opt.show_mean = true;

@@ -45,6 +45,7 @@ chet.cpp
 # note that we don't need to link to any shared libs here
 # they are all linked transitively from libplinkseq
 # we still need to include headers until we create public headers for the lib
+
 pseq_LDADD = ../lib/libplinkseq.la -lz -ldl
 
 pseq_CPPFLAGS = -I../lib
