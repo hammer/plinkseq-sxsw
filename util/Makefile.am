@@ -13,7 +13,7 @@ smp_SOURCES = char_tok.h \
 char_tok.cpp \
 smp.cpp
 
-smp_LDADD = ../lib/libplinkseq.la -ldl -lpthread -lz
+smp_LDADD = ../lib/libplinkseq.la  -lpthread -lz -ldl
 
 smp_CPPFLAGS = -I../lib
 
