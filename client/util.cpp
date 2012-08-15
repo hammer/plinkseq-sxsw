@@ -300,6 +300,8 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "i-stats|stats|per-individual statistics|VCF|ARG:stats|OUT:istats"
 	
+	  << "i-pop|stats|individual posterior population probabilities|ARG:file|OUT:ipop"
+
 	  << "v-dist|stats,tests|comparison of rare-variant group distributions|VCF|ARG:whole-sample-counts,perm|OUT:vdist"
 	
 	  << "v-freq|stats,qc|variant frequency data|VCF|ARG:em|OUT:vfreq"

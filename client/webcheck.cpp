@@ -179,7 +179,7 @@ void Pseq::Util::webcheck( const std::string & cmd )
     }
 
   // did we get the information we needed?
-  if ( !print ) plog << " unable to perform web-check\n";
+  if ( !print ) plog << " could not connect\n";
 
 
   ////////////////////////////////////////////////////

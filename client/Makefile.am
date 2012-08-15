@@ -1,6 +1,8 @@
 bin_PROGRAMS = pseq
 
 pseq_SOURCES = \
+pops.h \
+pops.cpp \
 skat.cpp \
 assoc.h \
 clusters.h \

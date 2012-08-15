@@ -13,6 +13,7 @@
 #include "ibs.h"
 #include "extra.h"
 #include "cnv.h"
+#include "pops.h"
 
 using namespace std;
 
@@ -1897,6 +1898,27 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
+
+
+    //
+    // Per-individual posterior class probabilities under simple pop. model
+    //
+
+    if ( command == "i-pop" )
+      {
+	if ( ! args.has( "file" ) ) Helper::halt( "no --file {pop-allele-freq-table} specified" );	
+	SeqDBase * s = &g.seqdb;
+	if ( ! g.seqdb.attached() ) 
+	  {
+	    plog.warn( "no SEQDB attached: will not be able to check REF/ALT status of A1/A2" );
+	    s = NULL;
+	  }
+	Out output( "ipop" , "per-individual posterior class probabilities" );
+	Pseq::IPop ipop( args.as_string( "file" ) , s );
+	IterationReport report = g.vardb.iterate( f_ipop , &ipop , m );
+	ipop.calculate();
+	Pseq::finished();
+      }
 
 
     //
