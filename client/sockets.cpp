@@ -34,7 +34,7 @@ std::vector<std::string> Pseq::Util::socket_connection( const std::string & ip_a
   
 #ifndef SKIP
 
-  plog << "Connecting to web... ";
+  //  plog << "Connecting to web... ";
   
   std::vector<std::string> tokens(0);
 
@@ -69,7 +69,7 @@ std::vector<std::string> Pseq::Util::socket_connection( const std::string & ip_a
                     sizeof(server_addr));
   if (retcode != 0)
   {
-    plog << " failed connection\n";
+    plog << " failed connection";
     
 // #ifdef WIN
 //   WSACleanup();
