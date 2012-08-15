@@ -40,6 +40,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     pcomm.new_group( "indop"       , "Individual database operations" );
     pcomm.new_group( "ibd"         , "IBD analysis" );
     pcomm.new_group( "net"         , "Network-based analysis" );
+    pcomm.new_group( "prot"        , "Protein domain/feature annotation" );
     pcomm.new_group( "misc"        , "Misc." );
     pcomm.new_group( "system"      , "System functions" ); // not shown in GUI
     
@@ -59,6 +60,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     pcomm.add_to_group( "root" , "indop" );
     pcomm.add_to_group( "root" , "ibd" );
     pcomm.add_to_group( "root" , "net" );
+    pcomm.add_to_group( "root" , "prot" );
     pcomm.add_to_group( "root" , "misc" );
     pcomm.add_to_group( "root" , "system" );
     
@@ -356,7 +358,17 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
       
 	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,mask,pheno,file,outfile|OUT:net.assoc"
             
+      
 
+   //
+   // Protein domain/feature annotation
+   //
+
+	  << "prot-load|input,prot|populate a PROTDB|ARG:protdb,file,group"
+      
+	  << "prot-view|views,prot|view entries from a PROTDB|ARG:protdb,name"
+
+	  << "prot-map|prot|map a PROTDB onto genomic co-ordinates|ARG:protdb,locdb,group"
 
     //
     // Misc. QC etc

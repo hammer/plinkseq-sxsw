@@ -31,7 +31,7 @@ more detailed description below and to the main website.
   autoreconf -i
 
 
-## Make PSEQ
+## Make PSEQ (sudo if system-wide installation)
 
   ./configure
 
@@ -40,7 +40,7 @@ more detailed description below and to the main website.
   sudo make install
 
 
-## Make Rplinkseq
+## Make Rplinkseq (with sudo for system-wide installation)
 
   cd R/Rplinkseq
 
@@ -50,7 +50,7 @@ more detailed description below and to the main website.
 
   cd ..
 
-  sudo R CMD INSTALL Rplinkseq
+  sudo R CMD INSTALL Rplinkseq 
 
 
 ## Test PSEQ from a command line
@@ -113,3 +113,13 @@ instructions on the website:
 The configuration option --enable-debug will stop compiler
 optimizations (making code easier to debug and faster to build) and
 link pseq as a static binary, without a wrapper shell script.
+
+
+** Rplinkseq configuration options ** 
+
+To specify the location of libprotobuf, if it is not visible from a system-wide installation, you 
+can pass configure arguments with --configure-args. Also, the --library argument can specify where 
+the library is installed.  For example:
+
+  R CMD INSTALL Rplinkseq --library=/path/to/R/lib/loc  --configure-args=--with-protobuf=/path/to/protobuf/
+

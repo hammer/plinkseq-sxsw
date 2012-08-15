@@ -2465,7 +2465,7 @@ void Mask::group_var(const string & g)
   include_var(g); 
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( g , "" , DO_NOT_ADD );
-  if ( id > 0 ) group_var(id);
+  if ( id > 0 ) return group_var(id);
   else Helper::halt("could not find var super-set " + g );
 }
 
@@ -2513,7 +2513,7 @@ void Mask::group_loc(const string & g)
     }
   include_loc(g);
   int id = locdb->lookup_group_id( g );
-  if ( id > 0 ) group_loc(id);    
+  if ( id > 0 ) return group_loc(id);    
   Helper::halt( "problem with loc.group specification in mask" );
 }
 
