@@ -73,7 +73,7 @@ void Log::warn(const std::string & msg , const std::string & spec )
      
   // keep track of how many times each warning issued
   warnings[ msg ]++;
-  if ( spec != "" && warnings[ msg ] < 10 ) 
+  if ( spec != "" && warnings[ msg ] < warn_limit ) 
     warnings_specific[ msg ].push_back( spec );
 
 }

@@ -37,6 +37,7 @@ glm-tests.cpp \
 stepup.cpp \
 kbac.cpp \
 netassoc.cpp \
+prot.cpp \
 davies.cpp \
 gseq.cpp \
 extra.cpp \

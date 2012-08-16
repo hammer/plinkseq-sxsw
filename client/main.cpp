@@ -23,8 +23,7 @@ Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.09";
-std::string PSEQ_DATE    = "13-Aug-12";
-
+std::string PSEQ_DATE    = "14-Aug-12";
 
 
 int main(int argc, char ** argv)
@@ -88,6 +87,9 @@ int main(int argc, char ** argv)
   if ( args.has("early-warnings") )
     plog.early_warnings( true );
   
+  if ( args.has( "limit-warnings" ) )
+    plog.set_warning_limit( args.as_int( "limit-warnings" ) );
+           
   if ( args.has("silent" ) )
     {
       plog.silent( true );
@@ -567,6 +569,24 @@ int main(int argc, char ** argv)
       Pseq::finished();
     }
 
+
+  //
+  // PROTDB functions
+  //
+
+  if ( command == "prot-load" )
+    {
+      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
+      if ( ! args.has( "file" ) ) Helper::halt( "no --file specified" );
+      Pseq::ProtDB::loader( args.as_string( "protdb" ) , args.as_string( "file" ) );
+      Pseq::finished();
+    }
+  
+
+  
+  //
+  // SEGDB functions
+  //
 
   if ( command == "segset-load" )
     {
@@ -1509,10 +1529,25 @@ int main(int argc, char ** argv)
 
     if ( command == "gs-view" )
       {
+
 	Opt_geneseq opt;
+	
 	if ( args.has( "ref-variants" ) ) 
-	    opt.ref = g.refdb.lookup_group_id( args.as_string( "ref-variants" ) );
+	  opt.ref = g.refdb.lookup_group_id( args.as_string( "ref-variants" ) );
+
+	// add phenotype?
 	opt.pheno = g.phmap.type() == PHE_DICHOT;
+	
+	// add protein annotations?
+	
+	if ( args.has( "protdb" ) )
+	  {
+	    ProtDBase * pd = new ProtDBase;
+	    pd->attach( args.as_string( "protdb" ) );
+	    if ( ! pd->attached() ) Helper::halt( "could not attach PROTDB" );
+	    opt.protdb = pd;
+	  }
+
 	if ( ! g.seqdb.attached() ) Helper::halt( "no SEQDB attached" );
 	if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
 
@@ -1520,6 +1555,8 @@ int main(int argc, char ** argv)
 
 	IterationReport report = g.vardb.iterate( g_geneseq , &opt , m );
 	
+	if ( opt.protdb ) delete opt.protdb;
+
 	Pseq::finished();
       }
 
@@ -2158,6 +2195,11 @@ int main(int argc, char ** argv)
       }
 
 
+    
+    //
+    //
+    //
+
     if ( command == "indiv-enrich" )
       {
 	Out output( "indiv.enrich" , "output from indiv-enrich command" );
@@ -2187,6 +2229,7 @@ int main(int argc, char ** argv)
 
 	Pseq::finished();
       }
+
 
 
     if ( command == "ibd-load" )
@@ -2223,6 +2266,8 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
     
+
+
 
 
     //
@@ -2307,6 +2352,46 @@ int main(int argc, char ** argv)
       }
 
 
+    
+    //
+    // View a ProtDB 
+    //
+
+
+  if ( command == "prot-view" )
+    {
+
+      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
+      if ( ! args.has( "name" ) ) Helper::halt( "no --name specified" );
+
+      Out output( "prot" , "protein domain/annotations" );
+
+      if ( args.has( "group" ) )
+	{
+	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) , args.as_string( "group" ) , &m );
+	}
+      else
+	Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) );
+
+      Pseq::finished();
+    }
+
+  if ( command == "prot-map" )
+    {
+      Out output( "protmap" , "protein domain/annotations mapped to the genome" );
+
+      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
+      if ( ! args.has( "name" ) ) Helper::halt( "no --name specified" );
+      if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
+      if ( ! args.has( "group" ) ) Helper::halt( "no --group specified" );
+
+      Pseq::ProtDB::mapper( args.as_string( "protdb" )  , args.as_string( "group" )  , args.as_string( "name" ) , "." );
+
+      Pseq::finished();
+    }
+
+
+    
 
     //
     // Data-dumpers

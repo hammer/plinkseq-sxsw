@@ -65,9 +65,14 @@ Pseq::IPop::IPop( const std::string & filename , SeqDBase * seqdb ) : seqdb(seqd
     {
       // expecting chr1:100..101  A1  A2  freqs
       
-      // where freqs are for 'A1'
-      // we want ALT allele freqs however, so check that A2 is the REF
-      // if not, flip
+      // where frequencies reported are expected to be for A1
+
+      // Internally, we always want to use ALT freqs; thus we need to check that A2 == REF
+      // If not, flip (after checking that A1 matches REF )
+      
+      // If not SEQDB is attached, print a warning and assume that A1 == ALT and A2 == REF 
+      //  (i.e. we are still giving ALT allele frequencies)
+
 
       std::string l = F.readLine();
       if ( l == "" ) continue;
@@ -94,10 +99,12 @@ Pseq::IPop::IPop( const std::string & filename , SeqDBase * seqdb ) : seqdb(seqd
 	{
 	  std::string sref = seqdb->lookup( pos );
 
+	  Helper::str2upper( sref );
+
 	  if ( sref != a1 && sref != a2 ) 
 	    {
-	      plog.warn( "alleles for " + std::string(tok(0)) + " did not match SEQDB" , 
-			 a1+"/"+a2+" versus " + sref + "(SEQDB)" );
+	      plog.warn( "mismatch with SEQDB " , std::string(tok(0)) + ", " +
+			 a1+"/"+a2+" in panel,  versus " + sref + " in SEQDB" );
 	      bad_site = true;
 	    }
 	  else
@@ -116,7 +123,7 @@ Pseq::IPop::IPop( const std::string & filename , SeqDBase * seqdb ) : seqdb(seqd
       positions[ pos ] = nv;
 
       // allele labels
-      alleles.push_back( var_t( tok(1) , tok(2) ) );
+      alleles.push_back( var_t( a1 , a2 ) );
       
       // A1 frequencies per population
       for (int i=0; i<npop; i++) 
@@ -195,14 +202,13 @@ void f_ipop( Variant & v , void * p )
   if ( aux->alleles[j].a2 != v.reference() ) 
     {
       aux->bad[j] = true;
-      plog.warn( "reference allele mismatches in VARDB" , v.reference() + " but expecting " + aux->alleles[j].a2 );
-      plog.warn( "alleles mismatch in VARDB" , v.reference());
+      plog.warn( "mismatch in VARDB" , v.displaycore() + " : " + v.reference() + " as REF, expecting " + aux->alleles[j].a2 );
       return;
     }
   else if ( aux->alleles[j].a1 != v.alternate() )
     {
       aux->bad[j] = true;
-      plog.warn( "alternate allele mismatches in VARDB" , v.alternate() + " but expecting " + aux->alleles[j].a1 );
+      plog.warn( "mismatch in VARDB" , v.displaycore() + " : " + v.alternate() + " as ALT, expecting " + aux->alleles[j].a1 );
       return;
     }
 

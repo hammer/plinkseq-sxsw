@@ -994,7 +994,6 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      var_cds.replace( pos_extracted_seq-1 , 1 , var_allele );
 	    }
 	  
-	  std::cout << "(2)so far, so good\n";
 	  
 	  //
 	  // Are reference and variant sequences identical for this gene?
@@ -1422,27 +1421,29 @@ void Annotate::init()
 
 std::string Annotate::translate_reference( const Region & region , bool verbose )
 {
-
+  
   if ( ( ! db ) || ( ! db->attached() ) ) return "";
   if ( ( ! seqdb ) || ( ! seqdb->attached() ) ) return "";
-
+  
   // Assume that we have exons as sub-regions
-
+  
   if ( region.subregion.size() == 0 ) return "";
-
-
-  // assume output stream called 'loci' exists
-
-  Out & pout = Out::stream( "loci" );
-  Out & pbase = Out::stream( "bstats" );
-
+  
+  
 
   // Get strand
+  std::map<int,int> cds2ex;
+  int n_exons = 0;
+  for (int e=0;e<region.subregion.size();e++)
+    {
+      if ( region.subregion[e].CDS() ) { cds2ex[ n_exons ] = e; ++n_exons ; }
+    }
 
-  int n_exons = region.subregion.size();
+  int s = region.subregion[0].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
+  if ( s == 0 ) Helper::halt( "could not get strand information in translate_reference" );
 
-  bool negative_strand = region.subregion[0].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() ) == -1;
-
+  bool negative_strand = s < 0 ;
+  
   int first_exon = negative_strand ? 0 : n_exons - 1;
 
 
@@ -1452,8 +1453,9 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
 
   std::vector<int> exon_start_idx(n_exons,0);
 
-  for (int i=0; i < n_exons; i++)
+  for (int i=0; i < region.subregion.size(); i++)
     {
+      if ( ! region.subregion[i].CDS() ) continue;
       ref_cds += seqdb->lookup( region.chromosome() ,
 				region.subregion[ i ].start.position(),
 				region.subregion[ i ].stop.position() );
@@ -1466,7 +1468,7 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
       for (int i=n_exons-1; i >= 0; i--)
 	{
 	  if ( i == n_exons-1 ) exon_start_idx[n_exons-1] = 0;
-	  else exon_start_idx[i] = exon_start_idx[i+1] + ( region.subregion[ i+1 ].stop.position() - region.subregion[ i+1 ].start.position() );
+	  else exon_start_idx[i] = exon_start_idx[i+1] + ( region.subregion[ cds2ex[i]+1 ].stop.position() - region.subregion[ cds2ex[i]+1 ].start.position() );
 	}
     }
   else
@@ -1474,7 +1476,7 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
       for (int i=0; i < n_exons; i++)
 	{
 	  if ( i == 0 ) exon_start_idx[0] = 0;
-	  else exon_start_idx[i] = exon_start_idx[i-1] + ( region.subregion[ i-1 ].stop.position() - region.subregion[ i-1 ].start.position() );
+	  else exon_start_idx[i] = exon_start_idx[i-1] + ( region.subregion[ cds2ex[i]-1 ].stop.position() - region.subregion[ cds2ex[i]-1 ].start.position() );
 	}
     }
 
@@ -1488,7 +1490,6 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
   if ( negative_strand )
     ref_cds = getrc( ref_cds );
 
-
   // Translate sequence, and populate codon
 
   std::vector<std::string> ref_codon;
@@ -1497,9 +1498,18 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
   
   if ( ! verbose ) return trans_ref;
 
+
   //
   // Create a verbose representation
   //
+
+  Helper::halt( "needs CDS() changes to work -- internal note to self.." );
+
+  // assume output stream called 'loci' exists
+  
+  Out & pout = Out::stream( "loci" );
+  Out & pbase = Out::stream( "bstats" );
+  
 
   //  std::stringstream verb;
 
@@ -1626,10 +1636,10 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
 	    << ( negative_strand ? "rev" : "fwd" ) << "\t";
       
       pbase << bpcnt["A"] << "\t"
-	   << bpcnt["C"] << "\t"
-	   << bpcnt["G"] << "\t"
-	   << bpcnt["T"] << "\t"
-	   << bpcnt["a"] + bpcnt["c"] + bpcnt["g"] + bpcnt["t"] + bpcnt["N"] ;
+	    << bpcnt["C"] << "\t"
+	    << bpcnt["G"] << "\t"
+	    << bpcnt["T"] << "\t"
+	    << bpcnt["a"] + bpcnt["c"] + bpcnt["g"] + bpcnt["t"] + bpcnt["N"] ;
       
       std::map<std::string,std::string>::const_iterator pp = Annotate::aa.begin();
       while ( pp != Annotate::aa.end() )
