@@ -581,16 +581,17 @@ BCF * FileMap::bcf( const std::string & filename )
 BCF * FileMap::add_BCF( const std::string & f )
 {
     
-    BCF * bcf = new BCF( f );
+  BCF * bcf = new BCF( f );
 
-    if ( bcf ) 
+  if ( bcf ) 
     {
-	bcf_map[ f ] = bcf;
-	
-	// also add to normal filemap
-	add( f , BCF_FILE , "" , "BCF" );
+      bcf_map[ f ] = bcf;
+      
+      // also add to normal filemap
+      add( f , BCF_FILE , "" , "BCF" );
+
     }
-    return bcf;
+  return bcf;
 }
 
 

@@ -35,6 +35,7 @@ class DoseReader {
       hard_call_dosage_threshold = 0.1;
       skip_header = false;
       spaced = false;
+      has_rsid = true;
     }  
 
   void set_skip_header( const bool b ) 
@@ -45,6 +46,11 @@ class DoseReader {
   void set_spaced() 
   {
     spaced = true;
+  }
+
+  void set_id( const bool b )
+  {
+    has_rsid = b;
   }
 
   void set_mapfile( const std::string & n )
@@ -103,11 +109,20 @@ class DoseReader {
 
   bool read_dose( const std::string & n );
   
+  void set_hard_call_threshold( const double d ) 
+  {
+    // if being set by user, they know which storage mode is being
+    // used, thus set both to user-specified value
+    hard_call_prob_threshold = d;  
+    hard_call_dosage_threshold = d;
+  }
+  
+  
  private:
   
   int read_fam( const int );
   int read_bim();
-  void read_meta();
+  void read_meta( const int );
 
   std::string fam_filename;
   std::string map_filename;
@@ -115,7 +130,7 @@ class DoseReader {
 
   std::string meta_filename;
   std::vector<std::string> metas;
-
+  
   // formats
   
   std::string input_format;
@@ -137,6 +152,7 @@ class DoseReader {
 
   bool skip_header;
   bool spaced;
+  bool has_rsid;
 
   bool has_meta;
   bool make_hard_call;

@@ -111,6 +111,7 @@ glm.cpp \
 iterate.cpp \
 vcfiterate.cpp \
 netdb.cpp \
+protdb.cpp \
 statistics.cpp \
 matrix.cpp \
 sqlite3.c

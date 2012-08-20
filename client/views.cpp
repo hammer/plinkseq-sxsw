@@ -40,7 +40,7 @@ void f_view( Variant & v , void * p )
        << "." << "\t" 
        << v.n_samples() << "\t";
 
-  pout << v.print_meta_filter();
+  pout << v.print_meta_filter( ";" );
 
   if ( opt->vmeta )
     {
@@ -91,13 +91,12 @@ void f_view( Variant & v , void * p )
   
   if ( opt->geno )
     {
+
       bool altmin = true;
+
       if ( opt->show_only_minor ) 
-	{
-	  altmin = v.n_minor_allele();
-	}
-      
-	
+	altmin = v.n_minor_allele();
+		
       const int n = v.size();
       
       for ( int i=0; i<n; i++)
@@ -1063,7 +1062,7 @@ void f_simple_counts( Variant & var , void * p )
     }
 
   if ( data->show_filter ) 
-    pout << "\t" << var.print_meta_filter();
+    pout << "\t" << var.print_meta_filter(";");
   
   pout << "\n";
   

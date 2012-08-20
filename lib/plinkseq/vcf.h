@@ -118,7 +118,7 @@ class VCFReader {
  
  int variants_inserted() const { return vcnt; } 
  
- void insert_meta( const std::string & s ) { getMetaInformation(s); } 
+ std::string insert_meta( const std::string & s ) { return getMetaInformation(s); } 
  
  std::map<std::string,std::string> last_meta();
 
@@ -142,7 +142,7 @@ class VCFReader {
 
   bool return_var;
  
-  void getMetaInformation(const std::string &);
+  std::string getMetaInformation(const std::string &);
   
   bool getHeader(const std::string &);
   

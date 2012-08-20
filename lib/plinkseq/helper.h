@@ -56,6 +56,7 @@ class int2 {
 class Log {
   
   bool     silent_mode;   // write to STOUT?
+  bool     silent_except_errors_mode;  // like silent_mode, except show errors
   bool     output_file;   // write main output to file?
   bool     prolix_mode;   // write any prolix output to file?
   
@@ -72,6 +73,7 @@ class Log {
   
   bool ignore_warnings; 
   bool early_warn;
+  int warn_limit;
 
  public:
   
@@ -81,11 +83,12 @@ class Log {
     { 	        
       
       silent_mode = !s;
+      silent_except_errors_mode = false;
       output_file = false;
       prolix_mode = false;      
       ignore_warnings = false;
       early_warn = false;
-
+      warn_limit = 10;
       
       if ( filename != "" ) logfile( filename );     
       if ( prolix_filename != "" ) prolix_logfile( prolix_filename );
@@ -101,6 +104,9 @@ class Log {
   // General mode switches
   void silent(const bool b) { silent_mode = b; }
   bool silent() const { return silent_mode; }
+
+  void silent_except_errors(const bool b) { silent_except_errors_mode = b; }
+  bool silent_except_errors() const { return silent_except_errors_mode; }
 
   void precision( const int p )
   {
@@ -193,6 +199,13 @@ class Log {
   // Warnings and errors, to be handled separately
   //
 
+  void stderr(const std::string & msg)
+  {
+    if ( silent_mode )
+      if ( ! silent_except_errors_mode ) return;
+    std::cerr << msg ;
+  }
+
   void warn(const std::string & msg, const std::string & spec = "" );
 
   void warn(const std::string & msg, const std::vector<std::string> & spec );
@@ -201,6 +214,8 @@ class Log {
 
   void early_warnings(const bool b ) { early_warn = b; }
   
+  void set_warning_limit( const int i ) { warn_limit = i; }
+
   void print_warnings();
 
 

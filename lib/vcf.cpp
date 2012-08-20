@@ -147,7 +147,7 @@ void VCFReader::summary() const
 }
 
 
-void VCFReader::getMetaInformation(const std::string & s)
+std::string VCFReader::getMetaInformation(const std::string & s)
 {
 
   // assume key=value pairs
@@ -178,7 +178,7 @@ void VCFReader::getMetaInformation(const std::string & s)
     {
       if ( refdb ) refdb->insert_header( file_id , tok[0] , "" );
       else vardb->insert_header(  file_id , tok[0] , "" ); 
-      return;
+      return tok[0];
     }
   
 
@@ -307,9 +307,9 @@ void VCFReader::getMetaInformation(const std::string & s)
       // Ignore or read?
       //
       
-      if ( explicit_meta && meta_want.find( name ) == meta_want.end() ) return;
-      if ( meta_ignore.find( name ) != meta_ignore.end() ) return;
-
+      if ( explicit_meta && meta_want.find( name ) == meta_want.end() ) return "";
+      if ( meta_ignore.find( name ) != meta_ignore.end() ) return "";
+      
       if ( tok[0] == "INFO" ) 
 	meta_read_var.insert( name );
       else 
@@ -329,7 +329,7 @@ void VCFReader::getMetaInformation(const std::string & s)
        // Does this contain valid information?
 
        if ( name == "" || mt == META_UNDEFINED || num < -1 ) 
-	 return;
+	 return "";
 
        // Insert in DB as header line
        
@@ -360,6 +360,7 @@ void VCFReader::getMetaInformation(const std::string & s)
 	     }
 	   else
 	     MetaInformation<GenMeta>::field( name , mt , num , desc );			    
+
 	 }
        else 
 	 {	    
@@ -368,9 +369,11 @@ void VCFReader::getMetaInformation(const std::string & s)
 	     refdb->insert_header( file_id , tok[0] , tok[1] ); 
 	   else  
 	     vardb->insert_header( file_id , tok[0] , tok[1] ); 
-	 }	    
+	   
+	 }	   
+           
+       return name;
 
-       return;
      }
 
 
@@ -421,15 +424,15 @@ void VCFReader::getMetaInformation(const std::string & s)
        if ( name == "" ) 
 	 {
 	   plog.warn("malformed FILTER line in VCF" , tok[1] );
-	   return;
+	   return "";
 	 }
 
       //
       // Ignore or read?
       //
       
-      if ( explicit_meta && meta_want.find( name ) == meta_want.end() ) return;
-      if ( meta_ignore.find( name ) != meta_ignore.end() ) return;
+      if ( explicit_meta && meta_want.find( name ) == meta_want.end() ) return "";
+      if ( meta_ignore.find( name ) != meta_ignore.end() ) return "";
       meta_read_filter.insert( name );
 
       // 
@@ -443,7 +446,7 @@ void VCFReader::getMetaInformation(const std::string & s)
       
       MetaInformation<VarFilterMeta>::field( name , META_FLAG , 1 , desc );
 
-      return;
+      return name;
      }
 
 
@@ -455,9 +458,9 @@ void VCFReader::getMetaInformation(const std::string & s)
    else 
      vardb->insert_header( file_id , tok[0] , tok[1] ); 
 
-   return;
+   return "";
 
- }
+}
 
 
 
