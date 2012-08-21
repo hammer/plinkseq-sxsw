@@ -36,6 +36,7 @@ plinkseq/meta.h \
 plinkseq/netdb.h \
 plinkseq/permute.h \
 plinkseq/phmap.h \
+plinkseq/protdb.h \
 plinkseq/pp.h \
 plinkseq.h \
 plinkseq/refdb.h \

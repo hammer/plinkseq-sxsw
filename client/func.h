@@ -137,7 +137,7 @@ namespace Pseq
     
     bool lookup( const std::string & db , const std::string & gene , const std::string & group = "" , Mask * mask = NULL );
     
-    bool mapper( const std::string & db , const std::string & gene , const std::string & group , const std::string & group );
+    bool mapper( const std::string & db , const std::string & group , const std::string & source , const std::string & feature );
 
   }
 

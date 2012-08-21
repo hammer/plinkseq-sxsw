@@ -98,3 +98,5 @@ gseq/gseq.cgi
 browser/pbrowse
 index/index
 depcomp
+compile
+pdas/pdas
