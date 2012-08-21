@@ -119,7 +119,7 @@ void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
 		int childSampInd = v.ind_sample(childInd);
 		if (childSampInd == 0 || v.ind_sample(patInd) != childSampInd || v.ind_sample(matInd) != childSampInd) {
 			stringstream str;
-			str << "Skipping child " << child->id() << " since it appears in more than one sample or in a different sample than its childsParents";
+			str << "Skipping child " << child->id() << " since it appears in more than one sample or in a different sample than its parents";
 			plog.warn(str.str());
 			continue;
 		}
@@ -306,21 +306,21 @@ bool Pseq::VarDB::cnv_denovo_scan(Mask& mask) {
 	<< "#SUMMARY"
 	<< "\t" << "CHILD"
 
-	<< "\t" << "childCNV"
-	<< "\t" << "inPaternal"
-	<< "\t" << "inMaternal"
-	<< "\t" << "inPaternalAndMaternal"
-	<< "\t" << "missingPaternal"
-	<< "\t" << "missingMaternal"
-	<< "\t" << "denovo"
+	<< "\t" << "CHILD_CNV"
+	<< "\t" << "IN_PATERNAL"
+	<< "\t" << "IN_MATERNAL"
+	<< "\t" << "IN_PATERNAL_AND_MATERNAL"
+	<< "\t" << "MISSING_PATERNAL"
+	<< "\t" << "MISSING_MATERNAL"
+	<< "\t" << "DE_NOVO"
 
-	<< "\t" << "paternal_transmitted"
-	<< "\t" << "paternal_non_transmitted"
-	<< "\t" << "paternal_unknown"
+	<< "\t" << "PATERNAL_TRANSMITTED"
+	<< "\t" << "PATERNAL_NON_TRANSMITTED"
+	<< "\t" << "PATERNAL_UNKNOWN"
 
-	<< "\t" << "maternal_transmitted"
-	<< "\t" << "maternal_non_transmitted"
-	<< "\t" << "maternal_unknown"
+	<< "\t" << "MATERNAL_TRANSMITTED"
+	<< "\t" << "MATERNAL_NON_TRANSMITTED"
+	<< "\t" << "MATERNAL_UNKNOWN"
 
 	<< endl;
 
