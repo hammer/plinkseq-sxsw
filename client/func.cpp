@@ -932,8 +932,11 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
 		break;
 
 	const int sz = tok.size();
-	if (sz > 0 && tok[0].substr(0,1) == "#")
+	if (sz > 0) {
+		const std::string& firstChar = tok[0].substr(0,1);
+		if (firstChar == "#" || firstChar == "@")
 		continue; // ignore comment lines
+	}
 
     ++readRegion;
 	std::string region;
