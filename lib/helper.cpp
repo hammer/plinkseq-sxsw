@@ -896,7 +896,7 @@ int Helper::chrCode(const std::string & c)
   if( c.size() > 5 ) return 0;
   
   // Remove 'chr' prefix
-  std::string c2 ="";
+  std::string c2 = c;
   if ( c.size() > 3 && c.substr(0,3) == "chr" )
     c2 = c.substr(3);
   
