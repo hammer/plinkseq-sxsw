@@ -1783,35 +1783,51 @@ std::set<Variant> VarDBase::fetch( const Region & region )
   sql.bind_int( stmt_fetch_variant_range , ":chr" , region.chromosome() );
   sql.bind_int( stmt_fetch_variant_range , ":rstart" , region.start.position() );
   sql.bind_int( stmt_fetch_variant_range , ":rend" , region.stop.position() );
-    
+  
   std::map<int2,Variant> vmap;
   
   fetch_mode_t old_fetch_mode = fetch_mode;
   fetch_mode = ALL;
   
   while ( sql.step( stmt_fetch_variant_range ) )
-    {
-      // extract BP position on this chromosome
-      int pos = sql.get_int( stmt_fetch_variant_range , 4 );      
-      int stop = sql.get_int( stmt_fetch_variant_range , 5 );      
-      SampleVariant & sample = construct( vmap[int2(pos,stop)] , stmt_fetch_variant_range , &indmap );
-      sample.decode_BLOB( &vmap[int2(pos,stop)] , &indmap , NULL );
-    } 
-  sql.reset( stmt_fetch_variant_range ) ;  
+    {      
+      // extract BP position on this chromosome      
+      int pos = sql.get_int( stmt_fetch_variant_range , 4 );
+      int stop = sql.get_int( stmt_fetch_variant_range , 5 );
+      SampleVariant & sample = construct( vmap[ int2(pos,stop) ] , stmt_fetch_variant_range , &indmap );
 
+    } 
+
+  sql.reset( stmt_fetch_variant_range ) ;  
+  
   std::map<int2,Variant>::iterator i = vmap.begin();
   while ( i != vmap.end() )
     {
+
+      if ( i->second.infile_overlap() ) 
+        indmap.force_unflat( true );    
+
+      int ns = i->second.n_samples();
+      for (int ss = 0 ; ss < ns ; ss++)
+        {
+          SampleVariant * svar = i->second.psample( ss );
+          i->second.psample( ss )->decode_BLOB( &i->second , &indmap , NULL );
+        }  
+
       i->second.make_consensus( &indmap );
+      
       s.insert(i->second);
+
+      indmap.force_unflat( false );
+
       ++i;
     }
+
 
   fetch_mode = old_fetch_mode;
 
   return s;
 }
-
 
 
 int2 VarDBase::make_summary( std::string filename )

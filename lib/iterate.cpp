@@ -1,6 +1,8 @@
 
 #include "plinkseq/vardb.h"
+#include "plinkseq/gstore.h"
 
+extern GStore * GP;
 
 void add_requires_excludes( std::string & query , const Mask & mask );
 
@@ -114,7 +116,12 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	  plog.warn("cannot specify any grouping in single-VCF mode");
 	  return 0;
 	}
-      return vcf_iterate( f , data , mask );
+      
+      if ( GP->single_file_bcf() )
+	return bcf_iterate( f , data , mask );
+      else
+	return vcf_iterate( f , data , mask );
+      
     }
   
 

@@ -280,6 +280,12 @@ class VarDBase {
 
   bool vcf_iterate_read_header( Mask & mask );
 
+  IterationReport bcf_iterate( void (*f)(Variant&, void *) ,			       
+			       void * data ,	
+			       Mask & mask );
+
+
+  
   
   //
   // Other functions

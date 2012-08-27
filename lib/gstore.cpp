@@ -38,6 +38,12 @@ GStore::GStore(bool r)
   // this may get changed later, but assume we have a full project
   in_single_file_mode = false;
 
+  // VCF vs BCF for single file mode
+  single_file_bcf_mode = false;
+  
+  // If in BCF-iteration mode, use this pointer
+  bcf = NULL;
+
   // has a proj specification file been set (or ".")
   has_projfile = false;
 

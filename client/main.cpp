@@ -212,13 +212,22 @@ int main(int argc, char ** argv)
   //
   
   g.single_file_mode( project_file == "-" 
-		      || Helper::ends_with( project_file , ".vcf" ) 
+		      || Helper::ends_with( project_file , ".bcf" ) 
+		      || Helper::ends_with( project_file , ".bcf.gz" ) 
+		      || Helper::ends_with( project_file , ".vcf"  )
 		      || Helper::ends_with( project_file , ".vcf.gz" ) );
   
+  if ( g.single_file_mode() )
+    {
 
-  if ( g.single_file_mode() && ! pcomm.single_VCF_mode( command ) )
-    Helper::halt( command + " not applicable in single-VCF mode" );
+      if ( ! pcomm.single_VCF_mode( command ) )
+	Helper::halt( command + " not applicable in single-VCF mode" );
   
+      if ( Helper::ends_with( project_file , ".bcf" ) 
+	   || Helper::ends_with( project_file , ".bcf.gz" ) )
+	   g.single_file_bcf( true );      
+    }
+
 
   //
   // Functions that do not depend on any databases
@@ -296,14 +305,14 @@ int main(int argc, char ** argv)
   
   if (  g.single_file_mode() ) 
   {
-      if ( project_file != "-" && ! Helper::fileExists( project_file ) ) 
-	  Helper::halt( "could not open VCF file " + project_file );      
+    if ( project_file != "-" && ! Helper::fileExists( project_file ) ) 
+      Helper::halt( "could not open file " + project_file );      
   }
   else
-  {
+    {
       if ( ! Pseq::set_project( project_file ) )
-	  Helper::halt("Could not open project " + project_file );      
-  }
+	Helper::halt("could not open project " + project_file );      
+    }
   
   
   //
@@ -1236,8 +1245,10 @@ int main(int argc, char ** argv)
     //
 
     if ( g.single_file_mode() ) 
-      maskspec += " ex-vcf=" + project_file;
-    
+      {
+	maskspec += " ex-vcf=" + project_file;
+      }
+
 
     //
     // If a phenotype, or covariates, have been specified, by default require that we see these
@@ -1288,8 +1299,15 @@ int main(int argc, char ** argv)
     //
 
     if ( g.single_file_mode() )
-      g.vardb.vcf_iterate_read_header( m );
-
+      {
+	if ( g.single_file_bcf() )
+	  {
+	    g.bcf = new BCF( project_file , 0 ); // 0=readmode
+	    g.bcf->read_header( & g.vardb );
+	  }
+	else
+	  g.vardb.vcf_iterate_read_header( m );
+      }
 
 
     //

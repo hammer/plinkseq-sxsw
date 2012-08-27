@@ -102,8 +102,11 @@ class GStore {
   
   FileMap          fIndex;
 
+  // Pointer to single-file BCF iteration mode
   
-  
+  BCF *            bcf;
+
+
   // Password
   
   void set_pwd( const std::string & p ) { _pwd = p; } 
@@ -137,7 +140,13 @@ class GStore {
   void cleanUp() 
   {
       fIndex.reset();
-      // and other stuff?
+
+      if ( bcf ) 
+	{
+	  delete bcf;
+	  bcf = NULL;
+	}
+
   }
   
   
@@ -167,6 +176,9 @@ class GStore {
   
   bool single_file_mode() const { return in_single_file_mode; }
   void single_file_mode( const bool b ) { in_single_file_mode = b; }
+
+  bool single_file_bcf() const { return single_file_bcf_mode; }
+  void single_file_bcf( const bool b ) { single_file_bcf_mode = b; }
 
   bool has_project_file() const { return has_projfile; }
   void has_project_file( const bool b ) { has_projfile = b; }
@@ -294,6 +306,10 @@ class GStore {
   std::string gjobn;
 
   bool in_single_file_mode;
+
+  bool single_file_bcf_mode;
+  
+  BCF * singe_bcf;
 
   bool has_projfile;
 

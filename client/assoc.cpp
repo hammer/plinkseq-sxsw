@@ -1917,9 +1917,9 @@ void g_set_enrichment( VariantGroup & vars , void * p )
       
       if ( observed ) 
 	{
-	  // std::cout << "  adding " << vars( added ) 
-	  // 	    << "  for indiv " << vars( added ).ind(i)->id() 
-	  // 	    << "  MAF = " << w << "\n";
+	  std::cout << "  adding " << vars( added ) 
+	   	    << "  for indiv " << vars( added ).ind(i)->id() 
+	     	    << "  MAF = " << w << "\n";
 
 	  w = 1 / w;
 	  
