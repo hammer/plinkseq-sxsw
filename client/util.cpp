@@ -177,7 +177,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 
 	  << "tag-file|varop|add file-tags to VARDB|ARG:name,id"
-	  
+      
 	  << "var-delete|varop|remove file from VARDB|ARG:id" 
 	
 	  << "vacuum|varop|clean-up unused disk-space in VARDB"     
@@ -456,6 +456,8 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "key" , STRING , "key of key-value pair" );
     reg( "value" , STRING_VECTOR , "value(s) of key-value pair" );
     reg( "type", STRING , "type of project entry");
+    reg( "declare", STRING_VECTOR , "on-the-fly declaration of meta-attribute types" );
+    
     reg( "id" , INT_VECTOR , "generic numeric IDs" );
     reg( "options" , STRING_VECTOR, "context-specific options\n");
     reg( "outfile", STRING, "generic output filename\n" );

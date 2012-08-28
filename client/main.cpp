@@ -402,6 +402,55 @@ int main(int argc, char ** argv)
   
 
   //
+  // On-the-fly declaration of types
+  //
+  
+  if ( args.has( "declare" ) )
+    {
+      // --declare DB|INFO|0|Flag|"Description a desc" DB2|FORMAT|1|GT|Float|"A value"
+      
+      std::vector<std::string> t = args.as_string_vector( "declare" );
+      for ( int tt = 0 ; tt < t.size() ; tt++ )
+	{
+	  std::vector<std::string> x = Helper::char_split( t[tt] , '|' );
+
+	  if ( x.size() != 5 ) Helper::halt("expecting ID|GROUP|N|TYPE|DESC for --declare" );
+
+	  const std::string & name = x[0];
+	  const std::string & type = x[3];
+	  const std::string & desc = x[4];
+
+	  int n = 0;
+	  if ( ! Helper::str2int( x[2] , n ) ) n = -1; // variable length
+	  
+	  mType mt = META_UNDEFINED;	  
+	  if ( Helper::is_int( type ) )  mt = META_INT;
+	  else if ( Helper::is_float( type ) ) mt = META_FLOAT;
+	  else if ( Helper::is_text( type ) ) mt = META_TEXT;  // text == String || Char
+	  else if ( Helper::is_flag( type ) ) mt = META_FLAG;
+	  
+	  // Does this contain valid information?
+	  
+	  if ( mt == META_UNDEFINED )
+	    Helper::halt( "problem defining type, " + type );
+
+	  if ( n < -1 ) 	  
+	    Helper::halt( "problem defining number, " + x[2] );
+	  
+	  if ( x[1] == "INFO" ) 
+	    MetaInformation<VarMeta>::field( name , mt , n , desc );
+	  else if ( x[1] == "FORMAT" ) 
+	    MetaInformation<GenMeta>::field( name , mt , n , desc );
+	  else if ( x[1] == "FILTER" ) 
+	    MetaInformation<VarFilterMeta>::field( name , mt , n , desc );
+	  else
+	    Helper::halt( x[1] + " not one of INFO, FORMAT or FILTER" );
+	}
+      
+    }
+  
+  
+  //
   // Misc. formatting/display options
   //
 

@@ -371,10 +371,10 @@ void f_view_meta_matrix( Variant & v , void * p )
        << v.position() << "\t"
        << v.name();
   
+  
   int nelem_static = v.consensus.meta.n_visible_keys_static();
   
   int nelem_nonstatic = v.consensus.meta.n_visible_keys_nonstatic();
-  
 
   // Need to separate out 'static' (Variant) and 'non-static'
   // (SampleVariant/Consensus) information
@@ -453,9 +453,11 @@ void f_view_var_meta_matrix( Variant & v , void * p )
   std::string name = *(std::string*)p; 
   pout << v << "\t";
   for (int i=0; i<v.size(); i++)
-    pout << ( v(i).meta.has_field(name) ? 
-	      v(i).meta.as_string(name) : 
-	      "NA" ) << "\t";
+    {
+      pout << ( v(i).meta.has_field(name) ? 
+		v(i).meta.as_string(name) : 
+		"NA" ) << "\t";
+    }
   pout << "\n";
 }
 
