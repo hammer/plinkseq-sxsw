@@ -2513,7 +2513,7 @@ void Mask::group_loc(const string & g)
     }
   include_loc(g);
   int id = locdb->lookup_group_id( g );
-  if ( id > 0 ) group_loc(id);    
+  if ( id > 0 ) return group_loc(id);
   Helper::halt( "problem with loc.group specification in mask" );
 }
 

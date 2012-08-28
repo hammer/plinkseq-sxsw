@@ -116,7 +116,7 @@ bool Variant::make_consensus( IndividualMap * a )
 	}
       
       consensus.set_allelic_encoding();
-            
+
       return true;
     }
   

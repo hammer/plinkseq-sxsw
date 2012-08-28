@@ -694,6 +694,10 @@ class Variant {
       {
 	if ( bp == rhs.bp )
 	  {
+	    if ( bp2 == rhs.bp2 ) 
+	      {
+		return consensus.alt < rhs.consensus.alt;
+	      }
 	    return bp2 < rhs.bp2;
 	  }
 	return bp < rhs.bp;
