@@ -2547,3 +2547,13 @@ inline uint32_t BCF::write_typed_vec( const std::vector<std::string> & x  , cons
 }
 
 
+
+
+IterationReport VarDBase::bcf_iterate( void (*f)(Variant&, void *) ,			       
+				       void * data ,	
+				       Mask & mask )
+{
+  IterationReport report;
+  Helper::halt( "bcf-iterate not yet implemented" );
+  return report;
+}

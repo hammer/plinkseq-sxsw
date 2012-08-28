@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <iterator>
+#include <limits>
 
 #include "plinkseq.h"
 
