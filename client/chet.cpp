@@ -22,12 +22,24 @@ int Pseq::Assoc::Aux_two_hit::ncases = 0;
 int Pseq::Assoc::Aux_two_hit::ncontrols = 0;
 int Pseq::Assoc::Aux_two_hit::nmissing = 0;
 
+bool Pseq::Assoc::Aux_two_hit::singles = false;
+bool Pseq::Assoc::Aux_two_hit::mhit = false;
 
-void Pseq::Assoc::Aux_two_hit::initialize( ){
+void Pseq::Assoc::Aux_two_hit::initialize(){
 
   prev = PLINKSeq::DEFAULT_PREV();
+  singles = false;
+  mhit = false;
+
   if ( args.has( "prev" ) )
     prev =  Helper::str2dbl(args.as_string( "prev" ));
+
+  if ( args.has( "singles" ) )
+    singles = true;
+
+  if ( args.has( "mhit" ) )
+    mhit = true;
+
 
   if( args.has( "func-inc" ) ){
     std::vector<std::string> inc = args.as_string_vector( "func-inc" );
@@ -52,9 +64,8 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 				  std::string> * output, 
 				  bool original )
 {
+  Out & pout = Out::stream( "twohit.vars" );
 
-  // see stat_cancor above - you may be able to just copy that code for P and G
-  // populate P and G matrices
   if( aux->ncases == 0 ) {
 
     const int n = vars.n_individuals();
@@ -105,8 +116,8 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
       for (int v = 0; v < vars.size(); v++)
 	{
 	  
-	  const Genotype & g = vars.geno(v,i);
-	  double d = g.null() ? 0 : g.minor_allele_count(pre->refmin.find(v) == pre->refmin.end());
+	  const Genotype & gt = vars.geno(v,i);
+	  double d = gt.null() ? 0 : gt.minor_allele_count(pre->refmin.find(v) == pre->refmin.end());
 	  
 	  std::vector<int> pl;
 	  std::vector<int> ad;
@@ -126,13 +137,11 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 	  
 	  if( vars(v).meta.has_field( PLINKSeq::DEFAULT_TRANS() ) && vars(v).meta.has_field( PLINKSeq::DEFAULT_FUNC() )){
 
-	    
 	    std::vector<std::string> func = vars(v).meta.get_string( PLINKSeq::DEFAULT_FUNC() );
 	    std::vector<std::string> transcript = vars(v).meta.get_string( PLINKSeq::DEFAULT_TRANS() );
 
 	    //  fast string tokenizer:
 	    int n = 0;
-	    //	    std::cout << vars(v) << " TRANS: " << transcript[0] << " FUNC: " << func[0] << " " << transcript.size() << " " << func.size() << "\n";
 	    Helper::char_tok tok_trans( transcript[0] , &n , ',' );
             
 	    n = 0;
@@ -148,8 +157,13 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 
 	  std::string annot1 = "";
 	  int cnt = 0;
+	  
+	  // only include defined annotations unless none given then include all
 	  bool pass = false;	
-	
+       	  if (aux->func_inc.size() == 0)
+	    pass = true;
+	  
+
 	  for( int ti = 0; ti < annot.size(); ti++){
 	    if( cnt > 0 )
 	      annot1 += "/";
@@ -164,16 +178,30 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 	    } 
 	  }
 
+	  if( annot1.length() == 0 )
+	    annot1 = ".";
 	  if( d == 2 && ab < PLINKSeq::DEFAULT_AB_HOMMAX() && pass )
 	    {         
 	      if( vars.ind( j )->affected() == CASE){
 		if(original)
-		  plog << "HOM: " << vars(v) << " " << vars.ind( j )->id() << " case " << annot1 << "\n"; 
+		  pout << "HOM\t" \
+		       << vars.name() << "\t" \
+		       << g.locdb.alias( vars.name() , false ) << "\t" \
+		       << vars(v) << "\t" \
+		       << vars.ind( j )->id() \
+		       << "\tcase\t" \
+		       << annot1 << "\n"; 
 		ahomi++;
 	      } 
 	      if ( vars.ind(j)->affected() == CONTROL ){
 		if(original)
-		  plog << "HOM: " << vars(v) << " " << vars.ind( j )->id() << " control " << annot1 << "\n";
+		  pout << "HOM\t" \
+		       << vars.name() << "\t" \
+                       << g.locdb.alias( vars.name() , false ) << "\t" \
+		       << vars(v) << "\t" \
+		       << vars.ind( j )->id() \
+		       << "\tcontrol\t" \
+		       << annot1 << "\n";
 		uhomi++;
 	      }
 	    }
@@ -215,7 +243,7 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 	      
 	      // test two hit
 	      int rest = mat[0][1] + mat[0][2] + mat[1][0] + mat[1][2] + mat[2][0] + mat[2][1] + mat[2][2];            
-	      if( ((mat[0][1] + mat[0][2]) > 0 && (mat[1][0] + mat[2][0]) > 0 && ( mat[1][2] + mat[2][1] + mat[2][2] == 0 ) ) || (mat[1][1] == 1 && rest == 0) )
+	      if( ((mat[0][1] + mat[0][2]) > 0 && (mat[1][0] + mat[2][0]) > 0 && ( mat[1][2] + mat[2][1] + mat[2][2] == 0 ) ) || (mat[1][1] == 1 && rest == 0 && aux->singles) || aux->mhit )
 		//	chet = true;
 		valid_chet[pair] = 1;
 	      else
@@ -226,20 +254,40 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 
 	      //sort two annotations for consistancy
 	      std::vector<std::string> vtmp;
-	      vtmp.push_back(ann[z]);
-	      vtmp.push_back(ann[k]);
+	      if( ann[z].length() > 0 )
+		vtmp.push_back(ann[z]);
+	      else
+		vtmp.push_back(".");
+	      if( ann[k].length() > 0 )
+		vtmp.push_back(ann[k]);
+	      else
+		vtmp.push_back(".");
+
 	      sort(vtmp.begin(), vtmp.end());
 	      
+
               if ( vars.ind(j)->affected() == CASE )
 		{
 		  if ( original )
-		    plog << "CHET: " << vars(hets[z]) << "," << vars(hets[k]) << " " << vars.ind( j )->id() << " case " << vtmp[0] << "," << vtmp[1] << "\n";
+		    pout << "CHET\t"		\
+			 << vars.name() << "\t" \
+			 << g.locdb.alias( vars.name() , false ) << "\t" \
+			 << vars(hets[z]) << "," << vars(hets[k]) << "\t" \
+			 << vars.ind( j )->id() \
+			 << "\tcase\t" \
+			 << vtmp[0] << "," << vtmp[1] << "\n";
 		  acheti++;
 		}
               if ( vars.ind(j)->affected() == CONTROL )
 		{
 		  if( original )
-		    plog << "CHET: " <<  vars(hets[z]) << "," << vars(hets[k]) << " " << vars.ind( j )->id() << " control  " << vtmp[0] << "," << vtmp[1] << "\n";
+		    pout << "CHET\t" \
+		         << vars.name() << "\t" \
+                         << g.locdb.alias( vars.name() , false ) << "\t" \
+			 << vars(hets[z]) << "," << vars(hets[k]) << "\t" \
+			 << vars.ind( j )->id() \
+			 << "\tcontrol\t" \
+			 << vtmp[0] << "," << vtmp[1] << "\n";
 		  ucheti++;
 		}
             }
@@ -313,6 +361,8 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
   double chisqVal = 2 * diff2;
 
   double pvalue = Statistics::chi2_prob(chisqVal, 1);
+  aux->returned_pvalue = pvalue < 0 ? 1.00 : pvalue ;
+  
 
   // set the statistic on the Aux_two_hit struct.
   // gseq will read this value each permutation (this also includes adaptive permutation)
@@ -324,9 +374,6 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 	+ ";CASES=" + Helper::int2str(ahom) + "," + Helper::int2str(achet) + "," + Helper::int2str(ahet) + "," + Helper::int2str(aux->ncases) 
 	+ ";CONTROLS=" + Helper::int2str(uhom) + "," + Helper::int2str(uchet) + "," + Helper::int2str(uhet) + "," + Helper::int2str(aux->ncontrols);
     }
-  
-  return chisqVal;
-
-   
+  return chisqVal;   
 }
 

@@ -92,7 +92,11 @@ class Out {
 
   // get a stream (fail if not open)
   static Out & stream( const std::string & ) ;
-  
+
+  // check if stream exists
+  static bool check_stream( const std::string & f );
+
+
   // data-group options
 
   //
