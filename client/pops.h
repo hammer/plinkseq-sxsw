@@ -56,7 +56,10 @@ namespace Pseq {
     
     // Needs a SEQDB to be attaced
     SeqDBase * seqdb;
-    
+
+    // threshold for MAF
+    static double min_af;
+
   };
   
 }

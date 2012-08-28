@@ -5,6 +5,7 @@
 
 extern GStore g;
 
+double Pseq::IPop::min_af = 1e-4;
 
 // helper function to sum log-probabilities
 double sumLogProbs( const std::vector<double> & logprobs)
@@ -131,7 +132,13 @@ Pseq::IPop::IPop( const std::string & filename , SeqDBase * seqdb ) : seqdb(seqd
 	  double x = 0;
 	  if ( ! Helper::str2dbl( tok(i+3) , x ) ) 
 	    Helper::halt( "invalid numeric entry in allele freq file" );
+
 	  if ( flip ) x = 1 - x;
+	  
+	  // ensure we do not have absolute 0 as a MAF
+	  if ( x < min_af ) x = min_af;
+	  else if ( x > ( 1 - min_af ) ) x = 1 - min_af ; 
+	  
 	  populations[i].p.push_back( x );
 	}
 

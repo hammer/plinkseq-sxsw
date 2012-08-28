@@ -468,6 +468,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "ignore-warnings" , NONE , "turn off warnings");
     reg( "early-warnings" , NONE , "display warning as soon as happens");
     reg( "limit-warnings" , INT , "print up to N warnings per topic" );
+    reg( "all-warnings" , NONE , "show all warnings" );
 
     reg( "out-file", STRING , "set main output file");
     reg( "debug-file", STRING , "debug file name");

@@ -87,8 +87,12 @@ int main(int argc, char ** argv)
   if ( args.has("early-warnings") )
     plog.early_warnings( true );
   
-  if ( args.has( "limit-warnings" ) )
+  if ( args.has( "all-warnings" ) )
+    plog.set_warning_limit( numeric_limits<int>::max() );
+  else if ( args.has( "limit-warnings" ) )
     plog.set_warning_limit( args.as_int( "limit-warnings" ) );
+  
+  
            
   if ( args.has("silent" ) )
     {
