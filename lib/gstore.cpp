@@ -38,6 +38,12 @@ GStore::GStore(bool r)
   // this may get changed later, but assume we have a full project
   in_single_file_mode = false;
 
+  // VCF vs BCF for single file mode
+  single_file_bcf_mode = false;
+  
+  // If in BCF-iteration mode, use this pointer
+  bcf = NULL;
+
   // has a proj specification file been set (or ".")
   has_projfile = false;
 
@@ -275,7 +281,7 @@ void GStore::show_version() const
   std::map<std::string,std::string>::iterator i = v.begin();
   while ( i != v.end() )
     {
-      plog << i->first << "\t" << i->second << "\n";
+      plog << i->first << ": " << i->second << "\n";
       ++i;
     }
 }
@@ -284,9 +290,14 @@ void GStore::show_version() const
 std::map<std::string,std::string> GStore::version() const
 {
   std::map<std::string,std::string> v;
-  v[ "PLINKSeq" ] = PLINKSeq::VERSION_NUMBER();
+  v[ "PLINKSEQ" ] = PLINKSeq::VERSION_NUMBER();
   v[ "SQLITE3_LIBRARY" ] = SQL::library_version();
   v[ "SQLITE3_HEADER" ] = SQL::header_version();  
+  v[ "PROJN_SPEC_FILE" ] = Helper::int2str( PLINKSeq::PROJECT_VERSION_NUMBER() );
+  v[ "VARDB" ] = Helper::int2str( PLINKSeq::VARDB_VERSION_NUMBER() );
+  v[ "LOCDB" ] = Helper::int2str( PLINKSeq::LOCDB_VERSION_NUMBER() );
+  v[ "REFDB" ] = Helper::int2str( PLINKSeq::REFDB_VERSION_NUMBER() );
+  v[ "VCF" ] = PLINKSeq::CURRENT_VCF_VERSION();
   return v;
 }
 

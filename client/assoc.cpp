@@ -480,7 +480,7 @@ void f_variant_association( Variant & v , void * p )
 
   pout.data( v.reference() );
   pout.data( v.print_samples() );
-  pout.data( v.print_meta_filter() );
+  pout.data( v.print_meta_filter(";") );
   pout.data( v.meta );
   pout.data( v.consensus.meta );
   
@@ -1204,7 +1204,7 @@ void f_variant_qtassociation( Variant & v , void * p )
 
 //   pout.data( v.reference() );
 //   pout.data( v.print_samples() );
-//   pout.data( v.print_meta_filter() );
+//   pout.data( v.print_meta_filter(";") );
 //   pout.data( v.meta );
 //   pout.data( v.consensus.meta );
   
@@ -1919,9 +1919,9 @@ void g_set_enrichment( VariantGroup & vars , void * p )
       
       if ( observed ) 
 	{
-	  // std::cout << "  adding " << vars( added ) 
-	  // 	    << "  for indiv " << vars( added ).ind(i)->id() 
-	  // 	    << "  MAF = " << w << "\n";
+	  std::cout << "  adding " << vars( added ) 
+	   	    << "  for indiv " << vars( added ).ind(i)->id() 
+	     	    << "  MAF = " << w << "\n";
 
 	  w = 1 / w;
 	  

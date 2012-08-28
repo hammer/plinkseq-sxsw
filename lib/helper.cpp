@@ -38,7 +38,8 @@ void Helper::halt( const std::string & msg )
 #ifdef R_SHLIB
  R_error( msg );
 #else
- plog << "pseq error : " << msg << "\n";
+ plog.stderr( "pseq error : " + msg + "\n" );
+
  if ( GP && GP->gseq_mode() )
    {
      std::ofstream O1( GP->gseq_history().c_str() , std::ios::out | std::ios::app );
@@ -72,7 +73,7 @@ void Log::warn(const std::string & msg , const std::string & spec )
      
   // keep track of how many times each warning issued
   warnings[ msg ]++;
-  if ( spec != "" && warnings[ msg ] < 10 ) 
+  if ( spec != "" && warnings[ msg ] < warn_limit ) 
     warnings_specific[ msg ].push_back( spec );
 
 }
@@ -92,22 +93,24 @@ void Log::print_warnings()
       if ( arr.size() == 0 ) 
 	{
 	  if ( i->second > 1 ) 
-	    msg += "plinkseq warning: " + i->first + " (repeated " + Helper::int2str( i->second ) + " times)\n";
+	    msg += " plinkseq warning: " + i->first + " (repeated " + Helper::int2str( i->second ) + " times)\n";
 	  else
-	    msg += "plinkseq warning: " + i->first + "\n";
+	    msg += " plinkseq warning: " + i->first + "\n";
 	}
       else
 	{
 	  for (int j=0; j<arr.size(); j++)
-	    msg += "plinkseq warning: " + i->first + " : " + arr[j] + "\n";
+	    msg += " plinkseq warning: " + i->first + " : " + arr[j] + "\n";
 	  if ( i->second > arr.size() )
-	    msg += "plinkseq warning: " + i->first + " (repeated " + Helper::int2str( i->second ) + " times)\n";
+	    msg += " plinkseq warning: " + i->first + " (repeated " + Helper::int2str( i->second ) + " times)\n";
 	}	  
       
 #ifdef R_SHLIB
       // R should keep track of warning count, so no need for further action here?
 #else
-      plog << msg ;
+      plog << "\n" 
+	   << msg 
+	   << "===============================================================================\n";
 #endif
 
       ++i;
@@ -122,7 +125,7 @@ void Helper::NoMem()
 {
 
   std::cerr << "*****************************************************\n"
-	    << "* FATAL ERROR    Exhausted system memory            *\n"
+	    << "***  FATAL ERROR !!!  Exhausted system memory     ***\n"
 	    << "*****************************************************\n\n";
   
   if ( GP && GP->gseq_mode() )
@@ -763,9 +766,11 @@ std::string Helper::filelist2commalist( const std::string & f )
 
 void Helper::inserter( std::set< std::string > & strset , const std::string & filespec )
 {
+
   int col = 0;
   int comma = filespec.find("#");
-  std::string filename = filespec;
+  std::string filename = FileMap::tilde_expansion( filespec );
+   
   if ( comma != string::npos )
     {
       filename = filespec.substr( 0 , comma ) ;
@@ -798,7 +803,10 @@ void Helper::inserter( std::set< std::string > & strset , const std::string & fi
       if ( cols.size() <= col ) 
 	{
 	  if ( cols.size() != 0 )
-	    plog.warn( filename + " row with " + Helper::int2str( cols.size() ) + " fields when field " + Helper::int2str(col+1) + " requested" ); 
+	    plog.warn( filename + " row with " 
+		       + Helper::int2str( cols.size() ) 
+		       + " fields when field " 
+		       + Helper::int2str(col+1) + " requested" ); 
 	  continue;
 	}
       strset.insert( cols[col] );
@@ -888,7 +896,7 @@ int Helper::chrCode(const std::string & c)
   if( c.size() > 5 ) return 0;
   
   // Remove 'chr' prefix
-  std::string c2 ="";
+  std::string c2 = c;
   if ( c.size() > 3 && c.substr(0,3) == "chr" )
     c2 = c.substr(3);
   

@@ -614,7 +614,7 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 			{
 			  const int idx = subset ? imask[j] : j ;
 			  Genotype * g = parent.genotype( si , idx );
-			  if ( g && g->meta.hasField( *k ) )
+			  if ( g && g->meta.has_field( *k ) )
 			    INTEGER(g_meta)[j] = g->meta.get1_int( *k ) ;
 			  else
 			    INTEGER(g_meta)[j] = NA_INTEGER;
@@ -629,7 +629,7 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 			{
 			  const int idx = subset ? imask[j] : j ;
 			  Genotype * g = parent.genotype( si , idx );
-			  if ( g && g->meta.hasField( *k ) )
+			  if ( g && g->meta.has_field( *k ) )
 			    {
 			      std::vector<int> vec = g->meta.get_int( *k ) ;
 			      for (int z=0; z<len; z++)
@@ -651,7 +651,7 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 			{
 			  const int idx = subset ? imask[j] : j ;
 			  Genotype * g = parent.genotype( si , idx );
-			  if ( g && g->meta.hasField( *k ) )
+			  if ( g && g->meta.has_field( *k ) )
 			    {
 			      std::vector<int> vec = g->meta.get_int( *k ) ;
 			      SEXP list1;
@@ -677,7 +677,7 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 			{
 			  const int idx = subset ? imask[j] : j ;
 			  Genotype * g = parent.genotype( si , idx );
-			  if ( g && g->meta.hasField( *k ) )
+			  if ( g && g->meta.has_field( *k ) )
 			    REAL(g_meta)[j] = g->meta.get1_double( *k ) ;
 			  else
 			    REAL(g_meta)[j] = NA_REAL;
@@ -692,7 +692,7 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 			{
 			  const int idx = subset ? imask[j] : j ;
 			  Genotype * g = parent.genotype( si , idx );
-			  if ( g && g->meta.hasField( *k ) )
+			  if ( g && g->meta.has_field( *k ) )
 			    {
 			      std::vector<double> vec = g->meta.get_double( *k ) ;
 			      for (int z=0; z<len; z++)
@@ -714,7 +714,7 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 			{
 			  const int idx = subset ? imask[j] : j ;
 			  Genotype * g = parent.genotype( si , idx );
-			  if ( g && g->meta.hasField( *k ) )
+			  if ( g && g->meta.has_field( *k ) )
 			    {
 			      std::vector<double> vec = g->meta.get_double( *k ) ;
 			      SEXP list1;
@@ -741,7 +741,7 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 			{
 			  const int idx = subset ? imask[j] : j ;
 			  Genotype * g = parent.genotype( si , idx );
-			  if ( g && g->meta.hasField( *k ) )
+			  if ( g && g->meta.has_field( *k ) )
 			    SET_STRING_ELT( g_meta, j , mkChar( g->meta.get1_string( *k ).c_str() ) );
 			  else
 			    SET_STRING_ELT( g_meta, j , NA_STRING );			  
@@ -756,7 +756,7 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 			{
 			  const int idx = subset ? imask[j] : j ;
 			  Genotype * g = parent.genotype( si , idx );
-			  if ( g && g->meta.hasField( *k ) )
+			  if ( g && g->meta.has_field( *k ) )
 			    {
 			      std::vector<std::string> vec = g->meta.get_string( *k ) ;
 			      for (int z=0; z<len; z++)
@@ -778,7 +778,7 @@ SEXP Rsample_variant( const int si , Variant & parent , Rdisplay_options & opt )
 			{
 			  const int idx = subset ? imask[j] : j ;
 			  Genotype * g = parent.genotype( si , idx );
-			  if ( g && g->meta.hasField( *k ) )
+			  if ( g && g->meta.has_field( *k ) )
 			    {
 			      std::vector<std::string> vec = g->meta.get_string( *k ) ;
 			      SEXP list1;

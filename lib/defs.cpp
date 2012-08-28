@@ -100,36 +100,36 @@ void PLINKSeq::register_standard_metatypes()
   // INFO fields
   // 
 
-  MetaInformation<VarMeta>::field( "AA" , META_TEXT   , 1  , "Ancestral allele" );
-  MetaInformation<VarMeta>::field( "AC" , META_INT    , -1 , "Allele count for each alternate allele" );
-  MetaInformation<VarMeta>::field( "AF" , META_FLOAT  , -1 , "Frequency for each alternate allele (estimated from primary data, not called genotypes)" );
-  MetaInformation<VarMeta>::field( "AN" , META_INT    , 1 , "Total number of alleles in called genotypes" );
-  MetaInformation<VarMeta>::field( "BQ" , META_FLOAT  , 1 , "RMS base quality at this position" );
-  MetaInformation<VarMeta>::field( "CIGAR" , META_TEXT  , 1 , "CIGAR string describing how to align an alternate allele to the reference allele" );
-  MetaInformation<VarMeta>::field( "DB" , META_FLAG    , 0 , "dbSNP membership" );
-  MetaInformation<VarMeta>::field( "DP" , META_INT    , 1 , "Combined depth across samples" );
-  MetaInformation<VarMeta>::field( "END" , META_INT    , 1 , "End position of the variant" );
-  MetaInformation<VarMeta>::field( "H2" , META_FLAG    , 0 , "Membership in HapMap2" );
-  MetaInformation<VarMeta>::field( "H3" , META_FLAG    , 0 , "Membership in HapMap3" );
-  MetaInformation<VarMeta>::field( "MQ" , META_FLOAT   , 1 , "RMS mapping quality" );
-  MetaInformation<VarMeta>::field( "MQ0" , META_INT    , 1 , "Number of MQ == 0 reads covering this record" );
-  MetaInformation<VarMeta>::field( "NS" , META_INT    , 1 , "Number of samples with data" );
-  MetaInformation<VarMeta>::field( "SB" , META_FLOAT  , 1 , "Strand bias" );
-  MetaInformation<VarMeta>::field( "SOMATIC" , META_FLAG  , 0 , "Somatic mutation" );
-  MetaInformation<VarMeta>::field( "VALIDATED" , META_FLAG  , 0 , "Validated by follow-up experiment" );
+  // MetaInformation<VarMeta>::field( "AA" , META_TEXT   , 1  , "Ancestral allele" );
+  // MetaInformation<VarMeta>::field( "AC" , META_INT    , -1 , "Allele count for each alternate allele" );
+  // MetaInformation<VarMeta>::field( "AF" , META_FLOAT  , -1 , "Frequency for each alternate allele (estimated from primary data, not called genotypes)" );
+  // MetaInformation<VarMeta>::field( "AN" , META_INT    , 1 , "Total number of alleles in called genotypes" );
+  // MetaInformation<VarMeta>::field( "BQ" , META_FLOAT  , 1 , "RMS base quality at this position" );
+  // MetaInformation<VarMeta>::field( "CIGAR" , META_TEXT  , 1 , "CIGAR string describing how to align an alternate allele to the reference allele" );
+  // MetaInformation<VarMeta>::field( "DB" , META_FLAG    , 0 , "dbSNP membership" );
+  // MetaInformation<VarMeta>::field( "DP" , META_INT    , 1 , "Combined depth across samples" );
+  // MetaInformation<VarMeta>::field( "END" , META_INT    , 1 , "End position of the variant" );
+  // MetaInformation<VarMeta>::field( "H2" , META_FLAG    , 0 , "Membership in HapMap2" );
+  // MetaInformation<VarMeta>::field( "H3" , META_FLAG    , 0 , "Membership in HapMap3" );
+  // MetaInformation<VarMeta>::field( "MQ" , META_FLOAT   , 1 , "RMS mapping quality" );
+  // MetaInformation<VarMeta>::field( "MQ0" , META_INT    , 1 , "Number of MQ == 0 reads covering this record" );
+  // MetaInformation<VarMeta>::field( "NS" , META_INT    , 1 , "Number of samples with data" );
+  // MetaInformation<VarMeta>::field( "SB" , META_FLOAT  , 1 , "Strand bias" );
+  // MetaInformation<VarMeta>::field( "SOMATIC" , META_FLAG  , 0 , "Somatic mutation" );
+  // MetaInformation<VarMeta>::field( "VALIDATED" , META_FLAG  , 0 , "Validated by follow-up experiment" );
 
   //
   // FORMAT 
   //
 
-  MetaInformation<GenMeta>::field( "DP" , META_INT   , 1 , "Read depth" );
-  MetaInformation<GenMeta>::field( "FT" , META_TEXT  , -1 , "Sample genotype filter(s)" );
-  MetaInformation<GenMeta>::field( "GL" , META_FLOAT  , -1 , "log10-scaled likelihoods; for AA,AB,BB where A=ref, B=alt" );
-  MetaInformation<GenMeta>::field( "PL" , META_INT  , -1 , "phred-scaled genotype likelihoods; for AA,AB,BB where A=ref, B=alt" );
-  MetaInformation<GenMeta>::field( "PP" , META_FLOAT  , -1 , "P(genotype | data)" );
-  MetaInformation<GenMeta>::field( "EC" , META_FLOAT  , -1 , "Expected count (dosage) of alternate alleles");
-  MetaInformation<GenMeta>::field( "GQ" , META_FLOAT  , 1 , "phred-scaled genotype quality, -10log_10p(genotype call is wrong)" );
-  MetaInformation<GenMeta>::field( "HQ" , META_INT  , 2 , "haplotype qualities, two phred qualities" );
+  // MetaInformation<GenMeta>::field( "DP" , META_INT   , 1 , "Read depth" );
+  // MetaInformation<GenMeta>::field( "FT" , META_TEXT  , -1 , "Sample genotype filter(s)" );
+  // MetaInformation<GenMeta>::field( "GL" , META_FLOAT  , -1 , "log10-scaled likelihoods; for AA,AB,BB where A=ref, B=alt" );
+  // MetaInformation<GenMeta>::field( "PL" , META_INT  , -1 , "phred-scaled genotype likelihoods; for AA,AB,BB where A=ref, B=alt" );
+  // MetaInformation<GenMeta>::field( "PP" , META_FLOAT  , -1 , "P(genotype | data)" );
+  // MetaInformation<GenMeta>::field( "EC" , META_FLOAT  , -1 , "Expected count (dosage) of alternate alleles");
+  // MetaInformation<GenMeta>::field( "GQ" , META_INT  , 1 , "phred-scaled genotype quality, -10log_10p(genotype call is wrong)" );
+  // MetaInformation<GenMeta>::field( "HQ" , META_INT  , 2 , "haplotype qualities, two phred qualities" );
   
 
   //
@@ -151,32 +151,32 @@ void PLINKSeq::register_standard_metatypes()
   // Unless these are explicitly encountered, make invisible
   //
 
-  MetaMeta::is_internal("AA");
-  MetaMeta::is_internal("AC");
-  MetaMeta::is_internal("AF");
-  MetaMeta::is_internal("AN");
-  MetaMeta::is_internal("BQ");
-  MetaMeta::is_internal("CIGAR");
-  MetaMeta::is_internal("DB");
-  MetaMeta::is_internal("DP");
-  MetaMeta::is_internal("END");
-  MetaMeta::is_internal("H2");
-  MetaMeta::is_internal("H3");
-  MetaMeta::is_internal("MQ");
-  MetaMeta::is_internal("MQ0");
-  MetaMeta::is_internal("NS");
-  MetaMeta::is_internal("SB");
-  MetaMeta::is_internal("SOMATIC");
-  MetaMeta::is_internal("VALIDATED");
+  // MetaMeta::is_internal("AA");
+  // MetaMeta::is_internal("AC");
+  // MetaMeta::is_internal("AF");
+  // MetaMeta::is_internal("AN");
+  // MetaMeta::is_internal("BQ");
+  // MetaMeta::is_internal("CIGAR");
+  // MetaMeta::is_internal("DB");
+  // MetaMeta::is_internal("DP");
+  // MetaMeta::is_internal("END");
+  // MetaMeta::is_internal("H2");
+  // MetaMeta::is_internal("H3");
+  // MetaMeta::is_internal("MQ");
+  // MetaMeta::is_internal("MQ0");
+  // MetaMeta::is_internal("NS");
+  // MetaMeta::is_internal("SB");
+  // MetaMeta::is_internal("SOMATIC");
+  // MetaMeta::is_internal("VALIDATED");
   
-  MetaMeta::is_internal("HQ");
-  MetaMeta::is_internal("DP");
-  MetaMeta::is_internal("GL");
-  MetaMeta::is_internal("PL");
-  MetaMeta::is_internal("PP");
-  MetaMeta::is_internal("EC");
-  MetaMeta::is_internal("GQ");
-  MetaMeta::is_internal("FT");
+  // MetaMeta::is_internal("HQ");
+  // MetaMeta::is_internal("DP");
+  // MetaMeta::is_internal("GL");
+  // MetaMeta::is_internal("PL");
+  // MetaMeta::is_internal("PP");
+  // MetaMeta::is_internal("EC");
+  // MetaMeta::is_internal("GQ");
+  // MetaMeta::is_internal("FT");
 
   MetaMeta::is_internal( PLINKSeq::TRANSCRIPT_STRAND() );
   MetaMeta::is_internal( PLINKSeq::TRANSCRIPT_FRAME() );

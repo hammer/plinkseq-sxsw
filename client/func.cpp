@@ -19,7 +19,9 @@ void Pseq::finished()
   
   time_t curr=time(0);
   std::string tdstamp = (std::string)ctime(&curr);
-  plog << "\n   Analysis finished " << tdstamp;
+  plog << "\nAnalysis finished " << tdstamp    
+       << "===============================================================================\n";
+
 
   if ( g.gseq_mode() )
     {
@@ -79,7 +81,9 @@ bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
   
 
   // write a new project file
-  
+
+  plog << "Creating new project specification file [ " << project_filename << " ]\n";
+
   std::ofstream P( project_filename.c_str() , std::ios::out );
   
   if ( P.bad() ) Helper::halt("problem writing new project file " + project );
@@ -100,7 +104,6 @@ bool Pseq::new_project( std::string project , Pseq::Util::Options & args )
   // and specify PROJN
   
   P << "PROJN\t" << PLINKSeq::PROJECT_VERSION_NUMBER() << "\n";
-
 
   //
   // Main output folder
@@ -915,30 +918,39 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
     //
     // Read a vector of regions
     //
-
-    std::vector<Region> regions;
+    //std::vector<Region> regions;
     
     std::ifstream IN1( filename.c_str() , std::ios::in );
     
-    int inv = 0, blank = 0;
+    int readRegion = 0, inv = 0, blank = 0;
     
     while ( ! IN1.eof() )
       {
-	
+
 	std::vector<std::string> tok = Helper::tokenizeLine( IN1 );
-	
-	std::string region ;
-	
+	if (IN1.fail())
+		break;
+
 	const int sz = tok.size();
+	if (sz > 0) {
+		const std::string& firstChar = tok[0].substr(0,1);
+		if (firstChar == "#" || firstChar == "@")
+		continue; // ignore comment lines
+	}
+
+    ++readRegion;
+	std::string region;
 	
 	if ( sz == 1 ) 
 	  region = tok[0];
 	else if ( sz == 2 ) 
 	  region = tok[0] + ":" + tok[1] + ".." + tok[1] ;
-	else if ( sz == 3 )       
+	else if ( sz >= 3 )
 	  region = tok[0] + ":" + tok[1] + ".." + tok[2] ;
-	else
+	else {
+	  ++inv;
 	  continue;
+	}
 	
 	bool valid = true;
 	
@@ -985,7 +997,7 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
 	  ++inv;
       }
     
-    plog << "read " << regions.size() << " regions\n";
+    plog << "read " << readRegion << " regions\n";
     
     if( inv > 0 ) 
       plog.warn( "found " + Helper::int2str( inv ) +  " invalid regions" );
@@ -2015,9 +2027,13 @@ bool Pseq::VarDB::write_BCF( Mask & mask , const std::string & bcffile )
   // a VARDB into a single BCF file. Either way, we will have read
   // the header (from VARDB, or from the VCF) by now.  Thus, first 
   // create that.
-  
+
+  plog << "Writing to BCF [ " << bcffile << " ]\n";
+
   BCF bcf( bcffile );  
-  bcf.create_header();		    
+  bcf.writing();
+  bcf.open();
+  bcf.write_header();		    
   IterationReport report = g.vardb.iterate( f_write_to_bcf , &bcf , mask );  
   bcf.close();  
   return true;

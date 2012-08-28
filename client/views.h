@@ -13,6 +13,7 @@ class VariantGroup;
 class Individual;
 class GStore;
 class int2;
+class ProtDBase;
 
 void f_view( Variant & , void * p );
 
@@ -154,12 +155,23 @@ struct OptGView {
   bool show_phenotype;
 };
 
+class Feature;
 
 struct Opt_geneseq {
-  Opt_geneseq() 
-  { pheno = false; ref = 0; }
+  Opt_geneseq()   
+  { 
+    pheno = false; 
+    ref = 0; 
+    protdb = NULL;
+    all_cds = true;
+  }
+
+  bool all_cds;  // show *all* CDS codons in output
+
   bool pheno;
   int ref;
+  ProtDBase * protdb;
+  
 };
 
 struct OptGMatrix {

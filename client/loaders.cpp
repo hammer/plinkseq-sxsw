@@ -1,7 +1,8 @@
 #include "loaders.h"
 #include "util.h"
-#include "netdb.h"
+#include "plinkseq/netdb.h"
 #include "plinkseq/dose.h"
+#include "plinkseq/protdb.h"
 
 extern GStore g;
 extern Pseq::Util::Options args;
@@ -502,6 +503,9 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
 
 
 
+//
+// NETDB and PROTDB loaders, and simple util functions
+//
 
 bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
 {
@@ -511,6 +515,20 @@ bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
   netdb.load( file );
   return true;
 }
+
+
+bool Pseq::ProtDB::loader( const std::string & db , const std::string & file )
+{
+  ProtDBase protdb;
+  protdb.attach( db );
+  if ( ! protdb.attached() ) Helper::halt( "problem creating/attaching database" );
+  protdb.load( file );
+  return true;
+}
+
+
+
+
 
 
 
@@ -740,12 +758,12 @@ bool Pseq::VarDB::add_superset( const std::string & group , const std::vector<st
 
 bool Pseq::VarDB::insert_meta_from_file( const std::string & filename )
 {
-
+  return false;
 }
 
 bool Pseq::VarDB::insert_meta_on_fly( const std::string & name )
 {
-
+  return false;
 }
 
 
@@ -778,7 +796,7 @@ bool Pseq::VarDB::load_dosage()
   // FORMAT:
 
   // [ #ID1 ID2 ID3 ... ]
-  // rs12345 [ chr1 12345 ] [ A1 A2 ]  dosages... 
+  // [ rs12345 ] [ chr1 12345 ] [ A1 A2 ]  dosages... 
 
 
   // 1) load-dosage --file f1.dose f2.dose f3.dose
@@ -795,7 +813,9 @@ bool Pseq::VarDB::load_dosage()
   //      if 3 col, assume chr1:1234 in dosage file
   //      if 5 col, assume only rsID in dosage file
 
-  // if reading from an specific indiv-file, we can specify --formats skip-header if the dosage file(s) have headers
+  // if reading from an specific indiv-file, we can specify --formats
+  // skip-header if the dosage file(s) have headers
+
   // but we want to ignore
   
   std::vector<std::string> files;
@@ -823,12 +843,13 @@ bool Pseq::VarDB::load_dosage()
   //
   // File ID (single file mode)
   //
+
   std::string filetag = "";
 
   if ( (!file_list_mode) && (!args.has("id")) )
     Helper::halt("no --id specified" );
   else
-    filetag = args.has("id");
+    filetag = args.as_string( "id" );
 
   //
   // Require a single format across all files
@@ -850,6 +871,7 @@ bool Pseq::VarDB::load_dosage()
   if ( ! args.has( "name" ) ) 
     Helper::halt( "no --name specified" ) ;  
   std::string tagname = args.as_string( "name" );
+  
   
   //
   // Check reference, if SEQDB attached?
@@ -904,6 +926,13 @@ bool Pseq::VarDB::load_dosage()
 
 
   //
+  // Do doseage files contain rsID?
+  //
+
+  bool rsid = ! args.has( "format" , "no-ids" );
+
+
+  //
   // Load single file
   //
   
@@ -916,6 +945,9 @@ bool Pseq::VarDB::load_dosage()
       if ( indiv_files.size() > 0 && indiv_files.size() != files.size() ) 
 	Helper::halt( "--indiv-file and --file do not have similar length");
       
+      if ( files.size() > 1 && args.has("meta-file") )
+	Helper::halt( "need to use --file-list mode if specifying a --meta-file but more than one dosage file listed");
+
       bool use_map = map_files.size() > 0 ;
       bool use_indiv = indiv_files.size() > 0 ;
 
@@ -925,12 +957,14 @@ bool Pseq::VarDB::load_dosage()
 	  reader.set_input_format( input_format );  
 	  reader.set_metatag( tagname , store_as ); 
 	  reader.set_skip_header( skip_header );
+	  if ( ! rsid ) reader.set_id( false );
 	  if ( spaced ) reader.set_spaced();
 	  if ( use_map ) reader.set_mapfile( map_files[f] );
-	  if ( args.has("meta-file") ) reader.set_meta( args.as_string("meta-file") ); 
+	  if ( args.has( "meta-file") ) reader.set_meta( args.as_string( "meta-file" ) ); 
 	  if ( args.has("format" , "position-map") ) reader.set_mapfile_only_pos();
 	  if ( args.has("format" , "allele-map") ) reader.set_mapfile_only_alleles();
 	  if ( use_indiv ) reader.set_famfile( indiv_files[f] );
+	  if ( args.has( "hard-call-threshold" ) ) reader.set_hard_call_threshold( args.as_float( "hard-call-threshold" ) );
 	  if ( g.seqdb.attached() ) reader.use_seqdb( & g.seqdb );
 	  reader.set_filetag( filetag );
 	  g.vardb.begin();
@@ -963,12 +997,13 @@ bool Pseq::VarDB::load_dosage()
 	{
 	  std::vector<std::string> tok = FL.tokenizeLine("\t");
 	  if ( tok.size() == 0 ) continue;
-	  if ( tok.size() != 4 ) Helper::halt( "expecting 4 tab-delimited fields per line" );
+	  if ( tok.size() != 4 && tok.size() != 5 ) Helper::halt( "expecting 4 or 5 tab-delimited fields per line" );
 	  
 	  std::string filetag = tok[0];
 	  std::string dose_file = tok[1];
 	  std::string map_file = tok[2];
 	  std::string indiv_file = tok[3];
+	  std::string meta_file = ( tok.size() == 5 ? tok[4] : "" );
 	  
 	  if ( id2fam.find( tagname ) != id2fam.end() )
 	    {
@@ -985,20 +1020,20 @@ bool Pseq::VarDB::load_dosage()
 	  DoseReader reader( &g.vardb );
 	  	  
 	  if ( map_file != "." && map_file != "" ) 
-	    reader.set_mapfile( tok[2] );
-	 
-	  if ( args.has("format" , "position-map") ) 
+	    reader.set_mapfile( map_file );
+	  
+	  if ( args.has( "format" , "position-map" ) ) 
 	    reader.set_mapfile_only_pos();
-
-	  if ( args.has("format" , "allele-map") ) 
+	  
+	  if ( args.has( "format" , "allele-map" ) ) 
 	    reader.set_mapfile_only_alleles();
  
 	  if ( indiv_file != "." && indiv_file != "" )
-	    reader.set_famfile( tok[3] );
+	    reader.set_famfile( indiv_file );
 	  
 	  if ( g.seqdb.attached() ) reader.use_seqdb( & g.seqdb );
 	  
-	  if ( args.has("meta-file") ) reader.set_meta( args.as_string("meta-file") ); 
+	  if ( meta_file != "" ) reader.set_meta( meta_file );
 	  
 	  reader.set_input_format( input_format );  
 
@@ -1009,6 +1044,11 @@ bool Pseq::VarDB::load_dosage()
 	  reader.set_skip_header( skip_header );
 
 	  if ( spaced ) reader.set_spaced();
+
+	  if ( ! rsid ) reader.set_id( false );
+
+	  if ( args.has( "hard-call-threshold" ) ) 
+	    reader.set_hard_call_threshold( args.as_float( "hard-call-threshold" ) );
 
 	  g.vardb.begin();
 	  if ( ! reader.read_dose( tok[1] ) ) 

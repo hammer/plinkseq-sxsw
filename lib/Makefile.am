@@ -36,6 +36,7 @@ plinkseq/meta.h \
 plinkseq/netdb.h \
 plinkseq/permute.h \
 plinkseq/phmap.h \
+plinkseq/protdb.h \
 plinkseq/pp.h \
 plinkseq.h \
 plinkseq/refdb.h \
@@ -111,6 +112,7 @@ glm.cpp \
 iterate.cpp \
 vcfiterate.cpp \
 netdb.cpp \
+protdb.cpp \
 statistics.cpp \
 matrix.cpp \
 sqlite3.c

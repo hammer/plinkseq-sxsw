@@ -4,9 +4,9 @@ pdas_SOURCES = \
 das.cpp \
 das.h \
 socks.cpp \
-socks. h
+socks.h
 
-pdas_LDADD = ../lib/libplinkseq.la -ldl -lpthread -lz
+pdas_LDADD = ../lib/libplinkseq.la -lpthread -lz -ldl 
 
 pdas_CPPFLAGS = -I../lib
 

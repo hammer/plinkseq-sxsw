@@ -738,6 +738,7 @@ class MetaInformation {
     }
     
     
+
     //
     // Get std::vector of elements associated to a key; type-strict
     //
@@ -837,6 +838,48 @@ class MetaInformation {
 	    return get_bool( MetaInformation::field( name ).key );
 	}
 
+
+    //
+    // Size query
+    //
+    
+    int get_size(const meta_name_t & name ) const
+    {
+      return get_size( MetaInformation::field( name ) );
+    }
+    
+    int get_size( meta_index_t midx ) const
+    {
+
+      meta_key_t key = midx.key;
+
+      if ( midx.mt == META_INT ) 
+	{
+	  meta_int_t::const_iterator i = m_int.find( key );
+	  return i == m_int.end() ? 0 : i->second.size(); 
+	}
+      else if ( midx.mt == META_FLOAT ) 
+	{
+	  meta_double_t::const_iterator i = m_double.find( key );
+	  return i == m_double.end() ? 0 : i->second.size(); 
+	}
+      else if ( midx.mt == META_TEXT )
+	{
+	  meta_string_t::const_iterator i = m_string.find( key );
+	  return i == m_string.end() ? 0 : i->second.size(); 
+	}
+      else if ( midx.mt == META_BOOL )
+	{
+	  meta_bool_t::const_iterator i = m_bool.find( key );
+	  return i == m_bool.end() ? 0 : i->second.size(); 
+	}
+      else if ( midx.mt == META_FLAG )
+	{
+	  meta_flag_t::const_iterator i = m_flag.find( key );
+	  return i == m_flag.end() ? 0 : 1; 
+	}
+      else return 0;
+    }
 
     //
     // Temporary measure: obtain first item from list

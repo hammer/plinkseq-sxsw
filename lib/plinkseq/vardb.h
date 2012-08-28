@@ -116,7 +116,12 @@ class VarDBase {
   // primary query: get a Variant from a BCF
   bool fetch_bcf( Variant & , const uint64_t & offset );
   
+  void insert_bcf_dictionary( const int file_id , const int dt , const int k , const std::string & v ); 
+  void populate_bcf_header_from_vardb( const int , BCF * bcf );
+  void clear_bcf_dictionary( const int file_id );
+  void clear_bcf_dictionary(); // clear all
 
+  
   //
   // Meta-information
   //
@@ -167,7 +172,7 @@ class VarDBase {
   int chr_code( const std::string & , ploidy_t * p = NULL );
   std::string chr_name( const int ) ;
   ploidy_t ploidy( const int c );
-
+  std::set<std::string> fetch_all_chr_names();
   bool chr_known( const std::string & n );
 
 
@@ -275,6 +280,12 @@ class VarDBase {
 
   bool vcf_iterate_read_header( Mask & mask );
 
+  IterationReport bcf_iterate( void (*f)(Variant&, void *) ,			       
+			       void * data ,	
+			       Mask & mask );
+
+
+  
   
   //
   // Other functions
@@ -354,8 +365,9 @@ class VarDBase {
   sqlite3_stmt * stmt_fetch_bcf;
   sqlite3_stmt * stmt_fetch_bcfs;
   sqlite3_stmt * stmt_insert_bcf_idx;
+  sqlite3_stmt * stmt_insert_bcf_dict;
+  sqlite3_stmt * stmt_fetch_bcf_dict;
   
-
   sqlite3_stmt * stmt_fetch_sets;
 
   sqlite3_stmt * stmt_insert_chr_code;

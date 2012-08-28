@@ -1027,191 +1027,201 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   else if ( target->bcf ) 
     {     
       
-     // The format of the genotype is a string in bcf_format
-      
-      //       std::string           bcf_format;
-      //       int                   bcf_n;
-      //       std::vector<uint8_t>  bcf_genotype_buf;
-      
+      // If not a valid variant, do not try to expand genotypes
 
-      // Number of individuals in BCF buffer
-      unsigned int n_buffer = target->bcf->sample_n();
+      if ( ! parent->valid() ) return false;
+      
+      // Read genotype data from BCF (only for masked-in individuals)
 
-      
-      // Number of individuals we actually want
-      unsigned int n_variant = align ? align->size() : n_buffer ;
-      
+      target->bcf->read_genotypes( target->bcf_offset , align , target , source , mask );
 
-      //
-      // Allocate space as needed
-      //
-
-      target->calls.size( n_variant );
+     				  
+      
+      // // The format of the genotype is a string in bcf_format
+      
+      // //       std::string           bcf_format;
+      // //       int                   bcf_n;
+      // //       std::vector<uint8_t>  bcf_genotype_buf;
       
       
-      // Add basic genotype information
-      
-      std::vector<std::string> format = Helper::char_split( target->bcf_format , ':' );
-
-      // TODO: fix this really slow way to get allele count, that duplicates previous effort...
-      
-      int nalt = Helper::char_split( vtarget->alternate() , ',' ).size() + 1;
-      int ngen = (int) (nalt * (nalt+1) * 0.5);
-      
-      // create mapping of source-to-target slots
-      std::vector<int> s2t( n_buffer );
-      
-      for ( int i=0; i < n_buffer ; i++ )
-	{
-	  int slot = i;	  
-	  if ( align )
-	    {	
-
-	      // get within-sample slot
-	      slot = align->sample_remapping( source->fileset() , i ) ;	      
-
-	      // under a flat alignment, we need to reset to the
-	      // consensus slot: check -- or should this be (fset,i) ?	      
-
-	      if ( align->flat() ) 
-		slot = align->get_slot( source->fileset() , slot );
-	    }	  
-	  s2t[ i ] = slot;	  
-	}
+      // // Number of individuals in BCF buffer
+      // unsigned int n_buffer = target->bcf->sample_n();
 
       
-      // posiiton in genotype buffer
-      int p = 0;
+      // // Number of individuals we actually want
+      // unsigned int n_variant = align ? align->size() : n_buffer ;
       
-      // consider each format-slot for all individuals      
-      for (int t = 0 ; t < format.size(); t++)
-	{	  
+
+      // //
+      // // Allocate space as needed
+      // //
+
+      // target->calls.size( n_variant );
+      
+      
+      // // Add basic genotype information
+      
+      // std::vector<std::string> format = Helper::char_split( target->bcf_format , ':' );
+
+      // // TODO: fix this really slow way to get allele count, that duplicates previous effort...
+      
+      // int nalt = Helper::char_split( vtarget->alternate() , ',' ).size() + 1;
+      // int ngen = (int) (nalt * (nalt+1) * 0.5);
+      
+      // // create mapping of source-to-target slots
+      // std::vector<int> s2t( n_buffer );
+      
+      // for ( int i=0; i < n_buffer ; i++ )
+      // 	{
+      // 	  int slot = i;	  
+      // 	  if ( align )
+      // 	    {	
+
+      // 	      // get within-sample slot
+      // 	      slot = align->sample_remapping( source->fileset() , i ) ;	      
+
+      // 	      // under a flat alignment, we need to reset to the
+      // 	      // consensus slot: check -- or should this be (fset,i) ?	      
+
+      // 	      if ( align->flat() ) 
+      // 		slot = align->get_slot( source->fileset() , slot );
+      // 	    }	  
+      // 	  s2t[ i ] = slot;	  
+      // 	}
+
+      
+      // // posiiton in genotype buffer
+      // int p = 0;
+      
+      // // consider each format-slot for all individuals      
+      // for (int t = 0 ; t < format.size(); t++)
+      // 	{	  
 	  
-	  const std::string & tag = format[t];
+      // 	  const std::string & tag = format[t];
 	  
-	  // this should exist in the BCF, or else we would have received an error by now
+      // 	  // this should exist in the BCF, or else we would have received an error by now
 	  
-	  BCF::bcf_meta_t bt = target->bcf->bcftype[ tag ];
+      // 	  BCF::bcf_meta_t bt = target->bcf->bcftype[ tag ];
 	  
-	  int nalt = alt.size() + 1;
-	  int ngen = (int) (nalt * (nalt+1) * 0.5);
-	  if ( bt.len == -1 ) bt.len = nalt - 1;
-	  else if ( bt.len == -2 ) bt.len = nalt;
-	  else if ( bt.len == -3 ) bt.len = ngen;
+      // 	  int nalt = alt.size() + 1;
+      // 	  int ngen = (int) (nalt * (nalt+1) * 0.5);
+      // 	  if ( bt.len == -1 ) bt.len = nalt - 1;
+      // 	  else if ( bt.len == -2 ) bt.len = nalt;
+      // 	  else if ( bt.len == -3 ) bt.len = ngen;
 	  
 	  
-	  // Unpack
+      // 	  // Unpack
 	  
-	  if ( bt.type == BCF::BCF_genotype )
-	    {
+      // 	  if ( bt.type == BCF::BCF_genotype )
+      // 	    {
 
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 )
-		    {			
-		      target->calls.genotype( s2t[i] ).bcf( target->bcf_genotype_buf[ p ] );		      
-		    }
-		  ++p;
-		}
-	    }
+      // 	      for ( int i=0; i < n_buffer ; i++ )
+      // 		{
+      // 		  if ( s2t[i] != -1 )
+      // 		    {			
+      // 		      target->calls.genotype( s2t[i] ).bcf( target->bcf_genotype_buf[ p ] );		      
+      // 		    }
+      // 		  ++p;
+      // 		}
+      // 	    }
 
 	  
-	  else if ( bt.type == BCF::BCF_int32 )
-	    {
+      // 	  else if ( bt.type == BCF::BCF_int32 )
+      // 	    {
 
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<int> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint32_t) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );		      
-		    }
-		  p += bt.len * sizeof(uint32_t);
-		}
-	    }
+      // 	      for ( int i=0; i < n_buffer ; i++ )
+      // 		{
+      // 		  if ( s2t[i] != -1 ) 
+      // 		    {
+      // 		      std::vector<int> tmp( bt.len );
+      // 		      for (int j=0;j< bt.len; j++)
+      // 			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint32_t) ];
+      // 		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );		      
+      // 		    }
+      // 		  p += bt.len * sizeof(uint32_t);
+      // 		}
+      // 	    }
 
-	  else if ( bt.type == BCF::BCF_uint8 )
-	    {
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<int> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint8_t) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(uint8_t);
-		}
-	    }
+      // 	  else if ( bt.type == BCF::BCF_uint8 )
+      // 	    {
+      // 	      for ( int i=0; i < n_buffer ; i++ )
+      // 		{
+      // 		  if ( s2t[i] != -1 ) 
+      // 		    {
+      // 		      std::vector<int> tmp( bt.len );
+      // 		      for (int j=0;j< bt.len; j++)
+      // 			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint8_t) ];
+      // 		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+      // 		    }
+      // 		  p += bt.len * sizeof(uint8_t);
+      // 		}
+      // 	    }
 	  
-	  else if ( bt.type == BCF::BCF_uint16 )
-	    {
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<int> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint16_t) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(uint16_t);
-		}
-	    }
+      // 	  else if ( bt.type == BCF::BCF_uint16 )
+      // 	    {
+      // 	      for ( int i=0; i < n_buffer ; i++ )
+      // 		{
+      // 		  if ( s2t[i] != -1 ) 
+      // 		    {
+      // 		      std::vector<int> tmp( bt.len );
+      // 		      for (int j=0;j< bt.len; j++)
+      // 			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(uint16_t) ];
+      // 		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+      // 		    }
+      // 		  p += bt.len * sizeof(uint16_t);
+      // 		}
+      // 	    }
 	  
 
-	  else if ( bt.type == BCF::BCF_double )
-	    {
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<double> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(double) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(double);
-		}
-	    }
+      // 	  else if ( bt.type == BCF::BCF_double )
+      // 	    {
+      // 	      for ( int i=0; i < n_buffer ; i++ )
+      // 		{
+      // 		  if ( s2t[i] != -1 ) 
+      // 		    {
+      // 		      std::vector<double> tmp( bt.len );
+      // 		      for (int j=0;j< bt.len; j++)
+      // 			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(double) ];
+      // 		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+      // 		    }
+      // 		  p += bt.len * sizeof(double);
+      // 		}
+      // 	    }
 
 
-	  else if ( bt.type == BCF::BCF_float )
-	    {
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<double> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(float) ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(float);
-		}
-	    }
+      // 	  else if ( bt.type == BCF::BCF_float )
+      // 	    {
+      // 	      for ( int i=0; i < n_buffer ; i++ )
+      // 		{
+      // 		  if ( s2t[i] != -1 ) 
+      // 		    {
+      // 		      std::vector<double> tmp( bt.len );
+      // 		      for (int j=0;j< bt.len; j++)
+      // 			tmp[j] = target->bcf_genotype_buf[ p + j * sizeof(float) ];
+      // 		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+      // 		    }
+      // 		  p += bt.len * sizeof(float);
+      // 		}
+      // 	    }
 
-	  else if ( bt.type == BCF::BCF_string )
-	    {
-	      Helper::halt("BCF_string parsing not implemented yet for FORMAT");
+      // 	  else if ( bt.type == BCF::BCF_string )
+      // 	    {
+      // 	      Helper::halt("BCF_string parsing not implemented yet for FORMAT");
 
-	      for ( int i=0; i < n_buffer ; i++ )
-		{
-		  if ( s2t[i] != -1 ) 
-		    {
-		      std::vector<std::string> tmp( bt.len );
-		      for (int j=0;j< bt.len; j++)
-			tmp[j] = target->bcf_genotype_buf[ p + j * tmp[j].size() ];
-		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
-		    }
-		  p += bt.len * sizeof(float);
-		}
-	    }
+      // 	      for ( int i=0; i < n_buffer ; i++ )
+      // 		{
+      // 		  if ( s2t[i] != -1 ) 
+      // 		    {
+      // 		      std::vector<std::string> tmp( bt.len );
+      // 		      for (int j=0;j< bt.len; j++)
+      // 			tmp[j] = target->bcf_genotype_buf[ p + j * tmp[j].size() ];
+      // 		      target->calls.genotype( s2t[i] ).meta.set( tag , tmp );
+      // 		    }
+      // 		  p += bt.len * sizeof(float);
+      // 		}
+      // 	    }
 	  
-	} // next tag
+      // 	} // next tag
       
     }
   
@@ -1262,7 +1272,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	  
 	  if ( slot != -1 )
 	    {	      	    
-
+	      
 	      Genotype g( vcf_direct_buffer(i) , vcf_gt_field , *vcf_formats , na );
 	      	     
 	      if ( mask && mask->fixxy() ) 
@@ -1357,6 +1367,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	}
     }
   
+
   //
   // 3). mask 'geno' conditions -- i.e. determineing whether to zero-out specific genotypes
   // because they meet/fail to meet certain criteria, e.g. geno=DP:ge:10

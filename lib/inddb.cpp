@@ -372,8 +372,12 @@ bool IndDBase::load_ped_info( const std::string & filename )
     {
       
       std::vector<std::string> tok = f.tokenizeLine();
+
+      const int sz = tok.size();
+      if ( sz == 0 ) continue;
       
-      if ( tok.size() == 0 ) continue;
+  	  const std::string& firstChar = tok[0].substr(0,1);
+  	  if (firstChar == "#") continue; // ignore comment lines
       
       if ( tok.size() != 6 ) 
 	{

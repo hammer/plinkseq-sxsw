@@ -55,6 +55,16 @@ struct IterationReport {
     return v_accept;
   }
 
+  int considered() 
+  {
+    return v_consid;
+  }
+  
+  int groups() 
+  {
+    return g_count;
+  }
+
   private:
   
   bool valid;

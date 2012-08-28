@@ -242,6 +242,12 @@ bool VarDBase::newDB( std::string n )
 	    "   filepath   VARCHAR(20) NOT NULL , "
             "   nind       INTEGER  ) ; " );
     
+  sql.query(" CREATE TABLE IF NOT EXISTS bcf_dictionary("
+	    "   file_id    INTEGER NOT NULL , "
+	    "   dtype      INTEGER NOT NULL , " // 1 = INFO/FILTER/FORMAT; 2 = CONTIG
+	    "   number     INTEGER NOT NULL , "
+	    "   value      VARCHAR(20) NOT NULL ) ; " );
+
   // Independent meta-information (appended outside of main VCF)
   // Not automatically attached to the variant
     
@@ -432,6 +438,15 @@ bool VarDBase::init()
 		  "          ( file_id, name , chr, bp1 , bp2 , offset ) "
 		  "   values ( :file_id, :name , :chr, :bp1 , :bp2, :offset ) ; " );
     
+
+    stmt_insert_bcf_dict = 
+      sql.prepare( " INSERT OR IGNORE INTO bcf_dictionary (file_id,dtype,number,value) "
+		   " values (:file_id,:dtype,:number,:value);");
+
+    stmt_fetch_bcf_dict = 
+      sql.prepare( " SELECT dtype , number , value "
+		   " FROM bcf_dictionary WHERE file_id == :file_id ; " );
+		   
 
     // File tags
 
@@ -743,7 +758,9 @@ bool VarDBase::release()
   sql.finalise( stmt_fetch_bcf );
   sql.finalise( stmt_fetch_bcfs );
   sql.finalise( stmt_insert_bcf_idx ); 
-  
+  sql.finalise( stmt_insert_bcf_dict );
+  sql.finalise( stmt_fetch_bcf_dict );
+
   sql.finalise( stmt_insert_indep_meta_group );
   sql.finalise( stmt_fetch_indep_meta_group );
   sql.finalise( stmt_insert_indep_meta_type );
@@ -793,6 +810,7 @@ bool VarDBase::index()
   // filenames
   sql.query( "CREATE INDEX IF NOT EXISTS bcfIdx ON bcfs( file_id ); ");
   sql.query( "CREATE INDEX IF NOT EXISTS filetags ON files( tag ) ; " );
+  sql.query( "CREATE INDEX IF NOT EXISTS bcfDict ON bcf_dictionary( file_id ); ");
 
   // sets 
   sql.query( "CREATE INDEX IF NOT EXISTS set_idx ON set_data( set_id ) ; ");    
@@ -819,6 +837,7 @@ bool VarDBase::drop_index()
   sql.query( "DROP INDEX IF EXISTS meta1; ");
   sql.query( "DROP INDEX IF EXISTS filetags; " );
   sql.query( "DROP INDEX IF EXISTS bcfIdx; " );
+  sql.query( "DROP INDEX IF EXISTS bcfDict; ");
 }
 
 int VarDBase::variant_count( uint64_t file_id )
@@ -1102,8 +1121,15 @@ SampleVariant & VarDBase::construct( Variant & var , sqlite3_stmt * s ,  Individ
 	if ( bcf ) 
 	  {
 	    SampleVariant & target = ( ! align->multi_sample() ) ? var.consensus : sample ;      
+	    
 	    SampleVariant & genotype_target = align->flat() ? var.consensus : sample ;
+
 	    bcf->read_record( var , target , genotype_target, offset_idx ); 
+
+	    // as above, see note for VCFZ
+	    sample.ref = target.ref;
+	    sample.alt = target.alt;
+
 	  }
 	else
 	  Helper::halt( "a requested compressed-VCF or BCF not attached" );
@@ -1757,35 +1783,51 @@ std::set<Variant> VarDBase::fetch( const Region & region )
   sql.bind_int( stmt_fetch_variant_range , ":chr" , region.chromosome() );
   sql.bind_int( stmt_fetch_variant_range , ":rstart" , region.start.position() );
   sql.bind_int( stmt_fetch_variant_range , ":rend" , region.stop.position() );
-    
+  
   std::map<int2,Variant> vmap;
   
   fetch_mode_t old_fetch_mode = fetch_mode;
   fetch_mode = ALL;
   
   while ( sql.step( stmt_fetch_variant_range ) )
-    {
-      // extract BP position on this chromosome
-      int pos = sql.get_int( stmt_fetch_variant_range , 4 );      
-      int stop = sql.get_int( stmt_fetch_variant_range , 5 );      
-      SampleVariant & sample = construct( vmap[int2(pos,stop)] , stmt_fetch_variant_range , &indmap );
-      sample.decode_BLOB( &vmap[int2(pos,stop)] , &indmap , NULL );
-    } 
-  sql.reset( stmt_fetch_variant_range ) ;  
+    {      
+      // extract BP position on this chromosome      
+      int pos = sql.get_int( stmt_fetch_variant_range , 4 );
+      int stop = sql.get_int( stmt_fetch_variant_range , 5 );
+      SampleVariant & sample = construct( vmap[ int2(pos,stop) ] , stmt_fetch_variant_range , &indmap );
 
+    } 
+
+  sql.reset( stmt_fetch_variant_range ) ;  
+  
   std::map<int2,Variant>::iterator i = vmap.begin();
   while ( i != vmap.end() )
     {
+
+      if ( i->second.infile_overlap() ) 
+        indmap.force_unflat( true );    
+
+      int ns = i->second.n_samples();
+      for (int ss = 0 ; ss < ns ; ss++)
+        {
+          SampleVariant * svar = i->second.psample( ss );
+          i->second.psample( ss )->decode_BLOB( &i->second , &indmap , NULL );
+        }  
+
       i->second.make_consensus( &indmap );
+      
       s.insert(i->second);
+
+      indmap.force_unflat( false );
+
       ++i;
     }
+
 
   fetch_mode = old_fetch_mode;
 
   return s;
 }
-
 
 
 int2 VarDBase::make_summary( std::string filename )
@@ -2118,6 +2160,29 @@ int VarDBase::chr_code( const std::string & n , ploidy_t * ploidy )
   return c;
 }
 
+
+std::set<std::string> VarDBase::fetch_all_chr_names()
+{
+  std::set<std::string> names;
+
+  while ( sql.step( stmt_fetch_chr_all_codes ) )
+    {      
+      std::string n = sql.get_text( stmt_fetch_chr_all_codes , 0 );
+      names.insert( n );
+    }
+  sql.reset( stmt_fetch_chr_all_codes );
+  
+  // also get code->name (1:1) mapping from chrcodes
+  while ( sql.step( stmt_fetch_chr_all_codes_2 ) )
+    {      
+      std::string n = sql.get_text( stmt_fetch_chr_all_codes_2 , 0 );
+      names.insert( n ); 
+    }
+  sql.reset( stmt_fetch_chr_all_codes_2 );
+  
+  return names;
+}
+
 ploidy_t VarDBase::ploidy( const int c )
 {
   std::map<int,ploidy_t>::iterator i = chr_ploidy_map.find( c );
@@ -2205,10 +2270,10 @@ void VarDBase::populate_bcf_map()
 	    
 	    if ( vcfz ) 
 	      {
-		  vcfz->set_vardb( this );
-		  vcfzmap[ fid ] = vcfz;	  
-		  vcfz->reading();
-		  vcfz->open();		  
+		vcfz->set_vardb( this );
+		vcfzmap[ fid ] = vcfz;	  
+		vcfz->reading();
+		vcfz->open();		  
 	      }
 	    else
 	      plog.warn( "could not find compressed VCF " , filename );	
@@ -2219,19 +2284,19 @@ void VarDBase::populate_bcf_map()
 	    BCF * bcf = GP->fIndex.bcf( filename );
 	    
 	    if ( bcf ) 
-	    {
-	      bcfmap[ fid ] = bcf;	  
-	      bcf->set_nind( nind );
-	      bcf->reading();
-	      bcf->open();
-	      bcf->set_types();
-	    }
+	      {
+		bcfmap[ fid ] = bcf;	  
+		// populate BCF_header with dictionary (that was stored in VARDB for convenience)
+		populate_bcf_header_from_vardb( fid , bcf );
+		bcf->reading();
+		bcf->open();
+	      }
 	    else
 	      plog.warn( "could not find BCF " , filename );	
 	  }
 	
     } // next file
-    sql.reset( stmt_fetch_bcfs );
+  sql.reset( stmt_fetch_bcfs );
 }
 
 
@@ -2313,3 +2378,46 @@ bool VarDBase::replace_individual_id( const std::string & old_id , const std::st
   return true;
 }
 
+
+
+void VarDBase::insert_bcf_dictionary( const int file_id , const int dt , 
+				      const int k , const std::string & v )
+{
+  sql.bind_int( stmt_insert_bcf_dict , ":file_id" , file_id );
+  sql.bind_int( stmt_insert_bcf_dict , ":dtype" , dt );
+  sql.bind_int( stmt_insert_bcf_dict , ":number" , k );
+  sql.bind_text( stmt_insert_bcf_dict , ":value" , v );
+  sql.step( stmt_insert_bcf_dict );
+  sql.reset( stmt_insert_bcf_dict );
+}
+
+void VarDBase::populate_bcf_header_from_vardb( const int file_id , BCF * bcf )
+{
+  sql.bind_int( stmt_fetch_bcf_dict , ":file_id" , file_id ); 
+  while ( sql.step( stmt_fetch_bcf_dict ) ) 
+    {
+      int dt = sql.get_int( stmt_fetch_bcf_dict , 0 );
+      int k = sql.get_int( stmt_fetch_bcf_dict , 1 );
+      std::string v = sql.get_text( stmt_fetch_bcf_dict , 2 );
+      // special encoding to differentiate filter/info/format from contig dictionary
+      if      ( dt == 1 ) 
+	{
+	  bcf->dictionary_set( k , v );
+	}
+      else if ( dt == 2 ) 
+	{
+	  bcf->contig_dictionary_set( k , v );
+	}
+    }
+  sql.reset( stmt_fetch_bcf_dict );  
+}
+
+void VarDBase::clear_bcf_dictionary( const int file_id )
+{
+  sql.query( "DELETE FROM bcf_dictionary WHERE file_id == " + Helper::int2str( file_id ) + ";" );
+}
+
+void VarDBase::clear_bcf_dictionary()
+{
+  sql.query( "DELETE FROM bcf_dictionary;" );
+}
