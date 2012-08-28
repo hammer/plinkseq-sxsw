@@ -9,8 +9,10 @@ std::map<std::string,Out*> Out::streams;
 
 Out::Out( const std::string & ext , const std::string & desc )
 {
-  
   name = fileroot + "." + ext;
+
+  if( check_stream(ext))
+    return;
 
   // add to list of currently open streams
   streams[ ext ] = this;
@@ -50,11 +52,9 @@ Out::~Out()
   close();
 }
 
-
 void Out::close()
 {
- 
-  if ( tofile )
+    if ( tofile )
     {
       if ( compressed ) 
 	{
@@ -66,17 +66,24 @@ void Out::close()
 	  outfile.close();
 	}
     }
-
+  
   std::map<std::string,Out*>::iterator ii = streams.find( name );
   if ( ii != streams.end() ) streams.erase( ii );
-  
-  tofile = false;
+ 
+  tofile = ! streams.empty();
 }
-
 
 Out & Out::stream( const std::string & f ) 
 {
   if ( streams.find( f ) == streams.end() ) 
     Helper::halt( "could not find stream " + fileroot + "." + f ) ;
   return *streams[f];
+}
+
+bool Out::check_stream( const std::string & f )
+{
+  if ( streams.find( f ) == streams.end() )
+    return false;
+  else
+    return true;
 }

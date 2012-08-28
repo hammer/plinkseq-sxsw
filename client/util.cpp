@@ -377,6 +377,8 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 
 
+
+
     
     //
     // Misc.
@@ -684,7 +686,10 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
      reg( "prev" , STRING , "disease prevalence" ); // setting prevalence for recessive/compound het tests
      reg( "func-inc" , STRING_VECTOR , "included functional annotations" ); // get list of functional annotations to include
      reg( "func-exc" , STRING_VECTOR , "excluded functional annotations" ); // get list of functional annotations to include
-     reg( "mhit" , NONE , "include multi hits on the same chromosome" ); // get list of functional annotations to include
+     reg( "singles", NONE, "include singleton-singleton compound hets" ); // if true, include compound het variants that are two singletons in the same individual
+     reg( "mhit", NONE, "include multi hits on the same chromosome" ); // if true, don't perform phasing and just count multi hits
+
+
 
      Pseq::IBS::regargs( this );  // IBS tests (example
     

@@ -16,7 +16,6 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
 				      Pseq::Assoc::Aux_vassoc_options & aux , 
 				      const Pseq::Util::Options & args )
 {
-  
 
   //
   // Single variant association testsing; assumes a dichotomous phenotype; QTs 
@@ -1386,8 +1385,6 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
       pmat << "\n";
     }
 
-  
-
   //
   // Do we have an appropriate pheotype specified?
   //
@@ -1451,7 +1448,6 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 
   if ( a.two_hit )
     Pseq::Assoc::Aux_two_hit::initialize();
-  
 
   //
   // Apply tests to dataset
@@ -1558,8 +1554,7 @@ void g_set_association( VariantGroup & vars , void * p )
       pmat = &Out::stream( "matrix" );
       *pmat << vars.name() ;
     }
-
-
+  
   //
   // Apply tests to original dataset
   //
@@ -1677,7 +1672,7 @@ void g_set_association( VariantGroup & vars , void * p )
   if ( data->two_hit )
     {
       test_name.push_back( "TWO-HIT" );
-      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text , true);
+      double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , &test_text, true );
       test_statistic.push_back( statistic );
     }
   
@@ -1827,7 +1822,7 @@ void g_set_association( VariantGroup & vars , void * p )
 	  pout.data( g->perm.pvalue(t) , "P", test_name[t] );
 	  pout.data( g->perm.min_pvalue(t) , "I" , test_name[t] ); 
 	}
-      else // asymptotic p-values for SKAT
+      else // asymptotic p-values for SKAT, two-hit
 	{ 
 	  if ( test_name[t] == "SKAT" || test_name[t] == "SKAT-O" ) 
 	    {
@@ -1836,8 +1831,15 @@ void g_set_association( VariantGroup & vars , void * p )
 	    }
 	  else
 	    {
-	      pout.data( "." , "P", test_name[t] );
-	      pout.data( "." , "I" , test_name[t] ); 
+	      if ( test_name[t] == "TWO-HIT" ){
+		pout.data( aux_two_hit.returned_pvalue , "P", test_name[t] );
+		pout.data( "." , "I", test_name[t] );
+	      }
+	      else
+		{
+		  pout.data( "." , "P", test_name[t] );
+		  pout.data( "." , "I" , test_name[t] ); 
+		}
 	    }
 	}
       pout.data( output == "" ? "." : output , "DESC" , test_name[t] );

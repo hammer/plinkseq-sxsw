@@ -66,7 +66,7 @@ namespace Pseq
                          Aux_prelim * ,
                          Aux_two_hit * ,
                          std::map<std::string,std::string> *  ,
-                         bool original);
+                         bool original );
     
     
     double stat_skat( const VariantGroup & , 
@@ -391,13 +391,15 @@ namespace Pseq
     {
     Aux_two_hit(int np, int ng, int ni) : P(ni,np) , G(ni,ng), LD(ng, ng) { }
       double stat;
+      static bool mhit;
+      static bool singles;
       static double prev;
       static std::map< std::string, int > func_inc;
       static std::map< std::string, int > func_exc;
       static int ncases;
       static int ncontrols;
       static int nmissing;
-
+      double returned_pvalue;
       static void initialize( );
       Data::Matrix<double> P; // matrix of phenotypes (1 x num individuals)
       Data::Matrix<double> G; // genotypes of each individual

@@ -32,8 +32,11 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
  		   PART     =  21 ,    // partial codon  -- not used
  		   CODONINSERTION		=  22 ,	   // codon insertion
  		   CODONDELETION		=  23 ,    // codon deletion
+		   STOPINSERTION               =  34 ,    // stop insertion                                                                                                                 
+                   STOPDELETION                =  35 ,    // stop deletion
+		   OOFCODONINSERTION               =  36 ,    // out of frame codon insertion
+		   OOFCODONDELETION               =  37 , // out of frame codon deletion
  		   SPLICE 	= 24	, // general splice +/- 5bp     
- 		   
  		   
  		   // Special class of splice variants : Faustino and Cooper. Pre-mrna splicing and human disease. AG|G   AG|GTNAG. This is consistent with splicing motif measures.
 		   DONORIN2  =  25 ,    // donor splice-site |[GT]
@@ -57,8 +60,8 @@ struct SeqInfo {
   bool startlost() const { return type == 30 ; }
   bool readthrough() const { return type == 33 ; }
   bool frameshift() const { return type == 32 ; }
-  bool codondeletion() const { return type == 23 ; }
-  bool codoninsertion() const { return type == 22 ;}
+  bool codondeletion() const { return type == 23 || type == 35 || type == 37; }
+  bool codoninsertion() const { return type == 22 || type == 34 || type == 36;}
   bool splice() const { return type == 24 ;}
   bool esplice() const { return type == 25 || type == 26 || type == 27 || type == 28 || type == 29; }
 
