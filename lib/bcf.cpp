@@ -365,7 +365,7 @@ void BCF::read_header( VarDBase * v )
 	      if ( pos != std::string::npos ) 
 		{
 		  std::string chr = hdr.meta_text[i].substr( 13 , pos - 13 );
-		  plog << "adding to contig dictionary [" << chr << "]\n";
+		  //		  plog << "adding to contig dictionary [" << chr << "]\n";
 		  hdr.contig_dictionary( chr );							   
 		}
 	    }
@@ -377,7 +377,7 @@ void BCF::read_header( VarDBase * v )
 	      std::vector<std::string> dic = Helper::parse( hdr.meta_text[i].substr(14) , "," );
 	      for (int i = 0 ; i < dic.size() ; i++) 
 		{
-		  plog << "adding dictionary entry [" << dic[i] << "]\n";
+		  //plog << "adding dictionary entry [" << dic[i] << "]\n";
 		  hdr.dictionary( dic[i] );
 		}
 	    }
@@ -391,7 +391,7 @@ void BCF::read_header( VarDBase * v )
 
 	  if ( name != "" ) 
 	    {
-	      plog << "adding " << name << " to dictionary\n";
+	      //plog << "adding " << name << " to dictionary\n";
 	      hdr.dictionary( name );
 	    }
 
@@ -427,7 +427,7 @@ void BCF::read_header( VarDBase * v )
 	    {
 	      std::string s ; 
 	      hdr.dictionary( i , &s );
-	      std::cout << "dictionary = " << i << " = [" << s << "]\n";
+	      //std::cout << "dictionary = " << i << " = [" << s << "]\n";
 	    }
 	  
 	  // and contigs
@@ -436,7 +436,7 @@ void BCF::read_header( VarDBase * v )
 	    {
 	      std::string s ; 
 	      hdr.contig_dictionary( i , &s );
-	      std::cout << "contig dictionary = " << i << " = [" << s << "]\n";
+	      //std::cout << "contig dictionary = " << i << " = [" << s << "]\n";
 	    }
 	}
       
@@ -958,7 +958,7 @@ bool BCF::write_header()
 bool BCF::write_record( const Variant & var )
 {  
   
-  std::cout << "writing record " << var << " at " << tell() << "\n";
+  //  std::cout << "writing record " << var << " at " << tell() << "\n";
 
   // Write the entire record to a buffer, as we need to calculate length 
   

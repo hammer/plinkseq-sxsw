@@ -40,6 +40,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     pcomm.new_group( "indop"       , "Individual database operations" );
     pcomm.new_group( "ibd"         , "IBD analysis" );
     pcomm.new_group( "net"         , "Network-based analysis" );
+    pcomm.new_group( "prot"        , "Protein domain/feature annotation" );
     pcomm.new_group( "misc"        , "Misc." );
     pcomm.new_group( "system"      , "System functions" ); // not shown in GUI
     
@@ -59,6 +60,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     pcomm.add_to_group( "root" , "indop" );
     pcomm.add_to_group( "root" , "ibd" );
     pcomm.add_to_group( "root" , "net" );
+    pcomm.add_to_group( "root" , "prot" );
     pcomm.add_to_group( "root" , "misc" );
     pcomm.add_to_group( "root" , "system" );
     
@@ -298,6 +300,8 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "i-stats|stats|per-individual statistics|VCF|ARG:stats|OUT:istats"
 	
+	  << "i-pop|stats|individual posterior population probabilities|ARG:file|OUT:ipop"
+
 	  << "v-dist|stats,tests|comparison of rare-variant group distributions|VCF|ARG:whole-sample-counts,perm|OUT:vdist"
 	
 	  << "v-freq|stats,qc|variant frequency data|VCF|ARG:em|OUT:vfreq"
@@ -356,7 +360,17 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
       
 	  << "net-assoc|net,tests|network-based gene-association|GRP|ARG:netdb,mask,pheno,file,outfile|OUT:net.assoc"
             
+      
 
+   //
+   // Protein domain/feature annotation
+   //
+
+	  << "prot-load|input,prot|populate a PROTDB|ARG:protdb,file"
+      
+	  << "prot-view|views,prot|view entries from a PROTDB|ARG:protdb,name,group"
+
+	  << "prot-map|prot|map a PROTDB onto genomic co-ordinates|ARG:protdb,locdb,group,name"
 
     //
     // Misc. QC etc
@@ -409,7 +423,6 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "metameta" , STRING , "meta-information meta-information" );
 
     reg( "description", STRING , "file description" );
-
     reg( "history" , STRING_VECTOR , "use a .history file with GSEQ" );
 
     
@@ -420,8 +433,9 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "segdb", STRING, "segent database location" );
     reg( "locdb", STRING, "locus database location" );
     reg( "netdb", STRING, "network database location" );  
+    reg( "protdb", STRING, "protein domain/feature database" );
     reg( "ibddb", STRING, "IBD segment database location" );  
-    
+
     reg( "file" , STRING_VECTOR , "generic input file(s)" );
     reg( "file-list" , STRING , "file to specify a list of files" );
     
@@ -453,7 +467,9 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
 
     reg( "ignore-warnings" , NONE , "turn off warnings");
     reg( "early-warnings" , NONE , "display warning as soon as happens");
-    
+    reg( "limit-warnings" , INT , "print up to N warnings per topic" );
+    reg( "all-warnings" , NONE , "show all warnings" );
+
     reg( "out-file", STRING , "set main output file");
     reg( "debug-file", STRING , "debug file name");
     reg( "prolix-file", STRING, "prolix output filename");

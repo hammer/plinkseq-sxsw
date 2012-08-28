@@ -19,7 +19,7 @@ void Pseq::finished()
   
   time_t curr=time(0);
   std::string tdstamp = (std::string)ctime(&curr);
-  plog << "Analysis finished " << tdstamp    
+  plog << "\nAnalysis finished " << tdstamp    
        << "===============================================================================\n";
 
 
@@ -918,30 +918,39 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
     //
     // Read a vector of regions
     //
-
-    std::vector<Region> regions;
+    //std::vector<Region> regions;
     
     std::ifstream IN1( filename.c_str() , std::ios::in );
     
-    int inv = 0, blank = 0;
+    int readRegion = 0, inv = 0, blank = 0;
     
     while ( ! IN1.eof() )
       {
-	
+
 	std::vector<std::string> tok = Helper::tokenizeLine( IN1 );
-	
-	std::string region ;
-	
+	if (IN1.fail())
+		break;
+
 	const int sz = tok.size();
+	if (sz > 0) {
+		const std::string& firstChar = tok[0].substr(0,1);
+		if (firstChar == "#" || firstChar == "@")
+		continue; // ignore comment lines
+	}
+
+    ++readRegion;
+	std::string region;
 	
 	if ( sz == 1 ) 
 	  region = tok[0];
 	else if ( sz == 2 ) 
 	  region = tok[0] + ":" + tok[1] + ".." + tok[1] ;
-	else if ( sz == 3 )       
+	else if ( sz >= 3 )
 	  region = tok[0] + ":" + tok[1] + ".." + tok[2] ;
-	else
+	else {
+	  ++inv;
 	  continue;
+	}
 	
 	bool valid = true;
 	
@@ -988,7 +997,7 @@ bool Pseq::LocDB::intersection( std::string filename , std::string group , LocDB
 	  ++inv;
       }
     
-    plog << "read " << regions.size() << " regions\n";
+    plog << "read " << readRegion << " regions\n";
     
     if( inv > 0 ) 
       plog.warn( "found " + Helper::int2str( inv ) +  " invalid regions" );

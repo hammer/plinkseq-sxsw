@@ -92,6 +92,8 @@ Pseq::VarDB::SomeQualityEventOracle::~SomeQualityEventOracle() {
 		<< "\t" << childLookup.numIndivWithMissing
 
 void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
+	Out& dnCNVout = Out::stream("denovo.cnv");
+
 	AuxCNVdeNovoData* aux = static_cast<AuxCNVdeNovoData*>(p);
 	const Inds& allParentInds = aux->allParentInds;
 	const Inds& allChildrenInds = aux->allChildrenInds;
@@ -119,7 +121,7 @@ void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
 		int childSampInd = v.ind_sample(childInd);
 		if (childSampInd == 0 || v.ind_sample(patInd) != childSampInd || v.ind_sample(matInd) != childSampInd) {
 			stringstream str;
-			str << "Skipping child " << child->id() << " since it appears in more than one sample or in a different sample than its childsParents";
+			str << "Skipping child " << child->id() << " since it appears in more than one sample or in a different sample than its parents";
 			plog.warn(str.str());
 			continue;
 		}
@@ -176,10 +178,10 @@ void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
 						//
 						// TODO -- If !REQUIRE_DE_NOVO_DISCOVERY_IN_CHILD, then instead of outputting here, cache DENOVO output so that can output ONLY the maximal super-segments of de novo CNVs:
 						//
-						cout
+						dnCNVout
 						<< "DENOVO"
 						ALLELE_OUTPUT
-						<< endl;
+						<< "\n";
 
 						++(childSummary._denovo);
 					}
@@ -189,48 +191,48 @@ void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
 			if (eventOracle->discoveredInIndiv(patInd)) {
 				if (sampStatuses[patInd] == EventOracle::HAS_EVENT && sampStatuses[matInd] == EventOracle::DOES_NOT_HAVE_EVENT) {
 					if (sampStatuses[childInd] == EventOracle::MISSING) {
-						cout
+						dnCNVout
 						<< "PATERNAL_UNKNOWN";
 						++(childSummary._paternal_unknown);
 					}
 					if (sampStatuses[childInd] == EventOracle::HAS_EVENT) {
-						cout
+						dnCNVout
 						<< "PATERNAL_TRANSMITTED";
 						++(childSummary._paternal_transmitted);
 					}
 					if (sampStatuses[childInd] == EventOracle::DOES_NOT_HAVE_EVENT) {
-						cout
+						dnCNVout
 						<< "PATERNAL_NON_TRANSMITTED";
 						++(childSummary._paternal_non_transmitted);
 					}
 
-					cout
+					dnCNVout
 					ALLELE_OUTPUT
-					<< endl;
+					<< "\n";
 				}
 			}
 
 			if (eventOracle->discoveredInIndiv(matInd)) {
 				if (sampStatuses[matInd] == EventOracle::HAS_EVENT && sampStatuses[patInd] == EventOracle::DOES_NOT_HAVE_EVENT) {
 					if (sampStatuses[childInd] == EventOracle::MISSING) {
-						cout
+						dnCNVout
 						<< "MATERNAL_UNKNOWN";
 						++(childSummary._maternal_unknown);
 					}
 					if (sampStatuses[childInd] == EventOracle::HAS_EVENT) {
-						cout
+						dnCNVout
 						<< "MATERNAL_TRANSMITTED";
 						++(childSummary._maternal_transmitted);
 					}
 					if (sampStatuses[childInd] == EventOracle::DOES_NOT_HAVE_EVENT) {
-						cout
+						dnCNVout
 						<< "MATERNAL_NON_TRANSMITTED";
 						++(childSummary._maternal_non_transmitted);
 					}
 
-					cout
+					dnCNVout
 					ALLELE_OUTPUT
-					<< endl;
+					<< "\n";
 				}
 			}
 		}
@@ -267,6 +269,8 @@ bool Pseq::VarDB::cnv_denovo_scan(Mask& mask) {
 	if (p.size() != 3)
 		Helper::halt("expect --param MIN_SQ MIN_NQ REQUIRE_DE_NOVO_DISCOVERY_IN_CHILD");
 
+	Out& dnIndivOut = Out::stream("denovo.indiv");
+
 	AuxCNVdeNovoData* aux = new AuxCNVdeNovoData(p);
 
 	cerr << "Starting CNV de novo scan..." << endl;
@@ -296,38 +300,38 @@ bool Pseq::VarDB::cnv_denovo_scan(Mask& mask) {
 			aux->childrenSummary[person->id()] = ChildTransmissionSummary();
 	}
 
-	cout
+	dnIndivOut
 	CLASS_ALLELE_HEADER
-	<< endl;
+	<< "\n";
 
 	g.vardb.iterate(Pseq::VarDB::f_cnv_denovo_scan, aux, mask);
 
-	cout
+	dnIndivOut
 	<< "#SUMMARY"
 	<< "\t" << "CHILD"
 
-	<< "\t" << "childCNV"
-	<< "\t" << "inPaternal"
-	<< "\t" << "inMaternal"
-	<< "\t" << "inPaternalAndMaternal"
-	<< "\t" << "missingPaternal"
-	<< "\t" << "missingMaternal"
-	<< "\t" << "denovo"
+	<< "\t" << "CHILD_CNV"
+	<< "\t" << "IN_PATERNAL"
+	<< "\t" << "IN_MATERNAL"
+	<< "\t" << "IN_PATERNAL_AND_MATERNAL"
+	<< "\t" << "MISSING_PATERNAL"
+	<< "\t" << "MISSING_MATERNAL"
+	<< "\t" << "DE_NOVO"
 
-	<< "\t" << "paternal_transmitted"
-	<< "\t" << "paternal_non_transmitted"
-	<< "\t" << "paternal_unknown"
+	<< "\t" << "PATERNAL_TRANSMITTED"
+	<< "\t" << "PATERNAL_NON_TRANSMITTED"
+	<< "\t" << "PATERNAL_UNKNOWN"
 
-	<< "\t" << "maternal_transmitted"
-	<< "\t" << "maternal_non_transmitted"
-	<< "\t" << "maternal_unknown"
+	<< "\t" << "MATERNAL_TRANSMITTED"
+	<< "\t" << "MATERNAL_NON_TRANSMITTED"
+	<< "\t" << "MATERNAL_UNKNOWN"
 
-	<< endl;
+	<< "\n";
 
 	for (map<string, ChildTransmissionSummary>::const_iterator it = aux->childrenSummary.begin(); it != aux->childrenSummary.end(); ++it) {
 		const ChildTransmissionSummary& summ = it->second;
 
-		cout
+		dnIndivOut
 		<< "SUMMARY"
 		<< "\t" << it->first
 
@@ -347,7 +351,7 @@ bool Pseq::VarDB::cnv_denovo_scan(Mask& mask) {
 		<< "\t" << summ._maternal_non_transmitted
 		<< "\t" << summ._maternal_unknown
 
-		<< endl;
+		<< "\n";
 	}
 
 	delete aux;

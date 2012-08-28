@@ -1,7 +1,8 @@
 #include "loaders.h"
 #include "util.h"
-#include "netdb.h"
+#include "plinkseq/netdb.h"
 #include "plinkseq/dose.h"
+#include "plinkseq/protdb.h"
 
 extern GStore g;
 extern Pseq::Util::Options args;
@@ -502,6 +503,9 @@ bool Pseq::LocDB::load_generic_regions( std::string & filename , const std::stri
 
 
 
+//
+// NETDB and PROTDB loaders, and simple util functions
+//
 
 bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
 {
@@ -511,6 +515,20 @@ bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
   netdb.load( file );
   return true;
 }
+
+
+bool Pseq::ProtDB::loader( const std::string & db , const std::string & file )
+{
+  ProtDBase protdb;
+  protdb.attach( db );
+  if ( ! protdb.attached() ) Helper::halt( "problem creating/attaching database" );
+  protdb.load( file );
+  return true;
+}
+
+
+
+
 
 
 

@@ -1,6 +1,8 @@
 bin_PROGRAMS = pseq
 
 pseq_SOURCES = \
+pops.h \
+pops.cpp \
 skat.cpp \
 assoc.h \
 clusters.h \
@@ -20,8 +22,8 @@ util.cpp \
 ibs.cpp \
 main.cpp \
 func.cpp \
-webcheck.cpp \
 sockets.cpp \
+webcheck.cpp \
 summaries.cpp \
 views.cpp \
 assoc.cpp \
@@ -35,6 +37,7 @@ glm-tests.cpp \
 stepup.cpp \
 kbac.cpp \
 netassoc.cpp \
+prot.cpp \
 davies.cpp \
 gseq.cpp \
 extra.cpp \

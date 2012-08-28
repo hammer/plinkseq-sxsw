@@ -73,7 +73,7 @@ void Log::warn(const std::string & msg , const std::string & spec )
      
   // keep track of how many times each warning issued
   warnings[ msg ]++;
-  if ( spec != "" && warnings[ msg ] < 10 ) 
+  if ( spec != "" && warnings[ msg ] < warn_limit ) 
     warnings_specific[ msg ].push_back( spec );
 
 }
@@ -108,7 +108,8 @@ void Log::print_warnings()
 #ifdef R_SHLIB
       // R should keep track of warning count, so no need for further action here?
 #else
-      plog << msg 
+      plog << "\n" 
+	   << msg 
 	   << "===============================================================================\n";
 #endif
 
@@ -124,7 +125,7 @@ void Helper::NoMem()
 {
 
   std::cerr << "*****************************************************\n"
-	    << "* FATAL ERROR    Exhausted system memory            *\n"
+	    << "***  FATAL ERROR !!!  Exhausted system memory     ***\n"
 	    << "*****************************************************\n\n";
   
   if ( GP && GP->gseq_mode() )
@@ -895,7 +896,7 @@ int Helper::chrCode(const std::string & c)
   if( c.size() > 5 ) return 0;
   
   // Remove 'chr' prefix
-  std::string c2 ="";
+  std::string c2 = c;
   if ( c.size() > 3 && c.substr(0,3) == "chr" )
     c2 = c.substr(3);
   

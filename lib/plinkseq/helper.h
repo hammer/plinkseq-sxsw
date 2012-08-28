@@ -73,6 +73,7 @@ class Log {
   
   bool ignore_warnings; 
   bool early_warn;
+  int warn_limit;
 
  public:
   
@@ -87,7 +88,7 @@ class Log {
       prolix_mode = false;      
       ignore_warnings = false;
       early_warn = false;
-
+      warn_limit = 10;
       
       if ( filename != "" ) logfile( filename );     
       if ( prolix_filename != "" ) prolix_logfile( prolix_filename );
@@ -213,6 +214,8 @@ class Log {
 
   void early_warnings(const bool b ) { early_warn = b; }
   
+  void set_warning_limit( const int i ) { warn_limit = i; }
+
   void print_warnings();
 
 

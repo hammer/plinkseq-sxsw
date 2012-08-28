@@ -25,6 +25,7 @@
 #include "plinkseq/zfstream.h"
 #include "plinkseq/variant.pb.h"
 #include "plinkseq/vardb.h"
+#include "plinkseq/protdb.h"
 #include "plinkseq/mask.h"
 #include "plinkseq/permute.h"
 #include "plinkseq/bed.h"

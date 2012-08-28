@@ -46,7 +46,7 @@ void Pseq::Util::webcheck( const std::string & cmd )
   
   bool connect2web = true;
 
-  plog << "Web-based version check ( --noweb to skip )\n";
+  plog << "Web version check (--noweb to skip)... ";
   
 
   //
@@ -63,7 +63,7 @@ void Pseq::Util::webcheck( const std::string & cmd )
       
       if ( thisDate == oldDay+oldMonth+oldDate )
 	{
-	  plog << "Recent cached web-check found... ";
+	  plog << "recently cached: ";
 	  connect2web = false;
 	  
 	  // Read rest of cached web message
@@ -164,7 +164,7 @@ void Pseq::Util::webcheck( const std::string & cmd )
 	  if ( i < tokens.size() - 1) 
 	    {	      
 	      if ( tokens[i+1] == PSEQ_VERSION ) 
-		plog << " OK, " << PSEQ_VERSION << " is current\n";
+		plog << " OK, current\n";
 	      else
 		{
 		  plog.warn( "*** PSEQ UPDATE REQUIRED : ( " + PSEQ_VERSION + " -> " + tokens[i+1] + " )" );
@@ -179,7 +179,7 @@ void Pseq::Util::webcheck( const std::string & cmd )
     }
 
   // did we get the information we needed?
-  if ( !print ) plog << "unable to perform web-check\n";
+  if ( !print ) plog << " could not connect\n";
 
 
   ////////////////////////////////////////////////////

@@ -237,8 +237,15 @@ int main()
   a.g = &g;
   a.loc_set = loc_set;
   g.set_project( project_path ) ;
-  
-  
+
+  //
+  // Ensure no data sent to screen (iteration reports, etc)
+  // except let's still allow errors to go
+  //
+
+  plog.silent( true );
+  plog.silent_except_errors( true ); // do show errors                                                                                                                            
+
   
   //
   // Start page 
@@ -425,9 +432,10 @@ int main()
   // Sanity check
   //
 
-  if ( g.indmap.size() > 50 && a.indiv_genogrid ) 
+  if ( g.indmap.size() > 20 && a.indiv_genogrid ) 
     {
       std::cout << "Genotype grid mode designed for small (sub)samples (50 or fewer individuals)"
+		<< "<br>Select a small number of individuals from <em>Individual table</em> or <em>Individuals include</em> box</p>"
 		<< "</BODY></HTML>";
       exit(0);
     }
@@ -3620,7 +3628,7 @@ void ExomeBrowser::write_start_page( const GStore & g ,
   //
   
   std::cout << " <br> <input type=\"submit\" name=\"getgene\" value=\"Variant table\"> "
-	    << " <input type=\"submit\" name=\"gview\" value=\"Regional Figure\"> "
+    //	    << " <input type=\"submit\" name=\"gview\" value=\"Regional Figure\"> "
 	    << " <input type=\"submit\" name=\"indgrid\" value=\"Genotype Grid\"> "
 	    << " <input type=\"submit\" name=\"pgrid\" value=\"Individual table\"> ";
     

@@ -1800,14 +1800,14 @@ std::set<Variant> VarDBase::fetch( const Region & region )
 
   sql.reset( stmt_fetch_variant_range ) ;  
   
-
+  
   std::map<int2,Variant>::iterator i = vmap.begin();
   while ( i != vmap.end() )
     {
-
+      
       if ( i->second.infile_overlap() ) 
 	indmap.force_unflat( true );	
-
+      
       int ns = i->second.n_samples();
       for (int ss = 0 ; ss < ns ; ss++)
 	{
@@ -1818,18 +1818,17 @@ std::set<Variant> VarDBase::fetch( const Region & region )
       i->second.make_consensus( &indmap );
       
       s.insert(i->second);
-
+      
       indmap.force_unflat( false );
-
+      
       ++i;
     }
-
+  
 
   fetch_mode = old_fetch_mode;
 
   return s;
 }
-
 
 
 int2 VarDBase::make_summary( std::string filename )

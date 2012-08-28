@@ -12,7 +12,58 @@ besides the (in flux) notes at:
 If you trying to install PLINK/SEQ from source just to run it, you are
 almost certainly better off just downloading the source for the latest
 stable release from the main website download page:
-http://atgu.mgh.harvard.edu/plinkseq/download.shtml
+
+  http://atgu.mgh.harvard.edu/plinkseq/download.shtml
+
+Typical steps for creating all PLINK/Seq components from source,
+assuming certain dependencies are in place (see PREREQUISITES), are
+given in the section below.  If any step fails, please refer to the
+more detailed description below and to the main website.
+
+--------------------------------------------------------------------------------
+
+## Obtain source
+
+  git clone https://bitbucket.org/statgen/plinkseq.git
+
+  cd plinkseq
+
+  autoreconf -i
+
+
+## Make PSEQ (sudo if system-wide installation)
+
+  ./configure
+
+  make
+
+  sudo make install
+
+
+## Make Rplinkseq (with sudo for system-wide installation)
+
+  cd R/Rplinkseq
+
+  autoreconf -i
+
+  ./configure 
+
+  cd ..
+
+  sudo R CMD INSTALL Rplinkseq 
+
+
+## Test PSEQ from a command line
+
+  pseq . version
+ 
+
+## Test Rplinkseq from within R
+
+  library(Rplinkseq)
+
+
+--------------------------------------------------------------------------------
 
 
 ** PREREQUISITES ** 
@@ -28,16 +79,17 @@ the following tools are required:
 Please be sure these tools are set up (running, for example, "autoconf
 -v" to test your version of Autoconf) before you continue.
 
-PLINK/SEQ also requires Google's Protocol Buffers:
-http://code.google.com/p/protobuf/. Please be sure you have protobuf
-version 2.4.1 installed locally.
+PLINK/SEQ also requires Google's Protocol Buffers. Please be sure you
+have protobuf version 2.4.1 installed locally:
+
+   http://code.google.com/p/protobuf/
 
 
 ** GETTING THE SOURCE ** 
 
 To clone this repository, run:
 
-$ git clone https://bitbucket.org/statgen/plinkseq.git [target dir]
+   git clone https://bitbucket.org/statgen/plinkseq.git [target dir]
 
 
 ** INSTALLATION INSTRUCTIONS ** 
@@ -48,15 +100,26 @@ Makefile.am) that can be used to generate these files.  As a
 developer, you need to generate these files before you can build
 PLINK/SEQ. Conveniently, this is one command:
 
-$ autoreconf -i
+   autoreconf -i
 
 This will create a bunch of files, including configure scripts and
 Makefiles.
 
 After this step is complete, you are ready to build - just follow the
 instructions on the website:
-http://atgu.mgh.harvard.edu/plinkseq/download.shtml.
+
+   http://atgu.mgh.harvard.edu/plinkseq/download.shtml.
 
 The configuration option --enable-debug will stop compiler
 optimizations (making code easier to debug and faster to build) and
 link pseq as a static binary, without a wrapper shell script.
+
+
+** Rplinkseq configuration options ** 
+
+To specify the location of libprotobuf, if it is not visible from a system-wide installation, you 
+can pass configure arguments with --configure-args. Also, the --library argument can specify where 
+the library is installed.  For example:
+
+  R CMD INSTALL Rplinkseq --library=/path/to/R/lib/loc  --configure-args=--with-protobuf=/path/to/protobuf/
+

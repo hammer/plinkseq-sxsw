@@ -13,6 +13,7 @@
 #include "ibs.h"
 #include "extra.h"
 #include "cnv.h"
+#include "pops.h"
 
 using namespace std;
 
@@ -22,8 +23,7 @@ Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.09";
-std::string PSEQ_DATE    = "04-Jul-12";
-
+std::string PSEQ_DATE    = "14-Aug-12";
 
 
 int main(int argc, char ** argv)
@@ -87,6 +87,13 @@ int main(int argc, char ** argv)
   if ( args.has("early-warnings") )
     plog.early_warnings( true );
   
+  if ( args.has( "all-warnings" ) )
+    plog.set_warning_limit( numeric_limits<int>::max() );
+  else if ( args.has( "limit-warnings" ) )
+    plog.set_warning_limit( args.as_int( "limit-warnings" ) );
+  
+  
+           
   if ( args.has("silent" ) )
     {
       plog.silent( true );
@@ -143,9 +150,11 @@ int main(int argc, char ** argv)
   time_t curr=time(0);
   std::string tdstamp = (std::string)ctime(&curr);
 
-  plog << "=========================== PSEQ (v" 
+  plog << "-------------------------------------------------------------------------------\n"    
+       << "||||||||||||||||||||||||||| PSEQ (v" 
        << PSEQ_VERSION << "; " << PSEQ_DATE 
-       << ") ===========================\n";
+       << ") |||||||||||||||||||||||||||\n"
+       << "-------------------------------------------------------------------------------\n\n";
 
   //
   // Process 'command'
@@ -188,10 +197,11 @@ int main(int argc, char ** argv)
   // show actual input command lines in log
   //
 
-  plog << "-------------------------------------------------------------------------------\n"
+  plog << "\n"
+       << "-------------------------------------------------------------------------------\n\n"
        << pp_args;
    
-  plog << "-------------------------------------------------------------------------------\n";
+  plog << "\n-------------------------------------------------------------------------------\n\n";
 
   
   //
@@ -206,13 +216,22 @@ int main(int argc, char ** argv)
   //
   
   g.single_file_mode( project_file == "-" 
-		      || Helper::ends_with( project_file , ".vcf" ) 
+		      || Helper::ends_with( project_file , ".bcf" ) 
+		      || Helper::ends_with( project_file , ".bcf.gz" ) 
+		      || Helper::ends_with( project_file , ".vcf"  )
 		      || Helper::ends_with( project_file , ".vcf.gz" ) );
   
+  if ( g.single_file_mode() )
+    {
 
-  if ( g.single_file_mode() && ! pcomm.single_VCF_mode( command ) )
-    Helper::halt( command + " not applicable in single-VCF mode" );
+      if ( ! pcomm.single_VCF_mode( command ) )
+	Helper::halt( command + " not applicable in single-VCF mode" );
   
+      if ( Helper::ends_with( project_file , ".bcf" ) 
+	   || Helper::ends_with( project_file , ".bcf.gz" ) )
+	   g.single_file_bcf( true );      
+    }
+
 
   //
   // Functions that do not depend on any databases
@@ -256,7 +275,7 @@ int main(int argc, char ** argv)
   if ( command == "version" ) 
     {
       
-      plog << "PSEQ:" << PSEQ_VERSION << "\n"
+      plog << "PSEQ: " << PSEQ_VERSION << "\n"
 	   << "PSEQ DATE: " << PSEQ_DATE << "\n";
 	   
       g.show_version();
@@ -290,14 +309,14 @@ int main(int argc, char ** argv)
   
   if (  g.single_file_mode() ) 
   {
-      if ( project_file != "-" && ! Helper::fileExists( project_file ) ) 
-	  Helper::halt( "could not open VCF file " + project_file );      
+    if ( project_file != "-" && ! Helper::fileExists( project_file ) ) 
+      Helper::halt( "could not open file " + project_file );      
   }
   else
-  {
+    {
       if ( ! Pseq::set_project( project_file ) )
-	  Helper::halt("Could not open project " + project_file );      
-  }
+	Helper::halt("could not open project " + project_file );      
+    }
   
   
   //
@@ -501,7 +520,7 @@ int main(int argc, char ** argv)
       LocDBase * db = g.resolve_locgroup( grp[0] );
       if ( ! db ) Helper::halt("group not found");
 
-      Out output( "loci" , "intersecing locus list" );
+      Out output( "loci" , "intersecting locus list" );
       
       Pseq::LocDB::intersection( s[0] , grp[0] , *db );
       
@@ -563,6 +582,24 @@ int main(int argc, char ** argv)
       Pseq::finished();
     }
 
+
+  //
+  // PROTDB functions
+  //
+
+  if ( command == "prot-load" )
+    {
+      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
+      if ( ! args.has( "file" ) ) Helper::halt( "no --file specified" );
+      Pseq::ProtDB::loader( args.as_string( "protdb" ) , args.as_string( "file" ) );
+      Pseq::finished();
+    }
+  
+
+  
+  //
+  // SEGDB functions
+  //
 
   if ( command == "segset-load" )
     {
@@ -1212,8 +1249,10 @@ int main(int argc, char ** argv)
     //
 
     if ( g.single_file_mode() ) 
-      maskspec += " ex-vcf=" + project_file;
-    
+      {
+	maskspec += " ex-vcf=" + project_file;
+      }
+
 
     //
     // If a phenotype, or covariates, have been specified, by default require that we see these
@@ -1264,8 +1303,15 @@ int main(int argc, char ** argv)
     //
 
     if ( g.single_file_mode() )
-      g.vardb.vcf_iterate_read_header( m );
-
+      {
+	if ( g.single_file_bcf() )
+	  {
+	    g.bcf = new BCF( project_file , 0 ); // 0=readmode
+	    g.bcf->read_header( & g.vardb );
+	  }
+	else
+	  g.vardb.vcf_iterate_read_header( m );
+      }
 
 
     //
@@ -1505,10 +1551,25 @@ int main(int argc, char ** argv)
 
     if ( command == "gs-view" )
       {
+
 	Opt_geneseq opt;
+	
 	if ( args.has( "ref-variants" ) ) 
-	    opt.ref = g.refdb.lookup_group_id( args.as_string( "ref-variants" ) );
+	  opt.ref = g.refdb.lookup_group_id( args.as_string( "ref-variants" ) );
+
+	// add phenotype?
 	opt.pheno = g.phmap.type() == PHE_DICHOT;
+	
+	// add protein annotations?
+	
+	if ( args.has( "protdb" ) )
+	  {
+	    ProtDBase * pd = new ProtDBase;
+	    pd->attach( args.as_string( "protdb" ) );
+	    if ( ! pd->attached() ) Helper::halt( "could not attach PROTDB" );
+	    opt.protdb = pd;
+	  }
+
 	if ( ! g.seqdb.attached() ) Helper::halt( "no SEQDB attached" );
 	if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
 
@@ -1516,6 +1577,8 @@ int main(int argc, char ** argv)
 
 	IterationReport report = g.vardb.iterate( g_geneseq , &opt , m );
 	
+	if ( opt.protdb ) delete opt.protdb;
+
 	Pseq::finished();
       }
 
@@ -1897,6 +1960,27 @@ int main(int argc, char ** argv)
 
 
     //
+    // Per-individual posterior class probabilities under simple pop. model
+    //
+
+    if ( command == "i-pop" )
+      {
+	if ( ! args.has( "file" ) ) Helper::halt( "no --file {pop-allele-freq-table} specified" );	
+	SeqDBase * s = &g.seqdb;
+	if ( ! g.seqdb.attached() ) 
+	  {
+	    plog.warn( "no SEQDB attached: will not be able to check REF/ALT status of A1/A2" );
+	    s = NULL;
+	  }
+	Out output( "ipop" , "per-individual posterior class probabilities" );
+	Pseq::IPop ipop( args.as_string( "file" ) , s );
+	IterationReport report = g.vardb.iterate( f_ipop , &ipop , m );
+	ipop.calculate();
+	Pseq::finished();
+      }
+
+
+    //
     // Per-locus simple view, or sequence stats, e.g. GC percent 
     //
 
@@ -2133,6 +2217,11 @@ int main(int argc, char ** argv)
       }
 
 
+    
+    //
+    //
+    //
+
     if ( command == "indiv-enrich" )
       {
 	Out output( "indiv.enrich" , "output from indiv-enrich command" );
@@ -2162,6 +2251,7 @@ int main(int argc, char ** argv)
 
 	Pseq::finished();
       }
+
 
 
     if ( command == "ibd-load" )
@@ -2198,6 +2288,8 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
     
+
+
 
 
     //
@@ -2282,6 +2374,46 @@ int main(int argc, char ** argv)
       }
 
 
+    
+    //
+    // View a ProtDB 
+    //
+
+
+  if ( command == "prot-view" )
+    {
+
+      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
+      if ( ! args.has( "name" ) ) Helper::halt( "no --name specified" );
+
+      Out output( "prot" , "protein domain/annotations" );
+
+      if ( args.has( "group" ) )
+	{
+	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) , args.as_string( "group" ) , &m );
+	}
+      else
+	Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) );
+
+      Pseq::finished();
+    }
+
+  if ( command == "prot-map" )
+    {
+      Out output( "protmap" , "protein domain/annotations mapped to the genome" );
+
+      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
+      if ( ! args.has( "name" ) ) Helper::halt( "no --name specified" );
+      if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
+      if ( ! args.has( "group" ) ) Helper::halt( "no --group specified" );
+
+      Pseq::ProtDB::mapper( args.as_string( "protdb" )  , args.as_string( "group" )  , args.as_string( "name" ) , "." );
+
+      Pseq::finished();
+    }
+
+
+    
 
     //
     // Data-dumpers

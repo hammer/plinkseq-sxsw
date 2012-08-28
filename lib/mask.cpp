@@ -2465,7 +2465,7 @@ void Mask::group_var(const string & g)
   include_var(g); 
   const bool DO_NOT_ADD = true;
   int id = vardb->add_set( g , "" , DO_NOT_ADD );
-  if ( id > 0 ) group_var(id);
+  if ( id > 0 ) return group_var(id);
   else Helper::halt("could not find var super-set " + g );
 }
 
