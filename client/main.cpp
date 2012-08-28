@@ -520,7 +520,7 @@ int main(int argc, char ** argv)
       LocDBase * db = g.resolve_locgroup( grp[0] );
       if ( ! db ) Helper::halt("group not found");
 
-      Out output( "loci" , "intersecing locus list" );
+      Out output( "loci" , "intersecting locus list" );
       
       Pseq::LocDB::intersection( s[0] , grp[0] , *db );
       

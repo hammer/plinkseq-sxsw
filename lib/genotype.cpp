@@ -106,7 +106,7 @@ int Genotype::allele_count( const std::string & acode , const Variant * parent )
 }
 
 
-double Genotype::score( genotype_model_t model )
+double Genotype::score( genotype_model_t model ) const
 {
   // scoring models for biallelic variants (ref/alt)
 

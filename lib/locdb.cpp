@@ -319,7 +319,7 @@ bool LocDBase::init()
     
     stmt_loc_lookup_group_and_range = 
       sql.prepare(" SELECT * FROM loci WHERE group_id == :group_id "
-		  " AND chr == :chr AND bp1 <= :end AND bp2 >= :start ; " );
+		  " AND chr == :chr AND bp1 <= :end AND bp2 >= :start ORDER BY altname; " );
     
     stmt_loc_lookup_id_group_and_range = 
       sql.prepare(" SELECT * FROM loci WHERE group_id == :group_id "
@@ -2186,7 +2186,7 @@ uint64_t LocDBase::merge( const std::string & grp_name, const std::string & name
 	  if ( r.start.position() < par.start.position() )
 	    par.start.position( r.start.position() );
 	  
-	  if ( r.stop.position() > par.start.position() )
+	  if ( r.stop.position() > par.stop.position() )
 	    par.stop.position( r.stop.position() );
 	  
 	  par.addSubRegion( r );
