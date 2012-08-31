@@ -382,8 +382,10 @@ bool IndDBase::load_ped_info( const std::string & filename )
       if ( tok.size() != 6 ) 
 	{
 	  plog.warn("found line in pedigree file with other than 6 tab-delimited fields"); 
-	  continue;
 	}
+      if (tok.size() < 6) { // allow for extra meta-information fields
+    	  continue;
+      }
       
       Individual ind( tok[0] );
       
