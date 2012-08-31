@@ -89,6 +89,7 @@ class Out {
   // set fileroot
   static void set_fileroot( const std::string & r ) { fileroot = r; }  
   static void set_stdout( const bool b ) { stdout = b; } 
+  static void set_tofile( const bool b ) { tofile = b; } 
 
   // get a stream (fail if not open)
   static Out & stream( const std::string & ) ;

@@ -87,41 +87,47 @@ int main(int argc, char ** argv)
   if ( args.has("early-warnings") )
     plog.early_warnings( true );
   
+
   if ( args.has( "all-warnings" ) )
     plog.set_warning_limit( numeric_limits<int>::max() );
   else if ( args.has( "limit-warnings" ) )
     plog.set_warning_limit( args.as_int( "limit-warnings" ) );
   
+             
   
-           
-  if ( args.has("silent" ) )
-    {
-      plog.silent( true );
-      plog.silent_except_errors( false ); // even silent for errors
-    }
-
-  std::string fileroot = args.has("out") ? args.as_string("out") : "pseq" ;   
-  plog.set_fileroot( fileroot ) ;
-
-  if ( args.has("out") ) 
-    Out::set_fileroot( fileroot ) ;
-
   
-  // send all output to stdout
-  // (note Log goes to stderr by default, unless --silent)
-  if ( args.has( "stdout" ) )
-    {
-      // unless out also explicitly specified
-      // then no log either 
+  //
+  // Default : send all output to STDOUT, warnings to STDERR, no LOG
+  //
 
-      if ( ! args.has( "out" ) ) 
+  Out::set_stdout( true );
+  Out::set_tofile( false );
+  plog.silent( true ); 
+  plog.silent_except_errors( true ); // do show errors
+
+  std::string fileroot = args.has( "out" ) ? args.as_string("out") : "";
+  
+  if ( args.has( "out" ) ) 
+    {      
+      plog.set_fileroot( fileroot );
+      Out::set_fileroot( fileroot );
+      
+      if ( args.has( "silent" ) )
 	{
 	  plog.silent( true );
-	  plog.silent_except_errors( true ); // do show errors
+	  plog.silent_except_errors( false ); // even silent for errors
 	}
-      Out::set_stdout( true );
+      else
+	{
+	  plog.silent( false );
+	}
+      
+      Out::set_stdout( false );
+      Out::set_tofile( true );
+            
     }
-
+  
+  
   if ( args.has( "debug" ) ) 
     debug.silent( false );
 
@@ -129,12 +135,6 @@ int main(int argc, char ** argv)
     debug.logfile( args.as_string( "debug-file" ) ); 
   
 
-  // ---- obsolete Log functions: can be removed
-  // if ( args.has("out-file") ) 
-  //   plog.logfile( args.as_string("out-file") );
-  // if ( args.has("prolix-file") ) 
-  //   plog.prolix_logfile( args.as_string("prolix-file") );
-  
 
   // ----- likely remove support for 'long-mode' from Out class
   // if ( args.has("long") )
@@ -178,9 +178,9 @@ int main(int argc, char ** argv)
   // Basics to the log
   //
 
-  if ( ! args.has( "silent" ) ) 
+  if ( args.has( "out" ) && ! args.has( "silent" ) ) 
     plog << "Copying this log to file [ " << fileroot << ".log ]\n";
-
+  
   // Time-stamp 
 
   plog << "Analysis started " << tdstamp;

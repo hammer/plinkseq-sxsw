@@ -413,7 +413,6 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     // output options
     reg( "out" , STRING , "output root filename" );
     reg( "silent", NONE , "set silent mode");
-    reg( "stdout" , NONE , "output goes to STDOUT" );
     reg( "noweb" , NONE , "skip web-check" );
 
     reg( "debug", NONE , "set debug mode");    
@@ -729,8 +728,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     shortform( "-f" , "--file" );
     shortform( "-g" , "--group" );
     shortform( "-p" , "--phenotype" );
-    shortform( "-n" , "--name" );
-    shortform( "-s" , "--stdout" );
+    shortform( "-n" , "--name" );    
     shortform( "-o" , "--out" );
 
     shortform( "-h" , "--help" );  

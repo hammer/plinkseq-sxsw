@@ -212,15 +212,23 @@ bool DoseReader::read_dose( const std::string & f )
       if ( inp_dosage.eof() ) break;
       if ( dosage_line == "" ) continue;
 
-      // should be tab or space delimited
-      // char_tok() returns empty cells, if multiple contiguous delimters
-      //  allow this (treat as one), but we have to do this here.
-
+      //
+      // Two options for parsing: use the quick char_tok(), although currently this 
+      // only allows one single char as a delimiter, i.e. will choke on files that 
+      // have tab and space, or multiple spaces, etc. 
+      //
+      
+      //  default =                       tab   with char_tok
+      //  --format space-delimited        space with char_tok
+      //  --format whitespace-delimited   whitespace parse()
+      //
+      
       int ntok;
       
-      //      Helper::char_tok tok( &(dosage_line[0]) , dosage_line.size() , &ntok , spaced ? ' ' : '\t' );
       
-      std::vector<std::string> toks = Helper::parse( dosage_line , " \t" ) ; 
+      Helper::char_tok toks( &(dosage_line[0]) , dosage_line.size() , &ntok , spaced ? ' ' : '\t' );
+      
+      // std::vector<std::string> toks = Helper::parse( dosage_line , " \t" ) ; 
 
       ntok = toks.size();
 
@@ -308,7 +316,7 @@ bool DoseReader::read_dose( const std::string & f )
 	      if ( toks[ 1 + id_offset ] == "." || toks[ 2 + id_offset ] == "." ) continue;
 
 	      chr = toks[ 1 + id_offset ];	      	      
-	      if ( ! Helper::str2int( toks[ 2 + id_offset ] , bp ) ) Helper::halt( "invalid base-position: " + toks[ 2 + id_offset ] );	      
+	      if ( ! Helper::str2int( toks[ 2 + id_offset ] , bp ) ) Helper::halt( "invalid base-position: " + std::string( toks[ 2 + id_offset ] ) );	      
 	    }
 	}
       else
@@ -317,7 +325,7 @@ bool DoseReader::read_dose( const std::string & f )
 	  if ( toks[ 1 + id_offset ] == "." || toks[ 2 + id_offset ] == "." ) continue;
 
 	  chr = toks[ 1 + id_offset ];
-	  if ( ! Helper::str2int( toks[ 2 + id_offset ] , bp ) ) Helper::halt( "invalid base-position: " + toks[ 2 + id_offset ] );	      
+	  if ( ! Helper::str2int( toks[ 2 + id_offset ] , bp ) ) Helper::halt( "invalid base-position: " + std::string( toks[ 2 + id_offset ] ) );
 	  a1 = toks[ 3 + id_offset ];
 	  a2 = toks[ 4 + id_offset ];	  
 	}

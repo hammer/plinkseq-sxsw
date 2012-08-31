@@ -35,6 +35,7 @@ class DoseReader {
       hard_call_dosage_threshold = 0.1;
       skip_header = false;
       spaced = false;
+      vardelim = false;
       has_rsid = true;
     }  
 
@@ -46,6 +47,11 @@ class DoseReader {
   void set_spaced() 
   {
     spaced = true;
+  }
+
+  void set_variable_delimiter()
+  {
+    vardelim = true;
   }
 
   void set_id( const bool b )
@@ -152,6 +158,7 @@ class DoseReader {
 
   bool skip_header;
   bool spaced;
+  bool vardelim;
   bool has_rsid;
 
   bool has_meta;

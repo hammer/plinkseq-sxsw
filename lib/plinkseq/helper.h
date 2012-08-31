@@ -201,6 +201,7 @@ class Log {
 
   void stderr(const std::string & msg)
   {
+    file << msg;
     if ( silent_mode )
       if ( ! silent_except_errors_mode ) return;
     std::cerr << msg ;

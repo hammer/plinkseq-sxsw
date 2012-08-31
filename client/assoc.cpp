@@ -1954,7 +1954,6 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   
   Out & pout = Out::stream( "indiv.enrich" );
 
-
   // for (double i=-5 ; i<=5 ; i += 0.2 )
   //   {
   //     std::cout << i << "\t"
@@ -1966,6 +1965,15 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 
   // return false;
   
+  //
+  // Usage: pseq proj indiv-enrich --mask loc.req={background} 
+  //                                      reg.req={background} 
+  //                               --loc refseq
+  //                               --locset synapse
+  
+  // Specifying a background is option.
+
+
   // We assume the initial scan has to be based on genes --mask loc.group=refseq
 
   // We need a geneset list to be specified by the argment --locset go
@@ -2004,7 +2012,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // example).  When calculating the effective extent of the gene
   // groups, we extract out anything not in the background.
   
-  // this is defined by --mask loc.req= and reg.req=
+  // As noted above, this is defined by --mask loc.req= and reg.req=
 
 
   const std::set<int> & locus_requires = mask.required_loc();
@@ -2112,13 +2120,15 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   g.locdb.get_meta( orig_get_meta );
   g.locdb.get_subregions( orig_get_meta );
   
-  
+  //
   // Now that we've calculated a simple estimate of the prior probability of hitting 
   // a given target (given gene size and the total effective exome being used in the study)
   // now get the empirical counts for the # of variants
-
+  //
   // note: in future, you could imagine other things going into the
-  // calculation of 'f', such as base-context
+  // calculation of 'f', such as base-context  
+  //
+
 
   //
   // For each individual, calculate a) the total number of variants, b) for each set, the 
@@ -2129,20 +2139,21 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   mask.group_loc( loc );
   
   aux_indiv_enrichment aux;
-
+  
   aux.set_slot = &sets;
+
   aux.g2s = &g2s;
   
   plog << "about to start iterating...\n";
-
+  
   g.vardb.iterate( g_set_enrichment , &aux , mask ) ;
-
+  
   plog << "done iterating...\n";
   
-
+  
   //
   // Now we should have populated for each set, for each individual, the total 
-  // number of genes they have with a variant of 'interest'; and also the 
+  // number of genes they have with a variant of 'interest'
   //
   
   // we have populated aux.total_cnts and aux.set_cnts[].  For each individual, for each set, 
@@ -2221,6 +2232,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 	  // sqrt(2) = 1.414214
 	  	  
 	  // S(x) = 0.5 * ( 1 - erfc( s / sqrt(2) ) )	  
+
 	  double myerfc = Helper::PROB::gamma_inc( 0.5 , ( x / 1.414214 ) * ( x / 1.414214 ) ) / 1.772454 ;
 
 	  double interfc = erfc( x / 1.414214 ) ;

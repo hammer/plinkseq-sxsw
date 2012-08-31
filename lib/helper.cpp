@@ -39,7 +39,7 @@ void Helper::halt( const std::string & msg )
  R_error( msg );
 #else
  plog.stderr( "pseq error : " + msg + "\n" );
-
+ 
  if ( GP && GP->gseq_mode() )
    {
      std::ofstream O1( GP->gseq_history().c_str() , std::ios::out | std::ios::app );
@@ -67,7 +67,7 @@ void Log::warn(const std::string & msg , const std::string & spec )
 #else
   if ( warnings[ msg ] == 0 && early_warn )
     {
-      plog << "plinkseq warning: " << msg << " : " << spec << "\n";
+      plog.stderr( "plinkseq warning: " + msg + " : " + spec + "\n" );
     }
 #endif
      
