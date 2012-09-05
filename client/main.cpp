@@ -2173,8 +2173,8 @@ int main(int argc, char ** argv)
 
     if ( command == "cnv-denovo" )
     {
-	Out output1( "denovo.cnv" , "per-site output from denovo" );
-	Out output2( "denovo.indiv" , "per-trio output from denovo" );
+    	Out output1( "denovo.cnv",       "per-site output from cnv-denovo" );
+    	Out output2( "denovo.cnv.indiv", "per-trio output from cnv-denovo" );
     	Pseq::VarDB::cnv_denovo_scan( m );
     	Pseq::finished();
     }
