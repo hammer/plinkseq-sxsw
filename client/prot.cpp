@@ -27,12 +27,12 @@ bool Pseq::ProtDB::lookup( const std::string & db ,
   bool query_locdb = g.locdb.attached();
   
   std::set<std::string> transcripts;
-
+  
   std::string group = lgroup;
-
+  
   if ( query_locdb )
     {
-
+      
       // swap in, e.g., 'refseq' if not specified
       if ( group == "" ) group = PLINKSeq::DEFAULT_LOC_GROUP();
       
@@ -75,9 +75,8 @@ bool Pseq::ProtDB::lookup( const std::string & db ,
       // Get protein features/domains
       //
       
-      
       aux.features = protdb.fetch( *tt );
-
+      
       
       //
       // Query VARDB
@@ -117,20 +116,3 @@ bool Pseq::ProtDB::lookup( const std::string & db ,
   return true;
 }
 
-
-bool Pseq::ProtDB::mapper( const std::string & db , const std::string & group , const std::string & source ,  const std::string & feature  )
-{
-
-  ProtDBase protdb;
-  protdb.attach( db );
-  if ( ! protdb.attached() ) Helper::halt( "could not attach PROTDB" );
-  
-  if ( ! g.locdb.attached() ) Helper::halt( "no attached LOCDB" );
-  
-  /// Map a PROTDB source/feature to a LOCDB (i.e. to make a genomic region list)
-  int mapped = protdb.map_to_genomic( &g.locdb , group , source , feature );
-  
-  plog << "mapped " << mapped << " proteins\n";
-  
-  return true;
-}

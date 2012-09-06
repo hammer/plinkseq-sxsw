@@ -74,6 +74,11 @@ ind.fetch <- function( pheno = "" , mask = "" )
  .Call("Rind_list",mask,pheno)
 }
 
+ind.pedinfo <- function( mask = "" )
+{
+ .Call("Rind_pedlist",mask)
+}
+
 var.headers <- function( filetag = "1" )
 {
  .Call("Rhdr_list", as.character(filetag) )

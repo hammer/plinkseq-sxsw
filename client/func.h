@@ -133,12 +133,10 @@ namespace Pseq
   namespace ProtDB
   {
     
-    bool loader( const std::string & db , const std::string & file );
+    bool loader( const std::string & db , const std::string & file , const std::string & group );
     
     bool lookup( const std::string & db , const std::string & gene , const std::string & group = "" , Mask * mask = NULL );
-    
-    bool mapper( const std::string & db , const std::string & group , const std::string & source , const std::string & feature );
-
+   
   }
 
 

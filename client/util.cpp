@@ -257,7 +257,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:format$build$repeat-mode$iupac,file,name,description,"
 	
-	  << "lookup|misc,annot|lookup various annotatations for a list of positions|ARG:loc,alias,ref,annotate|OUT:meta"
+	  << "lookup|misc,annot|lookup various annotatations for a list of positions|ARG:loc,alias,ref,protdb,annotate|OUT:meta"
 	
 	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta|OUT:refvars"
 	
@@ -366,11 +366,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
    // Protein domain/feature annotation
    //
 
-	  << "prot-load|input,prot|populate a PROTDB|ARG:protdb,file"
+	  << "prot-load|input,prot|populate a PROTDB|ARG:protdb,file,group"
       
 	  << "prot-view|views,prot|view entries from a PROTDB|ARG:protdb,name,group"
-
-	  << "prot-map|prot|map a PROTDB onto genomic co-ordinates|ARG:protdb,locdb,group,name"
 
     //
     // Misc. QC etc
@@ -528,7 +526,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "loc" , STRING_VECTOR , "transcript group" );
     reg( "ref" , STRING_VECTOR , "reference-variant group " );
     reg( "locset" , STRING_VECTOR , "locus-set group" );
-
+    
     // Genotype/phenotype inputs
 
     reg( "phenotype" , STRING_VECTOR, "phenotype specification");

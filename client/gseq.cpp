@@ -126,7 +126,7 @@ void g_geneseq( VariantGroup & vars , void * p )
 	{
 	  if ( ii->source_id == "HMMPfam" )
 	    {
-	      for (int aa= ii->start; aa<= ii->stop; aa++)	    
+	      for (int aa= ii->pstart; aa<= ii->pstop; aa++)	    
 		{		  
 		  //		  if ( pdm[aa] != "" ) pdm[aa] += " ";
 		  pdm[ aa ] += ii->source_id + "::" + ii->feature_id + ":" + ii->feature_name + " ";

@@ -517,12 +517,12 @@ bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
 }
 
 
-bool Pseq::ProtDB::loader( const std::string & db , const std::string & file )
+bool Pseq::ProtDB::loader( const std::string & db , const std::string & file , const std::string & group )
 {
   ProtDBase protdb;
   protdb.attach( db );
   if ( ! protdb.attached() ) Helper::halt( "problem creating/attaching database" );
-  protdb.load( file );
+  protdb.load( file , &g.locdb , group );
   return true;
 }
 
@@ -951,6 +951,9 @@ bool Pseq::VarDB::load_dosage()
       bool use_map = map_files.size() > 0 ;
       bool use_indiv = indiv_files.size() > 0 ;
 
+      plog << "dropping VARDB indices...\n";
+      g.vardb.drop_index();
+
       for (int f=0;f<files.size();f++)
 	{  
       	  DoseReader reader( &g.vardb ); 
@@ -972,6 +975,9 @@ bool Pseq::VarDB::load_dosage()
 	    Helper::halt( "problem reading dosage file " + files[f] + ", or associated file" );	  
 	  g.vardb.commit();
 	}
+
+      plog << "creating VARDB indices...\n";
+      g.vardb.index();
       
     }
 
@@ -983,6 +989,7 @@ bool Pseq::VarDB::load_dosage()
   if ( file_list_mode ) 
     {
       
+      plog << "dropping VARDB indices...\n";
       g.vardb.drop_index();
       
       // keep track of file IDs -- ID and FAM should always match
@@ -1061,7 +1068,8 @@ bool Pseq::VarDB::load_dosage()
   // re-index
   //  (note -- if fails above, doesn't matter, as the VARDB will automatically get the indexes 
   //   added back in next time something runs)
-
+  
+  plog << "creating VARDB indices...\n";
   g.vardb.index();  
  
   return true;

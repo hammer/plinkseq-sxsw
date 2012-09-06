@@ -1729,6 +1729,107 @@ SEXP Rind_list(SEXP rmask, SEXP phe)
 
 
 
+SEXP Rind_pedlist( SEXP rmask )
+{
+  
+  if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 
+  
+  // Given a mask, return the individuals (as they will be ordered
+  // given a var.fetch() or var.iterate()) an their associated
+  // pedigree info
+  
+  Mask mask;
+  
+  if ( length(rmask) > 0 ) 
+    mask = R_make_mask(rmask);
+  
+  //
+  // Set up individual-map
+  //
+  
+  gp->indmap.populate( gp->vardb , gp->phmap , mask );
+  
+  const int n = gp->indmap.size();
+  
+  // ID, FID, IID, PAT, MAT, SEX
+  
+  SEXP indiv;
+  PROTECT( indiv = allocVector( VECSXP, 6 ) );
+  
+  // Labels
+  
+  SEXP list_names;
+  PROTECT(list_names = allocVector( STRSXP, 6 ));    
+  SET_STRING_ELT(list_names, 0 , mkChar( "ID" ) );
+  SET_STRING_ELT(list_names, 1 , mkChar( "FID" ) );
+  SET_STRING_ELT(list_names, 2 , mkChar( "IID" ) );
+  SET_STRING_ELT(list_names, 3 , mkChar( "PAT" ) );
+  SET_STRING_ELT(list_names, 4 , mkChar( "MAT" ) );
+  SET_STRING_ELT(list_names, 5 , mkChar( "SEX" ) );
+  
+    
+  //
+  // IDs
+  //
+  
+  SEXP idstr;
+  PROTECT( idstr = allocVector( STRSXP, n ) );
+  for (int i = 0 ; i < n ; i++)
+    SET_STRING_ELT( idstr , i , mkChar( gp->indmap.ind(i)->id().c_str() ) );   
+  SET_VECTOR_ELT( indiv , 0 , idstr );
+  
+  SEXP fidstr;
+  PROTECT( fidstr = allocVector( STRSXP, n ) );
+  for (int i = 0 ; i < n ; i++)
+    SET_STRING_ELT( fidstr , i , mkChar( gp->indmap.ind(i)->fid().c_str() ) );   
+  SET_VECTOR_ELT( indiv , 1 , fidstr );
+
+  SEXP iidstr;
+  PROTECT( iidstr = allocVector( STRSXP, n ) );
+  for (int i = 0 ; i < n ; i++)
+    SET_STRING_ELT( iidstr , i , mkChar( gp->indmap.ind(i)->iid().c_str() ) );   
+  SET_VECTOR_ELT( indiv , 2 , iidstr );
+
+  SEXP patstr;
+  PROTECT( patstr = allocVector( STRSXP, n ) );
+  for (int i = 0 ; i < n ; i++)
+    SET_STRING_ELT( patstr , i , mkChar( gp->indmap.ind(i)->father().c_str() ) );   
+  SET_VECTOR_ELT( indiv , 3 , patstr );
+
+  SEXP matstr;
+  PROTECT( matstr = allocVector( STRSXP, n ) );
+  for (int i = 0 ; i < n ; i++)
+    SET_STRING_ELT( matstr , i , mkChar( gp->indmap.ind(i)->mother().c_str() ) );   
+  SET_VECTOR_ELT( indiv , 4 , matstr );
+
+  SEXP sexint;
+  PROTECT( sexint = allocVector( INTSXP, n ) );
+  for (int i = 0 ; i < n ; i++)
+    {
+      if ( gp->indmap.ind(i)->sex() == 1 ) 
+	INTEGER(sexint)[i] = 1;
+      else if ( gp->indmap.ind(i)->sex() == 2 ) 
+	INTEGER(sexint)[i] = 2;
+      else
+	INTEGER(sexint)[i] = NA_INTEGER;
+    }
+  SET_VECTOR_ELT( indiv , 5 , sexint );
+
+
+  //
+  // Add labels
+  //
+
+  setAttrib( indiv, R_NamesSymbol, list_names );
+      
+  UNPROTECT(8);	
+  
+  return(indiv);
+}
+
+
+
+
 SEXP Rfile_list()
 {
   if ( ! R_project_attached ) { plog.warn( "no project attached" ); return( R_NilValue); } 

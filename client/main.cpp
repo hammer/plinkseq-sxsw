@@ -640,7 +640,8 @@ int main(int argc, char ** argv)
     {
       if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
       if ( ! args.has( "file" ) ) Helper::halt( "no --file specified" );
-      Pseq::ProtDB::loader( args.as_string( "protdb" ) , args.as_string( "file" ) );
+      if ( ! args.has( "group" ) ) Helper::halt( "no --group specified" );
+      Pseq::ProtDB::loader( args.as_string( "protdb" ) , args.as_string( "file" ) , args.as_string( "group" ) );
       Pseq::finished();
     }
   
@@ -2459,19 +2460,6 @@ int main(int argc, char ** argv)
       Pseq::finished();
     }
 
-  if ( command == "prot-map" )
-    {
-      Out output( "protmap" , "protein domain/annotations mapped to the genome" );
-
-      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
-      if ( ! args.has( "name" ) ) Helper::halt( "no --name specified" );
-      if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
-      if ( ! args.has( "group" ) ) Helper::halt( "no --group specified" );
-
-      Pseq::ProtDB::mapper( args.as_string( "protdb" )  , args.as_string( "group" )  , args.as_string( "name" ) , "." );
-
-      Pseq::finished();
-    }
 
 
     

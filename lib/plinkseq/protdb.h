@@ -16,14 +16,32 @@ class Region;
 
 struct Feature { 
 
+  Feature()
+  {
+    protein_id = ".";
+    source_id = ".";
+    feature_id = ".";
+    feature_name = ".";
+
+    pstart = pstop = 0;
+    gstart = gstop = 0;
+    chr = ".";
+    mstr = ".";
+  }
+
   std::string protein_id;
   std::string source_id;
   std::string feature_id;
   std::string feature_name;
   
   // 1-based, AA space
-  int start;
-  int stop;
+  int pstart;
+  int pstop;
+
+  // Mapped, genomic co-ordinates
+  std::string chr;
+  int gstart;
+  int gstop;
 
   // Various meta-information
   std::string mstr;
@@ -31,11 +49,11 @@ struct Feature {
 
   bool operator<( const Feature & rhs ) const 
   {
-    if ( start < rhs.start ) return true;
-    if ( start > rhs.start ) return false;
+    if ( pstart < rhs.pstart ) return true;
+    if ( pstart > rhs.pstart ) return false;
     
-    if ( stop < rhs.stop ) return true;
-    if ( stop > rhs.stop ) return false;
+    if ( pstop < rhs.pstop ) return true;
+    if ( pstop > rhs.pstop ) return false;
 
     if ( source_id < rhs.source_id ) return true;
     if ( source_id > rhs.source_id ) return false;
@@ -46,7 +64,8 @@ struct Feature {
   friend std::ostream & operator<<( std::ostream & out, const Feature & f)
     {
       out << f.protein_id << "\t"
-	  << f.start << ".." << f.stop << "\t"
+	  << f.pstart << ".." << f.pstop << "\t"
+	  << f.chr << ":" << f.gstart << ".." << f.gstop << "\t"
 	  << f.source_id << "::" << f.feature_id << "\t"
 	  << f.feature_name << "\t"	  
 	  << f.mstr ;
@@ -106,19 +125,26 @@ class ProtDBase {
   bool attached() { return sql.is_open(); }
 
   /// Load a protein-annotation table into the DB
-  void load( const std::string & filename );
+  void load( const std::string & filename ,
+	     LocDBase * locdb ,
+	     const std::string & lgroup );
   
   /// Map a PROTDB source/feature to a LOCDB (i.e. to make a genomic region list)
-  int map_to_genomic( LocDBase * locdb , const std::string & , const std::string & , const std::string & feature = "." , std::map<std::string,Region> * plmap = NULL );
+  //int map_to_genomic( LocDBase * locdb , const std::string & , const std::string & , const std::string & feature = "." , std::map<std::string,Region> * plmap = NULL );
 
   /// Does this variant have this particular feature or not?
   bool has_feature( const Variant & v , const std::string & transcript , const std::string & group , const std::string & annot );
   
   /// Return all features for a transcript, whether a variant exists there or not
   std::set<Feature> fetch( const std::string & transcript );
-    
+
+  // get all source_ids
+  std::set<std::string> get_sources();
+
+  /// Lookup all transcripts and protein domains given a variant
+  ProtFeatureSet lookup( const Variant & );
   
-  
+
  private:
   
   
@@ -130,6 +156,9 @@ class ProtDBase {
   
   // insert main data row 
   sqlite3_stmt * stmt_insert;
+  
+  // get info
+  sqlite3_stmt * stmt_dump_types;
 
   // search
   sqlite3_stmt * stmt_fetch_given_transcript;
@@ -141,6 +170,10 @@ class ProtDBase {
   sqlite3_stmt * stmt_insert_mapping;
   sqlite3_stmt * stmt_fetch_mapping;
 
+  sqlite3_stmt * stmt_fetch_given_genomic_coord;
+  sqlite3_stmt * stmt_fetch_given_genomic_coord_and_source;
+
+
   //
   // Functions
   //
@@ -149,13 +182,11 @@ class ProtDBase {
   void release();
   void index();
   void drop_index();
-
+  
   /// Add to database
-  void insert( const ProtFeatureSet & );
-  
-  /// Lookup (from cache first) based on transcript name (RefSeq)
-  ProtFeatureSet lookup( const std::string & );
-  
+  bool insert( const ProtFeatureSet & , std::map<std::string,Region> * );
+    
+
 };
 
 #endif

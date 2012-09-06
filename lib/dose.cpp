@@ -66,9 +66,18 @@ void DoseReader::read_meta( const int file_id )
 bool DoseReader::read_dose( const std::string & f )
 {
   
+
+
   const bool store_as_dosage = storage_format == "as-dosage" ;
   const bool store_as_prob3  = storage_format == "as-posteriors" ; 
-  
+
+  if ( store_as_dosage ) 
+    {
+      std::cout << "reg " << tagname << "\n";
+      MetaInformation<GenMeta>::field( tagname , META_FLOAT , 1 , "ALT dosage (0..2)" );
+    }
+  else if ( store_as_prob3) 
+    MetaInformation<GenMeta>::field( tagname , META_FLOAT , 3 , "Genotype probs (REF,HET,HOM)" );
 
   //
   // Open dosage file 
@@ -227,9 +236,11 @@ bool DoseReader::read_dose( const std::string & f )
       
       
       Helper::char_tok toks( &(dosage_line[0]) , dosage_line.size() , &ntok , spaced ? ' ' : '\t' );
-      
-      // std::vector<std::string> toks = Helper::parse( dosage_line , " \t" ) ; 
 
+
+      //std::vector<std::string> toks = Helper::parse( dosage_line , " \t" ) ; 
+
+      
       ntok = toks.size();
 
       // expecting rsID + 2(pos) + 2(alleles) + n_genotypes
@@ -353,6 +364,8 @@ bool DoseReader::read_dose( const std::string & f )
 	}
 
 
+
+
       
       //
       // We seem to be all set
@@ -440,23 +453,49 @@ bool DoseReader::read_dose( const std::string & f )
 
       if ( cnt % 1000 == 0  )
 	plog.counter( "inserted " + Helper::int2str( cnt ) + " variants" );
-      
+
       
       //
       // Get genotypes
       //
 
-      v.resize( ni );
+      v.resize( 0 );
+
+
+      
 
       // read 'start_pos' slots first      
 	
       int p = start_pos;
+
+      //
+      // Re-use the same genotype
+      //
+
+      Genotype g;
+
+
+      // dosages will always be present, so just create once upfront
+
+      if ( store_as_dosage ) 
+	{
+	  g.meta.set( tagname , 2 );
+	  std::cout << "SET\n";
+	}
+      else if ( store_as_prob3 )	
+	g.meta.set( tagname , std::vector<double>(3,0) );
+      
+      // get a pointer to this dosage store
+      meta_key_t mk = MetaInformation<GenMeta>::field( tagname ).key;
+      std::cout << "okay " << g.meta.get1_double( tagname ) << " " << mk << "\n";
+      double * dstore = g.meta.mutptr1_double( mk );
+      if ( dstore == NULL ) std::cout << "dstore is null\n";
+      else std::cout << "is not\n";
+
       
       for (int i=0;i<ni;i++)
 	{
-	  
-	  Genotype & g = v(i);
-	  
+	  	 	  
 	  //
 	  // Get dosage
 	  //
@@ -556,7 +595,7 @@ bool DoseReader::read_dose( const std::string & f )
 	  else if ( format_dose2 ) 
 	    {
 	      double d = 0;
-
+	      
 	      if ( Helper::str2dbl( toks[p++] , d ) ) 
 		{
 
@@ -565,7 +604,9 @@ bool DoseReader::read_dose( const std::string & f )
 		  
 		  if ( store_as_dosage ) 
 		    {
-		      g.meta.set( tagname , d ) ;
+		      std::cout << "dsotre = " << *dstore << "\n";
+		      *dstore = d; 
+
 		    }
 
 		  else if ( store_as_prob3 )
@@ -588,7 +629,11 @@ bool DoseReader::read_dose( const std::string & f )
 			  pp[2] = 0;
 			}
 		      
-		      g.meta.set( tagname , pp ) ;
+		      *dstore     = pp[0];
+		      *(dstore+1) = pp[1];
+		      *(dstore+2) = pp[2];
+
+		      // g.meta.set( tagname , pp ) ;
 		    }
 		 
 		  if ( make_hard_call ) 
@@ -638,7 +683,7 @@ bool DoseReader::read_dose( const std::string & f )
 		      
 		      g.meta.set( tagname , pp ) ;
 		    }
-
+		  
 		  if ( make_hard_call ) 
 		    {
 		      if      ( d <= hard_call_dosage_threshold ) geno = 1;
@@ -657,7 +702,12 @@ bool DoseReader::read_dose( const std::string & f )
 	  if ( geno == 0 ) g.null( true );
 	  else g.set_alternate_allele_count( geno - 1 );
 	  
+	  //
+	  // Add to variant
+	  //
 	  
+	  v.add( g );
+
 	}
       
       
