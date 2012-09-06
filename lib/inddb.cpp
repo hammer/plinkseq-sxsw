@@ -379,11 +379,10 @@ bool IndDBase::load_ped_info( const std::string & filename )
   	  const std::string& firstChar = tok[0].substr(0,1);
   	  if (firstChar == "#") continue; // ignore comment lines
       
-      if ( tok.size() != 6 ) 
-	{
-	  plog.warn("found line in pedigree file with other than 6 tab-delimited fields"); 
-	  continue;
-	}
+      if (tok.size() < 6) { // allow for extra meta-information fields
+    	  plog.warn("found line in pedigree file with less than 6 tab-delimited fields");
+    	  continue;
+      }
       
       Individual ind( tok[0] );
       
