@@ -13,6 +13,7 @@
 class LocDBase;
 class Variant;
 class Region;
+class Out;
 
 struct Feature { 
 
@@ -144,6 +145,7 @@ class ProtDBase {
   /// Lookup all transcripts and protein domains given a variant
   ProtFeatureSet lookup( const Variant & );
   
+  void dump( Out & pout );
 
  private:
   

@@ -185,8 +185,8 @@ class Individual
 	<< p.iid() << "\t" 
 	<< p.missing() << "\t"
 	<< p.sex() << "\t" 
-	<< p.pat() << "\t" 
-	<< p.mat() << "\t"
+	<< p.father() << "\t" 
+	<< p.mother() << "\t"
 	<< p.meta;
     
     return out;

@@ -661,7 +661,7 @@ bool IndDBase::fetch( Individual * person , uint64_t indiv_id )
 {
 
   sql.bind_int64( stmt_fetch_individual , ":indiv_id" , indiv_id );
-  
+
   bool obs = false;
   
   if ( sql.step( stmt_fetch_individual ) )
@@ -673,7 +673,7 @@ bool IndDBase::fetch( Individual * person , uint64_t indiv_id )
       person->iid( sql.get_text(  stmt_fetch_individual , 3 ) );
       person->pat( sql.get_text(  stmt_fetch_individual , 4 ) );
       person->mat( sql.get_text(  stmt_fetch_individual , 5 ) );
-
+      
       int s = sql.get_int(  stmt_fetch_individual , 6 ) ;
       if ( s == 1 ) 
 	person->sex( MALE );

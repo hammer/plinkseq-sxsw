@@ -110,7 +110,7 @@ int BEDReader::read_fam( )
       // Optionally, store phenotypic information in 
       if ( inddb )
 	{	  
-
+	  
 	  ind.fid( fid );
 	  ind.iid( iid );
 	  ind.pat( pat );

@@ -274,14 +274,14 @@ int main(int argc, char ** argv)
   
   if ( command == "version" ) 
     {
-      
-      plog << "PSEQ: " << PSEQ_VERSION << "\n"
+      Out pout( "version" , "version information" );
+      pout << "PSEQ: " << PSEQ_VERSION << "\n"
 	   << "PSEQ DATE: " << PSEQ_DATE << "\n";
 	   
       g.show_version();
       
 #ifdef ZLIB_VERNUM
-      plog << "ZLIB: " << ZLIB_VERSION << "\n";
+      pout << "ZLIB: " << ZLIB_VERSION << "\n";
 #endif
 
       Pseq::finished();
@@ -2441,21 +2441,21 @@ int main(int argc, char ** argv)
     // View a ProtDB 
     //
 
-
   if ( command == "prot-view" )
     {
-
-      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
-      if ( ! args.has( "name" ) ) Helper::halt( "no --name specified" );
-
+      
+      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );      
+      
       Out output( "prot" , "protein domain/annotations" );
-
+      
       if ( args.has( "group" ) )
 	{
 	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) , args.as_string( "group" ) , &m );
 	}
-      else
+      else if ( ! args.has( "name" ) )
 	Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) );
+      else
+	Pseq::ProtDB::lookup( args.as_string( "protdb" ) );
 
       Pseq::finished();
     }

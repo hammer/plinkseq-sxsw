@@ -488,4 +488,39 @@ bool ProtDBase::insert( const ProtFeatureSet & fset , std::map<std::string,Regio
 }
 
   
+void ProtDBase::dump( Out & pout )
+{
+
+  sqlite3_stmt * stmt_dump = 
+    sql.prepare( "SELECT * FROM main ORDER BY chr , gstart , gstop ; " );
+  
+  while ( stmt_dump ) 
+    {
+      
+      Feature f;
+
+      std::string transcript_id = sql.get_text( stmt_dump , 1 );      
+      f.protein_id = sql.get_text( stmt_dump , 2 ) ;
+      f.source_id = sql.get_text( stmt_dump , 3 ) ;
+      f.feature_id = sql.get_text( stmt_dump , 4 ) ;
+      f.feature_name = sql.get_text( stmt_dump , 5 ) ;
+
+      f.pstart = sql.get_int( stmt_dump , 6 ) ;
+      f.pstop = sql.get_int( stmt_dump , 7 ) ;
+      f.mstr = sql.get_text( stmt_dump , 8 ) ;
+      
+      f.chr = sql.get_text( stmt_dump , 9 ) ;
+      f.gstart = sql.get_int( stmt_dump , 10 ) ;
+      f.gstop = sql.get_int( stmt_dump , 11 ) ;
+      int strand = sql.get_int( stmt_dump , 12 ) ;
+      
+      pout << transcript_id << ( strand == 1 ? "\t+\t" : "\t-\t" ) << f << "\n";
+      
+    }
+
+  sql.reset( stmt_dump );
+  sql.finalise( stmt_dump );
+
+  return;
+}
 

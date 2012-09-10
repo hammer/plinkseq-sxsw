@@ -16,6 +16,7 @@ void f_view_variants_prot_loc_annot( Variant & v , void * p )
   return;
 }
 
+
 bool Pseq::ProtDB::lookup( const std::string & db , 
 			   const std::string & gene , 
 			   const std::string & lgroup , 
@@ -116,3 +117,30 @@ bool Pseq::ProtDB::lookup( const std::string & db ,
   return true;
 }
 
+
+
+
+bool Pseq::ProtDB::lookup( const std::string & db ) 
+{
+  
+  //
+  // simple dump of entire PROTDB
+  //
+  
+
+  //
+  // Attach a PROTDB
+  //
+
+  ProtDBase protdb;
+  
+  protdb.attach( db );
+  
+  if ( ! protdb.attached() ) Helper::halt( "could not attach PROTDB" );  
+  
+  Out & pout = Out::stream( "prot" );
+  
+  protdb.dump( pout );
+
+  return true;
+}
