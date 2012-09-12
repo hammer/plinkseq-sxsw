@@ -639,7 +639,7 @@ void f_lookup_annotator( Variant & var , void * p )
 		      unknown_strand = false;
 		      if ( aasize % 3 != 0 ) 
 			{
-			  std::cout << "ahh, " << aasize << " " << aasize % 3 << "\n";
+			  std::cerr << "problem, " << aasize << " " << aasize % 3 << "\n";
 			  problem = true;
 			}
 		    }

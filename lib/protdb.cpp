@@ -28,7 +28,15 @@ std::set<Feature> ProtDBase::fetch( const std::string & transcript )
       f.chr = sql.get_text( stmt_fetch_given_transcript , 7 ) ;
       f.gstart = sql.get_int( stmt_fetch_given_transcript , 8 ) ;
       f.gstop = sql.get_int( stmt_fetch_given_transcript , 9 ) ;
-      
+
+      // reverse genomic range for negative regions
+      if ( f.gstop < f.gstart ) 
+	{
+	  int t = f.gstart;
+	  f.gstart = f.gstop;
+	  f.gstop = t;
+	}
+
       s.add( transcript , f );
     }
 	  
@@ -69,6 +77,14 @@ ProtFeatureSet ProtDBase::lookup( const Variant & v )
       f.chr = sql.get_text( stmt_fetch_given_genomic_coord , 8 ) ;
       f.gstart = sql.get_int( stmt_fetch_given_genomic_coord , 9 ) ;
       f.gstop = sql.get_int( stmt_fetch_given_genomic_coord , 10 ) ;
+
+      // reverse genomic range for negative regions
+      if ( f.gstop < f.gstart ) 
+	{
+	  int t = f.gstart;
+	  f.gstart = f.gstop;
+	  f.gstop = t;
+	}
 
       s.add( sql.get_text( stmt_fetch_given_genomic_coord , 0 ) , f );
     }
@@ -494,7 +510,7 @@ void ProtDBase::dump( Out & pout )
   sqlite3_stmt * stmt_dump = 
     sql.prepare( "SELECT * FROM main ORDER BY chr , gstart , gstop ; " );
   
-  while ( stmt_dump ) 
+  while ( sql.step(stmt_dump) )
     {
       
       Feature f;
@@ -513,7 +529,15 @@ void ProtDBase::dump( Out & pout )
       f.gstart = sql.get_int( stmt_dump , 10 ) ;
       f.gstop = sql.get_int( stmt_dump , 11 ) ;
       int strand = sql.get_int( stmt_dump , 12 ) ;
-      
+
+      // reverse genomic range for negative regions
+      if ( f.gstop < f.gstart ) 
+	{
+	  int t = f.gstart;
+	  f.gstart = f.gstop;
+	  f.gstop = t;
+	}
+
       pout << transcript_id << ( strand == 1 ? "\t+\t" : "\t-\t" ) << f << "\n";
       
     }

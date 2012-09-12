@@ -89,7 +89,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	  << "load-plink|input|load a PLINK binary PED file (BED)|ARG:file,id,iid,fid,check-reference,fix-strand" 
       
-	  << "load-dosage|input|load dosage data|ARG:file,file-list,id,check-reference,hard-call-threshold,format$space-delimited$skip-header$position-map$allele-map$dose1$dose2$prob2$prob3$as-dosage$as-posteriors,name"
+	  << "load-dosage|input|load dosage data|ARG:file,file-list,id,check-reference,hard-call-threshold,format$space-delimited$skip-header$position-map$allele-map$dose1$dose2$prob2$prob3$as-dosage$as-posteriors,name,maf,mac"
 
 	  << "attach-meta|input|load meta-information for existing VARDB variants|ARG:file,id,group"
 	
@@ -603,6 +603,9 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "fid" , NONE , "use FID as ID when reading PLINK files" );
     reg( "iid" , NONE , "use IID as ID when reading PLINK files" );
 
+    // dosage loading modifers
+    reg( "maf" , FLOAT , "minimum alternate allele frequency to load a dosage entry" );
+    reg( "mac" , INT , "minimum minor allele count to load a dosage entry" );
 
     // Association models
     

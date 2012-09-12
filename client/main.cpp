@@ -1873,11 +1873,7 @@ int main(int argc, char ** argv)
 
 	// else directly annotate variants in VARDB
 	if ( ! ( args.has( "file" ) || args.has( "region" ) ) )
-	  {
-	    std::cout << "a\n";
-	    Pseq::VarDB::lookup_list( "." , m );
-	    std::cout << "b\n";
-	  }
+	  Pseq::VarDB::lookup_list( "." , m );
 	Pseq::finished();
       }
     
@@ -2247,22 +2243,21 @@ int main(int argc, char ** argv)
       {
 
 	Out output1( "assoc" , "output from assoc command" );
-	Out * output2 = NULL;
-
+	Out outputd( "assoc.det", "site-specific breakdown of included variants per gene" );
+	
+	Out * output2 = NULL;       
 	if( args.has( "tests", "two-hit") )
 	  output2 = new Out( "twohit.vars" , "variants from two-hit test" );
-
-	/*	
-	Out & pthit = Out::stream( "twohit.vars" );
-	pthit << "aaaaaaaaaaaaaaaaaaa\n";
-	//}
-	Out & pthit2 = Out::stream( "twohit.vars" );
-	pthit2 << "bbbbbbbbbbbbbbbb\n";*/
+	
+	Out * outmatrix = args.has( "dump-null-matrix" ) ? new Out( "matrix" , "permuted null statistic matrix" ) : NULL;
+	
 	// if no perms specified, use adaptive permutation mode
 	Pseq::Assoc::set_assoc_test( m , args );
 
 	if( output2 != NULL )
 	  delete output2;
+	
+	if ( outmatrix ) delete outmatrix;
 
 	Pseq::finished();
 	
@@ -2448,11 +2443,9 @@ int main(int argc, char ** argv)
       
       Out output( "prot" , "protein domain/annotations" );
       
-      if ( args.has( "group" ) )
-	{
-	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) , args.as_string( "group" ) , &m );
-	}
-      else if ( ! args.has( "name" ) )
+      if ( args.has( "group" ) && args.has("name") )
+	Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) , args.as_string( "group" ) , &m );
+      else if ( args.has( "name" ) )
 	Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) );
       else
 	Pseq::ProtDB::lookup( args.as_string( "protdb" ) );

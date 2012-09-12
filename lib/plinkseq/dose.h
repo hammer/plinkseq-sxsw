@@ -37,7 +37,23 @@ class DoseReader {
       spaced = false;
       vardelim = false;
       has_rsid = true;
+      maf = 0.0;
+      mac = 0;
+      maf_threshold = false;
+      mac_threshold = false;
     }  
+
+  void set_mac( const int m )
+  {
+    mac_threshold = true;
+    mac = m;
+  }
+
+  void set_maf( const double m )
+  {
+    maf_threshold = true;
+    maf = m;
+  }
 
   void set_skip_header( const bool b ) 
   {
@@ -165,6 +181,11 @@ class DoseReader {
   bool make_hard_call;
   double hard_call_prob_threshold;
   double hard_call_dosage_threshold;
+  
+  bool maf_threshold;
+  bool mac_threshold;
+  double maf;
+  int mac;
 
 
   // DB pointers

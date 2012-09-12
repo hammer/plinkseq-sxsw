@@ -899,74 +899,86 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 	      std::vector<std::string> t = parse(s[j],":");
 	      
 	      // should be multiple of 3
-	      if ( t.size() % 3 == 0 ) 
-		for (int i=0; i<t.size(); i+=3)
-		  {
-		    
-		    if ( t[i+1] == "eq" )
-		      {
-			int x;
-			if ( str2int(t[i+2],x) )
-			  req ? req_meta_equals( t[i] , x ) : meta_equals( t[i] , x );
-			else // try as string, is parsed below
-			  t[i+1] = "is";
-		      }
-		    
-		    if ( t[i+1] == "ne" )
-		      {
-			int x;
-			if ( str2int(t[i+2],x) )
-			  req ? req_meta_not_equals( t[i] , x ) : meta_not_equals( t[i] , x );
-			else 
-			  t[i+1] == "not";
-		      }
-		    
-		    if ( t[i+1] == "gt" )
-		      {
-			double x;
-			if ( str2dbl(t[i+2],x) )
-			  req ? req_meta_greater( t[i] , x ) : meta_greater( t[i] , x );
-		      }
-		    
-		    if ( t[i+1] == "ge" )
-		      {
-			double x;
-			if ( str2dbl(t[i+2],x) )
-			  {
-			    req ? req_meta_greater_equal( t[i] , x ) : meta_greater_equal( t[i] , x );
-			  }
-			
-		      }
-		    
-		    if ( t[i+1] == "lt" )
-		      {
-			double x;
-			if ( str2dbl(t[i+2],x) )
-			  req ? req_meta_less( t[i] , x ) : meta_less( t[i] , x );
-		      }
-		    
-		    if ( t[i+1] == "le" )
-		      {
-			double x;
-			if ( str2dbl(t[i+2],x) )
-			  req ? req_meta_less_equal( t[i] , x ) : meta_less_equal( t[i] , x );
-		      }
-		    
-		    if ( t[i+1] == "is" )
-		      {
-			string x = t[i+2] == "*" ? "" : t[i+2] ;
+	      if ( t.size() % 3 != 0 ) 
+		Helper::halt("problem parsing meta={value(s)} in mask\nexpecting meta=TAG:OP:(VAL), e.g. meta=DP:ge:20,QC:set:1");
+	      
+	      for (int i=0; i<t.size(); i+=3)
+		{
+		  
+		  
+		  if ( t[i+1] == "set" )
+		    {
+		      if ( t[i+2] == "0" || t[i+2] == "F" ) 
+			req ? req_meta_not_set( t[i] ) : meta_not_set( t[i] );
+		      else
+			req ? req_meta_set( t[i] ) : meta_set( t[i] );
+		    }
+		  
+		  else if ( t[i+1] == "eq" )
+		    {
+		      int x;
+		      if ( str2int(t[i+2],x) )
 			req ? req_meta_equals( t[i] , x ) : meta_equals( t[i] , x );
-		      }
-		    
-		    if ( t[i+1] == "not" )
-		      {
-			string x = t[i+2] == "*" ? "" : t[i+2] ;
+		      else // try as string, is parsed below
+			t[i+1] = "is";
+		    }
+		  
+		  else if ( t[i+1] == "ne" )
+		    {
+		      int x;
+		      if ( str2int(t[i+2],x) )
 			req ? req_meta_not_equals( t[i] , x ) : meta_not_equals( t[i] , x );
-		      }
-		    
-		  }
+		      else 
+			t[i+1] == "not";
+		    }
+		  
+		  else if ( t[i+1] == "gt" )
+		    {
+		      double x;
+		      if ( str2dbl(t[i+2],x) )
+			req ? req_meta_greater( t[i] , x ) : meta_greater( t[i] , x );
+		    }
+		  
+		  else if ( t[i+1] == "ge" )
+		    {
+		      double x;
+		      if ( str2dbl(t[i+2],x) )
+			{
+			  req ? req_meta_greater_equal( t[i] , x ) : meta_greater_equal( t[i] , x );
+			}
+		      
+		    }
+		  
+		  else if ( t[i+1] == "lt" )
+		    {
+		      double x;
+		      if ( str2dbl(t[i+2],x) )
+			req ? req_meta_less( t[i] , x ) : meta_less( t[i] , x );
+		    }
+		  
+		  else if ( t[i+1] == "le" )
+		    {
+		      double x;
+		      if ( str2dbl(t[i+2],x) )
+			req ? req_meta_less_equal( t[i] , x ) : meta_less_equal( t[i] , x );
+		    }
+		  
+		  else if ( t[i+1] == "is" )
+		    {
+		      string x = t[i+2] == "*" ? "" : t[i+2] ;
+		      req ? req_meta_equals( t[i] , x ) : meta_equals( t[i] , x );
+		    }
+		  
+		  else if ( t[i+1] == "not" )
+		    {
+		      string x = t[i+2] == "*" ? "" : t[i+2] ;
+		      req ? req_meta_not_equals( t[i] , x ) : meta_not_equals( t[i] , x );
+		    }
+		  else
+		    Helper::halt("did not recognise value, '" + t[i+1] + "' (options are set, eq, ne, is, not, gt, lt, ge, le)" );
+		}
 	    }
-
+	  
 	  if ( ! req ) 
 	    req = true;
 	  else 
@@ -1005,32 +1017,43 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 	      std::vector<std::string> t = parse(s[j],":");
 	      
 	      // should be multiple of 3
-	      if ( t.size() % 3 == 0 ) 
+
+	      if ( t.size() % 3 != 0 ) 
+		Helper::halt("problem parsing geno={value(s)} in mask\nexpecting geno=TAG:OP:(VAL), e.g. geno=DP:ge:20,QC:set:");
+
 		for (int i=0; i<t.size(); i+=3)
 		  {
 		    
-		    if ( t[i+1] == "eq" )
+		    if ( t[i+1] == "set" )
+		      {
+			if ( t[i+2] == "0" || t[i+2] == "F" ) 
+			  req ? req_geno_not_set( t[i] ) : geno_not_set( t[i] );
+			else
+			  req ? req_geno_set( t[i] ) : geno_set( t[i] );
+		      }
+
+		    else if ( t[i+1] == "eq" )
 		      {
 			int x;
 			if ( str2int(t[i+2],x) )
 			  req ? req_geno_equals( t[i] , x ) : geno_equals( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "ne" )
+		    else if ( t[i+1] == "ne" )
 		      {
 			int x;
 			if ( str2int(t[i+2],x) )
 			  req ? req_geno_not_equals( t[i] , x ) : geno_not_equals( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "gt" )
+		    else if ( t[i+1] == "gt" )
 		      {
 			double x;
 			if ( str2dbl(t[i+2],x) )
 			  req ? req_geno_greater( t[i] , x ) : geno_greater( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "ge" )
+		    else if ( t[i+1] == "ge" )
 		      {
 			double x;
 			if ( str2dbl(t[i+2],x) )
@@ -1040,32 +1063,33 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 			
 		      }
 		    
-		    if ( t[i+1] == "lt" )
+		    else if ( t[i+1] == "lt" )
 		      {
 			double x;
 			if ( str2dbl(t[i+2],x) )
 			  req ? req_geno_less( t[i] , x ) : geno_less( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "le" )
+		    else if ( t[i+1] == "le" )
 		      {
 			double x;
 			if ( str2dbl(t[i+2],x) )
 			  req ? req_geno_less_equal( t[i] , x ) : geno_less_equal( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "is" )
+		    else if ( t[i+1] == "is" )
 		      {
 			string x = t[i+2] == "*" ? "" : t[i+2] ;
 			req ? req_geno_equals( t[i] , x ) : geno_equals( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "not" )
+		    else if ( t[i+1] == "not" )
 		      {
 			string x = t[i+2] == "*" ? "" : t[i+2] ;
 			req ? req_geno_not_equals( t[i] , x ) : geno_not_equals( t[i] , x );
 		      }
-		    
+		    else
+		      Helper::halt("did not recognise value, '" + t[i+1] + "' (options are set, eq, ne, is, not, gt, lt, ge, le)" );
 		  }
 	    }
 
@@ -3068,6 +3092,16 @@ bool Mask::pheno_screen( Individual * person ) const
 // Variant meta-information filters
 //
 
+int Mask::meta_set( const std::string & key )
+{
+  meta_is_set.insert( key );
+}
+
+int Mask::meta_not_set( const std::string & key )
+{
+  meta_is_not_set.insert( key );
+}
+
 int Mask::meta_equals( const std::string & key , int value )
 {
   meta_eq[key] = value;
@@ -3109,6 +3143,16 @@ int Mask::meta_less_equal( const std::string & key , double value )
 }
 
 
+
+int Mask::req_meta_set( const std::string & key )
+{
+  req_meta_is_set.insert( key );
+}
+
+int Mask::req_meta_not_set( const std::string & key )
+{
+  req_meta_is_not_set.insert( key );
+}
 
 int Mask::req_meta_equals( const std::string & key , int value )
 {
@@ -3174,6 +3218,20 @@ bool Mask::eval( SampleVariant & svar )
   if ( meta_requires() )
     {
       
+      std::set<std::string>::const_iterator js = req_meta_is_set.begin();
+      while ( js != req_meta_is_set.end() )
+	{
+	  if ( ! m.has_field( *js ) ) return false;
+	  ++js;
+	}
+
+      js = req_meta_is_not_set.begin();
+      while ( js != req_meta_is_not_set.end() )
+	{
+	  if ( m.has_field( *js ) ) return false;
+	  ++js;
+	}
+
       std::map<string,int>::const_iterator i = req_meta_eq.begin();
       while ( i != req_meta_eq.end() )
 	{
@@ -3369,6 +3427,24 @@ bool Mask::eval( SampleVariant & svar )
 
       bool okay = false;
 
+
+      std::set<std::string>::const_iterator js = meta_is_set.begin();
+      while ( js != meta_is_set.end() )
+	{
+	  if ( m.has_field( *js ) ) { okay = true; break; }
+	  ++js;
+	}
+      if ( okay ) break;
+      
+      js = meta_is_not_set.begin();
+      while ( js != meta_is_not_set.end() )
+	{
+	  if ( ! m.has_field( *js ) ) { okay = true; break; }
+	  ++js;
+	}
+      if ( okay ) break;
+
+
       std::map<string,int>::const_iterator i = meta_eq.begin();
       while ( i != meta_eq.end() )
 	{
@@ -3541,6 +3617,16 @@ bool Mask::eval( SampleVariant & svar )
 // Genotype filters
 //
 
+int Mask::geno_set( const std::string & key )
+{
+  geno_is_set.insert( key );
+}
+
+int Mask::geno_not_set( const std::string & key )
+{
+  geno_is_not_set.insert( key );
+}
+
 int Mask::geno_equals( const std::string & key , int value )
 {
   geno_eq[key] = value;
@@ -3582,6 +3668,16 @@ int Mask::geno_less_equal( const std::string & key , double value )
 }
 
 
+
+int Mask::req_geno_set( const std::string & key )
+{
+  req_geno_is_set.insert( key );
+}
+
+int Mask::req_geno_not_set( const std::string & key )
+{
+  req_geno_is_not_set.insert( key );
+}
 
 int Mask::req_geno_equals( const std::string & key , int value )
 {
@@ -3639,6 +3735,22 @@ bool Mask::eval( const Genotype & g ) const
   
   if ( geno_requires() )
     {
+
+
+      std::set<std::string>::const_iterator js = req_geno_is_set.begin();
+      while ( js != req_geno_is_set.end() )
+	{
+	  if ( ! g.meta.has_field( *js ) ) return false;
+	  ++js;
+	}
+
+      js = req_geno_is_not_set.begin();
+      while ( js != req_geno_is_not_set.end() )
+	{
+	  if ( g.meta.has_field( *js ) ) return false;
+	  ++js;
+	}
+      
 
       std::map<string,int>::const_iterator i = req_geno_eq.begin();
       while ( i != req_geno_eq.end() )
@@ -3811,6 +3923,23 @@ bool Mask::eval( const Genotype & g ) const
       // break when we meet our first condition == T
       
       bool okay = false;
+
+      std::set<std::string>::const_iterator js = geno_is_set.begin();
+      while ( js != geno_is_set.end() )
+	{
+	  if ( g.meta.has_field( *js ) ) { okay = true; break; }
+	  ++js;
+	}
+      if ( okay ) break;
+      
+      js = geno_is_not_set.begin();
+      while ( js != geno_is_not_set.end() )
+	{
+	  if ( ! g.meta.has_field( *js ) ) { okay = true; break; }
+	  ++js;
+	}
+      if ( okay ) break;
+
 
       std::map<string,int>::const_iterator i = geno_eq.begin();
       while ( i != geno_eq.end() )

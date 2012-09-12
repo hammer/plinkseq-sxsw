@@ -91,14 +91,14 @@ void VariantGroup::clear()
   is_complete = false;
 }
 
-string VariantGroup::dump( bool vmeta , 
-			   bool vexpand , 
-			   bool geno , 
-			   bool gmeta , 
-			   bool transpose , 
-			   bool rarelist , 
-			   bool show_phenotype , 
-			   bool only_minor )
+std::string VariantGroup::dump( bool vmeta , 
+				bool vexpand , 
+				bool geno , 
+				bool gmeta , 
+				bool transpose , 
+				bool rarelist , 
+				bool show_phenotype , 
+				bool only_minor )
 {
   
   std::stringstream ss;
@@ -107,13 +107,12 @@ string VariantGroup::dump( bool vmeta ,
   
   ss << "NAME=[" << name() << "]\t" 
      << "N(V)=" << size() << "\t"
-     << "N(I)=" << n_individuals() << "\n";
+     << "N(I)=" << n_individuals() << "\t"
+     << "ALIAS=[" << GP->locdb.alias( name() , false ) << "]\n";
   
   if ( size() == 0 ) 
-    {
-      return ss.str();
-    }
-
+    return ss.str();
+  
   //
   // Rare list
   //

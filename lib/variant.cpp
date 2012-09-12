@@ -977,6 +977,11 @@ void Variant::resize(const int n )
   consensus.calls.size(n);
 }
 
+void Variant::reserve(const int n ) 
+{
+  consensus.calls.reserve(n);
+}
+
 Individual * Variant::ind(const int i) const
 {
   return align->ind(i);

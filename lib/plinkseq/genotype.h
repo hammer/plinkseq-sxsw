@@ -356,6 +356,8 @@ class GenotypeSet{
     
     void size(int n) { calls.resize(n); }
     
+    void reserve(int n) { calls.reserve(n); }
+
     //    void set_consensus_slotmap( SampleVariant * ps , std::vector<int> * pm );
     
     /// Add a Genotype to the GenotypeSet

@@ -72,13 +72,10 @@ bool DoseReader::read_dose( const std::string & f )
   const bool store_as_prob3  = storage_format == "as-posteriors" ; 
 
   if ( store_as_dosage ) 
-    {
-      std::cout << "reg " << tagname << "\n";
-      MetaInformation<GenMeta>::field( tagname , META_FLOAT , 1 , "ALT dosage (0..2)" );
-    }
+    MetaInformation<GenMeta>::field( tagname , META_FLOAT , 1 , "ALT dosage (0..2)" );
   else if ( store_as_prob3) 
     MetaInformation<GenMeta>::field( tagname , META_FLOAT , 3 , "Genotype probs (REF,HET,HOM)" );
-
+  
   //
   // Open dosage file 
   //
@@ -459,11 +456,10 @@ bool DoseReader::read_dose( const std::string & f )
       // Get genotypes
       //
 
-      v.resize( 0 );
-
+      v.resize( ni );
+      //      v.reserve( ni );
 
       
-
       // read 'start_pos' slots first      
 	
       int p = start_pos;
@@ -476,31 +472,25 @@ bool DoseReader::read_dose( const std::string & f )
 
 
       // dosages will always be present, so just create once upfront
-
+      
       if ( store_as_dosage ) 
-	{
-	  g.meta.set( tagname , 2 );
-	  std::cout << "SET\n";
-	}
+	g.meta.set( tagname , (double)2.0 );	 // note -- must explicitly be a double 
       else if ( store_as_prob3 )	
-	g.meta.set( tagname , std::vector<double>(3,0) );
+	g.meta.set( tagname , std::vector<double>(3 , 0.0 ) );
       
       // get a pointer to this dosage store
       meta_key_t mk = MetaInformation<GenMeta>::field( tagname ).key;
-      std::cout << "okay " << g.meta.get1_double( tagname ) << " " << mk << "\n";
       double * dstore = g.meta.mutptr1_double( mk );
-      if ( dstore == NULL ) std::cout << "dstore is null\n";
-      else std::cout << "is not\n";
 
-      
-      for (int i=0;i<ni;i++)
+      for (int i=0; i<ni; i++)
 	{
-	  	 	  
+	  
 	  //
 	  // Get dosage
 	  //
 	  
 	  int geno = 0; // 1,2,3 = ref,het,hom
+
 
 	  //
 	  // By default, if ref1==T we assume 
@@ -508,7 +498,7 @@ bool DoseReader::read_dose( const std::string & f )
 	  //             posterior is 11 12 22
 	  
 	  // But always store as dosage of 'alternate' allele when possible
-
+	  
 	  //   dosage = EC = alternate allele (2)
 	  //   PP     = 11 / 12 / 22  ( REF / HET / HOM )
 	  
@@ -530,7 +520,7 @@ bool DoseReader::read_dose( const std::string & f )
 		    {		  		      
 		      
 		      pp[2] = 1 - pp[0] - pp[1];
-
+		      
 		      if ( ! ref1 ) 
 			{
 			  double tmp = pp[2];
@@ -556,7 +546,7 @@ bool DoseReader::read_dose( const std::string & f )
 			}
 		    }
 		}
-	    }
+	    } 
 	  else if ( format_prob3 ) 
 	    {
 	      
@@ -573,7 +563,7 @@ bool DoseReader::read_dose( const std::string & f )
 		      pp[2] = pp[0];
 		      pp[0] = tmp;
 		    }		  
-
+		  
 		  if ( store_as_dosage ) 
 		    {
 		      // 0..2 scale, of 'B' allele
@@ -594,24 +584,23 @@ bool DoseReader::read_dose( const std::string & f )
 	    }
 	  else if ( format_dose2 ) 
 	    {
-	      double d = 0;
-	      
-	      if ( Helper::str2dbl( toks[p++] , d ) ) 
-		{
 
+	      double d = atof( toks[p++] );
+	      
+	      if ( d >= 0 && d <= 2 )
+		//	      if ( Helper::str2dbl( toks[p++] , d ) ) 
+		{
+		  
 		  // assume diploid...
 		  if ( ! ref1 ) d = 2 - d;
 		  
 		  if ( store_as_dosage ) 
 		    {
-		      std::cout << "dsotre = " << *dstore << "\n";
-		      *dstore = d; 
-
+		      *dstore = d; 		      
 		    }
-
 		  else if ( store_as_prob3 )
 		    {
-
+		      
 		      std::vector<double> pp(3);
 
 		      // 'impute' probabilities assuming HWE
@@ -693,7 +682,7 @@ bool DoseReader::read_dose( const std::string & f )
 		  
 		}
 	    }
-	  
+	
 	  
 	  //
 	  // Make a hard-call?
@@ -706,10 +695,11 @@ bool DoseReader::read_dose( const std::string & f )
 	  // Add to variant
 	  //
 	  
-	  v.add( g );
-
-	}
-      
+	  //	  v.add( g );
+	  v.add( g , i );
+	  
+	}  // add next individual/genotype
+    
       
       //
       // Separate meta-information?

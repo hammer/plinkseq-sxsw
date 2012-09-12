@@ -124,7 +124,7 @@ void g_geneseq( VariantGroup & vars , void * p )
       std::set<Feature>::iterator ii = features.begin();
       while ( ii != features.end() )
 	{
-	  if ( ii->source_id == "HMMPfam" )
+	  if ( ii->source_id == "TMHMM" )
 	    {
 	      for (int aa= ii->pstart; aa<= ii->pstop; aa++)	    
 		{		  
@@ -157,16 +157,20 @@ void g_geneseq( VariantGroup & vars , void * p )
   // codon position, cycle 0,1,2
   // transcript CDS should always start at 0
   int cpos = 0;  
-
-  bool cds = true;
+  
+  bool cds = false;
+  
+  if ( ( positive_strand && elocstart.find( pmin ) != elocstart.end() ) ||
+       ( (!positive_strand) && elocstop.find( pmin ) != elocstop.end() ) )
+    cds = true;
+  
+  
   int exon = 0;
-
+  
   std::string codon = "";
   std::string prt_codon = "";
   int chr = region.start.chromosome();
-
-
-
+  
   int apos = 0;
   std::string refannot = "";
   std::string varannot = "";
@@ -202,7 +206,6 @@ void g_geneseq( VariantGroup & vars , void * p )
 
 	  print_pos = true;
 	}
-      
 
       if ( ( positive_strand && elocstop.find( searchbp - step ) != elocstop.end() ) 
 	   ||
@@ -211,7 +214,8 @@ void g_geneseq( VariantGroup & vars , void * p )
 	{
 	  
 	  cds = false;
-	  if ( elocstop[ searchbp -step ] != exon ) plog.warn("hmm");
+
+	  if ( elocstop[ searchbp - step ] != exon ) plog.warn("hmm");
 	  
 	  // are we mid-frame? 
 	  if ( cpos == 1 ) 
@@ -229,7 +233,7 @@ void g_geneseq( VariantGroup & vars , void * p )
 	}
       
       if ( bp == stop_here ) { continue; } 
-
+      
 
    
 

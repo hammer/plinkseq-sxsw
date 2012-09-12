@@ -1281,6 +1281,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //
 
   Out & pout = Out::stream( "assoc" );
+  Out & pdet = Out::stream( "assoc.det" );
 
 
   //

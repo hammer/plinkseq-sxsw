@@ -14,7 +14,7 @@ bool Pseq::VarDB::load_VCF( Mask & mask )
     // are any optinal locus groups specified (this will act as a mask, such that
     // we only read in variants that fall in this region
 
-    bool region_mask = args.has("filter");
+    bool region_mask = args.has( "filter" );
     
     std::string rmask;
     if ( region_mask ) rmask = args.as_string( "filter" );
@@ -863,6 +863,12 @@ bool Pseq::VarDB::load_dosage()
 
   std::string store_as = "as-dosage";
   if ( args.has( "format" , "as-posteriors" ) ) store_as = "as-posteriors";
+
+  double maf = 0.0;
+  int mac = 0;
+  if ( args.has( "maf" ) ) maf = args.as_float( "maf" );
+  if ( args.has( "mac" ) ) mac = args.as_int( "mac" );
+
   
   //
   // A single tag, e.g. 'EC' that will be used to specify the posteriors
@@ -960,6 +966,8 @@ bool Pseq::VarDB::load_dosage()
 	  reader.set_input_format( input_format );  
 	  reader.set_metatag( tagname , store_as ); 
 	  reader.set_skip_header( skip_header );
+	  if ( mac ) reader.set_mac( mac );
+	  if ( maf ) reader.set_maf( maf );
 	  if ( ! rsid ) reader.set_id( false );
 	  if ( spaced ) reader.set_spaced();
 	  if ( use_map ) reader.set_mapfile( map_files[f] );
@@ -1049,6 +1057,10 @@ bool Pseq::VarDB::load_dosage()
 	  reader.set_filetag( filetag );
 
 	  reader.set_skip_header( skip_header );
+
+	  if ( mac ) reader.set_mac( mac );
+
+	  if ( maf ) reader.set_maf( maf );
 
 	  if ( spaced ) reader.set_spaced();
 
