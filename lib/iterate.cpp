@@ -25,7 +25,7 @@ IterationReport VarDBase::iterate( void (*f)(Variant&, void *) ,
   if ( f ) 
     {
       IterationReport report = generic_iterate( f, NULL , data , mask );
-      plog << report.report() ;
+      plog >> report.report() ;
       return report;
     }
 
@@ -50,7 +50,7 @@ IterationReport VarDBase::iterate( void (*f)(VariantGroup &, void *) ,
   if ( f ) 
     {
       IterationReport report = generic_iterate( NULL , f, data , mask );
-      plog << report.report();
+      plog >> report.report();
       return report;
     }
 
@@ -799,7 +799,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 		{
 
 		  if ( rep.processed() % 100 == 0 ) 
-		    plog.counter( Helper::int2str( rep.processed() ) + " accepted variants" );
+		    plog.counter2( Helper::int2str( rep.processed() ) + " accepted variants" );
 		  
 		  // Update our current 'variant'
 		  // and add the meta-fields
@@ -822,7 +822,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
  		{	    
 		  
 		  if ( rep.groups() % 10 == 0 ) 
-		    plog.counter( Helper::int2str( rep.groups() ) + " accepted variant-groups" );
+		    plog.counter2( Helper::int2str( rep.groups() ) + " accepted variant-groups" );
 		  
  		  // If the above is true, it means that the last 
  		  // variant could not be added to the group. Therefore, 
@@ -835,7 +835,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 		  rep.processed_group();
 
  		  vars.clear(var);
- 		} 
+ 		}
 	      
 	      
 	      var = nextrow;
@@ -843,10 +843,9 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      sample = var.psample( 0 );
 
 	      addMetaFields( var , s, mask );
-	    
+	      
 	    } // next row
 	
-
 	
 	//
 	// Finished iterating -- process the last variant (if any)
@@ -889,6 +888,10 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 		    rep.processed_group();
 
 		  }
+
+		if ( rep.groups() % 10 == 0 ) 
+		  plog.counter2( Helper::int2str( rep.groups() ) + " accepted variant-groups" );
+		
 	      }
 	    
 	  }
@@ -900,6 +903,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	
 	sql.reset( s );
 	
+
 	//
 	// If we are not grouping, then we are all done now
 	//

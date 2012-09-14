@@ -68,9 +68,11 @@ bool Pseq::Assoc::net_assoc_test( Mask & m , const Pseq::Util::Options & args )
   // And then, optionally, write these as a self-contained dataset
   //
   
-  if ( args.has( "outfile" ) ) 
-    write_gscores( args.as_string( "outfile" ) , gscore );
-  
+  if ( args.has( "out" ) ) 
+    {
+      Out output( "netdet" , "intermediate output from net-assoc" );      
+      write_gscores( gscore );
+    }
 
   //
   // Call actual network test, need only gscore
@@ -84,12 +86,11 @@ bool Pseq::Assoc::net_assoc_test( Mask & m , const Pseq::Util::Options & args )
 
 
 
-void Pseq::Assoc::NetDB::write_gscores( const std::string & filename , 
-					const std::map<std::string,Pseq::Assoc::NetDB::Aux_netdet> & gscore )
+void Pseq::Assoc::NetDB::write_gscores( const std::map<std::string,Pseq::Assoc::NetDB::Aux_netdet> & gscore )
 {
- 
-  std::ofstream FO( filename.c_str() );
   
+  Out & FO = Out::stream( "netdet" );
+
   // header of IDs
   for (int i = 0 ; i < g.indmap.size(); i++ ) 
     FO << g.indmap(i)->id() << "\t";
@@ -112,7 +113,7 @@ void Pseq::Assoc::NetDB::write_gscores( const std::string & filename ,
       FO << "\n";
       ++i;
     }  
-  FO.close();
+
 }
 
 

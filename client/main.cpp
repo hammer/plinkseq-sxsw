@@ -24,7 +24,7 @@ Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.09";
-std::string PSEQ_DATE    = "14-Aug-12";
+std::string PSEQ_DATE    = "12-Sep-12";
 
 
 int main(int argc, char ** argv)
@@ -41,12 +41,12 @@ int main(int argc, char ** argv)
 
   // connect with GSEQ job tracking?
   
-  if ( args.has( "history" ) )
-    {
-      std::vector<std::string> tok = args.as_string_vector( "history" );
-      if ( tok.size() != 2 ) Helper::halt( "--history {file} {job#}" );
-      g.gseq_tracking( tok[0] , tok[1] );
-    }
+  // if ( args.has( "history" ) )
+  //   {
+  //     std::vector<std::string> tok = args.as_string_vector( "history" );
+  //     if ( tok.size() != 2 ) Helper::halt( "--history {file} {job#}" );
+  //     g.gseq_tracking( tok[0] , tok[1] );
+  //   }
 
 
 
@@ -99,35 +99,35 @@ int main(int argc, char ** argv)
   //
   // Default : send all output to STDOUT, warnings to STDERR, no LOG
   //
+  
+
+  if ( args.has( "silent" ) ) plog.silent( true );
+  
+  else if ( args.has( "quiet" ) ) plog.quiet( true );
+
+  // Default to write to STDOUT for all output...
 
   Out::set_stdout( true );
   Out::set_tofile( false );
-  plog.silent( true ); 
-  plog.silent_except_errors( true ); // do show errors
+
+  // ... unless a file is explicitly specified, --out {file}
 
   std::string fileroot = args.has( "out" ) ? args.as_string("out") : "";
   
   if ( args.has( "out" ) ) 
     {      
-      plog.set_fileroot( fileroot );
-      Out::set_fileroot( fileroot );
-      
-      if ( args.has( "silent" ) )
-	{
-	  plog.silent( true );
-	  plog.silent_except_errors( false ); // even silent for errors
-	}
-      else
-	{
-	  plog.silent( false );
-	}
-      
+      // inform main output class
       Out::set_stdout( false );
       Out::set_tofile( true );
-            
+      Out::set_fileroot( fileroot );
+
+      // and LOG class
+      plog.set_fileroot( fileroot );
+
     }
-  
-  
+  else
+    plog.close_logfile(); // ensure no output to file
+
   if ( args.has( "debug" ) ) 
     debug.silent( false );
 
@@ -150,11 +150,11 @@ int main(int argc, char ** argv)
   time_t curr=time(0);
   std::string tdstamp = (std::string)ctime(&curr);
 
-  plog << "-------------------------------------------------------------------------------\n"    
-       << "||||||||||||||||||||||||||| PSEQ (v" 
-       << PSEQ_VERSION << "; " << PSEQ_DATE 
-       << ") |||||||||||||||||||||||||||\n"
-       << "-------------------------------------------------------------------------------\n\n";
+  plog >> "-------------------------------------------------------------------------------\n"    
+       >> "||||||||||||||||||||||||||| PSEQ (v" 
+       >> PSEQ_VERSION >> "; " >> PSEQ_DATE 
+       >> ") |||||||||||||||||||||||||||\n"
+       >> "-------------------------------------------------------------------------------\n\n";
 
   //
   // Process 'command'
@@ -178,12 +178,12 @@ int main(int argc, char ** argv)
   // Basics to the log
   //
 
-  if ( args.has( "out" ) && ! args.has( "silent" ) ) 
-    plog << "Copying this log to file [ " << fileroot << ".log ]\n";
+  if ( args.has( "out" ) && ! ( args.has( "silent" ) || args.has( "quiet" ) ) )
+    std::cout << "Copying this log to file [ " << fileroot << ".log ]\n";
   
   // Time-stamp 
 
-  plog << "Analysis started " << tdstamp;
+  plog >> "Analysis started " >> tdstamp;
 
   //
   // Web-based version check
@@ -197,11 +197,11 @@ int main(int argc, char ** argv)
   // show actual input command lines in log
   //
 
-  plog << "\n"
-       << "-------------------------------------------------------------------------------\n\n"
-       << pp_args;
+  plog >> "\n"
+       >> "-------------------------------------------------------------------------------\n\n"
+       >> pp_args;
    
-  plog << "\n-------------------------------------------------------------------------------\n\n";
+  plog >> "\n-------------------------------------------------------------------------------\n\n";
 
   
   //
@@ -249,7 +249,7 @@ int main(int argc, char ** argv)
       pcomm.display( n );
       Pseq::finished();
     }
-
+  
   if ( command == "masks" )
     {
       plog << Mask::describe_options();
@@ -392,6 +392,9 @@ int main(int argc, char ** argv)
       else
 	Helper::halt("no --name or --file specified");
       
+      if ( args.has("name") && args.has("file" ) ) 
+	Helper::halt("use either --name OR --file");
+
       if ( ! args.has( "type" ) ) 
 	Helper::halt("no --type specified");
       std::string type = args.as_string( "type" );
@@ -811,9 +814,9 @@ int main(int argc, char ** argv)
 	while ( bcf->index_record() )
 	  {
 	    if ( ++inserted % 1000 == 0 )
-	      plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	      plog.counter1( "parsed " + Helper::int2str( inserted ) + " rows" );
 	  }
-	plog.counter("\n");
+	plog.counter1("\n");
 	
 	plog << "inserted " << inserted << " variants from BCF; now finishing index...\n";
 	
@@ -1273,17 +1276,6 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
-    //
-    // Any annotation specified? If so, must load transcripts 
-    // prior to constructing the Mask
-    //
-
-    if ( args.has( "annotate" ) )
-    {
-	std::string agrp = Pseq::Util::single_argument<std::string>( args , "annotate" );	
-	if ( ! Pseq::SeqDB::load_transcripts( agrp ) ) 
-	    Helper::halt("problem loading annotation transcripts");
-    }
 
     
     //
@@ -1504,9 +1496,9 @@ int main(int argc, char ** argv)
 	while ( vcfz->index_record() )
 	  {
 	    if ( ++inserted % 1000 == 0 )
-	      plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	      plog.counter1( "parsed " + Helper::int2str( inserted ) + " rows" );
 	  }
-	plog.counter("\n");
+	plog.counter1("\n");
 	
 	if ( inserted == 0 ) 
 	  {
@@ -1566,14 +1558,14 @@ int main(int argc, char ** argv)
 	
 	if ( mview ) 
 	  {
-	    plog << opt.vars.dump( opt.vmeta , 
-				   opt.vexpand , 
-				   opt.geno , 
-				   opt.gmeta , 
-				   false , // transpose
-				   false , // rarelist mode 
-				   g.phmap.type() != PHE_NONE , 
-				   rview ) << "\n";
+	    output << opt.vars.dump( opt.vmeta , 
+				     opt.vexpand , 
+				     opt.geno , 
+				     opt.gmeta , 
+				     false , // transpose
+				     false , // rarelist mode 
+				     g.phmap.type() != PHE_NONE , 
+				     rview ) << "\n";
 	  }
 	Pseq::finished();
       }
@@ -1606,6 +1598,9 @@ int main(int argc, char ** argv)
 	
 	if ( args.has( "ref-variants" ) ) 
 	  opt.ref = g.refdb.lookup_group_id( args.as_string( "ref-variants" ) );
+	
+	if ( args.has( "variant" ) )
+	  opt.only_variant_sites = true;
 
 	// add phenotype?
 	opt.pheno = g.phmap.type() == PHE_DICHOT;
@@ -1618,6 +1613,9 @@ int main(int argc, char ** argv)
 	    pd->attach( args.as_string( "protdb" ) );
 	    if ( ! pd->attached() ) Helper::halt( "could not attach PROTDB" );
 	    opt.protdb = pd;
+	    if ( ! args.has( "domain" ) ) 
+	      Helper::halt( "no --domain specified with --protdb for gs-view" );
+	    opt.protdom = args.get_set( "domain" );
 	  }
 
 	if ( ! g.seqdb.attached() ) Helper::halt( "no SEQDB attached" );
@@ -1753,6 +1751,7 @@ int main(int argc, char ** argv)
 	output.data_header( "TI" );  // flag to indicate Ti/Tv
 
 	output.data_header( "GENO" );
+	output.data_header( "MAC" );
 	output.data_header( "MAF" );
 	output.data_header( "REFMIN" );
 	output.data_header( "HWE" );
@@ -1788,11 +1787,12 @@ int main(int argc, char ** argv)
     
     if ( command == "score-weights" )
       {
-	Out output( "scores" , "output from score-weights command" );
-	//Helper::halt("obsolete command score-weights");
- 	std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
- 	Pseq::PPH2DB::score( m , dbname );
- 	Pseq::finished();
+	Helper::halt("obsolete command score-weights");
+
+	// Out output( "scores" , "output from score-weights command" );	
+ 	// std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
+ 	// Pseq::PPH2DB::score( m , dbname );
+ 	// Pseq::finished();
       }
 
 

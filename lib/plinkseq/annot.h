@@ -207,10 +207,28 @@ class Annotate {
     
     static uint64_t transcript_group_id;
 
-    static bool load_transcripts( uint64_t id );
+    /* static bool load_transcripts( uint64_t id ); */
 
-    static bool load_transcripts( uint64_t id , const std::set<Region> & );
+    /* static bool load_transcripts( uint64_t id , const std::set<Region> & ); */
+
+    // get transcript from LOCDB and/or cache
+    bool fetch_transcript( const std::string & name );
+
+    // primary annotation function -- here pregion can either be 
+    static std::set<SeqInfo> annotate( int,int,
+				       const std::string & alt,
+				       const std::string & ref, 
+				       const std::vector<uint64_t> & pregion );
+
+    static bool annotate(Variant & var , const std::vector<uint64_t> & );
+
+    // pull a region from the cache
+    static Region * from_cache( uint64_t id );
     
+    // add regions to the cache, if not already in there
+    static void add_transcripts( const std::vector<uint64_t> & id );
+
+
  public:
     
     // AA names
@@ -228,28 +246,31 @@ class Annotate {
       rmap.clear();
     }
     
+    // Tell Annotate which group to look at for transcripts
+    static bool set_transcript_group( const std::string & );
     
-    // Add as meta-information any interesting annotation, returning 'T' if
-    // anything was added
-
-    static bool load_transcripts( fType d , const std::string & );
+    // 3 main entry points to the Annotate::annotate() command; these all call
+    // the same underlying code -- the private annotate(...) -- and return true 
+    // if any 'interesting' annotation was added
     
-    static bool load_transcripts( const std::string &  , const std::set<Region> & ); 
+    static bool annotate(Variant & var );
+    static bool annotate(Variant & var , const Region & );
+    static bool annotate(Variant & var , const std::set<Region> & );
 
-    static bool annotate(Variant & var , Region * pregion = NULL );
 
-    static std::set<SeqInfo> lookup(Variant & var);
+    /* static bool load_transcripts( fType d , const std::string & ); */
     
-    static std::set<SeqInfo> annotate( int chr, 
-				       int bp1 , 
-				       const std::string & alternate , 
-				       const std::string & reference , 
-				       const Region & r );
+    /* static bool load_transcripts( const std::string &  , const std::set<Region> & );  */
 
-    static std::set<SeqInfo> annotate( int,int,
-				       const std::string & alt,
-				       const std::string & ref = "", 
-				       const std::set<Region> * pregion = NULL );
+
+    /* static std::set<SeqInfo> lookup(Variant & var); */
+    
+    /* static std::set<SeqInfo> annotate( int chr,  */
+    /* 				       int bp1 ,  */
+    /* 				       const std::string & alternate ,  */
+    /* 				       const std::string & reference ,  */
+    /* 				       const Region & r ); */
+
 
    
     static std::string translate_reference( const Region & region , bool verbose = false);

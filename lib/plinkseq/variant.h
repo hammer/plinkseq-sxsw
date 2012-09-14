@@ -446,6 +446,12 @@ class Variant {
   /// Is this an indel?
   bool indel() const;
 
+  /// Is this an MNP?
+  bool mnp() const;
+
+  /// Is this a SNP?  (could be multi-allelic)
+  bool snp() const;
+
   /// Return the 'Allele' object for allele 'a'
   const Allele & allele(const int a) const;
 

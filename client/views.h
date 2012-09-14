@@ -163,14 +163,18 @@ struct Opt_geneseq {
     pheno = false; 
     ref = 0; 
     protdb = NULL;
+    protdom.clear();
     all_cds = true;
+    only_variant_sites = false;
   }
 
   bool all_cds;  // show *all* CDS codons in output
+  bool only_variant_sites;
 
   bool pheno;
   int ref;
   ProtDBase * protdb;
+  std::set<std::string> protdom;
   
 };
 

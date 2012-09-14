@@ -2,14 +2,14 @@
 #include "plinkseq/defs.h"
 #include "plinkseq/meta.h"
 
-std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.09(4-Jul-2012)"; return s; }
+std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.09(12-Sep-2012)"; return s; }
 
 int & PLINKSeq::PROJECT_VERSION_NUMBER() { static int i = 2; return i; }
 int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 5; return i; }
 
 // v2 added exon/CDS/start/stop features encoded in strand column
-int & PLINKSeq::LOCDB_VERSION_NUMBER() { static int i = 2; return i; } 
-int & PLINKSeq::REFDB_VERSION_NUMBER() { static int i = 2; return i; } 
+int & PLINKSeq::LOCDB_VERSION_NUMBER() { static int i = 3; return i; } 
+int & PLINKSeq::REFDB_VERSION_NUMBER() { static int i = 3; return i; } 
 
 std::string & PLINKSeq::SQLITE_SCRATCH_FOLDER() { static std::string s = ""; return s; }
 

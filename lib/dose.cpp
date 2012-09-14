@@ -449,7 +449,7 @@ bool DoseReader::read_dose( const std::string & f )
       
 
       if ( cnt % 1000 == 0  )
-	plog.counter( "inserted " + Helper::int2str( cnt ) + " variants" );
+	plog.counter1( "inserted " + Helper::int2str( cnt ) + " variants" );
 
       
       //

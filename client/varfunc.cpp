@@ -537,12 +537,12 @@ void f_lookup_annotator( Variant & var , void * p )
 	      if ( aux->append_phe ) 
 		{
 		  if ( v->ind(j)->affected() == CASE )
-		    ++case_n;
+		    case_n += (*v)(j).minor_allele_count( true );  // true implies AAC, not MAC
 		  else
-		    ++control_n;
+		    control_n += (*v)(j).minor_allele_count( true );
 		}
 	      else
-		++control_n;
+		control_n += (*v)(j).minor_allele_count( true );
 	    }
 	}
 
@@ -847,7 +847,8 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
     {
       std::string annot_transcripts = PLINKSeq::DEFAULT_LOC_GROUP() ;      
       if ( args.has( "annotate" ) ) annot_transcripts = args.as_string( "annotate" );      
-      Annotate::load_transcripts( LOCDB, annot_transcripts );
+      Annotate::setDB( LOCDB );
+      Annotate::set_transcript_group( annot_transcripts );
     }
   
 
@@ -858,10 +859,10 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
       pout << "##nvar,1,Integer,\"Number of overlapping variants\"\n";
       pout << "##var,1,String,\"Variant ID\"\n";
       if ( aux.append_phe ) {
-	pout << "##case,1,Integer,\"Case minor allele counts\"\n";
-	pout << "##con,1,Integer,\"Control minor allele counts\"\n";
+	pout << "##case,1,Integer,\"Case alternate allele counts\"\n";
+	pout << "##con,1,Integer,\"Control alternate allele counts\"\n";
       }
-      else pout << "##cnt,1,Integer,\"Minor allele counts\"\n";
+      else pout << "##cnt,1,Integer,\"Alternate allele counts\"\n";
     }
 
   

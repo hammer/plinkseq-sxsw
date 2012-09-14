@@ -243,9 +243,9 @@ int main()
   // except let's still allow errors to go
   //
 
-  plog.silent( true );
-  plog.silent_except_errors( true ); // do show errors                                                                                                                            
-
+  plog.silent( false );
+  plog.quiet( true );
+  
   
   //
   // Start page 
@@ -2165,8 +2165,9 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 
 	  std::set<Region> aregs;
 	  for (int j=0;j<regions[r].size();j++) aregs.insert( regions[r][j] );
-	  if ( ! Annotate::load_transcripts( loc_set , aregs ) ) use_annotation = false;
-   
+	  Annotate::setDB( LOCDB );
+	  if ( ! Annotate::set_transcript_group( loc_set ) ) use_annotation = false;
+	  
 	  std::vector<std::string> annot;  // worst annot per trans.
 	  std::map<int,std::map<std::string,int> > change; // variant-N -->  transcript : 0/1/2/3/4/5 int/sil/mis/spl/non/oth
 	  std::map<int,std::map<std::string,std::string> > protchange; // variant-N -->  transcript : change
@@ -2174,7 +2175,7 @@ void ExomeBrowser::show_graphical_view( GStore & g ,
 	  for (int v=0;v<nv;v++)
 	    {
 	      
-	      bool exonic = Annotate::annotate( vars(v) );
+	      bool exonic = Annotate::annotate( vars(v) , aregs );
 	      
 	      annot.push_back( vars(v).meta.get1_string( PLINKSeq::ANNOT() ) );
 	      

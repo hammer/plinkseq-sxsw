@@ -152,6 +152,14 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "indiv" , "str-list" , "include only these individuals" ); 
   mask_add( s , g , c++ , gl , "indiv.ex" , "str-list" , "exclude these individuals" ); 
 
+  // TO ADD
+  // mask_add( s , g , c++ , gl , "males" , "flag" , "include males" );
+  // mask_add( s , g , c++ , gl , "females" , "flag" , "include females" );
+  // mask_add( s , g , c++ , gl , "known.sex" , "flag" , "include individuals of known sex" );
+  // mask_add( s , g , c++ , gl , "unknown.sex" , "flag" , "include of unknown sex" );
+  // mask_add( s , g , c++ , gl , "founders" , "flag" , "include individuals of known sex" );
+  // mask_add( s , g , c++ , gl , "nonfounders" , "flag" , "include individuals of known sex" );
+  
   // Variant masks, but on whether present in file, etc  
   ++g; c = 0 ; gl = "files" ;
   mask_add( s , g , c++ , gl , "obs.file" , "str-list" , "include variants observed in file(s)" );
@@ -201,13 +209,21 @@ std::set<mask_command_t> populate_known_commands()
   ++g; c = 0 ; gl="frequency";
   mask_add( s , g , c++ , gl , "mac" , "int-range" , "include variants with minor allele counts between [n-m]" ); 
   mask_add( s , g , c++ , gl , "maf" , "float-range" , "include variants with minor allele frequency in [n-m]" );
-  mask_add( s , g , c++ , gl , "biallelic" , "flag" , "include only biallelic sites" ); 
-  mask_add( s , g , c++ , gl , "biallelic.ex" , "flag" , "exclude biallelic sites" ); 
+  mask_add( s , g , c++ , gl , "aac" , "int-range" , "include variants with alternate allele counts between [n-m]" ); 
+  mask_add( s , g , c++ , gl , "aaf" , "float-range" , "include variants with alternate allele frequency in [n-m]" );
   mask_add( s , g , c++ , gl , "monomorphic" , "flag" , "include only monomorphic sites" ); 
   mask_add( s , g , c++ , gl , "monomorphic.ex" , "flag" , "exclude monomorphic sites" );
   mask_add( s , g , c++ , gl , "hwe" , "float-range" , "include variants with HWE p-value in [n-m]" ); 
   mask_add( s , g , c++ , gl , "indel" , "flag" , "only consider indels" );
   mask_add( s , g , c++ , gl , "indel.ex" , "flag" , "exclude indels" );
+  mask_add( s , g , c++ , gl , "mnp" , "flag" , "only consider multinucleotide polymorphisms (exc. indels)" );
+  mask_add( s , g , c++ , gl , "mnp.ex" , "flag" , "exclude multinucleotide polymorphisms (exc. indels)" );
+  mask_add( s , g , c++ , gl , "snp" , "flag" , "only consider single nucleotide polymorphisms" );
+  mask_add( s , g , c++ , gl , "snp.ex" , "flag" , "exclude single nucleotide polymorphisms" );
+  mask_add( s , g , c++ , gl , "biallelic" , "flag" , "include only biallelic sites" ); 
+  mask_add( s , g , c++ , gl , "biallelic.ex" , "flag" , "exclude biallelic sites" ); 
+  mask_add( s , g , c++ , gl , "allele" , "str-list" , "include only variants that match pattern" );
+  mask_add( s , g , c++ , gl , "allele.ex" , "str-list" , "exclude variants that match pattern" ); 
   mask_add( s , g , c++ , gl , "novel" , "flag" , "only novel SNPs (ID '.')" );
   mask_add( s , g , c++ , gl , "novel.ex" , "flag" , "exclude novel SNPs (ID '.')" );
 
@@ -840,7 +856,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     }
 
   //
-  // SNPs vs indels
+  // SNPs vs indels, etc
   //
   
   if ( m.has_field( "indel" ) )
@@ -851,6 +867,41 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   if ( m.has_field( "indel.ex" ) )
     {
       skip_indels( true );
+    }
+
+
+  if ( m.has_field( "mnp" ) )
+    {
+      only_mnps( true );
+    }
+
+  if ( m.has_field( "mnp.ex" ) )
+    {
+      skip_mnps( true );
+    }
+
+  if ( m.has_field( "snp" ) )
+    {
+      only_snps( true );
+    }
+
+  if ( m.has_field( "snp.ex" ) )
+    {
+      skip_snps( true );
+    }
+
+
+  if ( m.has_field( "allele" ) )
+    {
+      std::vector<std::string> k = m.get_string( "allele" );
+      add_allele( k );
+    }
+
+
+  if ( m.has_field( "allele.ex" ) )
+    {
+      std::vector<std::string> k = m.get_string( "allele.ex" );
+      add_allele_ex( k );
     }
 
   //
@@ -1113,20 +1164,33 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   
   if ( m.has_field( "maf" ) )
     {
-      dbl_range r( m.get1_string( "maf" ) , -1 ); // 0.05  means include 0.05 or lower
+      dbl_range r( m.get1_string( "maf" ) , -9 ); // must specify a range
       minor_allele_frequency( r.has_lower() ? r.lower() : 0 , r.has_upper() ? r.upper() : 1 );
     }
   
   if ( m.has_field( "mac" ) )
     {
-      // int_range("2", 0) means 2 -->  *:2
+      // int_range("2", 0) means 2 -->  2:2
       // int_range("2", 1) means 2 -->  2:*
       // int_range("2",-1) means 2 -->  *:2
       
-      int_range r( m.get1_string( "mac" ) , -1 ); // 2 means 2 or *lower*
+      int_range r( m.get1_string( "mac" ) , 0 ); // 2 means exactly 2 
       minor_allele_count( r.lower() , r.upper() );
     }
  
+
+  if ( m.has_field( "aaf" ) )
+    {
+      dbl_range r( m.get1_string( "aaf" ) , -9 ); // means must always specify a range explicitly
+      alt_allele_frequency( r.has_lower() ? r.lower() : 0 , r.has_upper() ? r.upper() : 1 );
+    }
+  
+  if ( m.has_field( "aac" ) )
+    {
+      int_range r( m.get1_string( "aac" ) , 0 ); // 2 means exactly 2
+      alt_allele_count( r.lower() , r.upper() );
+    }
+
   if ( m.has_field( "hwe" ) )
     {      
       dbl_range r( m.get1_string( "hwe" ) , 1 ); // x --> include x:*       
@@ -1255,7 +1319,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   
   if ( m.has_field( "null.prop" ) )
     {
-      null_prop_filter( m.get1_string( "null.prop" ) );
+      null_prop_filter( dbl_range( m.get1_string( "null.prop" ) , -9 ) ); // i.e. must be range
     }
 
 
@@ -1317,7 +1381,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
   if ( m.has_field( "annot" ) ) 
     {
-      vector<string> k = m.get_string( "annot" );
+      std::vector<std::string> k = m.get_string( "annot" );
       if ( k.size() == 1 && k[0] == "nsSNP" )
 	include_annotation_nonsyn();
       else
@@ -1565,21 +1629,21 @@ bool Mask::eval(Variant & v, void * p)
   //
 
   if ( annot )
-      {
-
-	// This appends as meta-information the annotations to the variant
-	Annotate::annotate(v);
-
-	if ( ! f_include_annotation( v ) )
-	  return false;
-	
-	if ( ! f_require_annotation( v ) )
-	  return false;
-
-	if ( ! f_exclude_annotation( v ) )
-	  return false;
-	
-      }
+    {
+      
+      // This appends as meta-information the annotations to the variant
+      Annotate::annotate(v);
+      
+      if ( ! f_include_annotation( v ) )
+	return false;
+      
+      if ( ! f_require_annotation( v ) )
+	return false;
+      
+      if ( ! f_exclude_annotation( v ) )
+	return false;
+      
+    }
   
   //
   // Passed all filters 
@@ -2543,11 +2607,13 @@ void Mask::group_loc(const string & g)
 
 void Mask::group_reg( const std::vector<std::string> & g )
 {
+
   // allow window specification
   // i.e.  chr1:10..20,chr1:20..30 is fine
+  
   // but also 
   //    w:10:10
-  // meaning a window of 10 bases, sliding over 10 bases \
+  // meaning a window of 10 bases, sliding over 10 bases
   //  question: how to we know the limits? 
   //  answer: 
   
@@ -2941,6 +3007,18 @@ bool Mask::polymorphism_filter( const Variant & v )
       if ( exc_indels &&   is_indel ) return false;
     }
 
+  if ( req_mnps || exc_mnps )
+    {
+      if ( req_mnps && ! v.mnp() ) return false;
+      if ( exc_mnps &&   v.mnp() ) return false;
+    }
+  
+  if ( req_snps || exc_snps ) 
+    {
+      if ( req_snps && ! v.snp() ) return false;
+      if ( exc_snps &&   v.snp() ) return false;
+    }
+
   if ( req_novel && v.name() != "." ) return false;
   if ( exc_novel && v.name() == "." ) return false;
 
@@ -2948,7 +3026,17 @@ bool Mask::polymorphism_filter( const Variant & v )
   if ( exclude_biallelic() &&   v.biallelic() ) return false;
   if ( require_monomorphic() && ! v.monomorphic() ) return false;
   if ( exclude_monomorphic() &&   v.monomorphic() ) return false;
+
+  if ( do_allele_match ) 
+    {
+      if ( ! test_allele( v.reference() , v.alternate() ) ) return false;
+    }
   
+  if ( do_allele_ex_match ) 
+    {
+      if ( ! test_allele_ex( v.reference() , v.alternate() ) ) return false;
+    }
+
   return true;
 }
 
@@ -4672,4 +4760,73 @@ bool Mask::forced( int achr , int abp1, int abp2,
   // otherwise, implies that this next guy should be inserted
   *next = *upr;
   return true;
+}
+
+void Mask::add_allele( const std::vector<std::string> & a )
+{
+  // expecting format  --mask allele=G/C,C/G
+  // allow two regular expressions : * , ? (single char)
+
+  //                          allele=*/T
+  //                          allele=?/T
+
+    
+  do_allele_match = true;
+  
+  for ( int i = 0 ; i < a.size() ; i++)
+    {
+      std::vector<std::string> tok = Helper::char_split( a[i] , '/' );
+      if ( tok.size() != 2 ) Helper::halt( "invalid allele specificiation in mask (expect allele=A/T) " + a[i] );
+      allele_match_ref.push_back( tok[0] );
+      allele_match_alt.push_back( tok[1] );
+    }
+
+}
+
+bool Mask::allele_match( const std::string & a , const std::string & t )
+{
+  // t is 'template', that might include wild-cards
+  if ( t    == "*" ) return true;
+  if ( t[0] == '?' ) return a.size() == t.size();  
+  return a == t;  
+}
+
+void Mask::add_allele_ex( const std::vector<std::string> & a )
+{
+  do_allele_ex_match = true;
+
+  for ( int i = 0 ; i < a.size() ; i++)
+    {
+      std::vector<std::string> tok = Helper::char_split( a[i] , '/' );
+      if ( tok.size() != 2 ) Helper::halt( "invalid allele specificiation in mask (expect allele.ex=A/T) " + a[i] );
+      allele_exclude_ref.push_back( tok[0] );
+      allele_exclude_alt.push_back( tok[1] );
+    }
+}
+
+bool Mask::test_allele( const std::string & ref , const std::string & alt )
+{
+  bool match = false;
+  for (int i=0;i<allele_match_ref.size(); i++)
+    {
+      if ( allele_match( ref , allele_match_ref[i] ) )
+	{ match = true; break; }
+    }
+  if ( ! match ) return false;
+  
+  // for now, do not match multi-nucleodides
+  // unless that was explicitly in "A/C,T"
+  
+  match = false;
+  for (int i=0;i<allele_match_ref.size(); i++)
+    {
+      if ( allele_match( alt , allele_match_alt[i] ) )
+	{ match = true; break; }
+    }
+  return match;  
+}
+
+bool Mask::test_allele_ex( const std::string & ref , const std::string & alt )
+{
+  return ! test_allele( ref , alt );
 }

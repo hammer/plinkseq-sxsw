@@ -200,16 +200,9 @@ void ProtDBase::load( const std::string & filename ,
 		      
 {
   
-  // ensure output
-  bool orig_mode = plog.silent();
-  bool orig_mode2 = plog.silent_except_errors();
-  plog.silent( false );
-  plog.silent_except_errors( false );
-
   if ( (!locdb) || ! locdb->attached() ) Helper::halt( "no attached LOCDB" );
   if ( ! sql.is_open() ) Helper::halt( "no attached PROTDB" );
   
-
   // use this LOCDB group to connect transcripts in PROTDB, and map to genomic co-ordinates                                                                                                                     
   int loc_id = locdb->lookup_group_id( lgroup );
   if ( loc_id == 0 ) Helper::halt( "could not find group " + lgroup + " in the LOCDB" );
@@ -298,7 +291,7 @@ void ProtDBase::load( const std::string & filename ,
 	  ++inserted;
 	  
 	  if ( inserted % 1000 == 0 ) 
-	    plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	    plog.counter1( "parsed " + Helper::int2str( inserted ) + " rows" );
 	  
 	  sources[ f.source_id ]++;
 	  
@@ -306,7 +299,7 @@ void ProtDBase::load( const std::string & filename ,
       else ++failed;
     }
   
-  plog.counter("\n");  
+  plog.counter1("\n");  
   plog << "inserted " << inserted << " features into PROTDB, failed for " << failed << " rows of input\n";
   
   
@@ -328,8 +321,6 @@ void ProtDBase::load( const std::string & filename ,
       ++jj;
     }
 
-  plog.silent( orig_mode );
-  plog.silent_except_errors( orig_mode2 );
 }
 
 

@@ -579,12 +579,34 @@ class Mask {
   void skip_indels( const bool b ) { exc_indels = b; } 
   bool skip_indels() const { return exc_indels; } 
   
+  void only_mnps( const bool b ) { req_mnps = b; }
+  bool only_mnps() const { return req_mnps; } 
+
+  void skip_mnps( const bool b ) { exc_mnps = b; } 
+  bool skip_mnps() const { return exc_mnps; } 
+
+  void only_snps( const bool b ) { req_snps = b; }
+  bool only_snps() const { return req_snps; } 
+
+  void skip_snps( const bool b ) { exc_snps = b; } 
+  bool skip_snps() const { return exc_snps; } 
+
   void only_novel( const bool b ) { req_novel = b; }
   bool only_novel() const { return req_novel; } 
 
   void skip_novel( const bool b ) { exc_novel = b; } 
   bool skip_novel() const { return exc_novel; } 
   
+  void add_allele( const std::vector<std::string> & a );
+  void add_allele_ex( const std::vector<std::string> & a );
+
+  bool allele_filter() const { return do_allele_match; }
+  bool allele_ex_filter() const { return do_allele_ex_match; }
+
+  bool allele_match( const std::string & , const std::string & );
+
+  bool test_allele( const std::string & , const std::string & );
+  bool test_allele_ex( const std::string & , const std::string & );
   
   // 
   // QUAL filter
@@ -845,6 +867,9 @@ class Mask {
   bool count_filter() const { return mac_filter; }
   bool frequency_filter() const { return maf_filter; }
 
+  bool alt_count_filter() const { return aac_filter; }
+  bool alt_frequency_filter() const { return aaf_filter; }
+
   bool count_filter(const int i) const 
   {       
     // if mac threshold is -1, means ignore
@@ -853,11 +878,27 @@ class Mask {
     return true;
   }
   
+  bool alt_count_filter(const int i) const 
+  {       
+    // if mac threshold is -1, means ignore
+    if ( aac_lower >= 0 && i < aac_lower ) return false;
+    if ( aac_upper >= 0 && i > aac_upper ) return false;
+    return true;
+  }
+
   bool frequency_filter(const double f) const 
     { 
       // if maf threshold is -1, means ignore
       if ( maf_lower >= 0 && f < maf_lower ) return false;
       if ( maf_upper >= 0 && f > maf_upper ) return false;
+      return true;      
+    }
+
+  bool alt_frequency_filter(const double f) const 
+    { 
+      // if maf threshold is -1, means ignore
+      if ( aaf_lower >= 0 && f < aaf_lower ) return false;
+      if ( aaf_upper >= 0 && f > aaf_upper ) return false;
       return true;      
     }
 
@@ -875,6 +916,20 @@ class Mask {
     maf_upper = d;
   }
   
+  void alt_allele_count(const int c, const int d ) 
+  { 
+    aac_filter = true;
+    aac_lower = c; 
+    aac_upper = d;
+  }
+  
+  void alt_allele_frequency(const double c, const double d ) 
+  { 
+    aaf_filter = true;
+    aaf_lower = c; 
+    aaf_upper = d;
+  }
+
   
   void hwe( double l, double u )
   {
@@ -909,6 +964,20 @@ class Mask {
     return true;
   }
   
+
+  bool get_alt_allele_count(int & c, int & d ) 
+  {
+    if ( ! aac_filter ) return false;
+    c = aac_lower; d = aac_upper;
+    return true;
+  }
+  
+  bool get_alt_allele_frequency(double & c, double & d ) 
+  {
+    if ( ! aaf_filter ) return false;
+    c = aaf_lower; d = aaf_upper;
+    return true;
+  }
 
   //
   // Null genotype filter
@@ -1183,6 +1252,9 @@ class Mask {
       mac_filter = false;
       maf_filter = false;
       
+      aac_filter = false;
+      aaf_filter = false;
+
       has_null_filter = false;
       has_null_prop_filter = false;
       has_case_control_filter = false;
@@ -1527,6 +1599,8 @@ class Mask {
 	fixxy_mode = false;
 	mac_filter = false;	
 	maf_filter = false;
+	aac_filter = false;	
+	aaf_filter = false;
 	has_null_filter = false;
 	has_null_prop_filter = false;
 	has_case_control_filter = false;
@@ -1535,6 +1609,8 @@ class Mask {
 	exc_filter_any = false;
 	mac_lower = mac_upper = -1;
 	maf_lower = maf_upper = -1.0;
+	aac_lower = aac_upper = -1;
+	aaf_lower = aaf_upper = -1.0;
 	use_hwe_filter = false;
 	hwe_lower = 0;
 	hwe_upper = 1;
@@ -1556,6 +1632,16 @@ class Mask {
 	exc_biallelic = false;
 	req_indels = false;
 	exc_indels = false;
+	req_snps = false;
+	exc_snps = false;
+	req_mnps = false;
+	exc_mnps = false;
+	do_allele_match = false;
+	do_allele_ex_match = false;
+	allele_match_ref.clear();
+	allele_match_alt.clear();
+	allele_exclude_ref.clear();
+	allele_exclude_alt.clear();
 	req_novel = false;
 	exc_novel = false;
 	req_monomorphic = false;
@@ -1804,8 +1890,23 @@ class Mask {
     bool req_indels;
     bool exc_indels;
 
+    bool req_mnps;
+    bool exc_mnps;
+
+    bool req_snps;
+    bool exc_snps;
+
     bool req_novel;
     bool exc_novel;
+
+    bool do_allele_match;
+    bool do_allele_ex_match;
+
+    std::vector<std::string> allele_match_ref;
+    std::vector<std::string> allele_match_alt;
+
+    std::vector<std::string> allele_exclude_ref;
+    std::vector<std::string> allele_exclude_alt;
 
     //
     // Meta masks
@@ -1943,6 +2044,15 @@ class Mask {
     double       maf_lower;    
     double       maf_upper;
 
+    // as above, for alternate, not minor, allele
+
+    bool         aac_filter;
+    int          aac_lower;
+    int          aac_upper;
+
+    bool         aaf_filter;
+    double       aaf_lower;    
+    double       aaf_upper;
 
     // HWE filters
 

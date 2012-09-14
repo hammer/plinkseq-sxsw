@@ -757,7 +757,9 @@ std::map<std::string,int> Variant::genotype_counts( const affType & aff , bool u
 bool Variant::biallelic() const
 {
   // this function of sensitive to down-coding status: 
-  return consensus.alleles.size() == 2;
+  return consensus.alleles.size() == 2 
+    && consensus.alleles[0].type() != ALLELE_UNKNOWN 
+    && consensus.alleles[1].type() != ALLELE_UNKNOWN  ;
 }
 
 bool Variant::multiallelic() const
@@ -767,9 +769,20 @@ bool Variant::multiallelic() const
 
 bool Variant::monomorphic() const
 {
+  // try to base on allele-codes
   if ( consensus.alleles.size() == 1 ) return true;   
+  
+  bool any_nonmissing = false;
+  for (int a=1;a<consensus.alleles.size();a++) 
+    if ( consensus.alleles[a].type() != ALLELE_UNKNOWN ) any_nonmissing = true;
+  if ( ! any_nonmissing ) return true;
+
+  // otherwise, resort to actual allele-counting (i.e. mac=0 mask)
+  
   int n=0,m=0;
   n_minor_allele(&n,&m);
+
+  if ( m == 0 ) return false; // not defined in sites-only VCF
   return n==0 || n==m;
 }
 
@@ -817,11 +830,24 @@ bool Variant::simple_del() const
 
 bool Variant::indel() const
 {
-  // also should check for whether 'I' and 'D' coding is employed...
-  int rs = consensus.alleles[0].name().size();
   for (int i=1;i<consensus.alleles.size(); i++)
-    if ( consensus.alleles[i].name().size() != rs ) return true;
+    if ( consensus.alleles[i].type() == ALLELE_INSERTION || consensus.alleles[i].type() == ALLELE_DELETION ) return true;
   return false;
+}
+
+
+bool Variant::mnp() const
+{
+  for (int i=1;i<consensus.alleles.size(); i++)
+    if ( consensus.alleles[i].type() == ALLELE_MULTINUCLEOTIDE_SUBSTITUTION ) return true;  
+  return false;
+}
+
+bool Variant::snp() const
+{
+  for (int i=1;i<consensus.alleles.size(); i++)
+    if ( consensus.alleles[i].type() != ALLELE_SUBSTITUTION ) return false;
+  return true;
 }
 
 std::string Variant::VCF() const
@@ -905,22 +931,36 @@ bool Variant::frequency_filter( Mask * mask )
   //
   
   if ( mask )
-    {
+    {      
+      // minor allele details
 
-      if ( mask->count_filter() )
-	{
-	  int m = 0; // minor allele
-	  int c = 0; // total counts
-	  bool altmin = n_minor_allele( &m , &c );	  	  
-	  if ( ! mask->count_filter( m ) ) return false;	       
-	}      
+      int m = 0;       // minor allele
+      int c = 0;       // total counts
+      double maf = 0;  // MAF
+      
+      bool altmin = n_minor_allele( &m , &c , &maf );
+      
+      // if altmin == T, then aac == mac 
+      
+      if ( mask->count_filter()     && ! mask->count_filter( m ) ) return false;	       
 
-      if ( mask->frequency_filter() )
+      if ( mask->frequency_filter() && ! mask->frequency_filter( maf ) ) return false;
+
+      // do we need to flip counts/freqs for 'alternate' allele count?
+
+      int alt_m  = m;
+
+      double aaf = maf; 
+      
+      if ( ! altmin ) 
 	{
-	  double maf;
-	  bool altmin = n_minor_allele( NULL , NULL , &maf );
-	  if ( ! mask->frequency_filter( maf ) ) return false;
+	  alt_m = c - m;
+	  aaf = 1 - maf;
 	}
+      
+      if ( mask->alt_count_filter()     &&  ! mask->alt_count_filter( alt_m ) ) return false;	       
+
+      if ( mask->alt_frequency_filter() &&  ! mask->alt_frequency_filter( maf ) ) return false;
       
     }
   

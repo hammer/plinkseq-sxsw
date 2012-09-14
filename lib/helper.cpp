@@ -110,7 +110,7 @@ void Log::print_warnings()
 #else
       plog << "\n" 
 	   << msg 
-	   << "===============================================================================\n";
+	   << ":::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n";
 #endif
 
       ++i;
@@ -1105,7 +1105,7 @@ bool Helper::is_flag( const std::string & s )
   return t == "FLAG";
 }
 
-double Helper::chi2x2(int a, int b, int c, int d)
+double Helper::chi2x2(double a, double b, double c, double d)
 {
 
   double row1 = a + b;
@@ -1113,9 +1113,9 @@ double Helper::chi2x2(int a, int b, int c, int d)
   double col1 = a + c;
   double col2 = b + d;
 
-  if ( row1 * row2 * col1 * col2 == 0 )
+  if ( row1 * row2 * col1 * col2 <= 1e-10 )
     return 0;
-
+  
   double total = col1 + col2;
 
   double E_a = ( row1 * col1 ) / total;
@@ -1338,7 +1338,7 @@ void int_range::set( const std::string & s , const int smode )
 	  upr = t;
 	}
     }
-  else if ( tok.size() == 1 ) // single char means upper bound (inc. below)
+  else if ( tok.size() == 1 ) // single char (possibly with 2-, 2: or :2 
     {
       
       // 2- means lower bound, otherwise upper:
@@ -1359,7 +1359,7 @@ void int_range::set( const std::string & s , const int smode )
 	      has_lwr = Helper::str2int( tok[0] , lwr ); 
 	      has_upr = false;
 	    }
-	  else
+	  else 
 	    {
 	      has_lwr = Helper::str2int( tok[0] , lwr ); 
 	      has_upr = Helper::str2int( tok[0] , upr ); 	  
@@ -1455,8 +1455,9 @@ void dbl_range::set( const std::string & s , const int smode )
 	has_upr = Helper::str2dbl( tok[0] , upr ); 
       else 
 	{
-
-	  if ( smode == -1 ) 
+	  if ( smode == -9 ) 
+	    Helper::halt( "expecting an explicit range (x:y), not [" + s +"]" );
+	  else if ( smode == -1 ) 
 	    {
 	      has_lwr = false; 
 	      has_upr = Helper::str2dbl( tok[0] , upr ); 	  	      

@@ -43,34 +43,44 @@ void g_geneseq( VariantGroup & vars , void * p )
     }
   
   
+  //
+  // enumerate CDS exons first
+  //
 
-  // exons
   int num_cds_exons = 0;
   int cds_bp = 0;
-  for (int s =0 ; s < region.subregion.size(); s++) 
+  int genomic_start = 0;
+  int genomic_stop = 0;
+
+  for (int s = 0 ; s < region.subregion.size(); s++) 
     {
       // only consider CDS exons      
+
       if ( ! region.subregion[s].CDS() ) continue;      
 
       cds_num[s] = num_cds_exons;
-//       int pos1 = positive_strand ? region.subregion[s].start.position() : -region.subregion[s].start.position(); 
-//       int pos2 = positive_strand ? region.subregion[s].stop.position() : -region.subregion[s].stop.position(); 
-
+      
       int pos1 = region.subregion[s].start.position();
       int pos2 = region.subregion[s].stop.position();
+      
+      if ( genomic_start == 0 ) genomic_start = pos1;
+      if ( pos2 > genomic_stop ) genomic_stop = pos2;
 
+      // track start & stop CDS (and record exon #)
       elocstart[ pos1 ] = num_cds_exons;
       elocstop[ pos2 ] = num_cds_exons;
 
       ++num_cds_exons;  
       
+      // total CDS extent in base-pairs
       cds_bp += region.subregion[s].stop.position() - region.subregion[s].start.position()  + 1;
     }
   
-  // if -ve strand, flip numbers;
-  
 
+  //
   // reference variant
+  //
+
   std::set<RefVariant> rvars = g.refdb.lookup( region , aux->ref );
   std::set<RefVariant>::iterator i = rvars.begin();
   while ( i != rvars.end() ) 
@@ -84,12 +94,16 @@ void g_geneseq( VariantGroup & vars , void * p )
     }
   
   pout << vars.name() << " | "
+       << g.locdb.alias( vars.name() , false ) << " | "
        << num_cds_exons << " CDS exons | " 
        << ( positive_strand ? "+ve strand | " : "-ve strand | " )
        << vars.size() << " variants | ";
+  
   if ( rvars.size() > 0 ) 
     pout << rvars.size() << " refvars | ";      
-  pout << ( region.stop.position() - region.start.position() + 1 )/1000.0 << " kb | "      
+
+  pout << region.coordinate() << " | " 
+       << ( region.stop.position() - region.start.position() + 1 )/1000.0 << " kb | "      
        << cds_bp << " coding bases\n";
   
   //
@@ -102,6 +116,7 @@ void g_geneseq( VariantGroup & vars , void * p )
   int gid = locdb->lookup_group_id( PLINKSeq::DEFAULT_LOC_GROUP() );  
   if ( gid == 0 ) return;
 
+
   //
   // Translate to AA sequence
   //
@@ -110,6 +125,7 @@ void g_geneseq( VariantGroup & vars , void * p )
   
   std::string aa = Annotate::translate_reference( region , false );
   
+
   //
   // Protein feature/domain annotations
   //
@@ -120,15 +136,19 @@ void g_geneseq( VariantGroup & vars , void * p )
     {
       
       std::set<Feature> features = aux->protdb->fetch( vars.name() );
-      
+
+      bool all_prot = aux->protdom.find( "*" ) != aux->protdom.end() 
+	|| aux->protdom.find( "ALL" ) != aux->protdom.end() 
+	|| aux->protdom.find( "all" ) != aux->protdom.end(); 
+
       std::set<Feature>::iterator ii = features.begin();
       while ( ii != features.end() )
 	{
-	  if ( ii->source_id == "TMHMM" )
+	  if ( all_prot || aux->protdom.find( ii->source_id ) != aux->protdom.end() )
 	    {
 	      for (int aa= ii->pstart; aa<= ii->pstop; aa++)	    
 		{		  
-		  //		  if ( pdm[aa] != "" ) pdm[aa] += " ";
+		  if ( pdm[aa] != "" ) pdm[aa] += " ";
 		  pdm[ aa ] += ii->source_id + "::" + ii->feature_id + ":" + ii->feature_name + " ";
 		}
 	    }
@@ -139,11 +159,11 @@ void g_geneseq( VariantGroup & vars , void * p )
       
   
   //
-  // Display full AA sequence
+  // Display full AA sequence, with 1-codon padding either side
   //
 
-  int pmin = region.start.position();
-  int pmax = region.stop.position();
+  int pmin = genomic_start ;
+  int pmax = genomic_stop  ;
   
   if ( ! positive_strand )
     {
@@ -151,121 +171,148 @@ void g_geneseq( VariantGroup & vars , void * p )
       pmin = pmax;
       pmax = t;
     }
-
+  
+  pmin += positive_strand ? -9 : +9 ;
+  pmax += positive_strand ? +9 : -9 ;
+  
   int step = positive_strand ? +1 : -1;
   
+
+  //
   // codon position, cycle 0,1,2
   // transcript CDS should always start at 0
+  //
+
   int cpos = 0;  
+  int gpos = 0;
+
+  // will always start just before CDS, but in 'printable' region, thus:::
   
   bool cds = false;
-  
-  if ( ( positive_strand && elocstart.find( pmin ) != elocstart.end() ) ||
-       ( (!positive_strand) && elocstop.find( pmin ) != elocstop.end() ) )
-    cds = true;
-  
+  bool printing = true;
   
   int exon = 0;
-  
+  int exon0 = 0;
+  int last_exon = 0;
+  bool split_codon = false;
+
   std::string codon = "";
   std::string prt_codon = "";
+  std::string prt_intronic = "";
   int chr = region.start.chromosome();
   
   int apos = 0;
   std::string refannot = "";
   std::string varannot = "";
-  bool print_pos = true;
+  bool has_evar = false;
   int stop_here = positive_strand ? pmax+1 : pmax-1;
-  bool hide = false;
   
+  std::stringstream ss;
+
   for ( int bp = pmin ; bp != pmax+step ; bp += step )
     {
       
-      //      const int searchbp = positive_strand ? bp : -bp;
-      
       const int searchbp = bp;
       
-      //      std::cout << "\n---------------------------------\nconsidering " << searchbp << "\n";
+      //
+      // Are we entering or leaving a printable region?
+      // (cpos-adjusted start, to make sure we are always in-sync)
+      //
+      
+      if ( positive_strand )
+	{	  
+	  if      ( elocstart.find( searchbp + 9 + cpos ) != elocstart.end() ) 
+	    {
+	      printing = true;
+
+	      // space a new one
+	      if ( ( ! aux->only_variant_sites ) || exon == 0  ) pout << "\n";
+
+	    }
+	  else if ( elocstop.find( searchbp - ( 7 + (3 - cpos)  )  ) != elocstop.end() ) printing = false; 	  	  
+	}
+      else
+	{
+	  if ( elocstop.find( searchbp - ( 9 + cpos ) ) != elocstop.end() ) 
+	    {
+	      printing = true;
+	      // space a new one
+	      if ( ( ! aux->only_variant_sites ) || exon == 0  ) pout << "\n";
+	    }
+	  else if ( elocstart.find( searchbp + 7 + (3-cpos) ) != elocstart.end() ) printing = false;
+	}
+      
 
       //
-      // in CDS?
+      // hitting first position in a new CDS?
       //
       
       if ( ( positive_strand && elocstart.find( searchbp ) != elocstart.end() ) ||
 	   ( (!positive_strand) && elocstop.find( searchbp ) != elocstop.end() ) )
-	{
-
-	  cds = true;
+	{	  
+	  
+	  cds = true;	  
+	  
+	  // track exon number
 
 	  exon = positive_strand ? elocstart[ searchbp ] : elocstop[ searchbp ];
+	  exon0 = exon;
 	  
-	  if ( ! positive_strand ) exon = num_cds_exons - (exon+1) ;
+	  if ( ! positive_strand ) exon = num_cds_exons - (exon+1) ;	  
 	  
-	  //	  pout << "---- start exon " << exon+1 << ( positive_strand ? "(+)" : "(-)" ) << " ---- \n";
-	  pout << "\n";
-
-	  print_pos = true;
 	}
 
-      if ( ( positive_strand && elocstop.find( searchbp - step ) != elocstop.end() ) 
-	   ||
-	   ( (!positive_strand) && elocstart.find( searchbp - step ) != elocstart.end() ) 
-	   ) // look 1-past end
-	{
-	  
-	  cds = false;
 
-	  if ( elocstop[ searchbp - step ] != exon ) plog.warn("hmm");
-	  
-	  // are we mid-frame? 
-	  if ( cpos == 1 ) 
-	    {
-	      if ( ! hide ) pout << "\t" << codon << "..\n" ; 
-	      prt_codon = ".";
-	    }
-	  else if ( cpos == 2 ) 
-	    {
-	      if ( ! hide ) pout << "\t" << codon << ".\n" ; 
-	      prt_codon = "..";
-	    }
-	  
-	  // if ( ! hide ) pout << "----   end exon " << exon+1 << "    ---- \n";
-	}
+      
+      //
+      // Have we gone one past the end of a current exon?
+      //
+      
+      if ( cds ) 
+	if ( ( positive_strand && elocstop.find( searchbp - step ) != elocstop.end() ) 
+	     ||
+	     ( (!positive_strand) && elocstart.find( searchbp - step ) != elocstart.end() ) 
+	     ) 
+	  {
+	    
+	    //	    std::cout << "ENDING CDS\n";
+
+	    cds = false;
+	    
+	    // track last exon code, for use printing introns
+	    last_exon = exon+1;
+
+	    if ( positive_strand )
+	      {
+		if ( elocstop[ searchbp - step ] != exon ) plog.warn("internal inconsistency");
+	      }
+	    else
+	      {
+		if ( elocstart[ searchbp - step ] != exon0 ) plog.warn("internal inconsistency");
+	      }
+
+	    //
+	    // are we ending a CDS mid-frame? 
+	    //
+	    
+	    
+	    
+	    if ( cpos == 1 ) 
+	      {
+		split_codon = true;
+		//prt_codon = ".";
+	      }
+	    else if ( cpos == 2 )   
+	      {
+		split_codon = true;
+		//prt_codon = "..";
+	      }
+	    
+	  }
       
       if ( bp == stop_here ) { continue; } 
-      
 
    
-
-//       if ( print_pos ) 
-// 	{
-// 	  std::set<int>::iterator ne = events.upper_bound( bp );
-// 	  bool ohide = hide;
-// 	  hide = true;
-// 	  if ( ne != events.end() && *ne - bp <= ( cds ? 3 : 2 ) ) 
-// 	    {
-// 	      hide = false;
-// 	      //std::cout << "hide true = " << bp << " " << *ne << " (1)\n";
-// 	    }
-// 	  if ( ne != events.begin() )
-// 	    {
-// 	      --ne;
-// 	      if ( bp - *ne <= ( cds? 3 : 2 )  ) hide = false;
-// 	      //std::cout << "hide true = " << bp << " " << *ne << " (2)\n";
-// 	    }
-	  
-// // 	  if ( hide && ! ohide ) // going into hiding...
-// // 	    pout << "  ...\n";	  
-
-// 	}
-
-//       // Over-ride 'hide' feature 
-
-//       hide = false;
-
-
-
-
       //
       // append variant information
       //
@@ -273,9 +320,12 @@ void g_geneseq( VariantGroup & vars , void * p )
       if ( evars.find( searchbp ) !=  evars.end() )
 	{
 	  const Variant * pvar = evars.find( searchbp )->second;
-	  std::stringstream ss;
+
+	  has_evar = true;
 	  
-	  ss << "[" ;
+	  std::stringstream ss2;
+	  
+	  ss2 << "[" ;
 	  
 	  int case_count = 0 , case_tot = 0; 
 	  int control_count = 0 , control_tot = 0;	  
@@ -296,41 +346,40 @@ void g_geneseq( VariantGroup & vars , void * p )
 	  // print minor/major allele(s)
 	  
 	  if ( cpos == 0 ) 
-	    ss << "" << pvar->alternate() << "..";
+	    ss2 << "" << pvar->alternate() << "..";
 	  else if ( cpos == 1 ) 
-	    ss << "." << pvar->alternate() << ".";
+	    ss2 << "." << pvar->alternate() << ".";
 	  else
-	    ss << ".." << pvar->alternate() ;
+	    ss2 << ".." << pvar->alternate() ;
 	  
 	  if ( aux->pheno )
-	    ss << "|A/U=" << case_count << ":" << control_count ;
+	    ss2 << "|A/U=" << case_count << ":" << control_count ;
 	  else
-	    ss << "|MAC=" << case_count ;
+	    ss2 << "|MAC=" << case_count ;
 	  
-	  ss << "|";
+	  ss2 << "|";
 	  
 	  if ( ! pvar->meta.has_field( PLINKSeq::META_ANNOT() ) )
 	    {
-	      bool exonic = Annotate::annotate( (Variant&)*pvar , &region );
-	      ss << pvar->meta.get1_string( PLINKSeq::ANNOT_TYPE() );
+	      bool exonic = Annotate::annotate( (Variant&)*pvar , region );
+	      ss2 << pvar->meta.get1_string( PLINKSeq::ANNOT_TYPE() );
 	      if ( exonic ) 
-		{	  
-		  //ss << pvar->meta.get1_string( PLINKSeq::ANNOT_GENE() );
-		  ss << "|" << pvar->meta.get1_string( PLINKSeq::ANNOT_PROTEIN() );
+		{	  		  
+		  ss2 << "|" << pvar->meta.get1_string( PLINKSeq::ANNOT_PROTEIN() );
 		}
 	    }
 	  else
-	    ss << pvar->meta.get1_string( PLINKSeq::META_ANNOT() );
+	    ss2 << pvar->meta.get1_string( PLINKSeq::META_ANNOT() );
 	  
-	  ss << "]";
-
+	  ss2 << "]";
+	  
 	  // CURRENTLY, ONLY APPEND CDS VARIANTS:
-
+	  
 	  if ( cds )
 	    {
 	      
 	      if ( varannot != "" ) varannot += " ";
-	      varannot += ss.str();
+	      varannot += ss2.str();
 	    }
 	}
   
@@ -340,10 +389,10 @@ void g_geneseq( VariantGroup & vars , void * p )
       if ( cds && erefvars.find( searchbp ) !=  erefvars.end() )
 	{
 	  const RefVariant * refvar = erefvars.find( searchbp )->second;
-	  std::stringstream ss;
-	  ss << *refvar;
+	  std::stringstream ss2;
+	  ss2 << *refvar;
 	  if ( refannot != "" ) refannot += " ";
-	  refannot += ss.str();
+	  refannot += ss2.str();
 	}
 
       if ( cds && aux->protdb && cpos == 0 && pdm.find( apos ) != pdm.end() )
@@ -355,77 +404,100 @@ void g_geneseq( VariantGroup & vars , void * p )
       //
       // Only show CDS
       //
+      
+       // std::cout << "sb = " << searchbp << " " 
+       // 		<< printing << cds << " "
+       // 		<< gpos << " [" << prt_intronic << "] " << cpos << "[" << prt_codon << " " << codon << "] \n";      
 
-      if ( print_pos && cds ) 
+
+      if ( printing )
 	{	  
-	  if ( ! hide ) pout << ( cds ? "exon " + Helper::int2str(exon+1) + " " : "       " ) + "chr" << chr << ":" << searchbp;  
-	  print_pos = false;
+	  if ( gpos == 0 ) 
+	    if ( cds )
+	      ss << "exon " << exon+1 << ( exon < 9 ? " " : "" ) << "     " << Helper::chrCode( chr ) << ":" << searchbp;  	  
+	    else 
+	      {	      
+		if ( last_exon == 0 ) 
+		  ss << "intron */1 " << ( exon < 9 ? " " : "" );
+		else if ( exon == num_cds_exons - 1 ) 
+		  ss << "intron " << last_exon << "/* " << ( exon < 9 ? " " : "" );
+		else 
+		  ss << "intron " << last_exon << "/" << last_exon+1 << " " << ( exon < 9 ? " " : "" );
+		
+		ss << Helper::chrCode( chr ) << ":" << searchbp;
+		
+	      }
 	}
       
       
-
-      // display in coding region
-      //      std::cout << "\n -- " << bp << " " << cds << " " << print_pos << "\n";
-
-      if ( cds )  
+      if ( printing )  
 	{
 	  
-	  //std::cout << "\nadding " << cpos << "\t" << bp << " " << g.seqdb.lookup( chr , bp ) << "\n";
-	  
-	  codon += g.seqdb.lookup( chr , bp ) ; 
-	  prt_codon += g.seqdb.lookup( chr , bp ) ; 
-	  
-	  ++cpos;
-	  
-	  if ( cpos == 3 ) 
+	  ++gpos;
+
+	  if ( cds )
 	    {
-
-	      cpos = 0;
-	      std::string aa_code = aa.substr( apos++ , 1 ) ;	     
-	      std::string aa_name = Annotate::aa[ aa_code ];
-
-	      if ( ! hide ) 
-		{
-		  pout << "\t" << prt_codon << " " << aa_code << " " << aa_name << " " <<apos ;
-		  
-		  pout << "\t" << (refannot == "" ? "." : refannot ) 
-		       << "\t" << (varannot == "" ? "." : varannot ) 		       
-		       << "\n";
-		}
-
-	      codon = "";
-	      prt_codon = "";
-	      refannot = "";
-	      varannot = "";
-	      print_pos = true;
+	      codon        += g.seqdb.lookup( chr , bp ) ; 
+	      prt_codon    += g.seqdb.lookup( chr , bp ) ; 
+	      prt_intronic += ".";
+	      ++cpos;
 	    }
-	}
-
-      if ( false && ! cds )
-	{
-	  if ( ! hide )
+	  else
 	    {
-	      pout << "\t" << g.seqdb.lookup( chr , bp ) 
-		   << "   . .";
+	      prt_codon    += ".";	  
+	      prt_intronic += g.seqdb.lookup( chr , bp ) ; 	      
+	    }
+	  
+
+	  //
+	  // Print row
+	  //
+	  
+	  if ( gpos == 3 )
+	    {
 	      
-	      pout << "\t" << (varannot == "" ? "." : varannot ) 
-		   << "\t" << (refannot == "" ? "." : refannot ) 
-		   << "\n";
+	      gpos = 0;	      
+	      
+	      std::string aa_code = cds && cpos == 3 ? aa.substr( apos++ , 1 ) : ( split_codon ? ">" : "." ) ;
+	      std::string aa_name = cds && cpos == 3 ? Annotate::aa[ aa_code ] : ( split_codon ? ">>>" : " . " );
+	      
+	      ss << "\t" << prt_intronic << " " << prt_codon
+		 << " " << aa_code << " " << aa_name << " " << ( cds ? Helper::int2str(apos) : ( split_codon ? "> " : ". " ) ) 
+		 << "\t" << (refannot == "" ? "." : refannot ) 
+		 << "\t" << (varannot == "" ? "." : varannot ) 		       
+		 << "\n";
+	      	      
+	      // print? 
+	      if ( (!aux->only_variant_sites) || has_evar ) 
+		pout << ss.str();
+	      
+	      // reset all codon-specific stuff
+	      if ( ! split_codon ) codon = "";
+	      prt_codon = "";
+	      prt_intronic = "";
+	      refannot = "";
+	      varannot = "";	      
+	      has_evar = false;
+	      split_codon = false;
+	      
+	      // and clear stream
+	      ss.str( std::string() );
+	      
 	    }
-	  
-	  refannot = "";
-	  varannot = "";
-	  print_pos = true;	  
 	}
       
+      if ( gpos == 3 ) gpos = 0;
+      if ( cpos == 3 ) cpos = 0;
+
+      // std::cout << "xb = " << searchbp << " " 
+      //  		<< printing << cds << " "
+      //  		<< gpos << " [" << prt_intronic << "] " << cpos << "[" << prt_codon << " " << codon << "] \n";      
+       
     }
 
-//   std::map<int,const Variant*> evars;
-//   std::map<int,int> elocstart;
-//   std::map<int,int> elocstop;
-//   std::map<int,const RefVariant*> erefvars;
 
-  // foooter
+
+
   pout << "\n------------------------------------------------------------\n\n";
 }
 

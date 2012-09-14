@@ -236,7 +236,7 @@ namespace Pseq
       
       bool lookup( Region & );
       
-      bool load_transcripts( std::string );
+      //      bool load_transcripts( std::string );
 
       bool loc_stats( const std::string & , const std::string & );
 

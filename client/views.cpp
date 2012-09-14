@@ -681,11 +681,19 @@ void f_extra_qc_metrics( Variant & var , void * p )
   // number of obs. genotypes
   x->add( pos , (double)t / (double)var.size() , 0 );
   
+
+  // MAC
+  if ( c_tot == 0 ) 
+    x->add( pos , "NA" , 1 ); 
+  else
+    x->add( pos , c , 1 ); 
+
   // MAF
   if ( c_tot == 0 ) 
     x->add( pos , "NA" , 1 ); 
   else
     x->add( pos , maf , 1 ); 
+
   
   // flag T is REF is minor allele
   x->add( pos , ! altmin , 1 );
@@ -790,11 +798,11 @@ bool Pseq::LocDB::loc_view( const std::string & group , const std::vector<std::s
   std::set<Region>::iterator i = loc.begin();
   while ( i != loc.end() ) 
     {
-
       pout << i->name << "\t"
 	   << i->coordinate() << "\t"
 	   << i->altname << "\t"
 	   << db->alias( i->name , false );
+
       if ( meta ) 
 	pout << "\t" << i->meta;
       pout << "\n";

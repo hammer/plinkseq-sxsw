@@ -149,7 +149,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     
 	  << "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta,rarelist,phenotype,verbose|OUT:groups"
     
-	  << "*gs-view|views|view gene variants in sequence|GRP|ARG:ref-variants"
+	  << "gs-view|views|view gene variants in sequence|GRP|ARG:ref-variants,gene,protdb,domain,variant"
 	
 	  << "i-view|views|individuals in project/file|VCF|ARG:phenotype,from-vardb|OUT:indiv"
 
@@ -409,55 +409,63 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "help" , NONE , "produce help message" );
 
     // output options
-    reg( "out" , STRING , "output root filename" );
-    reg( "silent", NONE , "set silent mode");
-    reg( "noweb" , NONE , "skip web-check" );
+
+    reg( "out"    , STRING , "output root filename" );
+    reg( "silent" , NONE   , "set silent output mode");
+    reg( "quiet"  , NONE   , "set quiet output mode");
+    reg( "noweb"  , NONE   , "skip web-check" );
 
     reg( "debug", NONE , "set debug mode");    
 
-    reg( "vcf" , STRING_VECTOR , "VCF file locations" );
-    reg( "bcf" , STRING_VECTOR , "BCF file locations" );
-    reg( "resources" , STRING , "central resource folder" );
-    reg( "scratch" , STRING , "scratch folder" );
-    reg( "metameta" , STRING , "meta-information meta-information" );
 
-    reg( "description", STRING , "file description" );
-    reg( "history" , STRING_VECTOR , "use a .history file with GSEQ" );
+    // input sources
 
-    
-    reg( "vardb", STRING, "variant database location" );
-    reg( "inddb", STRING, "individual database location" );
-    reg( "refdb", STRING, "reference database location" );
-    reg( "seqdb", STRING, "sequence database location" );
-    reg( "segdb", STRING, "segent database location" );
-    reg( "locdb", STRING, "locus database location" );
-    reg( "netdb", STRING, "network database location" );  
+    reg( "vcf"       , STRING_VECTOR , "VCF file locations" );
+    reg( "bcf"       , STRING_VECTOR , "BCF file locations" );
+    reg( "resources" , STRING        , "central resource folder" );
+    reg( "scratch"   , STRING        , "scratch folder" );
+    reg( "metameta"  , STRING        , "meta-information meta-information" );
+
+    reg( "description" , STRING        , "file description" );
+    //    reg( "history"     , STRING_VECTOR , "use a .history file with GSEQ" );
+
+    // core databases
+    reg( "vardb" , STRING, "variant database location" );
+    reg( "inddb" , STRING, "individual database location" );
+    reg( "refdb" , STRING, "reference database location" );
+    reg( "seqdb" , STRING, "sequence database location" );
+    reg( "segdb" , STRING, "segent database location" );
+    reg( "locdb" , STRING, "locus database location" );
+    reg( "netdb" , STRING, "network database location" );  
     reg( "protdb", STRING, "protein domain/feature database" );
-    reg( "ibddb", STRING, "IBD segment database location" );  
+    reg( "ibddb" , STRING, "IBD segment database location" );  
 
-    reg( "file" , STRING_VECTOR , "generic input file(s)" );
-    reg( "file-list" , STRING , "file to specify a list of files" );
+    // misc file inputs
+    reg( "file"      , STRING_VECTOR , "generic input file(s)" );
+    reg( "file-list" , STRING        , "file to specify a list of files" );
     
-    reg( "map-file" , STRING , "map file" );  // primarily for load-dosage
-    reg( "indiv-file" , STRING , "individual ID list"); // primarily for load-dosage
-    reg( "meta-file" , STRING , "meta-information file" ); // primarily for load-dosage
+    // dosage file inputs
+    reg( "map-file"            , STRING , "map file" );  // primarily for load-dosage
+    reg( "indiv-file"          , STRING , "individual ID list"); // primarily for load-dosage
+    reg( "meta-file"           , STRING , "meta-information file" ); // primarily for load-dosage
     reg( "hard-call-threshold" , FLOAT , "hard-call threshold" ); // primarily for load-dosage
 
-    reg( "group" , STRING_VECTOR , "generic group label(s)" );
-    reg( "members" , STRING_VECTOR , "super-set members" );
-    reg( "ref-group" , STRING , "REFDB group label" );
-    reg( "loc-group" , STRING , "LOCDB group label" );
-    reg( "region" , STRING_VECTOR , "region(s) ");
-    reg( "alias" , STRING_VECTOR , "locus alias group(s)" );
-    reg( "name" , STRING_VECTOR , "generic name(s) variable" );
-    reg( "key" , STRING , "key of key-value pair" );
-    reg( "value" , STRING_VECTOR , "value(s) of key-value pair" );
-    reg( "type", STRING , "type of project entry");
-    reg( "declare", STRING_VECTOR , "on-the-fly declaration of meta-attribute types" );
-    
+    reg( "variant"    , NONE          , "only show positions with variant sites in gs-view" );
+    reg( "members"    , STRING_VECTOR , "super-set members" );
+    reg( "ref-group"  , STRING , "REFDB group label" );
+    reg( "loc-group"  , STRING , "LOCDB group label" );
+    reg( "region"     , STRING_VECTOR , "region(s) ");
+    reg( "alias"      , STRING_VECTOR , "locus alias group(s)" );
+    reg( "name"       , STRING_VECTOR , "generic name(s) variable" );
+    reg( "key"        , STRING , "key of key-value pair" );
+    reg( "value"      , STRING_VECTOR , "value(s) of key-value pair" );
+    reg( "type"       , STRING , "type of project entry");
+    reg( "declare"    , STRING_VECTOR , "on-the-fly declaration of meta-attribute types" );
+
+    reg( "group"      , STRING_VECTOR , "generic group label(s)" );    
+    reg( "domain"     , STRING_VECTOR , "protein domain group from PROTDB" );
     reg( "id" , INT_VECTOR , "generic numeric IDs" );
-    reg( "options" , STRING_VECTOR, "context-specific options\n");
-    reg( "outfile", STRING, "generic output filename\n" );
+
     reg( "whitespace", NONE , "allow whitespace delimited input" );
     reg( "show-id" , NONE , "use chr:position:id variant format in output");
 

@@ -265,15 +265,15 @@ bool GStore::vardb_load_vcf( const std::string & file,
   
   int inserted = 0;
 
-  plog.counter( "parsing..." );
+  plog.counter1( "parsing..." );
 
   while ( v.parseLine() ) 
     { 
       if ( ++inserted % 1000 == 0 ) 
-	plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	plog.counter1( "parsed " + Helper::int2str( inserted ) + " rows" );
     }
-  plog.counter("\n");
-    
+  plog.counter1("\n");
+  
   // Wrap up
   
   vardb.commit();    

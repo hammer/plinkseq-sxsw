@@ -112,8 +112,7 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   g.perm.initiate( aux.nrep , ntests );
   //  if ( args.has("aperm") ) g.perm.adaptive( args.as_int_vector( "aperm" ) );
   a.fix_null_genotypes = args.has("fix-null");
-
-
+  
   //
   // Apply function
   //
@@ -1276,46 +1275,6 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   a.dump_stats_matrix = args.has( "dump-null-matrix" );
 
 
-  //
-  // Get main output stream
-  //
-
-  Out & pout = Out::stream( "assoc" );
-  Out & pdet = Out::stream( "assoc.det" );
-
-
-  //
-  // Write header, if in stanard OUTPUT mode
-  //
-
-  if ( ! a.dump_stats_matrix )
-    {
-  
-      pout.data_reset();
-      
-      pout.data_group_header( "LOCUS" );
-      
-      pout.data_header( "POS" );
-      
-      if ( a.show_midbp ) 
-	{
-	  pout.data_header( "MID" );
-	  pout.data_header( "BP" );
-	}
-      
-      pout.data_header( "ALIAS" );
-      
-      pout.data_header( "NVAR" );
-      
-      pout.data_header( "TEST" );
-      
-      pout.data_header( "P" );
-      pout.data_header( "I" );
-      pout.data_header( "DESC" );
-      
-      pout.data_header_done();
-    }
-
 
   //
   // Which tests to apply?
@@ -1403,6 +1362,46 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   else      
     Helper::halt("no dichotomous phenotype specified");
   
+  //
+  // Get main output stream
+  //
+
+  Out & pout = Out::stream( "assoc" );
+  Out & pdet = Out::stream( "assoc.det" );
+
+
+  //
+  // Write header, if in stanard OUTPUT mode
+  //
+
+  if ( ! a.dump_stats_matrix )
+    {
+  
+      pout.data_reset();
+      
+      pout.data_group_header( "LOCUS" );
+      
+      pout.data_header( "POS" );
+      
+      if ( a.show_midbp ) 
+	{
+	  pout.data_header( "MID" );
+	  pout.data_header( "BP" );
+	}
+      
+      pout.data_header( "ALIAS" );
+      
+      pout.data_header( "NVAR" );
+      
+      pout.data_header( "TEST" );
+      
+      pout.data_header( "P" );
+      pout.data_header( "I" );
+      pout.data_header( "DESC" );
+      
+      pout.data_header_done();
+    }
+
   
   //
   // Set up permutation class
@@ -1429,6 +1428,11 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   
   if ( args.has( "weights" ) )
     {
+      a.weights = args.has("weights");
+      a.weight_tag = args.as_string( "weights" );
+      
+      plog >> "applying variant-weights to BURDEN, UNIQ and SUMSTAT tests, from " >> a.weight_tag >> "\n"; 
+      
       Pseq::Assoc::Aux_skat::has_weights = true;
       Pseq::Assoc::Aux_skat::use_freq_weights = false;
       Pseq::Assoc::Aux_skat::weights = args.as_string( "weights" );
@@ -1531,7 +1535,7 @@ void g_set_association( VariantGroup & vars , void * p )
   Pseq::Assoc::Aux_calpha aux_calpha;
   Pseq::Assoc::Aux_cancor aux_cancor( 1 , vars.size() , vars.n_individuals() ) ;
 
-  Pseq::Assoc::prelim( vars , &aux_prelim );
+  Pseq::Assoc::prelim( vars , &aux_prelim , data );
 
   
   //  
@@ -1602,8 +1606,21 @@ void g_set_association( VariantGroup & vars , void * p )
 	}
       
     }
+  else
+    {
 
+      // at least ensure this is run once, to get the .assoc.det file produced
+      // even if burden/uniq/etc is not a specified test; but no need to repeat
+      // under the null replicates, etc.
+
+      Pseq::Assoc::stat_burden( vars , 
+ 				&aux_prelim, 
+ 				&aux_burden , 
+ 				&test_text , 
+ 				true );
+    }
   
+
   if ( data->vt || data->fw )
     {
 

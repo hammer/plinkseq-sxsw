@@ -41,11 +41,13 @@ namespace Pseq
 
       struct Aux 
       {
-	Aux() { g=0; rseed=0; show_info = false; fix_null_genotypes = true; } 
+	Aux() { g=0; rseed=0; show_info = false; fix_null_genotypes = true; weights = false; } 
 	GStore * g;
 	long int rseed;
 	bool show_info;
 	bool fix_null_genotypes;
+	bool weights;
+	std::string weight_tag;
       };
       
       struct Aux_vassoc_options {

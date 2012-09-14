@@ -2011,7 +2011,7 @@ std::set<Region> LocDBase::get_regions( const std::string & group , const Varian
   std::set<Region> r;
   uint64_t id = lookup_group_id( group );
   if ( id == 0 ) return r;
-  return get_regions( id , v.chromosome() , v.position() , v.position() );
+  return get_regions( id , v.chromosome() , v.position() , v.stop() == 0 ? v.position() : v.stop() );
 }
 
 

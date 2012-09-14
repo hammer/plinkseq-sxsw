@@ -321,7 +321,7 @@ bool BEDReader::read_bed()
       
       
       if ( s % 1000 == 0  )
-	plog.counter( "inserted " + Helper::int2str( s ) + " variants" );
+	plog.counter1( "inserted " + Helper::int2str( s ) + " variants" );
       
       
 

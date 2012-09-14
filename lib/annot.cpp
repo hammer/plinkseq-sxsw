@@ -13,8 +13,6 @@ extern GStore * GP;
 using namespace std;
 using namespace Helper;
 
-// Stop codons indicated as "*"
-
 std::map<uint64_t,Region> Annotate::rmap;
 uint64_t Annotate::transcript_group_id = 0;
 
@@ -30,14 +28,14 @@ std::map<seq_annot_t,std::string> populate_seqinfo()
   m[SYN]      		= "silent";
   m[MIS]     		= "missense";
   m[INDEL] 	  	= "indel";
-  m[CODONDELETION]      = "codondeletion";
-  m[STOPDELETION]       = "stopdeletion";
-  m[OOFCODONINSERTION]  = "outofframe_codoninsertion";
-  m[STOPINSERTION]      = "stopinsertion";
-  m[CODONINSERTION]     = "codoninsertion";
-  m[OOFCODONDELETION]   = "outofframe_codondeletion";
+  m[CODONDELETION]      = "codon-deletion";
+  m[STOPDELETION]       = "stop-deletion";
+  m[OOFCODONINSERTION]  = "out-of-frame-codon-insertion";
+  m[STOPINSERTION]      = "stop-insertion";
+  m[CODONINSERTION]     = "codon-insertion";
+  m[OOFCODONDELETION]   = "out-of-frame-codon-deletion";
   m[NON]      		= "nonsense";
-  m[SL]	      		= "startlost";
+  m[SL]	      		= "start-lost";
   m[PART]     		= "partial-codon";
   m[DONORIN2] 		= "splice-donor-in2";
   m[DONOREX2AG]         = "splice-donor-ex2ag";
@@ -46,12 +44,13 @@ std::map<seq_annot_t,std::string> populate_seqinfo()
   m[DONORIN45AG]        = "splice-donor-in45ag";
   m[SPLICE]   		= "splice";
   m[FRAMESHIFT]         = "frameshift";
-  m[RT]       		= "readthrough";
+  m[RT]       		= "read-through";
   return m;
 }
 
 std::map<std::string,std::string> populate_t()
 {
+  // stop codon is '*' 
   std::map<std::string,std::string> m;
   m["TAA"] = "*"; m["TAG"] = "*"; m["TGA"] = "*"; m["GCT"] = "A"; m["GCC"] = "A";
   m["GCA"] = "A"; m["GCG"] = "A"; m["TGT"] = "C"; m["TGC"] = "C"; m["GAT"] = "D";
@@ -71,6 +70,7 @@ std::map<std::string,std::string> populate_t()
 
 std::map<std::string,std::string> populate_aa()
 {
+  // stop codon is '*'
   std::map<std::string,std::string> m;
   m["A"] ="Ala"; m["L"] ="Leu"; m["R"] ="Arg"; m["K"] ="Lys"; m["N"] ="Asn";
   m["M"] ="Met"; m["D"] ="Asp"; m["F"] ="Phe"; m["C"] ="Cys"; m["P"] ="Pro";
@@ -101,130 +101,96 @@ void Annotate::setDB( LocDBase * p , SeqDBase * s )
   seqdb = s;
 }
 
-std::string Annotate::translate(std::string & seq, int frame , std::vector<std::string> & codons )
-{
-    Helper::str2upper(seq);
-
-    if ( seq.size() - frame == 1 ) seq += "-";
-    else if ( seq.size() - frame == 2 ) seq += "--";
-    
-    std::string trans = "";
-    codons.clear();
-    
-    for (unsigned int i = frame; i<seq.size(); i+=3)
-    {
-	std::string codon = seq.substr( i,3 );
-	codons.push_back( codon );
-
-	if ( codon.find("-") != std::string::npos )
-	    trans += "i";
-	else
-	{
-	    std::string tmp = t[ codon ];
-	    if ( tmp == "" ) tmp = "?";
-	    trans += tmp;
-	}
-    }
-    return trans;
-}
-
-
-std::string Annotate::getrc(const std::string & s)
-{
-  int sz = s.size();
-  std::string r;
-  for ( int i = 0 ; i < sz ; i++ )
-    {
-      if      ( s[i] == 'a' ) r += "t";
-      else if ( s[i] == 'c' ) r += "g";
-      else if ( s[i] == 'g' ) r += "c";
-      else if ( s[i] == 't' ) r += "a";
-      else if ( s[i] == 'A' ) r += "T";
-      else if ( s[i] == 'C' ) r += "G";
-      else if ( s[i] == 'G' ) r += "C";
-      else if ( s[i] == 'T' ) r += "A";
-      else r += "N";
-    }
-  reverse( r.begin(), r.end() );
-  return r;
-}
-
-
-bool Annotate::load_transcripts( fType t , const std::string & name )
-{
-  init();
-  setDB(t);
-  if ( ( ! db ) || ( ! db->attached() ) ) return false;
-  uint64_t id = db->lookup_group_id( name );
-  if ( id == 0 ) return false;
-  return load_transcripts( db->lookup_group_id( name ) );
-}
-
-
-
-bool Annotate::load_transcripts( uint64_t id )
-{
-  init();
-  transcript_group_id = 0;
-  rmap.clear();
-  if ( ( ! db ) || ( ! db->attached() ) ) return false ;
-  if ( id == 0 ) return false;
-  set<Region> regions = db->get_regions( id );
-
-  set<Region>::iterator i = regions.begin();
-  while ( i != regions.end() )
-    {
-      rmap[ i->id ] = *i;
-      ++i;
-    }
-  transcript_group_id = id;
-  return true;
-}
-
-bool Annotate::load_transcripts( const std::string & grp , const std::set<Region> & regions )
+bool Annotate::set_transcript_group( const std::string & grp )
 {
   init();
   setDB( LOCDB );
   if ( ( ! db ) || ( ! db->attached() ) ) return false;
   uint64_t id = db->lookup_group_id( grp );
   if ( id == 0 ) return false;
-  return load_transcripts( id , regions );
-}
-
-
-bool Annotate::load_transcripts( uint64_t id , const std::set<Region> & regions )
-{
-  init();
-  transcript_group_id = 0;
-  rmap.clear();
-  if ( ( ! db ) || ( ! db->attached() ) ) return false ;
-  if ( id == 0 ) return false;
-  std::set<Region>::iterator i = regions.begin();
-  while ( i != regions.end() )
-    {
-      rmap[ i->id ] = *i;
-      ++i;
-    }
   transcript_group_id = id;
- return true;
+  return true;
+}
+
+Region * Annotate::from_cache( uint64_t id )
+{
+  std::map<uint64_t,Region>::iterator ii = rmap.find( id );
+  if ( ii != rmap.end() ) return &ii->second;
+  std::vector<uint64_t> t(1,id);
+  add_transcripts( t );
+  // now it should exist
+  return &rmap[ id ];
+}
+
+void Annotate::add_transcripts( const std::vector<uint64_t> & id )
+{
+
+  // stop cache from expanding indefinitely
+  if ( rmap.size() > 100000 ) rmap.clear();
+  
+  for (int i=0;i<id.size();i++)
+    {
+      // is this transcript in the cache already?
+      if ( rmap.find( id[i] ) != rmap.end() ) continue;
+      
+      // if not, pull from LOCDB
+      if ( ( ! db ) || ( ! db->attached() ) || id[i] == 0 ) 
+	Helper::halt( "no LOCDB attached, or group not found in LOCDB, so cannot annotate" );
+      
+      // add actual region to cache
+      rmap[ id[i] ] = db->get_region( id[i] );
+    }
 }
 
 
-bool Annotate::annotate(Variant & var , Region * pregion )
-{
-  std::set<SeqInfo> s;
-  if ( ! pregion )
-    s = annotate( var.chromosome() ,
-		  var.position() ,
-		  var.alternate() ,
-		  var.reference() ) ;
-  else
-    s = annotate( var.chromosome() ,
-		  var.position() ,
-		  var.alternate() ,
-		  var.reference() ,
-		  *pregion ) ;
+bool Annotate::annotate(Variant & var , const Region & region )
+{  
+  std::set<Region> t;  
+  t.insert( region );
+  return annotate( var , t );
+}
 
+
+bool Annotate::annotate(Variant & var , const std::set<Region> & pregion )
+{
+  // if giving a list of predefined regions, assume these have valud 'id' that
+  // corresponds to the LOCDB/group specified, and add to cache
+  
+  std::vector<uint64_t> ids;
+  std::set<Region>::const_iterator ii = pregion.begin();
+  while ( ii != pregion.end() )
+    {
+      ids.push_back( ii->id );
+      rmap[ ii->id ] = *ii;
+      ++ii;
+    }
+  
+  // and now call standard Annotate function
+  
+  return annotate( var , ids );
+}
+
+
+bool Annotate::annotate(Variant & var)
+{
+  // lookup IDs from LOCDB
+  std::vector<uint64_t> ids = db->get_region_ids( transcript_group_id , var.chromosome() , var.position() , var.stop() );
+  return annotate( var , ids );
+}
+
+
+bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
+{
+  
+  std::set<SeqInfo> s;
+
+  // do the actual annotation, for all transcripts indicated in 'ids')
+  s = annotate( var.chromosome() ,
+		var.position() ,
+		var.alternate() ,
+		var.reference() , 
+		ids ) ;
+  
   bool annot = false;
 
   // summary of 'worst' annotation (int, syn, nonsyn)
@@ -273,19 +239,19 @@ bool Annotate::annotate(Variant & var , Region * pregion )
       // for splice, use this slot for the details, for now
       if ( i->splice() || i->esplice() )
 	{
-	  std::string s = "dist=" + Helper::int2str( i->splicedist );
-	  std::string s2 = "nmd=" + Helper::int2str( i->nmd );
-	  std::string s3 = "ofptv=" + Helper::int2str( i->ofptv );
-	  std::string s4 = "exin=" + Helper::int2str( i->exin );
+	  std::string s = "DIST=" + Helper::int2str( i->splicedist );
+	  std::string s2 = "NMD=" + Helper::int2str( i->nmd );
+	  std::string s3 = "OFPTV=" + Helper::int2str( i->ofptv );
+	  std::string s4 = "EXIN=" + Helper::int2str( i->exin );
 	  var.meta.add( PLINKSeq::ANNOT_PROTEIN() , s );
 	  var.meta.add( PLINKSeq::ANNOT_PROTEIN(), s2 );
 	  var.meta.add( PLINKSeq::ANNOT_PROTEIN(), s3 );
 	  var.meta.add( PLINKSeq::ANNOT_PROTEIN(), s4 );
 	}
       if ( i->frameshift() || i->nonsense() )
-      {
-    	  std::string s = "nmd=" + Helper::int2str( i->nmd );
-    	  std::string s2 = "ofptv=" + Helper::int2str( i->ofptv );
+	{
+    	  std::string s = "NMD=" + Helper::int2str( i->nmd );
+    	  std::string s2 = "OFPTV=" + Helper::int2str( i->ofptv );
     	  var.meta.add( PLINKSeq::ANNOT_PROTEIN() , s );
     	  var.meta.add( PLINKSeq::ANNOT_PROTEIN() , s2 );
     	  var.meta.add( PLINKSeq::ANNOT_PROTEIN(), i->protein() );
@@ -296,16 +262,19 @@ bool Annotate::annotate(Variant & var , Region * pregion )
 	}
       ++i;
     }
-
+  
+  //
   // what is the 'worst' annotation?
+  //
+
   std::string aworst = "";
   if ( is_frameshift ) aworst = "frameshift";
   else if ( is_nonsense ) aworst = "nonsense";
-  else if ( is_startlost ) aworst = "startlost";
+  else if ( is_startlost ) aworst = "start-lost";
   else if ( is_esplice ) aworst = "esplice";
   else if ( is_readthrough ) aworst = "readthrough";
-  else if ( is_codoninsertion ) aworst = "codoninsertion";
-  else if ( is_codondeletion ) aworst = "codondeletion";
+  else if ( is_codoninsertion ) aworst = "codon-insertion";
+  else if ( is_codondeletion ) aworst = "codon-deletion";
   else if ( is_missense ) aworst = "missense";
   else if ( is_indel ) aworst = "indel";
   else if ( is_splice ) aworst = "splice";
@@ -315,7 +284,10 @@ bool Annotate::annotate(Variant & var , Region * pregion )
 
   var.meta.set( PLINKSeq::ANNOT() , aworst );
 
+  //
   // what is the 'summary/consensus' annotation?
+  //
+
   int acount = 0;
   if ( is_silent ) ++acount;
   if ( is_missense ) ++acount;
@@ -348,154 +320,191 @@ bool Annotate::annotate(Variant & var , Region * pregion )
 
   var.meta.set( PLINKSeq::ANNOT_SUMMARY() , annot_summary );
 
+  //
   // did we receive any annotation?
-  return is_silent || is_startlost || is_nonsense || is_missense || is_splice || is_esplice || is_readthrough || is_frameshift || is_codondeletion || is_indel || is_codoninsertion;
+  //
+
+  return is_silent 
+    || is_startlost 
+    || is_nonsense 
+    || is_missense 
+    || is_splice 
+    || is_esplice 
+    || is_readthrough 
+    || is_frameshift 
+    || is_codondeletion 
+    || is_indel 
+    || is_codoninsertion;
 
 }
 
-std::set<SeqInfo> Annotate::lookup(Variant & var)
-{
-  return annotate( var.chromosome() ,
-		   var.position() ,
-		   var.alternate() ,
-		   var.reference() ) ;
 
-}
+// std::set<SeqInfo> Annotate::lookup(Variant & var)
+// {
+  
+//   // pull over-lapping transcript IDs from LOCDB for this variant
+//   std::vector<uint64_t> reg_id = db->get_region_ids( transcript_group_id , chr , bp1 , bp2 );
+//   for ( unsigned int i=0; i<reg_id.size(); i++)
+//     {
+//       std::map<uint64_t,Region>::const_iterator r = rmap.find( reg_id[i] );
+//       if ( r != rmap.end() ) regions.insert( r->second );
+//     }
+  
+
+
+//   return annotate( var.chromosome() ,
+// 		   var.position() ,
+// 		   var.alternate() ,
+// 		   var.reference() ) ;
+
+// }
+
+
+// std::set<SeqInfo> Annotate::annotate( int chr,
+// 				      int bp1 ,
+// 				      const std::string & alternate ,
+// 				      const std::string & reference ,
+// 				      const Region & r )
+// {  
+
+//   //
+//   // Call Annotate with a pre-defined single transcript (i.e. do not look up from cache)
+//   //
+
+//   std::set<Region> t;
+//   t.insert(r);
+//   return annotate(chr,bp1,alternate,reference,t);
+// }
+
+
+
+//
+// Primary workhorse of annotation routine
+//
+
 
 std::set<SeqInfo> Annotate::annotate( int chr,
 				      int bp1 ,
 				      const std::string & alternate ,
 				      const std::string & reference ,
-				      const Region & r )
-{
-  std::set<Region> t;
-  t.insert(r);
-  return annotate(chr,bp1,alternate,reference,&t);
-}
-
-std::set<SeqInfo> Annotate::annotate( int chr,
-				      int bp1 ,
-				      const std::string & alternate ,
-				      const std::string & reference ,
-				      const std::set<Region> * pregions )
+				      const std::vector<uint64_t> & pregions )
 {
 
+
+  //
   // Store annotations generated in here
+  //
+
   std::set<SeqInfo> annot;
 
+  //
+  // Check SEQDB is attached
+  //
 
-  // Are we attached to the relevant databases?
-  if ( ! pregions )
-    {
-      if ( ( ! db ) || ( ! db->attached() ) ) return annot;
-      if ( rmap.size() == 0 ) return annot;
-    }
-  if ( ( ! seqdb ) || ( ! seqdb->attached() ) ) return annot;
-
-  // Assumptions:
-  // At any one position, we assume an individual has either a
-  // *Either* a SNP, insertion or deletion:
-  // snp .. just flip the base
-  // deletions .. obliterates relevant bases in cds splice range, but does
-  // not otherwise impact cds start, stop, splicing, etc.
-  //  insertions .. adds bases within cds splice range, but does not otherwise
-  //  impact cds start, stop, splicing, etc. .. that is, the insertion must
-  //  fall after the first base of a cds exon and before the last base of that
-  //  cds exon
-
-  // Currently, only annot single-base pair polymorphisms
-  // Annotation to indels added - prelim code
-
-  // Changes made here by manny commented out
-  // if ( reference.size() > 1 )
-  //  {
-  //   annot.insert( SeqInfo( UNDEF ) ) ;
-  //  return annot;
-  //  }
-
-  // changes stop
-
-  // Get all transcripts that overlap this position
-  int bp2 = alternate.size() > reference.size() ? bp1 + alternate.size() - 1 : bp1 + reference.size() - 1 ;
+  if ( ( ! seqdb ) || ( ! seqdb->attached() ) ) 
+    return annot;
   
-  // currently bp2 not really used / assume == bp1 (i.e. substitution)
-  // uncommented line at top and commented line below
-  // int bp2 = bp1 + reference.size() - 1 ;
-  // changes stop
-
+  //
+  // Note: we don't really use 'bp2' here, which is a good job as it
+  // will be wrong for multiallelic or symbolic alleles, etc
+  //
+  
+  int bp2 = alternate.size() > reference.size() ? 
+    bp1 + alternate.size() - 1 :
+    bp1 + reference.size() - 1 ;
+  
+  
   // Pull regions to use for annotation from database, if they weren't supplied directly
 
-  std::set<Region> regions;
-  if ( ! pregions )
-    {
-      std::vector<uint64_t> reg_id = db->get_region_ids( transcript_group_id , chr , bp1 , bp2 );
-      for ( unsigned int i=0; i<reg_id.size(); i++)
-	{
-	  std::map<uint64_t,Region>::const_iterator r = rmap.find( reg_id[i] );
-	  if ( r != rmap.end() ) regions.insert( r->second );
-	}
-      pregions = &regions;
-    }
+  //
+  // Variant does not fall into any transcript 
+  //
 
-  // Variant does not fall into any transcript
-  if ( pregions->size() == 0 )
+  if ( pregions.size() == 0 )
     {
       annot.insert( SeqInfo( IGR ) );
       return annot;
     }
 
-  // Consider each alternate allele, one at a time
 
+  //
+  // Consider each alternate allele, one at a time
+  //
+
+    
   std::set<std::string> alt = Helper::parseCommaList( alternate );
   std::set<std::string>::iterator a = alt.begin();
   while ( a != alt.end() )
     {
-      // std::cout << "Annotating... " << chr << " " << bp1 << " " << *a <<  "\n";
-      // If insertion we want to annotate - changes made by manny commented below....
-      //      if ( a->size() > 1 )
-      //	{
-      //	  annot.insert( SeqInfo( UNDEF ) ) ;
-      //	  ++a;
-      //	  continue;
-      //	}
-      
-      std::set<Region>::iterator r = pregions->begin();
-      while ( r != pregions->end() )
+
+      //
+      // Consider each transcript supplied, that should overlap this position
+      //
+
+      std::vector<uint64_t>::const_iterator ii = pregions.begin();
+      while ( ii != pregions.end() )
 	{
-	  // Assume that we have exons encoded as sub-regions
+	  
+	  //
+	  // Get actual region, from rmap
+	  //
+	  
+	  Region * r = Annotate::from_cache( *ii );
+
+	  //
+	  // We assume the encoding of CDS/exons/start/stop following the LOCDB convention; this 
+	  // will automatically be the case if a GTF file was loaded into the LOCDB, so this is
+	  // effectively a requirement to use annotation functions (i.e. that the LOCDB was populated 
+	  // with GTFs)
+	  //
+	  
 	  if ( r->subregion.size() == 0 )
 	    {
-	      ++r;
+	      ++ii;
 	      continue;
 	    }
 
+	  //
 	  // Distinguish here between CDS and non-CDS exons
-	  Region r_exon; // only contains CDS (and extra stop-codon)
-	  Region r_cds;  // contains all exons (i.e., will include 3UTR , 5UTR, but not 'stop')
+	  //
 
+	  Region r_exon; // contains all exons (i.e., will include 3UTR , 5UTR, but not 'stop')
+	  Region r_cds;  // only contains CDS (and extra stop-codon)
+	  
 	  for ( int ss=0;ss < r->subregion.size();ss++)
 	    {
+
 	      if ( r->subregion[ss].CDS() || r->subregion[ss].stop_codon() )
 		r_cds.subregion.push_back( r->subregion[ss] );
+	      
 	      else if ( r->subregion[ss].exon() )
 		r_exon.subregion.push_back( r->subregion[ss] );
 	      
 	    }
 	  
+	  //
 	  // Which exon(s) does this mutation impact?  Pull in
 	  // neighbouring exon if needed. Assume all subregions are on
-	  // the same chromosome
+	  // the same chromosome.
+	  //
+
 	  std::set<int> CDS_exons;
 	  int in_CDS_exon = 0;  
 	  int pos = 1;
 	  int in_exon = 0;
 	  
-	  //added this to verify whether or not splice variant is in frame
-	  int notinframe = 0;
+	  //
+	  // Verify whether or not splice variant is in frame
+	  //
 
+	  int notinframe = 0;
+	  
+	  //
 	  // Strand and exon status
+	  //
+	  
 	  bool negative_strand = false;
-	  bool positive_strand = false; //just to check at least one strand is given
+	  bool positive_strand = false; // to check at least one strand is given, test both
 	  
 	  for (int ss=0;ss< r_cds.subregion.size(); ss++)
 	    {
@@ -505,49 +514,68 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      positive_strand = s > 0 ;
 	      break;
 	    }
-	  
+
+	  //
 	  // skip if no strand information	  
+	  //
+
 	  if ( ! ( negative_strand || positive_strand ) )
 	    {
-	      ++r;
+	      ++ii;
 	      continue;
 	    }
 	  
 	  int first_exon = negative_strand ? 0 : r_cds.subregion.size()-1;
 	  int last_exon = negative_strand ? r_cds.subregion.size()-1 : 0;
 
-	  // Does variant fall within an exon, or near an intron/exon splice-site boundary
-	  // size of exons before exon skipping ... Here we assume exon
-	  // skipping for splice variants. We want to distinguish
-	  // between splice variants that lead to NMD and those that
-	  // escape NMD but maintain proper translation frame. MR
-	  int transtruncsize = 0;
+	  //
+	  // Does variant fall within an exon, or near an intron/exon
+	  // splice-site boundary size of exons before exon skipping
+	  // ... Here we assume exon skipping for splice variants. We
+	  // want to distinguish between splice variants that lead to
+	  // NMD and those that escape NMD but maintain proper
+	  // translation frame.
+	  //
 
-	  //want to keep track of the size of the exon i am interested in. MR
+	  int transtruncsize = 0;
+	  
+	  //
+	  // want to keep track of the size of the exon we are interested in
+	  //
+
 	  int sizeexonint = 0;
 
-	  //want to keep track of the size of the transcript where
-	  //final splicing occurs. Cases where this will not work:
-	  //Exon Number = 1. Have not investigated NMD in genes with
-	  //exon size = 1 -- under investigation. MR	  
+	  //
+	  // Keep track of the size of the transcript where
+	  // final splicing occurs. Cases where this will not work:
+	  // Exon Number = 1. Have not investigated NMD in genes with
+	  // exon size = 1 -- under investigation.
+	  //
+
 	  int sizepenult = 0;
 	  
 	  for ( unsigned int s  = 0 ; s < r_cds.subregion.size(); s++)
 	    {
+
+	      //
 	      // let us keep all the exons to compute protein
 	      // truncated variant size and also to evaluate effect of
-	      // splice variants on transcript. Shaun you may have a
-	      // better idea of how to deal with this.MR
+	      // splice variants on transcript. 
+	      //
+
 	      bool bb = true;	      
 
-	      if( bb )
+	      if ( bb )
 		{
+
+		  //
 		  // only if my variant is within an exon boundary
 		  // will i examine all the exons. This may not be
 		  // necessary and may have already been checked. I am
 		  // not sure if this is true so being a bit
 		  // cautious. MR
-			
+		  //
+
 		  if ( bp1 >= r_cds.subregion[s].start.position() &&
 		       bp1 <= r_cds.subregion[s].stop.position() )
 		    {
@@ -558,35 +586,42 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		    }
 		}
 	    }
-	  	  
+	  
+
+	  //
 	  // Is this a SPLICE-SITE?	  
+	  //
+
 	  for ( unsigned int s = 0 ; s < r_exon.subregion.size(); s++ )
 	    {
+
 	      sizeexonint =     r_exon.subregion[s].stop.position() - r_exon.subregion[s].start.position() + 1;
 	      transtruncsize += r_exon.subregion[s].stop.position() - r_exon.subregion[s].start.position() + 1;
 	      pos +=            r_exon.subregion[s].stop.position() - r_exon.subregion[s].start.position() + 1;
 	      
-	      if( s == r_exon.subregion.size() - 2 ){
-		sizepenult = transtruncsize;
-	      }
-	      
+	      if( s == r_exon.subregion.size() - 2 ) sizepenult = transtruncsize;
+	      	      
 	      bool splice = false;
 	      int splicedist = 0;
 	      
+	      //
 	      // Changed splicedist to be defined as - if intronic splice
 	      // Changed to + if splice variant is DONOR  EXON 1 | INTRON | EXON2
 	      //                                            -  321     321
 	      //                                            +     123     123
-
+	      
 	      if ( s != first_exon  &&  abs( r_exon.subregion[s].start.position() - bp1 ) <= 5 )
 		{
+
 		  // This is the modulo 3 of the transcript of all
 		  // exons leading to the exon where splicing will
 		  // occur.
+
 	    	  int splicedtransc = (transtruncsize - sizeexonint) % 3;
 	    	  
 		  // This is the size of the spliced exon assuming
 		  // exon skipping.
+
 		  int splicedexon = sizeexonint % 3;
 
 		  //  If they are equal to each other then we assume
@@ -602,9 +637,10 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		  if ( negative_strand )
 		    {
 		      int in_exonsp = r_exon.subregion.size() - (s);
-
+		      
 		      // donor intronic 2bp splice variants 100%
 		      // conserved GT
+		      
 		      if ( r_exon.subregion[s].start.position()  - bp1 <= 2 && r_exon.subregion[s].start.position() - bp1  > 0 )
 			{
 			  SeqInfo si = SeqInfo( r->name , DONORIN2 );
@@ -759,16 +795,23 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		}	      
 	    }
 	  
+
+	  //
 	  // If no exons attached, implies an intronic SNP (or splice site)
+	  //
+	  
 	  if ( CDS_exons.size() == 0 )
 	    {
 	      // Otherwise
 	      annot.insert( SeqInfo( r->name , INTRON ) );
-	      ++r; // next region
+	      ++ii; // next region
 	      continue;
 	    }
-	  
+	
+	  //
 	  // Get reference sequence
+	  //
+
 	  std::string ref_cds;
 	  std::set<int>::iterator i = CDS_exons.begin();
 	  while ( i != CDS_exons.end() )
@@ -790,7 +833,10 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      ++i;
 	    }
 	  
+	  //
 	  // Get position of our transcript relative to start of gene
+	  //
+
 	  int exon = negative_strand ? r_cds.subregion.size()-1 : 0 ;
 	  int pos_extracted_seq = 0;
 	  int pos_whole_transcript = 0;
@@ -800,7 +846,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      // Count all exons
 	      pos_whole_transcript += r_cds.subregion[ exon ].stop.position()
 		- r_cds.subregion[ exon ].start.position() + 1;
-
+	      
 	      // Count only exons extracted from seqdb
 	      if ( CDS_exons.find( exon ) != CDS_exons.end() )
 		  pos_extracted_seq += r_cds.subregion[ exon ].stop.position() - r_cds.subregion[ exon ].start.position() + 1;
@@ -850,40 +896,53 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	    {
 	      annot.insert( SeqInfo( MONO ) );
 	      // Next region
-	      ++r;
+	      ++ii;
 	      continue;
 	    }
 
-	  // Translate sequence, and populate codon
+
+	  //
+	  // Translate sequence, and populate codon table
+	  //
+	  
 	  std::vector<std::string> ref_codon;
 	  std::vector<std::string> alt_codon;
 	  std::string trans_ref = translate( ref_cds , frame, ref_codon );
 	  std::string trans_var = translate( var_cds , frame, alt_codon );
-
+	  
 	  while( alt_codon.size() > ref_codon.size() )
 	    ref_codon.push_back("_");
 	  while( ref_codon.size() > alt_codon.size() )
             alt_codon.push_back("_");
 
-	  // Synomous change?
+	  //
+	  // Synonymous change?
+	  //
+	  
 	  if ( trans_ref == trans_var )
 	    {
 	      annot.insert( SeqInfo( r->name , SYN ) );
-	      ++r; // next region
+	      ++ii; // next region
 	      continue;
 	    }
+	  
+	  //
+	  // For indels, will need a better check of synon than above...
+	  //
 
-	  // For indels, will need a better check of synon that above...
 	  int longest = trans_ref.size() > trans_var.size() ? trans_ref.size() : trans_var.size();
 	  int transrefsize = trans_ref.size();
 	  int transaltsize = trans_var.size();
 
 	  while ( trans_var.size() < longest ) { trans_var += "_"; }
 	  while ( trans_ref.size() < longest ) { trans_ref += "_"; }
-
+	  
+	  //
 	  // Make calls
-	  std::vector<std::string> difs;
+	  //
 
+	  std::vector<std::string> difs;
+	  
 	  // newpos_stop used indicates at which codon position the
 	  // new reading frame ends in a stop (*). The position of the
 	  // stop is calculated starting at the first changed amino
@@ -901,12 +960,14 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  int isofptv = 0;
 	  int pposfs = 0;
 	  
-	  // changed this from trans_var.size() to longest
+	  // changed this from trans_var.size() to longest	  
 	  for ( unsigned int i=0; i< longest; i++ )
 	    {
+
 	      // for reference -- for substitutions,
 	      // ref allele = ref_cds.substr( pos_extracted_seq-1 , 1 )
 	      // alt allele = var_allele
+
 	      if ( newpos_start > 0 )
 		{
 		  newpos_start++;
@@ -935,7 +996,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		}
 	      if ( trans_ref[i] != trans_var[i] )
 		{
-	    	  // Single base substitution changes - manny.
+	    	  // Single base substitutions
 		  if( reference.size() == (*a).size() && reference.size() == 1 )
 		    {
 		      if ( i == 0 )
@@ -1013,13 +1074,14 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		    }
 		  else
  		    {
-		      // Indel changes - manny.
+		      
+		      // Indel changes
 		      // Frameshift Indels.
 		      // if not modulo 3 consider frameshift -- look
 		      // at assumptions made in beg. We will need to
 		      // change this for indels that start at splicing
 		      // regions? Consider them splice in the meantime
-
+		      
 		      int modtmpr = ( reference.size() - 1 ) % 3;
 		      int modtmpa = ( (*a).size() - 1 ) % 3;
 
@@ -1042,6 +1104,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			      newpos_stop -= 1;
 
 			      // Adding this so we can add ofptv and nmd predictions.
+
 			      SeqInfo si = SeqInfo( r->name ,
 						    type ,
 						    reference ,
@@ -1071,9 +1134,11 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			      
 			      // uncommented the line below - change back to comment
 			      // have to change this for frameshift indels that make elongated transcripts
+
 			      origpepsize = trans_ref.size();
 			      newpepsize = longest;
 			      newpos_stop -= 1;
+			      
 			      SeqInfo si = SeqInfo( r->name ,
 						    type ,
 						    reference ,
@@ -1159,16 +1224,20 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		i = longest;
 	      }
 	    }
-	  ++r;
+	  ++ii;
 	} // next transcript
       // next alternate allele
       ++a;      
     }
 
+  //
+  // other annotations that are usually within locdb regions but not
+  // coding, make UNDEFINED at present
+  //
 
-  // other annotations that are usually within locdb regions but not coding, make UNDEFINED at present
   if( annot.size() == 0 )
     annot.insert(SeqInfo( UNDEF ) );
+
   return annot;  
 }
 
@@ -1185,18 +1254,44 @@ std::string SeqInfo::codon() const
 std::string SeqInfo::genomic() const
 {
   if ( intergenic() || intronic() ) return ".";
+
   return cpos1 == 0 ?
     "." :
     "g." + Helper::int2str( cpos1 ) + genomic_ref + ">" + genomic_alt ;
 }
 
+
 std::string SeqInfo::protein() const
 {
- if ( frameshift() ) return "p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa + ",fsX=" + Helper::int2str( fs_stop ) + ",pepsize=" + Helper::int2str( origpepsize ) + "_" + Helper::int2str(newpepsize) + ",ofptv=" + Helper::int2str( ofptv ) + ",nmd=" + Helper::int2str(nmd) ;
- if ( startlost() ) return "p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa + ",newAUG=" + Helper::int2str( fs_stop ) + ",pepsize=" + Helper::int2str( origpepsize ) + "_" + Helper::int2str(newpepsize) + ",ofptv=" + Helper::int2str( ofptv ) + ",nmd=" + Helper::int2str(nmd) ;
- if ( nonsense() ) return "p." + Helper::int2str( ppos1 ) + ref_aa + ">" + alt_aa + ",pepsize=" + Helper::int2str( origpepsize ) + "_" + Helper::int2str(newpepsize) + ",ofptv=" + Helper::int2str( ofptv ) + ",nmd=" + Helper::int2str(nmd)  ;
- if ( readthrough() ) return "p." + Helper::int2str( ppos1 ) + ref_aa + ">" + alt_aa +  ",pepsize=" + Helper::int2str( origpepsize ) + "_" + Helper::int2str(newpepsize) ;
- if ( intergenic() || intronic() ) return ".";
+  
+  if ( frameshift() ) 
+    return "p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa 
+      + "|FSX=" + Helper::int2str( fs_stop ) 
+      + "|PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) 
+      + "|OFPTV=" + Helper::int2str( ofptv ) 
+      + "|NMD=" + Helper::int2str(nmd) ;
+
+  if ( startlost() ) 
+    return "p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa 
+      + "|NEWAUG=" + Helper::int2str( fs_stop ) 
+      + "|PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) 
+      + "|OFPTV=" + Helper::int2str( ofptv ) 
+      + "|NMD=" + Helper::int2str(nmd) ;
+  
+  if ( nonsense() ) 
+    return "p." + Helper::int2str( ppos1 ) 
+      + ref_aa + ">" + alt_aa 
+      + "|PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) 
+      + "|OFPTV=" + Helper::int2str( ofptv ) 
+      + "|NMD=" + Helper::int2str(nmd)  ;
+  
+  if ( readthrough() ) 
+    return "p." + Helper::int2str( ppos1 ) 
+      + ref_aa + ">" + alt_aa 
+      + "|PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) ;
+  
+  if ( intergenic() || intronic() ) return ".";
+  
   return ppos1 == 0 ?
     "." :
     "p." + Helper::int2str( ppos1 ) + ref_aa + ">" + alt_aa ;
@@ -1205,38 +1300,43 @@ std::string SeqInfo::protein() const
 
 void Annotate::init()
 {
+  
   rmap.clear();
-  transcript_group_id = 0;
-
+  transcript_group_id = 0;  
   seqdb = &(GP->seqdb);
   if ( ! db ) setDB( LOCDB );
+  
+  
+  // These are not actually used, currently, so comment out
 
   // Add slot for additions
-
+  
   MetaInformation<VarMeta>::field( "_ANNOT" , META_INT , 1 , "Annotation" );
+  
+  // MetaInformation<VarMeta>::field( "_SYN" , META_TEXT , -1 , "Synonymous allele" );
+  // MetaInformation<VarMeta>::field( "_MIS" , META_TEXT , -1 , "Missense allele" );
+  // MetaInformation<VarMeta>::field( "_NON" , META_TEXT , -1 , "Nonsense allele" );
+  // MetaInformation<VarMeta>::field( "_PART" , META_TEXT , -1 , "Partial codon" );
+  // MetaInformation<VarMeta>::field( "_SPLICE" , META_TEXT , -1 , "Splice-site" );
+  // MetaInformation<VarMeta>::field( "_ESPLICE" , META_TEXT , -1 , "Essential splice-site" );
+  // MetaInformation<VarMeta>::field( "_SL" , META_TEXT , -1 , "Start-lost" );
+  // MetaInformation<VarMeta>::field( "_INTRON" , META_TEXT , -1 , "Intronic") ;
+  // MetaInformation<VarMeta>::field( "_FRAMESHIFT" , META_TEXT , -1 , "Frameshift allele");
 
-  MetaInformation<VarMeta>::field( "_SYN" , META_TEXT , -1 , "Synonymous allele" );
-  MetaInformation<VarMeta>::field( "_MIS" , META_TEXT , -1 , "Missense allele" );
-  MetaInformation<VarMeta>::field( "_NON" , META_TEXT , -1 , "Nonsense allele" );
-  MetaInformation<VarMeta>::field( "_PART" , META_TEXT , -1 , "Partial codon" );
-  MetaInformation<VarMeta>::field( "_SPLICE" , META_TEXT , -1 , "Splice-site" );
-  MetaInformation<VarMeta>::field( "_ESPLICE" , META_TEXT , -1 , "Essential splice-site" );
-  MetaInformation<VarMeta>::field( "_SL" , META_TEXT , -1 , "Start-lost" );
-  MetaInformation<VarMeta>::field( "_INTRON" , META_TEXT , -1 , "Intronic") ;
-  MetaInformation<VarMeta>::field( "_FRAMESHIFT" , META_TEXT , -1 , "Frameshift allele");
-// made changes here for indels
-  MetaInformation<VarMeta>::field( "_CODONDELETION" , META_TEXT , -1 , "Codon-deletion allele");
-  MetaInformation<VarMeta>::field( "_CODONINSERTION" , META_TEXT , -1 , "Codon-insertion allele");
-  MetaInformation<VarMeta>::field( "_STOPDELETION" , META_TEXT , -1 , "Stop-deletion allele");
-  MetaInformation<VarMeta>::field( "_STOPINSERTION" , META_TEXT , -1 , "Stop-insertion allele");
-  MetaInformation<VarMeta>::field( "_OOFCODONDELETION" , META_TEXT , -1 , "Out of frame Codon-deletion allele");
-  MetaInformation<VarMeta>::field( "_OOFCODONINSERTION" , META_TEXT , -1 , "Out of frame Codon-insertion allele");
- // change stops here
-  MetaInformation<VarMeta>::field( "_READTHROUGH" , META_TEXT , -1 , "Read-through allele");
-  MetaInformation<VarMeta>::field( "_5UTR" , META_TEXT , -1 , "5' UTR" );
-  MetaInformation<VarMeta>::field( "_3UTR" , META_TEXT , -1 , "3' UTR" );
-  MetaInformation<VarMeta>::field( "_IGR" , META_TEXT , -1 , "Intergenic region");
-  MetaInformation<VarMeta>::field( "_MONO" , META_TEXT , -1 , "Monomorphic");
+  // made changes here for indels
+  // MetaInformation<VarMeta>::field( "_CODONDELETION" , META_TEXT , -1 , "Codon-deletion allele");
+  // MetaInformation<VarMeta>::field( "_CODONINSERTION" , META_TEXT , -1 , "Codon-insertion allele");
+  // MetaInformation<VarMeta>::field( "_STOPDELETION" , META_TEXT , -1 , "Stop-deletion allele");
+  // MetaInformation<VarMeta>::field( "_STOPINSERTION" , META_TEXT , -1 , "Stop-insertion allele");
+  // MetaInformation<VarMeta>::field( "_OOFCODONDELETION" , META_TEXT , -1 , "Out of frame codon-deletion allele");
+  // MetaInformation<VarMeta>::field( "_OOFCODONINSERTION" , META_TEXT , -1 , "Out of frame codon-insertion allele");
+
+  // change stops here
+  // MetaInformation<VarMeta>::field( "_READTHROUGH" , META_TEXT , -1 , "Read-through allele");
+  // MetaInformation<VarMeta>::field( "_5UTR" , META_TEXT , -1 , "5' UTR" );
+  // MetaInformation<VarMeta>::field( "_3UTR" , META_TEXT , -1 , "3' UTR" );
+  // MetaInformation<VarMeta>::field( "_IGR" , META_TEXT , -1 , "Intergenic region");
+  // MetaInformation<VarMeta>::field( "_MONO" , META_TEXT , -1 , "Monomorphic");
 
 }
 
@@ -1482,3 +1582,122 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
 
   return trans_ref;
 }
+
+
+
+//
+// Helper functions
+//
+
+std::string Annotate::translate(std::string & seq, int frame , std::vector<std::string> & codons )
+{
+  Helper::str2upper(seq);
+  
+  if ( seq.size() - frame == 1 ) seq += "-";
+  else if ( seq.size() - frame == 2 ) seq += "--";
+  
+  std::string trans = "";
+  codons.clear();
+  
+  for (unsigned int i = frame; i<seq.size(); i+=3)
+    {
+      std::string codon = seq.substr( i,3 );
+      codons.push_back( codon );
+      
+      if ( codon.find("-") != std::string::npos )
+	trans += "i";
+      else
+	{
+	  std::string tmp = t[ codon ];
+	  if ( tmp == "" ) tmp = "?";
+	  trans += tmp;
+	}
+    }
+  return trans;
+}
+
+
+std::string Annotate::getrc(const std::string & s)
+{
+  int sz = s.size();
+  std::string r;
+  for ( int i = 0 ; i < sz ; i++ )
+    {
+      if      ( s[i] == 'a' ) r += "t";
+      else if ( s[i] == 'c' ) r += "g";
+      else if ( s[i] == 'g' ) r += "c";
+      else if ( s[i] == 't' ) r += "a";
+      else if ( s[i] == 'A' ) r += "T";
+      else if ( s[i] == 'C' ) r += "G";
+      else if ( s[i] == 'G' ) r += "C";
+      else if ( s[i] == 'T' ) r += "A";
+      else r += "N";
+    }
+  reverse( r.begin(), r.end() );
+  return r;
+}
+
+
+
+
+// bool Annotate::load_transcripts( fType t , const std::string & name )
+// {
+//   init();
+//   setDB(t);
+//   if ( ( ! db ) || ( ! db->attached() ) ) return false;
+//   uint64_t id = db->lookup_group_id( name );
+//   if ( id == 0 ) return false;
+//   return load_transcripts( db->lookup_group_id( name ) );
+// }
+
+
+
+// bool Annotate::load_transcripts( uint64_t id )
+// {
+//   init();
+//   transcript_group_id = 0;
+//   rmap.clear();
+//   if ( ( ! db ) || ( ! db->attached() ) ) return false ;
+//   if ( id == 0 ) return false;
+//   std::set<Region> regions = db->get_regions( id );
+  
+//   std::set<Region>::iterator i = regions.begin();
+//   while ( i != regions.end() )
+//     {
+//       rmap[ i->id ] = *i;
+//       ++i;
+//     }
+//   transcript_group_id = id;
+//   return true;
+// }
+
+
+// bool Annotate::load_transcripts( const std::string & grp , const std::set<Region> & regions )
+// {
+//   init();
+//   setDB( LOCDB );
+//   if ( ( ! db ) || ( ! db->attached() ) ) return false;
+//   uint64_t id = db->lookup_group_id( grp );
+//   if ( id == 0 ) return false;
+//   return load_transcripts( id , regions );
+// }
+
+
+// bool Annotate::load_transcripts( uint64_t id , const std::set<Region> & regions )
+// {
+//   init();
+//   transcript_group_id = 0;
+//   rmap.clear();
+//   if ( ( ! db ) || ( ! db->attached() ) ) return false ;
+//   if ( id == 0 ) return false;
+//   std::set<Region>::iterator i = regions.begin();
+//   while ( i != regions.end() )
+//     {
+//       rmap[ i->id ] = *i;
+//       ++i;
+//     }
+//   transcript_group_id = id;
+//  return true;
+// }
+
+

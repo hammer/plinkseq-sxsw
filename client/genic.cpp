@@ -11,7 +11,7 @@ const double EPS = 1e-8;
 extern GStore g;
 extern Pseq::Util::Options args;
 
-void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )  
+void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux , AuxGenic * data )  
 {
 
   // Track observed min/max minor allele counts
@@ -25,6 +25,25 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
   aux->altmin.resize( vars.size() , true );
   aux->maf.resize( vars.size() , 0 );
 
+  // Generic weights
+  aux->use_wgt = data->weights;
+  if ( data->weights )
+    {
+
+      aux->wgt.resize( vars.size() , 0 );
+
+      meta_index_t midx = MetaInformation<VarMeta>::field( data->weight_tag );
+      
+      if ( midx.mt != META_FLOAT && midx.len != 1 ) 
+	Helper::halt( "expecting --weights tag to be a scalar Float" );
+      
+      for ( int v = 0 ; v < vars.size(); v++ )
+	{
+	  if ( vars(v).meta.has_field( data->weight_tag ) )
+	    aux->wgt[v] = vars(v).meta.get1_double( data->weight_tag );
+	}
+    }
+  
   for ( int v = 0 ; v < vars.size(); v++ )
    {
       
@@ -86,6 +105,7 @@ void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux )
 	    aux->carriers[i].insert( v );		  	  	      
 	}
     }
+
 }
 
 
@@ -187,47 +207,61 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 			       bool original )
 {
 
+    // for original data, represent the breakdown of variants in a nice manner
+  Out * pdet = original ? &Out::stream( "assoc.det" ) : NULL ;
+
   const int n = vars.n_individuals();
 
-  int cnt_a = 0, cnt_u = 0;      // basic counts
-  int all_a = 0, all_u = 0;      // all non-missing allele-counts
+  double cnt_a = 0, cnt_u = 0;      // basic counts
+  double all_a = 0, all_u = 0;      // all non-missing allele-counts
 
-  int unq_a = 0;                 // uniq case counts 
-  int unq_u = 0;                 // likewise for controls
+  double unq_a = 0;                 // uniq case counts 
+  double unq_u = 0;                 // likewise for controls
 
-  double chi2 = 0;               // 2-by-2 X^2 statistics sum
+  double chi2 = 0;                  // 2-by-2 X^2 statistics sum
 
-  std::vector<int> ghits(n,0);   // multi-hit instances
-  int multi_a = 0 , multi_u = 0; // multiple-hit test counts
+  // 'mhit' test is unweighted
+  std::vector<int> ghits(n,0);      // multi-hit instances
+  int multi_a = 0 , multi_u = 0;    // multiple-hit test counts
 
-  for (int v=0; v<vars.size(); v++ ) 
+  for (int v=0; v < vars.size(); v++ ) 
     {
       
-      int alta = 0 , altu = 0; 
-      int refa = 0 , refu = 0;
+      double alta = 0 , altu = 0; 
+      double refa = 0 , refu = 0;
       
+      double w = pre->use_wgt ? pre->wgt[v] : 1;
+      
+      bool adir = pre->refmin.find(v) == pre->refmin.end();
+      
+      bool obsu = false; // this variant seen in any controls?
+      bool obsa = false; // or cases
+
       for (int i = 0; i < n; i++)
 	{
-
+	  
 	  // missing genotype?
-	  if( vars.geno(v,i).null() ) continue;
+	  if ( vars.geno(v,i).null() ) continue;
 	  
 	  // get (permuted) phenotype
 	  int j = g.perm.pos( i );	  
 	  affType aff = vars.ind( j )->affected();
 	  
 	  // allele-count
-	  if ( vars.geno(v,i).minor_allele( pre->refmin.find(v) 
-					    == pre->refmin.end() ) )
+	  if ( vars.geno(v,i).minor_allele( adir ) )
 	    {	      
-	      if ( aff == CASE ) alta++; 
-	      else if ( aff == CONTROL ) altu++;
-	      if ( aux->mhit ) ghits[i]++;
+	      
+	      if      ( aff == CASE )    { alta += w; obsa = true; } 
+	      else if ( aff == CONTROL ) { altu += w; obsu = true; }
+	      
+	      if      ( aux->mhit ) ghits[i]++;
+	      
 	    }
 	  else
 	    {
-	      if ( aff == CASE ) refa++; 
-	      else if ( aff == CONTROL ) refu++;	
+	      if      ( aff == CASE )    refa += w; 
+	      else if ( aff == CONTROL ) refu += w;	
+	      
 	    }	      
 	}
 
@@ -236,8 +270,10 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
       chi2 += Helper::chi2x2( alta , altu , refa , refu );
       
       // counting sites, not alleles (collapse 1+ --> 1)
+      // TODO -- need to fix to make this weighted
       if ( aux->site_burden ) 
 	{
+	  Helper::halt("not implemented");
 	  alta = alta ? 1 : 0; 
 	  altu = altu ? 1 : 0;
 	}
@@ -248,15 +284,23 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
       
       all_a += alta + refa;
       all_u += altu + refu;
-
-      // case-unique burden 
-      if ( altu == 0 || alta == 0 ) 
+      
+      // case/control-unique burden 
+      if ( obsa != obsu )
 	{
 	  unq_a += alta;
 	  unq_u += altu;
 	}
       
-
+      if ( pdet ) 
+	*pdet << vars.name() << "\t"
+	      << vars(v) << "\t"
+	      << vars(v).reference() << "/" << vars(v).alternate() << "\t"
+	      << "W="<< w << "\t"
+	      << alta << ":" << altu << "\n";
+      
+	
+      
     } // next variant
 
   
@@ -281,39 +325,25 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 
   // use -log10(p) from Fisher's exact test; but 1-sided (so require higher alt-allele freq. in cases
   if ( all_a == 0 || all_u == 0 || cnt_a / (double)all_a <= cnt_u / (double)all_u ) 
-    {
-      aux->stat_burden = 0; 
-    }
+    aux->stat_burden = 0; 
   else 
-    {
-      aux->stat_burden = Helper::chi2x2( cnt_a , cnt_u , all_a - cnt_a , all_u - cnt_u );
-//       if ( ! fisher( Table( cnt_a , cnt_u , all_a - cnt_a , all_u - cnt_u ) , &aux->stat_burden ) ) aux->stat_burden = 0;       
-//       else 
-// 	{
-// 	  aux->stat_burden = fabs( 1.00 - aux->stat_burden ) < EPS ? 0 : -log10( aux->stat_burden );	
-// 	}
-    }
-
+    aux->stat_burden = Helper::chi2x2( cnt_a , cnt_u , all_a - cnt_a , all_u - cnt_u );
+  
   // uniq-burden test
+
   if ( all_a == 0 || all_u == 0 || unq_a / (double)all_a <= unq_u / (double)all_u ) 
     aux->stat_uniq = 0; 
   else 
-    {
-      aux->stat_uniq = Helper::chi2x2( unq_a , unq_u , all_a - unq_a , all_u - unq_u );
-    
-//       if ( ! fisher( Table( unq_a , unq_u , all_a - unq_a , all_u - unq_u ) , &aux->stat_uniq ) ) aux->stat_uniq = 0; 
-//       else 
-// 	{
-// 	  // avoid floating-point error in log10()
-// 	  aux->stat_uniq = fabs( 1.00 - aux->stat_uniq ) < EPS ? 0 : -log10( aux->stat_uniq );	
-// 	}
-//     }
-    }
+    aux->stat_uniq = Helper::chi2x2( unq_a , unq_u , all_a - unq_a , all_u - unq_u );    
+
+
+  // MHIT test (not really used now)
 
   aux->stat_mhit = multi_a - multi_u;
   
 
   // any output?
+
   if ( original ) 
     {      
 
@@ -323,8 +353,10 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 	
       if ( aux->mhit ) 
  	output->insert(make_pair( "MHIT" , 
- 				 Helper::int2str( multi_a ) 
- 				 + "/" + Helper::int2str( multi_u ) ) );
+				  Helper::int2str( multi_a ) 
+				  + "/" + Helper::int2str( multi_u ) ) );
+
+
     }
   
   

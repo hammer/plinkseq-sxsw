@@ -13,7 +13,8 @@ namespace Pseq
   
   namespace Assoc
   {
-    
+
+    struct AuxGenic;
     struct Aux_prelim;
     struct Aux_burden;
     struct Aux_calpha;
@@ -24,7 +25,7 @@ namespace Pseq
     struct Aux_two_hit;
     struct Aux_skat;
 
-    void  prelim( const VariantGroup & vars , Aux_prelim * aux );
+    void  prelim( const VariantGroup & vars , Aux_prelim * aux , AuxGenic * data );
     
     void stat_burden( const VariantGroup & vars , 
 		      Aux_prelim * pre , 
@@ -82,6 +83,8 @@ namespace Pseq
       { 
 	g=NULL;
 	rseed=0; 
+	weights = false;
+	weight_tag = "";
 	fix_null_genotypes = true;
 	dump_stats_matrix = false;
 	show_info = false; 
@@ -125,7 +128,9 @@ namespace Pseq
       bool show_info;
       bool show_midbp;
       bool dump_stats_matrix;
-      
+      bool weights;
+      std::string weight_tag;
+
       // genic tests      
       bool mhit;
       bool vanilla;
@@ -160,6 +165,7 @@ namespace Pseq
       std::map<int,int> mc;            // key=#minor alleles,value=#variants   
       std::map<std::string,int> mc_a;  // count in affecteds
       
+      bool use_wgt;
       std::vector<double> wgt;         // generic weights
 
       std::vector<double> maf;         // MAF (of minor allele always)
