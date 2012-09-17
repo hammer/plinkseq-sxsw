@@ -207,6 +207,7 @@ class Annotate {
     
     static uint64_t transcript_group_id;
 
+
     /* static bool load_transcripts( uint64_t id ); */
 
     /* static bool load_transcripts( uint64_t id , const std::set<Region> & ); */
@@ -257,22 +258,9 @@ class Annotate {
     static bool annotate(Variant & var , const Region & );
     static bool annotate(Variant & var , const std::set<Region> & );
 
-
-    /* static bool load_transcripts( fType d , const std::string & ); */
+    // other helper functions: pull a region from the store:
+    static Region * pointer_to_region( const std::string & );
     
-    /* static bool load_transcripts( const std::string &  , const std::set<Region> & );  */
-
-
-    /* static std::set<SeqInfo> lookup(Variant & var); */
-    
-    /* static std::set<SeqInfo> annotate( int chr,  */
-    /* 				       int bp1 ,  */
-    /* 				       const std::string & alternate ,  */
-    /* 				       const std::string & reference ,  */
-    /* 				       const Region & r ); */
-
-
-   
     static std::string translate_reference( const Region & region , bool verbose = false);
     
 };

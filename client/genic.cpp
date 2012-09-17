@@ -347,9 +347,9 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
   if ( original ) 
     {      
 
-      (*output)["BURDEN"] = Helper::int2str( cnt_a ) + "/" + Helper::int2str( cnt_u );
+      (*output)["BURDEN"] = Helper::dbl2str( cnt_a ) + "/" + Helper::dbl2str( cnt_u );
       
-      (*output)["UNIQ"] = Helper::int2str( unq_a ) + "/0";
+      (*output)["UNIQ"] = Helper::dbl2str( unq_a ) + "/0";
 	
       if ( aux->mhit ) 
  	output->insert(make_pair( "MHIT" , 

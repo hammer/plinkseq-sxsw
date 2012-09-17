@@ -79,13 +79,17 @@ class RefVariant {
       
       if ( bp2 < rhs.bp2 ) return true;
       if ( bp2 > rhs.bp2 ) return false;
-      
+
+      // only use ALT if defined, otherwise match all
+      if ( alt == "" || alt == "." || rhs.alt == "" || rhs.alt == "." ) 
+	return false;
+
       return alt < rhs.alt;
 
     }
     
   std::string name() const { return rname; }
-  void name(const std::string n) { rname = n; }
+  void name(const std::string & n) { rname = n; }
   
   std::string value() const { return rvalue; }
   void value(const std::string & s) { rvalue = s; }

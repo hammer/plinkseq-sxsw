@@ -112,6 +112,13 @@ bool Annotate::set_transcript_group( const std::string & grp )
   return true;
 }
 
+Region * Annotate::pointer_to_region( const std::string & name )
+{
+  if ( ! db ) return NULL;
+  uint64_t loc_id = db->get_region_id( transcript_group_id , name );
+  return from_cache( loc_id );
+}
+
 Region * Annotate::from_cache( uint64_t id )
 {
   std::map<uint64_t,Region>::iterator ii = rmap.find( id );
@@ -1245,7 +1252,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 
 std::string SeqInfo::codon() const
 {
-  if ( intergenic() || intronic() ) return ".";
+  if ( intergenic() || intronic() || codondeletion() || codoninsertion() || frameshift() ) return ".";
   return cpos1 == 0 ?
     "." :
     "c." + Helper::int2str( cpos1 ) + ref_seq + ">" + alt_seq ;
@@ -1289,7 +1296,9 @@ std::string SeqInfo::protein() const
     return "p." + Helper::int2str( ppos1 ) 
       + ref_aa + ">" + alt_aa 
       + "|PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) ;
-  
+
+  if ( codondeletion() || codoninsertion() ) return ".";
+
   if ( intergenic() || intronic() ) return ".";
   
   return ppos1 == 0 ?

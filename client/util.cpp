@@ -511,6 +511,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "force-consensus" , NONE , "set all tags to consensus" );
     
     reg( "vmeta", NONE, "show variant meta-information" );
+    reg( "append-meta" , STRING_VECTOR , "on-the-fly appending of meta-information");
     reg( "samples", NONE, "show each specific sample variant");
     reg( "verbose", NONE, "verbose output");
     reg( "geno", NONE, "show genotypes");

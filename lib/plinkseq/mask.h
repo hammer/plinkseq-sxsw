@@ -349,6 +349,15 @@ class Mask {
   bool load_genotype_meta( const std::string & m ) const;
   void set_load_genotype_meta( const std::string & m );
 
+  //
+  // Directly attach meta-information from a file
+  //
+
+  bool onthefly_append() const { return otf_meta_append; }  
+  void onthefly_attach_from_file( const std::string & filename );
+  void onthefly_attach_to_variant( Variant & parent );
+
+  
 
   //
   // If a problem occurred by a routine trying to make a mask, then
@@ -1626,6 +1635,8 @@ class Mask {
 	merge_mode = MERGE_MODE_EXACT;
 	downcode_mode = DOWNCODE_MODE_ALL_ALT;
 	em_threshold = 0;
+	otf_meta_append = false;
+	otf_meta.clear();
 	will_attach_meta = false;
 	will_attach_all_meta = false;
 	req_biallelic = false;
@@ -1875,8 +1886,15 @@ class Mask {
     bool will_attach_meta;
     bool will_attach_all_meta;
     std::set<std::string> meta_fields;
-
-
+    
+    //
+    // On the-fly meta-information
+    //
+    
+    bool otf_meta_append;
+    std::map<RefVariant,MetaInformation<RefMeta> > otf_meta;
+    
+    
     //
     // Bialleic SNP status
     //

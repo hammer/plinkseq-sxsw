@@ -201,8 +201,8 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "meta" , "str-list" , "include variants passing any meta-field criterion" );
   mask_add( s , g , c++ , gl , "meta.req"  , "str-list" , "require variants passing all meta-field criteria" ); 
   mask_add( s , g , c++ , gl , "meta.attach" , "str-list" , "attach meta-fields uploaded to VARDB" );
-
-
+  mask_add( s , g , c++ , gl , "meta.file" , "str-list" , "on-the-fly append meta-fields directly from a file" );
+  
   // Presence/frequency masks
   
   // Frequency 
@@ -830,7 +830,18 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 	  attach_meta_fields(s[i]);
     }
 
+  //
+  // Directly attach meta-information from a file
+  //
+
+  if ( m.has_field( "meta.file" ) )
+    {
+      std::vector<std::string> s = m.get_string( "meta.file" );
+      for (int i=0; i<s.size(); i++)
+	onthefly_attach_from_file( s[i] );
+    }
   
+
   //
   // Include/exclude biallelic SNPs
   // 
@@ -4830,3 +4841,190 @@ bool Mask::test_allele_ex( const std::string & ref , const std::string & alt )
 {
   return ! test_allele( ref , alt );
 }
+
+
+void Mask::onthefly_attach_from_file( const std::string & filename )
+{
+
+  if ( ! Helper::fileExists( filename ) ) 
+    Helper::halt( "trouble opening " + filename );
+  
+  int inserted = 0;
+
+  otf_meta_append = true; 
+  InFile F( filename );
+  
+  std::map<std::string,mType> types;
+
+  while ( ! F.eof() )
+    {
+      
+      std::string line = F.readLine();
+	    
+      if ( line == "" ) continue;
+      if ( F.eof() ) break;
+      
+      //
+      // Is this a header field? 
+      // ##Name,Len,Type,"Description"
+      // ##DB,1,Flag,"In dbSNP"
+      //
+
+      if ( line.substr(0,2) == "##" ) 
+	{
+	  
+	  // strip leading ## and tokenize
+
+	  std::vector<std::string> tok = Helper::quoted_parse( line.substr(2) );
+	  
+	  std::string name = "";
+	  int num = -9;
+	  std::string type = "";
+	  mType mt = META_UNDEFINED;
+	  std::string desc;
+  
+	  if ( tok.size() != 4 ) 
+	    {
+	      plog.warn("could not parse header row (expcting ##name,length,type,desc)",
+			line );
+	      continue;
+	    }
+
+	  name = tok[0];
+	  if ( ! Helper::str2int( tok[1] , num ) ) num = -1;
+	  type = tok[2];
+	  desc = tok[3];
+  
+	  if      ( Helper::is_int( type ) ) mt = META_INT;
+	  else if ( Helper::is_float( type ) ) mt = META_FLOAT;
+	  else if ( Helper::is_text( type ) ) mt = META_TEXT;
+	  else if ( Helper::is_flag( type ) ) { mt = META_FLAG; }
+  
+	  //
+	  // Does this contain valid information?
+	  //
+
+	  if ( name == "" || mt == META_UNDEFINED || num < -1 ) continue;
+
+	  // Add as a RefVariant and VarMeta
+	  
+	  MetaInformation<RefMeta>::field( name , mt , num , desc );
+	  MetaInformation<VarMeta>::field( name , mt , num , desc );
+
+	  types[ name ] = mt;
+
+	  // go to next line
+	  continue;
+	}
+      
+      
+      // Otherwise, assume contains data, tab-delimited
+      //  Variant   Key  Value
+      
+      std::vector<std::string> tok = Helper::parse( line , "\t" );
+      
+      if ( tok.size() != 3 ) 
+	{
+	  plog.warn("skipping row of input, not 3 tab-delimited fields",line);
+	  continue;
+	}
+      
+
+      // have we seen this variable?
+      
+      if ( types.find( tok[1] ) == types.end() ) 
+	{
+	  plog.warn( "type not defined in header, skipping" , line );
+	  continue;
+	}
+
+      mType mt = types[ tok[1] ];
+
+
+      //
+      // Resolve variant specifier -- positional or ID-based?
+      //
+      
+      bool is_region = false;
+      Region r( tok[0] , is_region );
+	    
+      RefVariant rkey;
+      RefVariant rvar;
+
+      if ( is_region )
+	{
+	  rkey.chromosome( r.chromosome() );
+	  rkey.start( r.start.position() );
+	  rkey.stop( r.stop.position() );
+	}
+      else // or based on ID
+	{
+	  rkey.name( r.name );
+	}
+      
+
+      //
+      // Insert for each specified variant/file combination
+      //
+
+      
+      std::string & skey = tok[1];
+      std::string & value = tok[2];
+
+      // store in on-the-fly table
+
+      MetaInformation<RefMeta> & m = otf_meta[ rkey ];
+
+      if      ( mt == META_INT )
+	{
+	  int x;
+	  if ( Helper::str2int( value , x ) )
+	    m.set( skey , x );
+	}
+      else if ( mt == META_FLOAT )
+	{
+	  double x;
+	  if ( Helper::str2dbl( value , x ) )
+	    m.set( skey , x );
+	}
+      else if ( mt == META_TEXT )
+	{
+	  m.set( skey , value );
+	}
+      else if ( mt == META_FLAG && value != "0" && value != "F" )
+	{
+	  m.set( skey );
+	}
+      
+      ++inserted;
+      
+    }  // next line of input 
+
+  plog << "read " << inserted 
+       << " variant/value pairs from " << filename << "\n";
+
+  F.close();
+}
+
+
+void Mask::onthefly_attach_to_variant( Variant & parent )
+{
+
+  RefVariant rkey( 0 , 
+		   parent.name() , 
+		   parent.chromosome() , 
+		   parent.position() , 
+		   parent.stop() , 
+		   "" , "" , "" );
+  
+  std::map<RefVariant,MetaInformation<RefMeta> >::iterator ii = otf_meta.find( rkey );
+
+  // Nothing found
+  if ( ii == otf_meta.end() ) return;
+  
+  // Else append  
+  parent.meta.append( ii->second );
+
+
+}
+

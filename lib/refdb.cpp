@@ -1040,8 +1040,6 @@ bool RefDBase::annotate( Variant & v , const int grp_id )
       
       r.meta.parse( r.value() , ';' , false ,  &gname  );
 
-      //v.meta.append( r.meta , gname ); // old version explicitly appended group name
-      
       v.meta.append( r.meta );           // now already done internally      
       
     }

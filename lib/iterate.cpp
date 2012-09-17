@@ -1011,7 +1011,7 @@ bool VarDBase::eval_and_call( Mask & mask,
 	      attach_indep_metadata( svar.index() , *vmeta_target , var , &s );
 	    }
 	}
-      
+
       
       // These filters are based on QUAL and FILTER fields -- these
       // will travel with target, not vmeta_target 
@@ -1237,6 +1237,16 @@ bool VarDBase::eval_and_call( Mask & mask,
 	  if ( fnd.size() != req.size() ) return false;
 	  if ( use_inc && (!inc1) && (!use_req) ) return false;
 	}
+    }
+  
+
+  //
+  // Append ref-variant information, but directly from a file (on-the-fly) instead of a REFDB
+  //
+  
+  if ( mask.onthefly_append() )
+    {
+      mask.onthefly_attach_to_variant( var );
     }
   
   
