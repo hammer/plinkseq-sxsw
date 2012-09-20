@@ -85,12 +85,16 @@ void g_geneseq( VariantGroup & vars , void * p )
   std::set<RefVariant>::iterator i = rvars.begin();
   while ( i != rvars.end() ) 
     {
+
       // for now, just place 'start' of reference-variant events
       //int pos = positive_strand ? i->start() : - i->start() ; 
       int pos = i->start();
       events.insert( pos );
       erefvars[ pos ] = &(*i);
       ++i;
+
+      std::cout << "found " << pos << "\n";
+
     }
   
   pout << vars.name() << " | "
@@ -226,7 +230,7 @@ void g_geneseq( VariantGroup & vars , void * p )
 	      printing = true;
 
 	      // space a new one
-	      if ( ( ! aux->only_variant_sites ) || exon == 0  ) pout << "\n";
+	      if ( ! aux->only_variant_sites ) pout << "\n";
 
 	    }
 	  else if ( elocstop.find( searchbp - ( 7 + (3 - cpos)  )  ) != elocstop.end() ) printing = false; 	  	  
@@ -237,7 +241,7 @@ void g_geneseq( VariantGroup & vars , void * p )
 	    {
 	      printing = true;
 	      // space a new one
-	      if ( ( ! aux->only_variant_sites ) || exon == 0  ) pout << "\n";
+	      if ( ! aux->only_variant_sites ) pout << "\n";
 	    }
 	  else if ( elocstart.find( searchbp + 7 + (3-cpos) ) != elocstart.end() ) printing = false;
 	}
@@ -275,8 +279,6 @@ void g_geneseq( VariantGroup & vars , void * p )
 	     ) 
 	  {
 	    
-	    //	    std::cout << "ENDING CDS\n";
-
 	    cds = false;
 	    
 	    // track last exon code, for use printing introns
@@ -317,8 +319,9 @@ void g_geneseq( VariantGroup & vars , void * p )
       // append variant information
       //
 
-      if ( evars.find( searchbp ) !=  evars.end() )
+      if ( printing && evars.find( searchbp ) !=  evars.end() )
 	{
+	  
 	  const Variant * pvar = evars.find( searchbp )->second;
 
 	  has_evar = true;
@@ -359,34 +362,55 @@ void g_geneseq( VariantGroup & vars , void * p )
 	  
 	  ss2 << "|";
 	  
-	  if ( ! pvar->meta.has_field( PLINKSeq::META_ANNOT() ) )
-	    {
-	      bool exonic = Annotate::annotate( (Variant&)*pvar , region );
-	      ss2 << pvar->meta.get1_string( PLINKSeq::ANNOT_TYPE() );
-	      if ( exonic ) 
-		{	  		  
-		  ss2 << "|" << pvar->meta.get1_string( PLINKSeq::ANNOT_PROTEIN() );
+
+	  // always use PSEQ engine for annotation
+	  // 	  if ( pvar->meta.has_field( PLINKSeq::META_ANNOT() ) )
+	  // 	    ss2 << pvar->meta.get1_string( PLINKSeq::META_ANNOT() );
+	  // 	    {
+	  // 	  else 
+	  
+	  bool exonic = Annotate::annotate( (Variant&)*pvar , region );
+	      
+	  // pull out correct transcript annotation
+	  std::vector<std::string> annot = pvar->meta.get_string( PLINKSeq::ANNOT_TYPE() );
+	  std::vector<std::string> annot_trans = pvar->meta.get_string( PLINKSeq::ANNOT_GENE() );
+	  std::vector<std::string> annot_prot = pvar->meta.get_string( PLINKSeq::ANNOT_PROTEIN() );
+	  
+	  std::string a = ".";
+	  std::string ap = ".";
+	  
+	  if ( annot.size() == annot_trans.size() && annot.size() == annot_prot.size() )
+	    {				
+	      for( int i=0;i<annot.size(); i++)
+		{		  
+		  if ( annot_trans[i] == vars.name() ) 
+		    {		      
+		      a = annot[i]; ap = annot_prot[i];
+		    }
 		}
 	    }
-	  else
-	    ss2 << pvar->meta.get1_string( PLINKSeq::META_ANNOT() );
+	  
+	  ss2 << a ;
+	  if ( exonic ) 
+	    {	  		  
+	      ss2 << "|" << ap;
+	    }
+	  
+	      
 	  
 	  ss2 << "]";
 	  
-	  // CURRENTLY, ONLY APPEND CDS VARIANTS:
+	  if ( varannot != "" ) varannot += " ";
+	  varannot += ss2.str();
 	  
-	  if ( cds )
-	    {
-	      
-	      if ( varannot != "" ) varannot += " ";
-	      varannot += ss2.str();
-	    }
 	}
   
-      
+
+      //
       // append ref-variant information
-      
-      if ( cds && erefvars.find( searchbp ) !=  erefvars.end() )
+      //
+
+      if ( printing && erefvars.find( searchbp ) !=  erefvars.end() )
 	{
 	  const RefVariant * refvar = erefvars.find( searchbp )->second;
 	  std::stringstream ss2;
@@ -394,8 +418,8 @@ void g_geneseq( VariantGroup & vars , void * p )
 	  if ( refannot != "" ) refannot += " ";
 	  refannot += ss2.str();
 	}
-
-      if ( cds && aux->protdb && cpos == 0 && pdm.find( apos ) != pdm.end() )
+      
+      if ( printing && aux->protdb && cpos == 0 && pdm.find( apos ) != pdm.end() )
 	{
 	  refannot += pdm[ apos ];
 	}
@@ -405,10 +429,6 @@ void g_geneseq( VariantGroup & vars , void * p )
       // Only show CDS
       //
       
-       // std::cout << "sb = " << searchbp << " " 
-       // 		<< printing << cds << " "
-       // 		<< gpos << " [" << prt_intronic << "] " << cpos << "[" << prt_codon << " " << codon << "] \n";      
-
 
       if ( printing )
 	{	  
@@ -489,15 +509,9 @@ void g_geneseq( VariantGroup & vars , void * p )
       if ( gpos == 3 ) gpos = 0;
       if ( cpos == 3 ) cpos = 0;
 
-      // std::cout << "xb = " << searchbp << " " 
-      //  		<< printing << cds << " "
-      //  		<< gpos << " [" << prt_intronic << "] " << cpos << "[" << prt_codon << " " << codon << "] \n";      
-       
     }
-
-
-
-
-  pout << "\n------------------------------------------------------------\n\n";
+  
+  
+  pout << "------------------------------------------------------------\n\n";
 }
 

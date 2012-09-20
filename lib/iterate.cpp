@@ -1082,6 +1082,18 @@ bool VarDBase::eval_and_call( Mask & mask,
       
 
       //
+      // Apply hard-calls from dosage data
+      //
+
+      if ( mask.make_hard_calls() ) 
+	{
+	  const int sn = genotype_target->calls.size();
+	  for (int i=0;i<sn;i++)
+	    mask.revise_hard_call( genotype_target->calls.genotype(i) );
+	}
+      
+      
+      //
       // Here, we must have at least 1 good sample
       //
       

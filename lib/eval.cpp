@@ -1165,7 +1165,7 @@ Token Eval::eval_gfunc( const std::string & expr , int gmode )
   
   bool gnull_mode = gmode == 0;
   bool gset_mode  = gmode == 2;
-      
+
   //
   // Parse genotype-specific expression
   //

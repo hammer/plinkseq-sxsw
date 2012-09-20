@@ -165,6 +165,8 @@ struct SeqInfo {
   
   std::string protein() const;
     
+  void details( Variant & ) const;
+
   std::string status() const 
   { 
     std::map<seq_annot_t,std::string>::iterator i = types.find(type);

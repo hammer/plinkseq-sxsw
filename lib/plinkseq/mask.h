@@ -1605,6 +1605,9 @@ class Mask {
 	assume_missing_is_ref = false;
 	soft_ref = false;
 	genotype_model = GENOTYPE_MODEL_ALLELIC;
+	hard_call = false;
+	hard_call_label = "";
+	hard_call_threshold = 0.1;
 	fixxy_mode = false;
 	mac_filter = false;	
 	maf_filter = false;
@@ -2037,13 +2040,28 @@ class Mask {
     bool                             fixxy_mode;
     std::map<std::string,ploidy_t>   fixxy_map_chr;
     std::vector<Region>              fixxy_map_par;
+
+    bool                             hard_call;
+    std::string                      hard_call_label;
+    double                           hard_call_threshold;
     
  public:
 
     void fixxy( const bool b ) { fixxy_mode = b; }
     bool fixxy() const { return fixxy_mode; }
 
+    bool make_hard_calls() const { return hard_call; } 
+    bool make_hard_calls( const std::string & l , double x ) 
+    { 
+      hard_call = true; 
+      hard_call_label = l;
+      hard_call_threshold = x ; 
+    }
+    
+    void revise_hard_call( Genotype & g );
+
  private:
+
     //
     // EM caller
     //

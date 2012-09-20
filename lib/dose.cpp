@@ -1,11 +1,15 @@
 #include "plinkseq/dose.h"
 
+#include "plinkseq/gstore.h"
 #include "plinkseq/helper.h"
 #include "plinkseq/vardb.h"
 #include "plinkseq/seqdb.h"
 
 #include <fstream>
 #include <cmath>
+
+extern GStore g;
+
 
 int DoseReader::read_fam( const int file_id ) 
 {
@@ -766,6 +770,100 @@ bool DoseReader::read_dose( const std::string & f )
        << dose_filename << "\n";
   
   return cnt;
+
+}
+
+
+
+double DoseReader::Rsq( const Variant & var , double * aaf )
+{
+  
+  
+  // Calculate INFO score given alternate allele frequency
+  
+  const int n = var.size();
+  
+  bool dosage = false;
+  bool prob   = false;
+
+  double frq = 0;
+  int cnt = 0;
+
+  for (int i=0; i<n; i++)
+    if ( ! var(i).null() )
+      {
+	
+	if ( ! var(i).meta.has_field( Genotype::soft_call_label ) ) continue;
+	
+	const std::vector<double> & x = var(i).meta.get_double( Genotype::soft_call_label );	
+	
+	if ( x.size() == 1 ) 
+	  {
+	    dosage = true;
+	    frq += x[0]; // assumes 0..2 encoding
+	    ++cnt;
+	  }
+	else if ( x.size() == 3 ) 
+	  {
+	    prob = true;
+	    frq += x[1] + 2 * x[2];  // assumes biallelic, or REF vs (ALTs)
+	    ++cnt;
+	  }
+      }
+
+  //
+  // Sanity check: should be either *all* dosage or *all* probabilities
+  //
+  
+  if ( ( dosage && prob )  || cnt == 0 ) 
+    {
+      if ( aaf ) *aaf = -1;
+      return -1;
+    }
+
+  
+  //
+  // AAF as estimated from the dosage data (2*cnt asusmes diploid for all)
+  //
+
+  frq /= (double) 2 * cnt;
+  if ( aaf ) *aaf = frq;
+  
+
+  //
+  // Given HWE, theoretical variance of dosage
+  //
+
+  double theoreticalVariance = frq * ( 1 - frq );
+
+  //
+  // Get empirical variance of dosage (on 0..1 scaling)
+  //
+
+  double dosageSSQ = 0;
+  for (int i=0; i<n; i++)
+    if ( ! var(i).null() )
+      {
+	if ( ! var(i).meta.has_field( Genotype::soft_call_label ) ) continue;
+	const std::vector<double> & x = var(i).meta.get_double( Genotype::soft_call_label );	
+	
+	if ( dosage )
+	  {
+	    double t = x[0]/2.0 - frq;
+	    dosageSSQ += t*t;
+	  }
+	else // implies prob
+	  {
+	    double t = (x[1]+2*x[2])/2.0-frq ;
+	    dosageSSQ += t*t; 
+	  }
+      }
+
+  double empiricalVariance  = 2 * ( dosageSSQ / (double)cnt);
+  
+  double rsq = theoreticalVariance > 0 ? empiricalVariance / theoreticalVariance : 0 ;
+  
+  return rsq;
 
 }
 

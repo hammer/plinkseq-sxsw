@@ -149,7 +149,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     
 	  << "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta,rarelist,phenotype,verbose|OUT:groups"
     
-	  << "gs-view|views|view gene variants in sequence|GRP|ARG:ref-variants,gene,protdb,domain,variant"
+	  << "gs-view|views|view gene variants in sequence|GRP|ARG:ref,gene,protdb,domain,variant"
 	
 	  << "i-view|views|individuals in project/file|VCF|ARG:phenotype,from-vardb|OUT:indiv"
 
@@ -523,8 +523,6 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "only-minor" , NONE , "" );
     reg( "only-alt" , NONE , "" );
 
-    reg( "ref-variants" , STRING , "" );
-
     reg( "variant", STRING , "show specific variant (v-view)");
 
     reg( "indiv", STRING_VECTOR , "specify individual(s)");
@@ -533,7 +531,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     
     reg( "annotate" , STRING , "transcript group for annotation" );
     reg( "loc" , STRING_VECTOR , "transcript group" );
-    reg( "ref" , STRING_VECTOR , "reference-variant group " );
+    reg( "ref" , STRING_VECTOR , "reference-variant group" );
     reg( "locset" , STRING_VECTOR , "locus-set group" );
     
     // Genotype/phenotype inputs

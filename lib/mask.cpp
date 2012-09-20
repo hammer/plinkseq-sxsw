@@ -5,6 +5,8 @@
 #include "plinkseq/vardb.h"
 #include "plinkseq/gstore.h"
 
+#include <cmath>
+
 using namespace std;
 using namespace Helper;
 
@@ -238,6 +240,7 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "hard-ref" , "flag" , "0/REF allele always implies presence of REF allele" );
   mask_add( s , g , c++ , gl , "fix-xy" , "str" , "fix X/Y genotypes when loading a VCF" );
   mask_add( s , g , c++ , gl , "genotype-model" , "str" , "set genotype scoring model" );
+  mask_add( s , g , c++ , gl , "hard-call" , "float-range-list" , "hard-call genotypes from soft-calls" );
   mask_add( s , g , c++ , gl , "seg" , "str-list" , "include segment mask(s)" );
   mask_add( s , g , c++ , gl , "seg.req" , "str-list" , "require segment mask(s)" );
   mask_add( s , g , c++ , gl , "seg.ex" , "str-list" , "exclude segment mask(s)" );
@@ -261,9 +264,9 @@ std::set<mask_command_t> populate_known_commands()
  
   // Annotation
   ++g; c = 0 ; gl="annotation";  
-  mask_add( s , g , c++ , gl , "annot" , "str" , "include variants with coding annotation");
-  mask_add( s , g , c++ , gl , "annot.ex" , "str" , "exclude variants with coding annotations");
-  mask_add( s , g , c++ , gl , "annot.req" , "str" , "require variant have coding annotations");
+//   mask_add( s , g , c++ , gl , "annot" , "str" , "include variants with coding annotation");
+//   mask_add( s , g , c++ , gl , "annot.ex" , "str" , "exclude variants with coding annotations");
+//   mask_add( s , g , c++ , gl , "annot.req" , "str" , "require variant have coding annotations");
   mask_add( s , g , c++ , gl , "annot.append" , "str" , "append annotations");
 
 
@@ -1286,6 +1289,16 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     }
 
 
+  if ( m.has_field( "hard-call" ) )
+    {
+      std::vector<std::string> k = m.get_string( "hard-call") ;
+      double d;
+      if ( k.size() != 2 || ! Helper::str2dbl( k[1] , d ) ) 
+	Helper::halt( "expecting hard-call={label},{threshold}");
+      make_hard_calls( k[0] , d );
+    }
+
+
   if ( m.has_field( "genotype-model" ) )
     {
       std::string model = m.get1_string( "genotype-model" );
@@ -1390,39 +1403,43 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
 
 
-  if ( m.has_field( "annot" ) ) 
-    {
-      std::vector<std::string> k = m.get_string( "annot" );
-      if ( k.size() == 1 && k[0] == "nsSNP" )
-	include_annotation_nonsyn();
-      else
-	for (int i=0; i<k.size(); i++) include_annotation(k[i]);
-    }
+//   if ( m.has_field( "annot" ) ) 
+//     {
+//       std::vector<std::string> k = m.get_string( "annot" );
+//       if ( k.size() == 1 && k[0] == "nsSNP" )
+// 	include_annotation_nonsyn();
+//       else
+// 	for (int i=0; i<k.size(); i++) include_annotation(k[i]);
+//     }
 
 
-  if ( m.has_field( "annot.ex" ) ) 
-    {
-      vector<string> k = m.get_string( "annot.ex" );
-      if ( k.size() == 1 && k[0] == "nsSNP" )
-	exclude_annotation_nonsyn();
-      else
-	for (int i=0; i<k.size(); i++) exclude_annotation(k[i]);
-    }
+//   if ( m.has_field( "annot.ex" ) ) 
+//     {
+//       vector<string> k = m.get_string( "annot.ex" );
+//       if ( k.size() == 1 && k[0] == "nsSNP" )
+// 	exclude_annotation_nonsyn();
+//       else
+// 	for (int i=0; i<k.size(); i++) exclude_annotation(k[i]);
+//     }
 
 
-  if ( m.has_field( "annot.req" ) ) 
-    {
-      vector<string> k = m.get_string( "annot.req" );
-      if ( k.size() == 1 && k[0] == "nsSNP" )
-	{
-	  require_annotation_nonsyn();
-	}
-      else
-	for (int i=0; i<k.size(); i++) require_annotation(k[i]);
-    }
+//   if ( m.has_field( "annot.req" ) ) 
+//     {
+//       vector<string> k = m.get_string( "annot.req" );
+//       if ( k.size() == 1 && k[0] == "nsSNP" )
+// 	{
+// 	  require_annotation_nonsyn();
+// 	}
+//       else
+// 	for (int i=0; i<k.size(); i++) require_annotation(k[i]);
+//     }
+
 
   if ( m.has_field( "annot.append" ) ) 
     {
+      Annotate::setDB( LOCDB );
+      if ( ! Annotate::set_transcript_group( m.get1_string( "annot.append" ) ) )
+	Helper::halt( "problem setting annot LOCDB group, " + m.get1_string( "annot.append" ) );
       append_annotation();
     }
 
@@ -1635,13 +1652,14 @@ bool Mask::eval(Variant & v, void * p)
 
   if ( ! include ) return false;
   
+
   //
   // Any annotation filers?
   //
 
   if ( annot )
     {
-      
+
       // This appends as meta-information the annotations to the variant
       Annotate::annotate(v);
       
@@ -5028,3 +5046,41 @@ void Mask::onthefly_attach_to_variant( Variant & parent )
 
 }
 
+
+void Mask::revise_hard_call( Genotype & g )
+{
+  
+  std::vector<double> d = g.meta.get_double( hard_call_threshold );
+  
+  // dosage (in which case will always be on 0..2 scale) or posterior prob?
+  
+  bool dosage = d.size() == 1;
+
+  // if an invalid specification, set genotype to null
+  if ( ! dosage && d.size() != 3 ) 
+    {
+      g.null( true );
+      return;
+    }
+
+  int geno = 0 ;
+
+  if ( dosage ) 
+    {
+      if      ( d[0] <= hard_call_threshold ) geno = 1;
+      else if ( d[0] >= 2.0 - hard_call_threshold ) geno = 3;
+      else if ( fabs( d[0] - 1.0 ) <= hard_call_threshold ) geno = 2;
+    }
+  else
+    {      
+      if      ( d[0] >= hard_call_threshold ) geno = 1;
+      else if ( d[1] >= hard_call_threshold ) geno = 2;
+      else if ( d[2] >= hard_call_threshold ) geno = 3;      
+    }
+
+  if ( geno == 0 ) g.null( true ) ; 
+  else g.set_alternate_allele_count( geno - 1 );
+
+}
+     
+ 

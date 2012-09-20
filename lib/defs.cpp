@@ -2,7 +2,7 @@
 #include "plinkseq/defs.h"
 #include "plinkseq/meta.h"
 
-std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.09(12-Sep-2012)"; return s; }
+std::string & PLINKSeq::VERSION_NUMBER() { static std::string s = "0.09(20-Sep-2012)"; return s; }
 
 int & PLINKSeq::PROJECT_VERSION_NUMBER() { static int i = 2; return i; }
 int & PLINKSeq::VARDB_VERSION_NUMBER() { static int i = 5; return i; }
@@ -78,7 +78,6 @@ std::string & PLINKSeq::SEQDB_NAME_KEY() { static std::string s = "NAME"; return
 std::string & PLINKSeq::SEQDB_DESCRIPTION_KEY() { static std::string s = "DESC"; return s; }
 std::string & PLINKSeq::SEQDB_IUPAC_KEY() { static std::string s = "IUPAC"; return s; }
 
-
 std::string & PLINKSeq::ANNOT()         { static std::string s = "_ANNOT"; return s; }
 std::string & PLINKSeq::ANNOT_TYPE()    { static std::string s = "_ANNOT_TYPE"; return s; }
 std::string & PLINKSeq::ANNOT_GENE()    { static std::string s = "_ANNOT_GENE"; return s; }
@@ -87,6 +86,7 @@ std::string & PLINKSeq::ANNOT_EXONIC()  { static std::string s = "_ANNOT_EXONIC"
 std::string & PLINKSeq::ANNOT_CHANGE()  { static std::string s = "_ANNOT_CHANGE"; return s; }
 std::string & PLINKSeq::ANNOT_CODON()   { static std::string s = "_ANNOT_CODON"; return s; }
 std::string & PLINKSeq::ANNOT_PROTEIN() { static std::string s = "_ANNOT_PROTEIN"; return s; }
+std::string & PLINKSeq::ANNOT_DETAILS() { static std::string s = "_ANNOT_DETAILS"; return s; }
 std::string & PLINKSeq::ANNOT_SUMMARY() { static std::string s = "_ANNOT_SUMMARY"; return s; }
 
 

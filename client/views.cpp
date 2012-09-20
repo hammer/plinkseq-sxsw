@@ -1,6 +1,7 @@
 
 #include "views.h"
 #include "plinkseq/em.h"
+#include "plinkseq/dose.h"
 #include "util.h"
 #include "func.h"
 
@@ -682,6 +683,29 @@ void f_extra_qc_metrics( Variant & var , void * p )
   x->add( pos , (double)t / (double)var.size() , 0 );
   
 
+  // INFO score for imputed / soft-called data?
+  if ( Genotype::using_soft_calls )
+    {
+      double aaf = 0;
+      double rsq = DoseReader::Rsq( var , &aaf );
+      if ( rsq < 0 ) 
+	{
+	  x->add( pos , "NA" , 1 );
+	  x->add( pos , "NA" , 1 );
+	}
+      else
+	{
+	  x->add( pos , rsq , 1 );
+	  x->add( pos , aaf , 1 );
+	}
+
+    }
+
+
+  //
+  // Frequencies based on hard-calls
+  //
+  
   // MAC
   if ( c_tot == 0 ) 
     x->add( pos , "NA" , 1 ); 
@@ -771,10 +795,10 @@ void f_extra_qc_metrics( Variant & var , void * p )
 	}
     }
 
-
+  
   // this will be populated later (N SNPs)
   x->neighbours[ pos ];
- 
+  
 
 }
 

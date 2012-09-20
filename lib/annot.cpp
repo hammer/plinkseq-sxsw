@@ -237,36 +237,17 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
       // add annotations
       var.meta.add( PLINKSeq::ANNOT_TYPE() , i->status() );
       var.meta.add( PLINKSeq::ANNOT_GENE() , i->gene_name() );
-      var.meta.add( PLINKSeq::ANNOT_CODING() , i->coding() );
+      var.meta.add( PLINKSeq::ANNOT_CODING() , (int)i->coding() );
+      
       // var.meta.add( PLINKSeq::ANNOT_EXONIC() , i->exonic() );
 
       var.meta.add( PLINKSeq::ANNOT_CHANGE() , i->genomic() );
       var.meta.add( PLINKSeq::ANNOT_CODON() , i->codon() );
+      var.meta.add( PLINKSeq::ANNOT_PROTEIN() , i->protein() );
+      
+      // add any details...
+      i->details( var );
 
-      // for splice, use this slot for the details, for now
-      if ( i->splice() || i->esplice() )
-	{
-	  std::string s = "DIST=" + Helper::int2str( i->splicedist );
-	  std::string s2 = "NMD=" + Helper::int2str( i->nmd );
-	  std::string s3 = "OFPTV=" + Helper::int2str( i->ofptv );
-	  std::string s4 = "EXIN=" + Helper::int2str( i->exin );
-	  var.meta.add( PLINKSeq::ANNOT_PROTEIN() , s );
-	  var.meta.add( PLINKSeq::ANNOT_PROTEIN(), s2 );
-	  var.meta.add( PLINKSeq::ANNOT_PROTEIN(), s3 );
-	  var.meta.add( PLINKSeq::ANNOT_PROTEIN(), s4 );
-	}
-      if ( i->frameshift() || i->nonsense() )
-	{
-    	  std::string s = "NMD=" + Helper::int2str( i->nmd );
-    	  std::string s2 = "OFPTV=" + Helper::int2str( i->ofptv );
-    	  var.meta.add( PLINKSeq::ANNOT_PROTEIN() , s );
-    	  var.meta.add( PLINKSeq::ANNOT_PROTEIN() , s2 );
-    	  var.meta.add( PLINKSeq::ANNOT_PROTEIN(), i->protein() );
-      }
-      else
-	{
-	  var.meta.add( PLINKSeq::ANNOT_PROTEIN() , i->protein() );
-	}
       ++i;
     }
   
@@ -1268,37 +1249,54 @@ std::string SeqInfo::genomic() const
 }
 
 
+void SeqInfo::details( Variant & var ) const
+{
+  
+  if ( splice() || esplice() )
+    {
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "DIST=" + Helper::int2str( splicedist ) );
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "NMD=" + Helper::int2str( nmd ) );
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "OFPTV=" + Helper::int2str( ofptv ) );
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "EXIN=" + Helper::int2str( exin ) );
+    }
+  
+  if ( nonsense() )
+    {
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "NMD=" + Helper::int2str( nmd ) );
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "OFPTV=" + Helper::int2str( ofptv )  );    	  
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) );
+    }
+  
+  if ( frameshift() ) 
+    {
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "NMD=" + Helper::int2str( nmd ) );
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "OFPTV=" + Helper::int2str( ofptv )  );    	  
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "FSX=" + Helper::int2str( fs_stop )  );    	  
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) );    	  
+    }
+
+  if ( startlost() ) 
+    {
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "NEWAUG=" + Helper::int2str( fs_stop ) );    	        
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize)  );    	        
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "OFPTV=" + Helper::int2str( ofptv )  );    	        
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "NMD=" + Helper::int2str(nmd) );    	        
+    }
+
+  if ( readthrough() ) 
+    {      
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) ) ;
+    }
+
+}
+
+
+
 std::string SeqInfo::protein() const
 {
   
-  if ( frameshift() ) 
-    return "p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa 
-      + "|FSX=" + Helper::int2str( fs_stop ) 
-      + "|PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) 
-      + "|OFPTV=" + Helper::int2str( ofptv ) 
-      + "|NMD=" + Helper::int2str(nmd) ;
-
-  if ( startlost() ) 
-    return "p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa 
-      + "|NEWAUG=" + Helper::int2str( fs_stop ) 
-      + "|PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) 
-      + "|OFPTV=" + Helper::int2str( ofptv ) 
-      + "|NMD=" + Helper::int2str(nmd) ;
+  if ( frameshift() || codondeletion() || codoninsertion() ) return ".";
   
-  if ( nonsense() ) 
-    return "p." + Helper::int2str( ppos1 ) 
-      + ref_aa + ">" + alt_aa 
-      + "|PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) 
-      + "|OFPTV=" + Helper::int2str( ofptv ) 
-      + "|NMD=" + Helper::int2str(nmd)  ;
-  
-  if ( readthrough() ) 
-    return "p." + Helper::int2str( ppos1 ) 
-      + ref_aa + ">" + alt_aa 
-      + "|PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) ;
-
-  if ( codondeletion() || codoninsertion() ) return ".";
-
   if ( intergenic() || intronic() ) return ".";
   
   return ppos1 == 0 ?
@@ -1309,44 +1307,22 @@ std::string SeqInfo::protein() const
 
 void Annotate::init()
 {
-  
+  if ( GP == NULL ) return ;
   rmap.clear();
   transcript_group_id = 0;  
   seqdb = &(GP->seqdb);
   if ( ! db ) setDB( LOCDB );
   
   
-  // These are not actually used, currently, so comment out
-
-  // Add slot for additions
-  
-  MetaInformation<VarMeta>::field( "_ANNOT" , META_INT , 1 , "Annotation" );
-  
-  // MetaInformation<VarMeta>::field( "_SYN" , META_TEXT , -1 , "Synonymous allele" );
-  // MetaInformation<VarMeta>::field( "_MIS" , META_TEXT , -1 , "Missense allele" );
-  // MetaInformation<VarMeta>::field( "_NON" , META_TEXT , -1 , "Nonsense allele" );
-  // MetaInformation<VarMeta>::field( "_PART" , META_TEXT , -1 , "Partial codon" );
-  // MetaInformation<VarMeta>::field( "_SPLICE" , META_TEXT , -1 , "Splice-site" );
-  // MetaInformation<VarMeta>::field( "_ESPLICE" , META_TEXT , -1 , "Essential splice-site" );
-  // MetaInformation<VarMeta>::field( "_SL" , META_TEXT , -1 , "Start-lost" );
-  // MetaInformation<VarMeta>::field( "_INTRON" , META_TEXT , -1 , "Intronic") ;
-  // MetaInformation<VarMeta>::field( "_FRAMESHIFT" , META_TEXT , -1 , "Frameshift allele");
-
-  // made changes here for indels
-  // MetaInformation<VarMeta>::field( "_CODONDELETION" , META_TEXT , -1 , "Codon-deletion allele");
-  // MetaInformation<VarMeta>::field( "_CODONINSERTION" , META_TEXT , -1 , "Codon-insertion allele");
-  // MetaInformation<VarMeta>::field( "_STOPDELETION" , META_TEXT , -1 , "Stop-deletion allele");
-  // MetaInformation<VarMeta>::field( "_STOPINSERTION" , META_TEXT , -1 , "Stop-insertion allele");
-  // MetaInformation<VarMeta>::field( "_OOFCODONDELETION" , META_TEXT , -1 , "Out of frame codon-deletion allele");
-  // MetaInformation<VarMeta>::field( "_OOFCODONINSERTION" , META_TEXT , -1 , "Out of frame codon-insertion allele");
-
-  // change stops here
-  // MetaInformation<VarMeta>::field( "_READTHROUGH" , META_TEXT , -1 , "Read-through allele");
-  // MetaInformation<VarMeta>::field( "_5UTR" , META_TEXT , -1 , "5' UTR" );
-  // MetaInformation<VarMeta>::field( "_3UTR" , META_TEXT , -1 , "3' UTR" );
-  // MetaInformation<VarMeta>::field( "_IGR" , META_TEXT , -1 , "Intergenic region");
-  // MetaInformation<VarMeta>::field( "_MONO" , META_TEXT , -1 , "Monomorphic");
-
+  MetaInformation<VarMeta>::field( PLINKSeq::ANNOT()         , META_TEXT ,  1 , "Highest impact annotation across transcripts" );
+  MetaInformation<VarMeta>::field( PLINKSeq::ANNOT_TYPE()    , META_TEXT , -1 , "Transcript-specific list of annotations" );
+  MetaInformation<VarMeta>::field( PLINKSeq::ANNOT_GENE()    , META_TEXT , -1 , "List of transcripts used for annotation" );
+  MetaInformation<VarMeta>::field( PLINKSeq::ANNOT_CODON()   , META_TEXT , -1 , "Transcript-specific codon changes" );
+  MetaInformation<VarMeta>::field( PLINKSeq::ANNOT_PROTEIN() , META_TEXT , -1 , "Transcript-specific amino-acid changes" );
+  MetaInformation<VarMeta>::field( PLINKSeq::ANNOT_CODING()  , META_INT  , -1 , "Transcript-specific coding status (0/1)" );
+  MetaInformation<VarMeta>::field( PLINKSeq::ANNOT_DETAILS() , META_TEXT , -1 , "Misc. details" );
+  MetaInformation<VarMeta>::field( PLINKSeq::ANNOT_SUMMARY() , META_TEXT ,  1 , "Annotation summary" );
+ 
 }
 
 
@@ -1645,68 +1621,4 @@ std::string Annotate::getrc(const std::string & s)
   reverse( r.begin(), r.end() );
   return r;
 }
-
-
-
-
-// bool Annotate::load_transcripts( fType t , const std::string & name )
-// {
-//   init();
-//   setDB(t);
-//   if ( ( ! db ) || ( ! db->attached() ) ) return false;
-//   uint64_t id = db->lookup_group_id( name );
-//   if ( id == 0 ) return false;
-//   return load_transcripts( db->lookup_group_id( name ) );
-// }
-
-
-
-// bool Annotate::load_transcripts( uint64_t id )
-// {
-//   init();
-//   transcript_group_id = 0;
-//   rmap.clear();
-//   if ( ( ! db ) || ( ! db->attached() ) ) return false ;
-//   if ( id == 0 ) return false;
-//   std::set<Region> regions = db->get_regions( id );
-  
-//   std::set<Region>::iterator i = regions.begin();
-//   while ( i != regions.end() )
-//     {
-//       rmap[ i->id ] = *i;
-//       ++i;
-//     }
-//   transcript_group_id = id;
-//   return true;
-// }
-
-
-// bool Annotate::load_transcripts( const std::string & grp , const std::set<Region> & regions )
-// {
-//   init();
-//   setDB( LOCDB );
-//   if ( ( ! db ) || ( ! db->attached() ) ) return false;
-//   uint64_t id = db->lookup_group_id( grp );
-//   if ( id == 0 ) return false;
-//   return load_transcripts( id , regions );
-// }
-
-
-// bool Annotate::load_transcripts( uint64_t id , const std::set<Region> & regions )
-// {
-//   init();
-//   transcript_group_id = 0;
-//   rmap.clear();
-//   if ( ( ! db ) || ( ! db->attached() ) ) return false ;
-//   if ( id == 0 ) return false;
-//   std::set<Region>::iterator i = regions.begin();
-//   while ( i != regions.end() )
-//     {
-//       rmap[ i->id ] = *i;
-//       ++i;
-//     }
-//   transcript_group_id = id;
-//  return true;
-// }
-
 

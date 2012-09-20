@@ -10,12 +10,14 @@ class ifstream;
 class SeqDBase;
 class IndDBase;
 class VarDBase;
-
+class Variant;
 
 class DoseReader {
   
  public:
   
+  static double Rsq( const Variant & v , double * maf = NULL );
+
   DoseReader( VarDBase * v )
     {
       vardb = v;     

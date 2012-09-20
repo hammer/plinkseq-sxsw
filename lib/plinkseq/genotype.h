@@ -69,6 +69,12 @@ class Genotype {
  public:
   
   static genotype_model_t model;
+
+  // soft-calls
+  static bool using_soft_calls;
+  static bool using_dosage;
+  static bool using_probs;
+  static std::string soft_call_label;
   
   MetaInformation<GenMeta> meta;
 

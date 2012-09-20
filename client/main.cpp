@@ -24,7 +24,7 @@ Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.09";
-std::string PSEQ_DATE    = "12-Sep-12";
+std::string PSEQ_DATE    = "20-Sep-12";
 
 
 int main(int argc, char ** argv)
@@ -484,7 +484,23 @@ int main(int argc, char ** argv)
     {
       MetaMeta::set_force_consensus( true );
     }
-  
+
+
+  //
+  // Hint to use soft-called genotypes, if command allows
+  //
+
+  if ( args.has( "use-dosages" ) )
+    {
+      Genotype::using_dosage = Genotype::using_soft_calls = true;
+      Genotype::soft_call_label = args.as_string( "use-dosages" );
+    }
+  else if  ( args.has( "use-postprobs" ) )
+    {
+      Genotype::using_probs = Genotype::using_soft_calls = true;
+      Genotype::soft_call_label = args.as_string( "use-postprobs" );
+    }
+
 
   //
   // Load reference and sequence data
@@ -1596,8 +1612,8 @@ int main(int argc, char ** argv)
 
 	Opt_geneseq opt;
 	
-	if ( args.has( "ref-variants" ) ) 
-	  opt.ref = g.refdb.lookup_group_id( args.as_string( "ref-variants" ) );
+	if ( args.has( "ref" ) ) 
+	  opt.ref = g.refdb.lookup_group_id( args.as_string( "ref" ) );
 	
 	if ( args.has( "variant" ) )
 	  opt.only_variant_sites = true;
@@ -1751,6 +1767,13 @@ int main(int argc, char ** argv)
 	output.data_header( "TI" );  // flag to indicate Ti/Tv
 
 	output.data_header( "GENO" );
+	
+	if ( Genotype::using_soft_calls )
+	  {
+	    output.data_header( "INFO" );
+	    output.data_header( "DFRQ" );
+	  }
+	
 	output.data_header( "MAC" );
 	output.data_header( "MAF" );
 	output.data_header( "REFMIN" );
