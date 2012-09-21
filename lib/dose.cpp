@@ -1,11 +1,15 @@
 #include "plinkseq/dose.h"
 
+#include "plinkseq/gstore.h"
 #include "plinkseq/helper.h"
 #include "plinkseq/vardb.h"
 #include "plinkseq/seqdb.h"
 
 #include <fstream>
 #include <cmath>
+
+extern GStore g;
+
 
 int DoseReader::read_fam( const int file_id ) 
 {
@@ -66,10 +70,16 @@ void DoseReader::read_meta( const int file_id )
 bool DoseReader::read_dose( const std::string & f )
 {
   
+
+
   const bool store_as_dosage = storage_format == "as-dosage" ;
   const bool store_as_prob3  = storage_format == "as-posteriors" ; 
-  
 
+  if ( store_as_dosage ) 
+    MetaInformation<GenMeta>::field( tagname , META_FLOAT , 1 , "ALT dosage (0..2)" );
+  else if ( store_as_prob3) 
+    MetaInformation<GenMeta>::field( tagname , META_FLOAT , 3 , "Genotype probs (REF,HET,HOM)" );
+  
   //
   // Open dosage file 
   //
@@ -212,16 +222,26 @@ bool DoseReader::read_dose( const std::string & f )
       if ( inp_dosage.eof() ) break;
       if ( dosage_line == "" ) continue;
 
-      // should be tab or space delimited
-      // char_tok() returns empty cells, if multiple contiguous delimters
-      //  allow this (treat as one), but we have to do this here.
-
+      //
+      // Two options for parsing: use the quick char_tok(), although currently this 
+      // only allows one single char as a delimiter, i.e. will choke on files that 
+      // have tab and space, or multiple spaces, etc. 
+      //
+      
+      //  default =                       tab   with char_tok
+      //  --format space-delimited        space with char_tok
+      //  --format whitespace-delimited   whitespace parse()
+      //
+      
       int ntok;
       
-      //      Helper::char_tok tok( &(dosage_line[0]) , dosage_line.size() , &ntok , spaced ? ' ' : '\t' );
       
-      std::vector<std::string> toks = Helper::parse( dosage_line , " \t" ) ; 
+      Helper::char_tok toks( &(dosage_line[0]) , dosage_line.size() , &ntok , spaced ? ' ' : '\t' );
 
+
+      //std::vector<std::string> toks = Helper::parse( dosage_line , " \t" ) ; 
+
+      
       ntok = toks.size();
 
       // expecting rsID + 2(pos) + 2(alleles) + n_genotypes
@@ -308,7 +328,7 @@ bool DoseReader::read_dose( const std::string & f )
 	      if ( toks[ 1 + id_offset ] == "." || toks[ 2 + id_offset ] == "." ) continue;
 
 	      chr = toks[ 1 + id_offset ];	      	      
-	      if ( ! Helper::str2int( toks[ 2 + id_offset ] , bp ) ) Helper::halt( "invalid base-position: " + toks[ 2 + id_offset ] );	      
+	      if ( ! Helper::str2int( toks[ 2 + id_offset ] , bp ) ) Helper::halt( "invalid base-position: " + std::string( toks[ 2 + id_offset ] ) );	      
 	    }
 	}
       else
@@ -317,7 +337,7 @@ bool DoseReader::read_dose( const std::string & f )
 	  if ( toks[ 1 + id_offset ] == "." || toks[ 2 + id_offset ] == "." ) continue;
 
 	  chr = toks[ 1 + id_offset ];
-	  if ( ! Helper::str2int( toks[ 2 + id_offset ] , bp ) ) Helper::halt( "invalid base-position: " + toks[ 2 + id_offset ] );	      
+	  if ( ! Helper::str2int( toks[ 2 + id_offset ] , bp ) ) Helper::halt( "invalid base-position: " + std::string( toks[ 2 + id_offset ] ) );
 	  a1 = toks[ 3 + id_offset ];
 	  a2 = toks[ 4 + id_offset ];	  
 	}
@@ -343,6 +363,8 @@ bool DoseReader::read_dose( const std::string & f )
 	      id = toks[0];
 	    }	  
 	}
+
+
 
 
       
@@ -431,23 +453,41 @@ bool DoseReader::read_dose( const std::string & f )
       
 
       if ( cnt % 1000 == 0  )
-	plog.counter( "inserted " + Helper::int2str( cnt ) + " variants" );
-      
+	plog.counter1( "inserted " + Helper::int2str( cnt ) + " variants" );
+
       
       //
       // Get genotypes
       //
 
       v.resize( ni );
+      //      v.reserve( ni );
 
+      
       // read 'start_pos' slots first      
 	
       int p = start_pos;
+
+      //
+      // Re-use the same genotype
+      //
+
+      Genotype g;
+
+
+      // dosages will always be present, so just create once upfront
       
-      for (int i=0;i<ni;i++)
+      if ( store_as_dosage ) 
+	g.meta.set( tagname , (double)2.0 );	 // note -- must explicitly be a double 
+      else if ( store_as_prob3 )	
+	g.meta.set( tagname , std::vector<double>(3 , 0.0 ) );
+      
+      // get a pointer to this dosage store
+      meta_key_t mk = MetaInformation<GenMeta>::field( tagname ).key;
+      double * dstore = g.meta.mutptr1_double( mk );
+
+      for (int i=0; i<ni; i++)
 	{
-	  
-	  Genotype & g = v(i);
 	  
 	  //
 	  // Get dosage
@@ -455,13 +495,14 @@ bool DoseReader::read_dose( const std::string & f )
 	  
 	  int geno = 0; // 1,2,3 = ref,het,hom
 
+
 	  //
 	  // By default, if ref1==T we assume 
 	  //   A1  A2    dosage is for 'A2' allele
 	  //             posterior is 11 12 22
 	  
 	  // But always store as dosage of 'alternate' allele when possible
-
+	  
 	  //   dosage = EC = alternate allele (2)
 	  //   PP     = 11 / 12 / 22  ( REF / HET / HOM )
 	  
@@ -483,7 +524,7 @@ bool DoseReader::read_dose( const std::string & f )
 		    {		  		      
 		      
 		      pp[2] = 1 - pp[0] - pp[1];
-
+		      
 		      if ( ! ref1 ) 
 			{
 			  double tmp = pp[2];
@@ -509,7 +550,7 @@ bool DoseReader::read_dose( const std::string & f )
 			}
 		    }
 		}
-	    }
+	    } 
 	  else if ( format_prob3 ) 
 	    {
 	      
@@ -526,7 +567,7 @@ bool DoseReader::read_dose( const std::string & f )
 		      pp[2] = pp[0];
 		      pp[0] = tmp;
 		    }		  
-
+		  
 		  if ( store_as_dosage ) 
 		    {
 		      // 0..2 scale, of 'B' allele
@@ -547,22 +588,23 @@ bool DoseReader::read_dose( const std::string & f )
 	    }
 	  else if ( format_dose2 ) 
 	    {
-	      double d = 0;
 
-	      if ( Helper::str2dbl( toks[p++] , d ) ) 
+	      double d = atof( toks[p++] );
+	      
+	      if ( d >= 0 && d <= 2 )
+		//	      if ( Helper::str2dbl( toks[p++] , d ) ) 
 		{
-
+		  
 		  // assume diploid...
 		  if ( ! ref1 ) d = 2 - d;
 		  
 		  if ( store_as_dosage ) 
 		    {
-		      g.meta.set( tagname , d ) ;
+		      *dstore = d; 		      
 		    }
-
 		  else if ( store_as_prob3 )
 		    {
-
+		      
 		      std::vector<double> pp(3);
 
 		      // 'impute' probabilities assuming HWE
@@ -580,7 +622,11 @@ bool DoseReader::read_dose( const std::string & f )
 			  pp[2] = 0;
 			}
 		      
-		      g.meta.set( tagname , pp ) ;
+		      *dstore     = pp[0];
+		      *(dstore+1) = pp[1];
+		      *(dstore+2) = pp[2];
+
+		      // g.meta.set( tagname , pp ) ;
 		    }
 		 
 		  if ( make_hard_call ) 
@@ -630,7 +676,7 @@ bool DoseReader::read_dose( const std::string & f )
 		      
 		      g.meta.set( tagname , pp ) ;
 		    }
-
+		  
 		  if ( make_hard_call ) 
 		    {
 		      if      ( d <= hard_call_dosage_threshold ) geno = 1;
@@ -640,7 +686,7 @@ bool DoseReader::read_dose( const std::string & f )
 		  
 		}
 	    }
-	  
+	
 	  
 	  //
 	  // Make a hard-call?
@@ -649,9 +695,15 @@ bool DoseReader::read_dose( const std::string & f )
 	  if ( geno == 0 ) g.null( true );
 	  else g.set_alternate_allele_count( geno - 1 );
 	  
+	  //
+	  // Add to variant
+	  //
 	  
-	}
-      
+	  //	  v.add( g );
+	  v.add( g , i );
+	  
+	}  // add next individual/genotype
+    
       
       //
       // Separate meta-information?
@@ -718,6 +770,100 @@ bool DoseReader::read_dose( const std::string & f )
        << dose_filename << "\n";
   
   return cnt;
+
+}
+
+
+
+double DoseReader::Rsq( const Variant & var , double * aaf )
+{
+  
+  
+  // Calculate INFO score given alternate allele frequency
+  
+  const int n = var.size();
+  
+  bool dosage = false;
+  bool prob   = false;
+
+  double frq = 0;
+  int cnt = 0;
+
+  for (int i=0; i<n; i++)
+    if ( ! var(i).null() )
+      {
+	
+	if ( ! var(i).meta.has_field( Genotype::soft_call_label ) ) continue;
+	
+	const std::vector<double> & x = var(i).meta.get_double( Genotype::soft_call_label );	
+	
+	if ( x.size() == 1 ) 
+	  {
+	    dosage = true;
+	    frq += x[0]; // assumes 0..2 encoding
+	    ++cnt;
+	  }
+	else if ( x.size() == 3 ) 
+	  {
+	    prob = true;
+	    frq += x[1] + 2 * x[2];  // assumes biallelic, or REF vs (ALTs)
+	    ++cnt;
+	  }
+      }
+
+  //
+  // Sanity check: should be either *all* dosage or *all* probabilities
+  //
+  
+  if ( ( dosage && prob )  || cnt == 0 ) 
+    {
+      if ( aaf ) *aaf = -1;
+      return -1;
+    }
+
+  
+  //
+  // AAF as estimated from the dosage data (2*cnt asusmes diploid for all)
+  //
+
+  frq /= (double) 2 * cnt;
+  if ( aaf ) *aaf = frq;
+  
+
+  //
+  // Given HWE, theoretical variance of dosage
+  //
+
+  double theoreticalVariance = frq * ( 1 - frq );
+
+  //
+  // Get empirical variance of dosage (on 0..1 scaling)
+  //
+
+  double dosageSSQ = 0;
+  for (int i=0; i<n; i++)
+    if ( ! var(i).null() )
+      {
+	if ( ! var(i).meta.has_field( Genotype::soft_call_label ) ) continue;
+	const std::vector<double> & x = var(i).meta.get_double( Genotype::soft_call_label );	
+	
+	if ( dosage )
+	  {
+	    double t = x[0]/2.0 - frq;
+	    dosageSSQ += t*t;
+	  }
+	else // implies prob
+	  {
+	    double t = (x[1]+2*x[2])/2.0-frq ;
+	    dosageSSQ += t*t; 
+	  }
+      }
+
+  double empiricalVariance  = 2 * ( dosageSSQ / (double)cnt);
+  
+  double rsq = theoreticalVariance > 0 ? empiricalVariance / theoreticalVariance : 0 ;
+  
+  return rsq;
 
 }
 

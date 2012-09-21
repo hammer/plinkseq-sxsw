@@ -16,6 +16,7 @@ void f_view_variants_prot_loc_annot( Variant & v , void * p )
   return;
 }
 
+
 bool Pseq::ProtDB::lookup( const std::string & db , 
 			   const std::string & gene , 
 			   const std::string & lgroup , 
@@ -27,12 +28,12 @@ bool Pseq::ProtDB::lookup( const std::string & db ,
   bool query_locdb = g.locdb.attached();
   
   std::set<std::string> transcripts;
-
+  
   std::string group = lgroup;
-
+  
   if ( query_locdb )
     {
-
+      
       // swap in, e.g., 'refseq' if not specified
       if ( group == "" ) group = PLINKSeq::DEFAULT_LOC_GROUP();
       
@@ -75,9 +76,8 @@ bool Pseq::ProtDB::lookup( const std::string & db ,
       // Get protein features/domains
       //
       
-      
       aux.features = protdb.fetch( *tt );
-
+      
       
       //
       // Query VARDB
@@ -118,19 +118,29 @@ bool Pseq::ProtDB::lookup( const std::string & db ,
 }
 
 
-bool Pseq::ProtDB::mapper( const std::string & db , const std::string & group , const std::string & source ,  const std::string & feature  )
+
+
+bool Pseq::ProtDB::lookup( const std::string & db ) 
 {
+  
+  //
+  // simple dump of entire PROTDB
+  //
+  
+
+  //
+  // Attach a PROTDB
+  //
 
   ProtDBase protdb;
+  
   protdb.attach( db );
-  if ( ! protdb.attached() ) Helper::halt( "could not attach PROTDB" );
   
-  if ( ! g.locdb.attached() ) Helper::halt( "no attached LOCDB" );
+  if ( ! protdb.attached() ) Helper::halt( "could not attach PROTDB" );  
   
-  /// Map a PROTDB source/feature to a LOCDB (i.e. to make a genomic region list)
-  int mapped = protdb.map_to_genomic( &g.locdb , group , source , feature );
+  Out & pout = Out::stream( "prot" );
   
-  plog << "mapped " << mapped << " proteins\n";
-  
+  protdb.dump( pout );
+
   return true;
 }

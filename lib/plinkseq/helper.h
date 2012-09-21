@@ -56,9 +56,8 @@ class int2 {
 class Log {
   
   bool     silent_mode;   // write to STOUT?
-  bool     silent_except_errors_mode;  // like silent_mode, except show errors
+  bool     quiet_mode;    // like silent_mode, except show errors
   bool     output_file;   // write main output to file?
-  bool     prolix_mode;   // write any prolix output to file?
   
   // keep track of warnings issued (and # of times)
   std::map<std::string,int> warnings;
@@ -66,7 +65,6 @@ class Log {
   
   // major output files
   std::ofstream file;
-  std::ofstream prolix_file;
 
   // in R mode, use this as buffer 
   std::stringstream rstream;
@@ -78,26 +76,20 @@ class Log {
  public:
   
   Log( bool s ,  // show? i.e. debug is silent by default
-       std::string filename = "", 
-       std::string prolix_filename = "" )
-    { 	        
-      
+       std::string filename = "" )
+    { 	              
       silent_mode = !s;
-      silent_except_errors_mode = false;
+      quiet_mode = false;
       output_file = false;
-      prolix_mode = false;      
       ignore_warnings = false;
       early_warn = false;
-      warn_limit = 10;
-      
-      if ( filename != "" ) logfile( filename );     
-      if ( prolix_filename != "" ) prolix_logfile( prolix_filename );
-   }
+      warn_limit = 10;      
+      if ( filename != "" ) logfile( filename );
+    }
   
   ~Log()
     {
       if ( output_file ) file.close();
-      if ( prolix_mode ) prolix_file.close();
     }
 
 
@@ -105,8 +97,8 @@ class Log {
   void silent(const bool b) { silent_mode = b; }
   bool silent() const { return silent_mode; }
 
-  void silent_except_errors(const bool b) { silent_except_errors_mode = b; }
-  bool silent_except_errors() const { return silent_except_errors_mode; }
+  void quiet(const bool b) { quiet_mode = b; }
+  bool quiet() const { return quiet_mode; }
 
   void precision( const int p )
   {
@@ -114,7 +106,7 @@ class Log {
   }
   
   bool logfile() const { return output_file; } 
-
+  
   void set_fileroot( const std::string & f ) 
   {
     // open a LOG file
@@ -133,59 +125,98 @@ class Log {
     output_file = false;
   }
   
-  bool prolix_logfile() const { return prolix_mode; }
-
-  void prolix_logfile(const std::string f)
-    {
-      prolix_file.open( f.c_str() , std::ios::out );
-      prolix_mode = true;
-    }
-  
-  void close_prolix_logfile()
-  {
-    if ( prolix_mode ) prolix_file.close();
-    prolix_mode = false;
-  }
-
-  void counter( const std::string & msg )
+  void counter1( const std::string & msg ) 
   {
 #ifndef R_SHLIB
-    if ( silent_mode ) return;
-    std::cerr << msg << "        \r";
-    std::cerr.flush();
+    if ( silent_mode || quiet_mode ) return;
+    std::cout << msg << "        \r";
+    std::cout.flush();
 #endif
-  }  
+  }
+
+  void counter2( const std::string & msg ) 
+  {
+    // this counter would disrupt output, thus only show in --out mode
+#ifndef R_SHLIB
+    if ( silent_mode || quiet_mode ) return;
+    if ( ! output_file ) return;
+    std::cout << msg << "        \r";
+    std::cout.flush();
+#endif
+  }
 
   
+
+  template<class T>
+    Log & operator>>(const T & msg) 
+  {
+
+    // this never goes to STDOUT when --out not specified plog << msg;
+    // in contrast, plog += msg *is* mirrored to STDOUT when --out not specifed
+    
+#ifdef R_SHLIB 
+    rstream << msg;
+    return *this;
+#endif
+
+    // Output to file
+    if ( output_file )
+      {	
+	file << msg;
+	file.flush();
+
+	if ( silent_mode || quiet_mode ) return *this;
+	
+	std::cout << msg;
+	std::cout.flush();
+
+      }
+    
+   return *this;
+
+  }
+
+
+  // "LOG output" (i.e. send to STDOUT if not in --out mode)
+
   template<class T>
   Log & operator<<(const T & msg) 
   {
+
+#ifdef R_SHLIB 
+    rstream << msg;
+    return *this;
+#endif
+
     // Output to file
     if ( output_file )
-      {
+      {	
 	file << msg;
 	file.flush();
       }
 
-    if ( silent_mode ) return *this;
+    if ( silent_mode || quiet_mode ) return *this;
     
-#ifdef R_SHLIB 
-    rstream << msg;
-#else
-    std::cerr << msg;
-#endif
-
-    return *this;
+    std::cout << msg;
+    std::cout.flush();
+    
+   return *this;
+ 
   }
-  
+
 
   void flush()
   {    
 #ifdef R_SHLIB 
     // nothing
 #else
-    if ( ! silent_mode ) std::cerr.flush();
+    if ( ! silent_mode ) 
+      {
+	std::cout.flush();
+	std::cerr.flush();
+      }
 #endif    
+
   }
 
   std::string R_flush()
@@ -198,11 +229,11 @@ class Log {
   //
   // Warnings and errors, to be handled separately
   //
-
+  
   void stderr(const std::string & msg)
   {
-    if ( silent_mode )
-      if ( ! silent_except_errors_mode ) return;
+    file << msg;
+    if ( silent_mode ) return;
     std::cerr << msg ;
   }
 
@@ -217,23 +248,6 @@ class Log {
   void set_warning_limit( const int i ) { warn_limit = i; }
 
   void print_warnings();
-
-
-
-  //
-  // Verbose output information
-  //
-
-  template<class T>
-  void prolix(const T & msg)
-  {
-    if ( silent_mode ) return;
-    if ( prolix_mode ) 
-      {
-	prolix_file << msg;
-	prolix_file.flush();
-      }
-  }
   
  
 };
@@ -492,7 +506,7 @@ namespace Helper
   ///////////////////////////
   // Statistics
   
-  double chi2x2(int,int,int,int);
+  double chi2x2(double,double,double,double);
   bool realnum(double);
   
     ///////////////////////////
@@ -601,7 +615,7 @@ class int_range {
 
   int_range() { reset(); }
 
-  // smode =  0  2 means  2:2
+  // smode =  0  2 means exactly 2
   //         -1  2 means  *:2 
   //         +1  2 means  2:*
 

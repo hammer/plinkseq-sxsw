@@ -10,12 +10,14 @@ class ifstream;
 class SeqDBase;
 class IndDBase;
 class VarDBase;
-
+class Variant;
 
 class DoseReader {
   
  public:
   
+  static double Rsq( const Variant & v , double * maf = NULL );
+
   DoseReader( VarDBase * v )
     {
       vardb = v;     
@@ -35,8 +37,25 @@ class DoseReader {
       hard_call_dosage_threshold = 0.1;
       skip_header = false;
       spaced = false;
+      vardelim = false;
       has_rsid = true;
+      maf = 0.0;
+      mac = 0;
+      maf_threshold = false;
+      mac_threshold = false;
     }  
+
+  void set_mac( const int m )
+  {
+    mac_threshold = true;
+    mac = m;
+  }
+
+  void set_maf( const double m )
+  {
+    maf_threshold = true;
+    maf = m;
+  }
 
   void set_skip_header( const bool b ) 
   {
@@ -46,6 +65,11 @@ class DoseReader {
   void set_spaced() 
   {
     spaced = true;
+  }
+
+  void set_variable_delimiter()
+  {
+    vardelim = true;
   }
 
   void set_id( const bool b )
@@ -152,12 +176,18 @@ class DoseReader {
 
   bool skip_header;
   bool spaced;
+  bool vardelim;
   bool has_rsid;
 
   bool has_meta;
   bool make_hard_call;
   double hard_call_prob_threshold;
   double hard_call_dosage_threshold;
+  
+  bool maf_threshold;
+  bool mac_threshold;
+  double maf;
+  int mac;
 
 
   // DB pointers

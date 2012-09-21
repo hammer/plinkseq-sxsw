@@ -184,6 +184,7 @@ class Variant {
   
   /// Add a new Genotype to the consensus SampleVariant (when reading from VCF, and so straight to consensus)
   void add( const Genotype & g ) { consensus.calls.add(g); } 
+  void add( const Genotype & g , const int i ) { consensus.calls.add(g,i); } 
   
 
   
@@ -247,6 +248,9 @@ class Variant {
 
   /// Set number of individuals with data for this variant  
   void resize(const int n);
+
+  /// Reserve space for calls
+  void reserve(const int n);
 
   /// Pointer to an individual (0..N-1) in the consensus/indmap, given N
   Individual * ind(const int) const;
@@ -441,6 +445,12 @@ class Variant {
   
   /// Is this an indel?
   bool indel() const;
+
+  /// Is this an MNP?
+  bool mnp() const;
+
+  /// Is this a SNP?  (could be multi-allelic)
+  bool snp() const;
 
   /// Return the 'Allele' object for allele 'a'
   const Allele & allele(const int a) const;

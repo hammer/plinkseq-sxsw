@@ -62,7 +62,7 @@ namespace Pseq {
       
       // read/write gene-scores
       
-      void write_gscores( const std::string & filename , const std::map<std::string,Aux_netdet> & gscore );
+      void write_gscores( const std::map<std::string,Aux_netdet> & gscore );
       std::map<std::string,Aux_netdet> read_scores( const std::string & filename );
       
       // actual genic test

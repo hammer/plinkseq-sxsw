@@ -10,6 +10,10 @@
 
 #include <iostream>
 
+//
+//  *****  NOTE --- this module is likely being retired very soon, currently not functional ******
+//
+
 extern GStore * GP;
 
 const std::string PPH2DBase::transcript_set_name = "refseq";
@@ -48,12 +52,15 @@ bool PPH2DBase::score( const Variant & v , double & score , int & prediction )
       // PSEQ databases 
       //
       
-      std::set<SeqInfo> seqann = Annotate::annotate( v.chromosome() , 
-						     v.position() , 
-						     v.alternate(), 
-						     v.reference() ,
-						     *i );
+      std::set<SeqInfo> seqann;
+      
+      //
+      // Note need to uncomment and fix line below for PPH2DB to work;
+      // not sure if this will be worth the effort in the long term
+      // though
+      //
 
+      //      std::set<SeqInfo> seqann = Annotate::annotate( (Variant&)v , *i );
       
       std::set<SeqInfo>::iterator j = seqann.begin();
       while ( j != seqann.end() )

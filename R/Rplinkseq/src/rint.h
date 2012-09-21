@@ -134,6 +134,7 @@ extern "C" {
   // Get list of individuals (per file)
   
   SEXP Rind_list(SEXP f, SEXP p);
+  SEXP Rind_pedlist(SEXP f);
   
   // Get headers for a file
   

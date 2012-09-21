@@ -492,6 +492,11 @@ bool LocDBase::init()
 		 " ( SELECT loc_id FROM segments "
 		 "      WHERE indiv_id == :indiv_id ) ; " );
   
+
+  stmt_loc_fetch_id_given_name = 
+    sql.prepare( "SELECT loc_id FROM loci WHERE group_id == :group_id AND name == :name ; ") ;
+
+
 }
 
 bool LocDBase::release()
@@ -508,6 +513,8 @@ bool LocDBase::release()
   sql.finalise(stmt_loc_lookup_group ); 
   sql.finalise(stmt_loc_lookup_group_and_name ); 
   sql.finalise(stmt_loc_group_list );
+
+  sql.finalise(stmt_loc_fetch_id_given_name);
 
   sql.finalise(stmt_loc_lookup_real_name);
   sql.finalise(stmt_loc_lookup_real_name_only);
@@ -2011,7 +2018,7 @@ std::set<Region> LocDBase::get_regions( const std::string & group , const Varian
   std::set<Region> r;
   uint64_t id = lookup_group_id( group );
   if ( id == 0 ) return r;
-  return get_regions( id , v.chromosome() , v.position() , v.position() );
+  return get_regions( id , v.chromosome() , v.position() , v.stop() == 0 ? v.position() : v.stop() );
 }
 
 
@@ -3207,4 +3214,15 @@ std::string LocDBase::get_genename( const Variant & var , uint64_t group_id , co
       sql.reset( stmt_loc_fetch_altnames_indel );
     }
   return s;
+}
+
+uint64_t LocDBase::get_region_id( uint64_t gid , const std::string & name )
+{
+  sql.bind_int( stmt_loc_fetch_id_given_name , ":group_id" , gid );
+  sql.bind_text( stmt_loc_fetch_id_given_name , ":name" , name );
+  uint64_t t = 0;
+  if ( sql.step( stmt_loc_fetch_id_given_name ) )
+    t = sql.get_int( stmt_loc_fetch_id_given_name , 0 );
+  sql.reset( stmt_loc_fetch_id_given_name );
+  return t;
 }

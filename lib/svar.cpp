@@ -34,7 +34,7 @@ int SampleVariant::parse_alleles()
   // Reference allele
   //
   
-  alleles.push_back( Allele( ref ) );
+  alleles.push_back( Allele( ref , ref ) );
   
   //
   // One or more alternate alleles
@@ -44,7 +44,7 @@ int SampleVariant::parse_alleles()
   
   for (int i=0; i<tok2.size(); i++)
     {
-      alleles.push_back( Allele( tok2[i] ) );
+      alleles.push_back( Allele( tok2[i] , ref ) );
     }
 
   // 

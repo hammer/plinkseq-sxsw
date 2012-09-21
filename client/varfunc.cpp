@@ -380,21 +380,24 @@ struct AuxLookup
 { 
   bool append_phe;
   bool append_loc;
+  bool append_prot;
   bool append_aliases;
   bool append_ref;
   bool append_seq;
   bool vardb;
   bool append_annot;    
+
+  ProtDBase protdb;
   std::set<std::string> locs;
   std::set<std::string> refs;
   std::set<std::string> aliases;
+
 };
 
 
 void f_lookup_annotator( Variant & var , void * p )
 {
   
-  //  std::cout << "in here..\n";
 
   AuxLookup * aux = (AuxLookup*)p;
 
@@ -476,7 +479,6 @@ void f_lookup_annotator( Variant & var , void * p )
 
   std::set<Variant> vars = g.vardb.fetch( region );
 
-  //  std::cout << "sX\n";
 
   if ( vars.size() == 0  )
     {
@@ -532,12 +534,12 @@ void f_lookup_annotator( Variant & var , void * p )
 	      if ( aux->append_phe ) 
 		{
 		  if ( v->ind(j)->affected() == CASE )
-		    ++case_n;
+		    case_n += (*v)(j).minor_allele_count( true );  // true implies AAC, not MAC
 		  else
-		    ++control_n;
+		    control_n += (*v)(j).minor_allele_count( true );
 		}
 	      else
-		++control_n;
+		control_n += (*v)(j).minor_allele_count( true );
 	    }
 	}
 
@@ -574,6 +576,124 @@ void f_lookup_annotator( Variant & var , void * p )
       
     }
   
+
+  if ( aux->append_prot ) 
+    {
+      ProtFeatureSet fs = aux->protdb.lookup( var );
+
+      // consider each transcript
+
+      std::map<std::string,std::set<Feature> >::iterator ii = fs.feat.begin();
+      while ( ii != fs.feat.end() )
+	{
+	  
+	  // given this particular transcript, find the AA position
+	  
+	  int aapos = 0;
+	  int bp = var.position();
+
+	  bool negative_strand = false;
+	  bool positive_strand = false; 
+	  bool unknown_strand = true;
+	  int aasize = 0;
+
+	  // any features? if so, calcualte AA position for variant
+	  
+	  Region * region = Annotate::pointer_to_region( ii->first );
+	  if ( region == NULL )
+	    {
+	      aapos = 0;
+	    }
+	  else
+	    {
+	      
+	      // determine the genomic position for the start/stop pairs                                                                                                                                            
+	      int ns = region->subregion.size();
+	      
+	      // transcript on positive or negative strand? 
+	      
+	      for (int e = 0; e < ns ; e++ )
+		{
+		  if ( region->subregion[e].CDS() )
+		    {
+		      aasize += region->subregion[e].stop.position() - region->subregion[e].start.position() + 1;
+		      int s = region->subregion[e].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
+		      if ( s == 0 ) continue;
+		      negative_strand = s < 0 ;
+		      positive_strand = s > 0 ;			  			  
+		    }
+		  
+		}
+	      
+	      bool problem = false;
+	      if ( negative_strand != positive_strand ) 
+		{
+		  unknown_strand = false;
+		  if ( aasize % 3 != 0 ) 
+		    {
+		      std::cerr << "problem, " << aasize << " " << aasize % 3 << "\n";
+		      problem = true;
+		    }
+		}
+	      
+
+	      //
+	      // this procedure also implicitly makes sure that the variant is in the CDS
+	      // (i.e. not intronic for variants that span more than one exon
+	      //
+	      
+	      bool set_pos = false;
+	      
+	      for (int e = 0; e < ns ; e++ )
+		{
+		  // only consider actual CDS regions                                                                                                                                                               
+		  if ( region->subregion[e].CDS() )
+		    {
+		      
+		      // is the position in this region? 
+		      if ( bp >= region->subregion[e].start.position() && bp <= region->subregion[e].stop.position() )
+			{
+			  aapos += bp - region->subregion[e].start.position() ;  // 0-based 
+			  set_pos = true;
+			  break;
+			}
+		      aapos += region->subregion[e].stop.position() - region->subregion[e].start.position() + 1;
+		    }
+		}
+	      
+	      
+	      
+	      if ( problem || ! set_pos ) 
+		aapos = 0;
+	      else 
+		{		      
+		  aapos = ( (int)aapos / (int)3 ) + 1; // 1-based AA number
+		  if ( negative_strand ) aapos = aasize - aapos + 1;
+		}
+	    }
+	
+      
+      // consider all features, if maps to CDS
+      
+      if ( aapos ) 
+	{
+	  std::set<Feature>::iterator jj = ii->second.begin();	  
+	  while ( jj != ii->second.end() )
+	    {
+	      pout << s << "\t"
+		   << "prot_" << jj->source_id << "\t"
+		   << jj->feature_id << "|" << jj->feature_name << "|" << jj->protein_id << "|";
+	      pout << aapos << "/";   
+	      pout << jj->pstart << ".." << jj->pstop << "|" << jj->mstr << "|" << ii->first << ( unknown_strand ? "(?strand)" : negative_strand ? "(-ve)" : "(+ve)" ) << "\n";
+	      ++jj;
+	    }
+	}
+      
+      // next transcript
+      ++ii;
+    }
+}
+
 
   //
   // Locus DB ? 
@@ -683,36 +803,68 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 
   aux.append_phe = g.vardb.attached() && g.inddb.attached() && g.phmap.type() == PHE_DICHOT;    
   aux.append_loc = g.locdb.attached() && aux.locs.size() > 0;
+  aux.append_prot = args.has( "protdb" );
+
+  if ( aux.append_prot && g.locdb.attached() && ! aux.append_annot )
+    {      
+      // NOTE: assumes 'refseq' is named group in both PROTDB and LOCDB for now      
+      plog << "assuming group 'refseq' exists in PROTDB and LOCDB\n";
+      Annotate::setDB( LOCDB );
+      if ( ! Annotate::set_transcript_group( PLINKSeq::DEFAULT_LOC_GROUP() ) ) Helper::halt( "trouble attaching 'refseq' group from LOCDB" );    
+    }
+  
   aux.append_aliases = aux.append_loc && aux.aliases.size() > 0;
   aux.append_ref = g.refdb.attached() && aux.refs.size() > 0;
   aux.append_seq = g.seqdb.attached();
   aux.vardb = g.vardb.attached();
   aux.append_annot = g.seqdb.attached() && args.has( "annotate" ) ;
-
-  if ( ! ( aux.vardb || aux.append_loc || aux.append_ref || aux.append_seq || aux.append_annot ) ) 
+  
+  if ( ! ( aux.vardb || aux.append_loc || aux.append_prot || aux.append_ref || aux.append_seq || aux.append_annot ) ) 
     Helper::halt("no information to append");
+  
   
   if ( aux.append_annot ) 
     {
       std::string annot_transcripts = PLINKSeq::DEFAULT_LOC_GROUP() ;      
       if ( args.has( "annotate" ) ) annot_transcripts = args.as_string( "annotate" );      
-      Annotate::load_transcripts( LOCDB, annot_transcripts );
+      Annotate::setDB( LOCDB );
+      Annotate::set_transcript_group( annot_transcripts );
     }
   
 
   // Headers
-
+  
   if ( aux.vardb )
     {
       pout << "##nvar,1,Integer,\"Number of overlapping variants\"\n";
       pout << "##var,1,String,\"Variant ID\"\n";
       if ( aux.append_phe ) {
-	pout << "##case,1,Integer,\"Case minor allele counts\"\n";
-	pout << "##con,1,Integer,\"Control minor allele counts\"\n";
+	pout << "##case,1,Integer,\"Case alternate allele counts\"\n";
+	pout << "##con,1,Integer,\"Control alternate allele counts\"\n";
       }
-      else pout << "##cnt,1,Integer,\"Minor allele counts\"\n";
+      else pout << "##cnt,1,Integer,\"Alternate allele counts\"\n";
     }
+
   
+
+   
+  if ( aux.append_prot )
+    {
+      
+      aux.protdb.attach( args.as_string( "protdb" ) );
+      
+      if ( ! aux.protdb.attached() ) Helper::halt( "could not attach PROTDB" );
+      
+      std::set<std::string> sources = aux.protdb.get_sources();
+      std::set<std::string>::iterator ii = sources.begin();
+      while ( ii != sources.end() )
+	{
+	  pout << "##prot_" << *ii << ",1,String,\"PROTDB " << *ii << " annotation\"\n";
+	  ++ii;
+	}
+    }
+
+
   if ( aux.append_loc )
     {
       std::set<std::string>::iterator i = aux.locs.begin();
@@ -723,6 +875,7 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 	}
     }
   
+
   if ( aux.append_ref ) 
     {
       std::set<std::string>::iterator i = aux.refs.begin();
@@ -836,6 +989,10 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 	}      
     }
   
+
+  //
+  // clean-up
+  //
 
   return true;
 

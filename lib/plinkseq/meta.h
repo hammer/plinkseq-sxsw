@@ -810,9 +810,25 @@ class MetaInformation {
 	return i == m_bool.end() ? NULL : &(i->second); 
       }
     
+    //
+    // Similar, pointer to first value only; mutable pointers, in that
+    // this allows use to change an element value; used to speed up 
+    // some loading routines
+    //
 
-
-
+    int * mutptr1_int(meta_key_t key)
+    {
+      meta_int_t::iterator i = m_int.find( key );
+      return i == m_int.end() ? NULL : &(i->second[0]);
+    }
+    
+    double * mutptr1_double(meta_key_t key)
+    {
+      meta_double_t::iterator i = m_double.find( key );
+      return i == m_double.end() ? NULL : &(i->second[0]); 
+    }
+    
+    
     //
     // Type specific queries, given name
     // 

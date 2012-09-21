@@ -547,8 +547,9 @@ double Pseq::Assoc::Aux_skat::get_liu_pval( double Q , Data::Matrix<double> & A1
   
   double qnorm  = ( Q - muQ ) / sigmaQ;
   double qnorm1 = qnorm * sigmaX + muX;
+  if ( qnorm1 < 0 ) qnorm1 = 0;
   double pvalue = Statistics::noncentral_chi2_prob(  qnorm1 , l , d );
-
+  
   return pvalue; 
 }
 
@@ -665,6 +666,7 @@ double Pseq::Assoc::Aux_skat::calculate_pvalue( double Q , Data::Matrix<double> 
   
   if ( lambda.size() == 1 || pvalue_davies <= 0 || pvalue_davies > 1 ) 
     okay = false;
+  
 
   if ( okay ) return pvalue_davies; 
   return pvalue_liu;
@@ -1149,6 +1151,7 @@ Data::Vector<double> Pseq::Assoc::Aux_skat::sub_optimal_P_foreach_Q( const Data:
       // param.mat<-rbind(param.mat,c(muQ,varQ,df))
     
       double qnorm = ( Q[i] - muQ ) / sdQ * sqrt( 2 * df ) + df ;
+      if ( qnorm < 0 ) qnorm = 0;
       pval[i] = Statistics::chi2_prob( qnorm , df );      
       param(i,0) = muQ;
       param(i,1) = varQ;

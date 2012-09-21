@@ -17,10 +17,9 @@ Out::Out( const std::string & ext , const std::string & desc )
   // add to list of currently open streams
   streams[ ext ] = this;
   
-  plog << "Writing to file [ " << name << " ] ";  
-
-  if ( desc != "" ) plog << " : " << desc;
-  plog << "\n";
+  plog >> "Writing to file [ " >> name >> " ] ";  
+  if ( desc != "" ) plog >> " : " >> desc;
+  plog >> "\n";
   
   if ( tofile ) 
     {

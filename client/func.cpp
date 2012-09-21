@@ -19,18 +19,17 @@ void Pseq::finished()
   
   time_t curr=time(0);
   std::string tdstamp = (std::string)ctime(&curr);
-  plog << "\nAnalysis finished " << tdstamp    
-       << "===============================================================================\n";
+  plog >> "\nAnalysis finished " >> tdstamp    
+       >> ":::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\n";
 
-
-  if ( g.gseq_mode() )
-    {
-      std::ofstream O1( g.gseq_history().c_str() , std::ios::out | std::ios::app );
-      O1 << "_STATUS" << "\t"
-	 << g.gseq_job() << "\t"
-	 << "Done" << "\n";
-      O1.close();
-    } 
+  // if ( g.gseq_mode() )
+  //   {
+  //     std::ofstream O1( g.gseq_history().c_str() , std::ios::out | std::ios::app );
+  //     O1 << "_STATUS" << "\t"
+  // 	 << g.gseq_job() << "\t"
+  // 	 << "Done" << "\n";
+  //     O1.close();
+  //   } 
 
   exit(0);
 }
@@ -870,10 +869,10 @@ bool Pseq::LocDB::swap_alternate_names( const std::string & group , const std::s
       g.locdb.replace_real_names( gid , tok[0] , tok[1] , args.has( "alternate-name" ) );
 
       if ( ++cnt % 1000 == 0 ) 
-	plog.counter( "replaced " + Helper::int2str( cnt ) + " locus names" );
+	plog.counter1( "replaced " + Helper::int2str( cnt ) + " locus names" );
     }
   
-  plog.counter("\n");
+  plog.counter1("\n");
   
   infile.close();
  
@@ -1033,10 +1032,10 @@ bool Pseq::RefDB::attach( std::string db )
 }
       
 
-bool Pseq::SeqDB::load_transcripts( std::string label )
-{
-  return Annotate::load_transcripts( LOCDB , label );
-}
+// bool Pseq::SeqDB::load_transcripts( std::string label )
+// {
+//   return Annotate::load_transcripts( LOCDB , label );
+// }
 
   
 bool Pseq::IndDB::attach( std::string db )
@@ -1703,7 +1702,10 @@ bool Pseq::PPH2DB::score( Mask & m , const std::string & dbname )
   PPH2DBase ppdb;
   ppdb.attach( dbname );
   ppdb.set_locdb( &g.locdb );
-  Annotate::load_transcripts( LOCDB , PLINKSeq::DEFAULT_LOC_GROUP() );
+
+  Annotate::setDB( LOCDB );
+  Annotate::set_transcript_group( PLINKSeq::DEFAULT_LOC_GROUP() );
+
   IterationReport report = g.vardb.iterate( f_pph2_scoring , &ppdb , m );
 }
 
@@ -1980,8 +1982,10 @@ bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
   //
 
   if ( opt.apply_annot )
-    Annotate::load_transcripts( LOCDB, PLINKSeq::DEFAULT_LOC_GROUP() );
-  
+    {
+      Annotate::setDB( LOCDB );
+      Annotate::set_transcript_group( PLINKSeq::DEFAULT_LOC_GROUP() );
+    }
   
   //
   // Any optional variant meta-fields to be displayed?

@@ -25,7 +25,7 @@ IterationReport VarDBase::iterate( void (*f)(Variant&, void *) ,
   if ( f ) 
     {
       IterationReport report = generic_iterate( f, NULL , data , mask );
-      plog << report.report() ;
+      plog >> report.report() ;
       return report;
     }
 
@@ -50,7 +50,7 @@ IterationReport VarDBase::iterate( void (*f)(VariantGroup &, void *) ,
   if ( f ) 
     {
       IterationReport report = generic_iterate( NULL , f, data , mask );
-      plog << report.report();
+      plog >> report.report();
       return report;
     }
 
@@ -799,7 +799,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 		{
 
 		  if ( rep.processed() % 100 == 0 ) 
-		    plog.counter( Helper::int2str( rep.processed() ) + " accepted variants" );
+		    plog.counter2( Helper::int2str( rep.processed() ) + " accepted variants" );
 		  
 		  // Update our current 'variant'
 		  // and add the meta-fields
@@ -822,7 +822,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
  		{	    
 		  
 		  if ( rep.groups() % 10 == 0 ) 
-		    plog.counter( Helper::int2str( rep.groups() ) + " accepted variant-groups" );
+		    plog.counter2( Helper::int2str( rep.groups() ) + " accepted variant-groups" );
 		  
  		  // If the above is true, it means that the last 
  		  // variant could not be added to the group. Therefore, 
@@ -835,7 +835,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 		  rep.processed_group();
 
  		  vars.clear(var);
- 		} 
+ 		}
 	      
 	      
 	      var = nextrow;
@@ -843,10 +843,9 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	      sample = var.psample( 0 );
 
 	      addMetaFields( var , s, mask );
-	    
+	      
 	    } // next row
 	
-
 	
 	//
 	// Finished iterating -- process the last variant (if any)
@@ -889,6 +888,10 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 		    rep.processed_group();
 
 		  }
+
+		if ( rep.groups() % 10 == 0 ) 
+		  plog.counter2( Helper::int2str( rep.groups() ) + " accepted variant-groups" );
+		
 	      }
 	    
 	  }
@@ -900,6 +903,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	
 	sql.reset( s );
 	
+
 	//
 	// If we are not grouping, then we are all done now
 	//
@@ -1007,7 +1011,7 @@ bool VarDBase::eval_and_call( Mask & mask,
 	      attach_indep_metadata( svar.index() , *vmeta_target , var , &s );
 	    }
 	}
-      
+
       
       // These filters are based on QUAL and FILTER fields -- these
       // will travel with target, not vmeta_target 
@@ -1077,6 +1081,18 @@ bool VarDBase::eval_and_call( Mask & mask,
 	}
       
 
+      //
+      // Apply hard-calls from dosage data
+      //
+
+      if ( mask.make_hard_calls() ) 
+	{
+	  const int sn = genotype_target->calls.size();
+	  for (int i=0;i<sn;i++)
+	    mask.revise_hard_call( genotype_target->calls.genotype(i) );
+	}
+      
+      
       //
       // Here, we must have at least 1 good sample
       //
@@ -1233,6 +1249,16 @@ bool VarDBase::eval_and_call( Mask & mask,
 	  if ( fnd.size() != req.size() ) return false;
 	  if ( use_inc && (!inc1) && (!use_req) ) return false;
 	}
+    }
+  
+
+  //
+  // Append ref-variant information, but directly from a file (on-the-fly) instead of a REFDB
+  //
+  
+  if ( mask.onthefly_append() )
+    {
+      mask.onthefly_attach_to_variant( var );
     }
   
   

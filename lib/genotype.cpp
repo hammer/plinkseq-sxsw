@@ -11,6 +11,11 @@ std::map<std::string,Genotype> Genotype::gcache;
 
 genotype_model_t Genotype::model = GENOTYPE_MODEL_ALLELIC ;
 
+bool Genotype::using_soft_calls       = false;
+bool Genotype::using_dosage           = false;
+bool Genotype::using_probs            = false;
+std::string Genotype::soft_call_label = "";
+
 void GenotypeSet::summarise_meta( std::map<meta_typed_key_t,std::pair<int,int> > & mk ,  
 				  std::map<meta_typed_key_t,std::string> & mk_name , 
 				  std::set<meta_typed_key_t> & mk_varlen )  const

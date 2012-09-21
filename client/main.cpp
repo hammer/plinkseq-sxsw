@@ -24,7 +24,7 @@ Pseq::Util::Options args;
 Pseq::Util::Commands pcomm;
 
 std::string PSEQ_VERSION = "0.09";
-std::string PSEQ_DATE    = "14-Aug-12";
+std::string PSEQ_DATE    = "20-Sep-12";
 
 
 int main(int argc, char ** argv)
@@ -41,12 +41,12 @@ int main(int argc, char ** argv)
 
   // connect with GSEQ job tracking?
   
-  if ( args.has( "history" ) )
-    {
-      std::vector<std::string> tok = args.as_string_vector( "history" );
-      if ( tok.size() != 2 ) Helper::halt( "--history {file} {job#}" );
-      g.gseq_tracking( tok[0] , tok[1] );
-    }
+  // if ( args.has( "history" ) )
+  //   {
+  //     std::vector<std::string> tok = args.as_string_vector( "history" );
+  //     if ( tok.size() != 2 ) Helper::halt( "--history {file} {job#}" );
+  //     g.gseq_tracking( tok[0] , tok[1] );
+  //   }
 
 
 
@@ -87,40 +87,46 @@ int main(int argc, char ** argv)
   if ( args.has("early-warnings") )
     plog.early_warnings( true );
   
+
   if ( args.has( "all-warnings" ) )
     plog.set_warning_limit( numeric_limits<int>::max() );
   else if ( args.has( "limit-warnings" ) )
     plog.set_warning_limit( args.as_int( "limit-warnings" ) );
   
+             
   
-           
-  if ( args.has("silent" ) )
-    {
-      plog.silent( true );
-      plog.silent_except_errors( false ); // even silent for errors
-    }
-
-  std::string fileroot = args.has("out") ? args.as_string("out") : "pseq" ;   
-  plog.set_fileroot( fileroot ) ;
-
-  if ( args.has("out") ) 
-    Out::set_fileroot( fileroot ) ;
-
   
-  // send all output to stdout
-  // (note Log goes to stderr by default, unless --silent)
-  if ( args.has( "stdout" ) )
-    {
-      // unless out also explicitly specified
-      // then no log either 
+  //
+  // Default : send all output to STDOUT, warnings to STDERR, no LOG
+  //
+  
 
-      if ( ! args.has( "out" ) ) 
-	{
-	  plog.silent( true );
-	  plog.silent_except_errors( true ); // do show errors
-	}
-      Out::set_stdout( true );
+  if ( args.has( "silent" ) ) plog.silent( true );
+  
+  else if ( args.has( "quiet" ) ) plog.quiet( true );
+
+  // Default to write to STDOUT for all output...
+
+  Out::set_stdout( true );
+  Out::set_tofile( false );
+
+  // ... unless a file is explicitly specified, --out {file}
+
+  std::string fileroot = args.has( "out" ) ? args.as_string("out") : "";
+  
+  if ( args.has( "out" ) ) 
+    {      
+      // inform main output class
+      Out::set_stdout( false );
+      Out::set_tofile( true );
+      Out::set_fileroot( fileroot );
+
+      // and LOG class
+      plog.set_fileroot( fileroot );
+
     }
+  else
+    plog.close_logfile(); // ensure no output to file
 
   if ( args.has( "debug" ) ) 
     debug.silent( false );
@@ -129,12 +135,6 @@ int main(int argc, char ** argv)
     debug.logfile( args.as_string( "debug-file" ) ); 
   
 
-  // ---- obsolete Log functions: can be removed
-  // if ( args.has("out-file") ) 
-  //   plog.logfile( args.as_string("out-file") );
-  // if ( args.has("prolix-file") ) 
-  //   plog.prolix_logfile( args.as_string("prolix-file") );
-  
 
   // ----- likely remove support for 'long-mode' from Out class
   // if ( args.has("long") )
@@ -150,11 +150,11 @@ int main(int argc, char ** argv)
   time_t curr=time(0);
   std::string tdstamp = (std::string)ctime(&curr);
 
-  plog << "-------------------------------------------------------------------------------\n"    
-       << "||||||||||||||||||||||||||| PSEQ (v" 
-       << PSEQ_VERSION << "; " << PSEQ_DATE 
-       << ") |||||||||||||||||||||||||||\n"
-       << "-------------------------------------------------------------------------------\n\n";
+  plog >> "-------------------------------------------------------------------------------\n"    
+       >> "||||||||||||||||||||||||||| PSEQ (v" 
+       >> PSEQ_VERSION >> "; " >> PSEQ_DATE 
+       >> ") |||||||||||||||||||||||||||\n"
+       >> "-------------------------------------------------------------------------------\n\n";
 
   //
   // Process 'command'
@@ -178,12 +178,12 @@ int main(int argc, char ** argv)
   // Basics to the log
   //
 
-  if ( ! args.has( "silent" ) ) 
-    plog << "Copying this log to file [ " << fileroot << ".log ]\n";
-
+  if ( args.has( "out" ) && ! ( args.has( "silent" ) || args.has( "quiet" ) ) )
+    std::cout << "Copying this log to file [ " << fileroot << ".log ]\n";
+  
   // Time-stamp 
 
-  plog << "Analysis started " << tdstamp;
+  plog >> "Analysis started " >> tdstamp;
 
   //
   // Web-based version check
@@ -197,11 +197,11 @@ int main(int argc, char ** argv)
   // show actual input command lines in log
   //
 
-  plog << "\n"
-       << "-------------------------------------------------------------------------------\n\n"
-       << pp_args;
+  plog >> "\n"
+       >> "-------------------------------------------------------------------------------\n\n"
+       >> pp_args;
    
-  plog << "\n-------------------------------------------------------------------------------\n\n";
+  plog >> "\n-------------------------------------------------------------------------------\n\n";
 
   
   //
@@ -249,7 +249,7 @@ int main(int argc, char ** argv)
       pcomm.display( n );
       Pseq::finished();
     }
-
+  
   if ( command == "masks" )
     {
       plog << Mask::describe_options();
@@ -274,14 +274,14 @@ int main(int argc, char ** argv)
   
   if ( command == "version" ) 
     {
-      
-      plog << "PSEQ: " << PSEQ_VERSION << "\n"
+      Out pout( "version" , "version information" );
+      pout << "PSEQ: " << PSEQ_VERSION << "\n"
 	   << "PSEQ DATE: " << PSEQ_DATE << "\n";
 	   
       g.show_version();
       
 #ifdef ZLIB_VERNUM
-      plog << "ZLIB: " << ZLIB_VERSION << "\n";
+      pout << "ZLIB: " << ZLIB_VERSION << "\n";
 #endif
 
       Pseq::finished();
@@ -392,6 +392,9 @@ int main(int argc, char ** argv)
       else
 	Helper::halt("no --name or --file specified");
       
+      if ( args.has("name") && args.has("file" ) ) 
+	Helper::halt("use either --name OR --file");
+
       if ( ! args.has( "type" ) ) 
 	Helper::halt("no --type specified");
       std::string type = args.as_string( "type" );
@@ -401,6 +404,55 @@ int main(int argc, char ** argv)
     }
   
 
+  //
+  // On-the-fly declaration of types
+  //
+  
+  if ( args.has( "declare" ) )
+    {
+      // --declare DB|INFO|0|Flag|"Description a desc" DB2|FORMAT|1|GT|Float|"A value"
+      
+      std::vector<std::string> t = args.as_string_vector( "declare" );
+      for ( int tt = 0 ; tt < t.size() ; tt++ )
+	{
+	  std::vector<std::string> x = Helper::char_split( t[tt] , '|' );
+
+	  if ( x.size() != 5 ) Helper::halt("expecting ID|GROUP|N|TYPE|DESC for --declare" );
+
+	  const std::string & name = x[0];
+	  const std::string & type = x[3];
+	  const std::string & desc = x[4];
+
+	  int n = 0;
+	  if ( ! Helper::str2int( x[2] , n ) ) n = -1; // variable length
+	  
+	  mType mt = META_UNDEFINED;	  
+	  if ( Helper::is_int( type ) )  mt = META_INT;
+	  else if ( Helper::is_float( type ) ) mt = META_FLOAT;
+	  else if ( Helper::is_text( type ) ) mt = META_TEXT;  // text == String || Char
+	  else if ( Helper::is_flag( type ) ) mt = META_FLAG;
+	  
+	  // Does this contain valid information?
+	  
+	  if ( mt == META_UNDEFINED )
+	    Helper::halt( "problem defining type, " + type );
+
+	  if ( n < -1 ) 	  
+	    Helper::halt( "problem defining number, " + x[2] );
+	  
+	  if ( x[1] == "INFO" ) 
+	    MetaInformation<VarMeta>::field( name , mt , n , desc );
+	  else if ( x[1] == "FORMAT" ) 
+	    MetaInformation<GenMeta>::field( name , mt , n , desc );
+	  else if ( x[1] == "FILTER" ) 
+	    MetaInformation<VarFilterMeta>::field( name , mt , n , desc );
+	  else
+	    Helper::halt( x[1] + " not one of INFO, FORMAT or FILTER" );
+	}
+      
+    }
+  
+  
   //
   // Misc. formatting/display options
   //
@@ -432,7 +484,23 @@ int main(int argc, char ** argv)
     {
       MetaMeta::set_force_consensus( true );
     }
-  
+
+
+  //
+  // Hint to use soft-called genotypes, if command allows
+  //
+
+  if ( args.has( "use-dosages" ) )
+    {
+      Genotype::using_dosage = Genotype::using_soft_calls = true;
+      Genotype::soft_call_label = args.as_string( "use-dosages" );
+    }
+  else if  ( args.has( "use-postprobs" ) )
+    {
+      Genotype::using_probs = Genotype::using_soft_calls = true;
+      Genotype::soft_call_label = args.as_string( "use-postprobs" );
+    }
+
 
   //
   // Load reference and sequence data
@@ -591,7 +659,8 @@ int main(int argc, char ** argv)
     {
       if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
       if ( ! args.has( "file" ) ) Helper::halt( "no --file specified" );
-      Pseq::ProtDB::loader( args.as_string( "protdb" ) , args.as_string( "file" ) );
+      if ( ! args.has( "group" ) ) Helper::halt( "no --group specified" );
+      Pseq::ProtDB::loader( args.as_string( "protdb" ) , args.as_string( "file" ) , args.as_string( "group" ) );
       Pseq::finished();
     }
   
@@ -761,9 +830,9 @@ int main(int argc, char ** argv)
 	while ( bcf->index_record() )
 	  {
 	    if ( ++inserted % 1000 == 0 )
-	      plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	      plog.counter1( "parsed " + Helper::int2str( inserted ) + " rows" );
 	  }
-	plog.counter("\n");
+	plog.counter1("\n");
 	
 	plog << "inserted " << inserted << " variants from BCF; now finishing index...\n";
 	
@@ -1223,17 +1292,6 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
-    //
-    // Any annotation specified? If so, must load transcripts 
-    // prior to constructing the Mask
-    //
-
-    if ( args.has( "annotate" ) )
-    {
-	std::string agrp = Pseq::Util::single_argument<std::string>( args , "annotate" );	
-	if ( ! Pseq::SeqDB::load_transcripts( agrp ) ) 
-	    Helper::halt("problem loading annotation transcripts");
-    }
 
     
     //
@@ -1454,9 +1512,9 @@ int main(int argc, char ** argv)
 	while ( vcfz->index_record() )
 	  {
 	    if ( ++inserted % 1000 == 0 )
-	      plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	      plog.counter1( "parsed " + Helper::int2str( inserted ) + " rows" );
 	  }
-	plog.counter("\n");
+	plog.counter1("\n");
 	
 	if ( inserted == 0 ) 
 	  {
@@ -1516,14 +1574,14 @@ int main(int argc, char ** argv)
 	
 	if ( mview ) 
 	  {
-	    plog << opt.vars.dump( opt.vmeta , 
-				   opt.vexpand , 
-				   opt.geno , 
-				   opt.gmeta , 
-				   false , // transpose
-				   false , // rarelist mode 
-				   g.phmap.type() != PHE_NONE , 
-				   rview ) << "\n";
+	    output << opt.vars.dump( opt.vmeta , 
+				     opt.vexpand , 
+				     opt.geno , 
+				     opt.gmeta , 
+				     false , // transpose
+				     false , // rarelist mode 
+				     g.phmap.type() != PHE_NONE , 
+				     rview ) << "\n";
 	  }
 	Pseq::finished();
       }
@@ -1554,8 +1612,11 @@ int main(int argc, char ** argv)
 
 	Opt_geneseq opt;
 	
-	if ( args.has( "ref-variants" ) ) 
-	  opt.ref = g.refdb.lookup_group_id( args.as_string( "ref-variants" ) );
+	if ( args.has( "ref" ) ) 
+	  opt.ref = g.refdb.lookup_group_id( args.as_string( "ref" ) );
+	
+	if ( args.has( "variant" ) )
+	  opt.only_variant_sites = true;
 
 	// add phenotype?
 	opt.pheno = g.phmap.type() == PHE_DICHOT;
@@ -1568,6 +1629,9 @@ int main(int argc, char ** argv)
 	    pd->attach( args.as_string( "protdb" ) );
 	    if ( ! pd->attached() ) Helper::halt( "could not attach PROTDB" );
 	    opt.protdb = pd;
+	    if ( ! args.has( "domain" ) ) 
+	      Helper::halt( "no --domain specified with --protdb for gs-view" );
+	    opt.protdom = args.get_set( "domain" );
 	  }
 
 	if ( ! g.seqdb.attached() ) Helper::halt( "no SEQDB attached" );
@@ -1703,6 +1767,14 @@ int main(int argc, char ** argv)
 	output.data_header( "TI" );  // flag to indicate Ti/Tv
 
 	output.data_header( "GENO" );
+	
+	if ( Genotype::using_soft_calls )
+	  {
+	    output.data_header( "INFO" );
+	    output.data_header( "DFRQ" );
+	  }
+	
+	output.data_header( "MAC" );
 	output.data_header( "MAF" );
 	output.data_header( "REFMIN" );
 	output.data_header( "HWE" );
@@ -1738,11 +1810,12 @@ int main(int argc, char ** argv)
     
     if ( command == "score-weights" )
       {
-	Out output( "scores" , "output from score-weights command" );
-	//Helper::halt("obsolete command score-weights");
- 	std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
- 	Pseq::PPH2DB::score( m , dbname );
- 	Pseq::finished();
+	Helper::halt("obsolete command score-weights");
+
+	// Out output( "scores" , "output from score-weights command" );	
+ 	// std::string dbname = Pseq::Util::single_argument<std::string>( args , "name" );
+ 	// Pseq::PPH2DB::score( m , dbname );
+ 	// Pseq::finished();
       }
 
 
@@ -1823,11 +1896,7 @@ int main(int argc, char ** argv)
 
 	// else directly annotate variants in VARDB
 	if ( ! ( args.has( "file" ) || args.has( "region" ) ) )
-	  {
-	    std::cout << "a\n";
-	    Pseq::VarDB::lookup_list( "." , m );
-	    std::cout << "b\n";
-	  }
+	  Pseq::VarDB::lookup_list( "." , m );
 	Pseq::finished();
       }
     
@@ -2124,8 +2193,8 @@ int main(int argc, char ** argv)
 
     if ( command == "cnv-denovo" )
     {
-	Out output1( "denovo.cnv" , "per-site output from denovo" );
-	Out output2( "denovo.indiv" , "per-trio output from denovo" );
+    	Out output1( "denovo.cnv",       "per-site output from cnv-denovo" );
+    	Out output2( "denovo.cnv.indiv", "per-trio output from cnv-denovo" );
     	Pseq::VarDB::cnv_denovo_scan( m );
     	Pseq::finished();
     }
@@ -2197,22 +2266,21 @@ int main(int argc, char ** argv)
       {
 
 	Out output1( "assoc" , "output from assoc command" );
-	Out * output2 = NULL;
-
+	Out outputd( "assoc.det", "site-specific breakdown of included variants per gene" );
+	
+	Out * output2 = NULL;       
 	if( args.has( "tests", "two-hit") )
 	  output2 = new Out( "twohit.vars" , "variants from two-hit test" );
-
-	/*	
-	Out & pthit = Out::stream( "twohit.vars" );
-	pthit << "aaaaaaaaaaaaaaaaaaa\n";
-	//}
-	Out & pthit2 = Out::stream( "twohit.vars" );
-	pthit2 << "bbbbbbbbbbbbbbbb\n";*/
+	
+	Out * outmatrix = args.has( "dump-null-matrix" ) ? new Out( "matrix" , "permuted null statistic matrix" ) : NULL;
+	
 	// if no perms specified, use adaptive permutation mode
 	Pseq::Assoc::set_assoc_test( m , args );
 
 	if( output2 != NULL )
 	  delete output2;
+	
+	if ( outmatrix ) delete outmatrix;
 
 	Pseq::finished();
 	
@@ -2391,38 +2459,23 @@ int main(int argc, char ** argv)
     // View a ProtDB 
     //
 
-
   if ( command == "prot-view" )
     {
-
-      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
-      if ( ! args.has( "name" ) ) Helper::halt( "no --name specified" );
-
+      
+      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );      
+      
       Out output( "prot" , "protein domain/annotations" );
-
-      if ( args.has( "group" ) )
-	{
-	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) , args.as_string( "group" ) , &m );
-	}
-      else
+      
+      if ( args.has( "group" ) && args.has("name") )
+	Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) , args.as_string( "group" ) , &m );
+      else if ( args.has( "name" ) )
 	Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) );
+      else
+	Pseq::ProtDB::lookup( args.as_string( "protdb" ) );
 
       Pseq::finished();
     }
 
-  if ( command == "prot-map" )
-    {
-      Out output( "protmap" , "protein domain/annotations mapped to the genome" );
-
-      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );
-      if ( ! args.has( "name" ) ) Helper::halt( "no --name specified" );
-      if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
-      if ( ! args.has( "group" ) ) Helper::halt( "no --group specified" );
-
-      Pseq::ProtDB::mapper( args.as_string( "protdb" )  , args.as_string( "group" )  , args.as_string( "name" ) , "." );
-
-      Pseq::finished();
-    }
 
 
     

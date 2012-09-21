@@ -68,7 +68,7 @@ int VarDBase::loader_indep_meta( const std::string & filename , int f , const st
       
       if ( tok.size() != 3 ) 
 	{
-	  plog.warn("skipping row of input, not 3 tab-delimited fields");
+	  plog.warn("skipping row of input, not 3 tab-delimited fields",line);
 	  continue;
 	}
       

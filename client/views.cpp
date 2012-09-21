@@ -1,6 +1,7 @@
 
 #include "views.h"
 #include "plinkseq/em.h"
+#include "plinkseq/dose.h"
 #include "util.h"
 #include "func.h"
 
@@ -371,10 +372,10 @@ void f_view_meta_matrix( Variant & v , void * p )
        << v.position() << "\t"
        << v.name();
   
+  
   int nelem_static = v.consensus.meta.n_visible_keys_static();
   
   int nelem_nonstatic = v.consensus.meta.n_visible_keys_nonstatic();
-  
 
   // Need to separate out 'static' (Variant) and 'non-static'
   // (SampleVariant/Consensus) information
@@ -453,9 +454,11 @@ void f_view_var_meta_matrix( Variant & v , void * p )
   std::string name = *(std::string*)p; 
   pout << v << "\t";
   for (int i=0; i<v.size(); i++)
-    pout << ( v(i).meta.has_field(name) ? 
-	      v(i).meta.as_string(name) : 
-	      "NA" ) << "\t";
+    {
+      pout << ( v(i).meta.has_field(name) ? 
+		v(i).meta.as_string(name) : 
+		"NA" ) << "\t";
+    }
   pout << "\n";
 }
 
@@ -679,11 +682,42 @@ void f_extra_qc_metrics( Variant & var , void * p )
   // number of obs. genotypes
   x->add( pos , (double)t / (double)var.size() , 0 );
   
+
+  // INFO score for imputed / soft-called data?
+  if ( Genotype::using_soft_calls )
+    {
+      double aaf = 0;
+      double rsq = DoseReader::Rsq( var , &aaf );
+      if ( rsq < 0 ) 
+	{
+	  x->add( pos , "NA" , 1 );
+	  x->add( pos , "NA" , 1 );
+	}
+      else
+	{
+	  x->add( pos , rsq , 1 );
+	  x->add( pos , aaf , 1 );
+	}
+
+    }
+
+
+  //
+  // Frequencies based on hard-calls
+  //
+  
+  // MAC
+  if ( c_tot == 0 ) 
+    x->add( pos , "NA" , 1 ); 
+  else
+    x->add( pos , c , 1 ); 
+
   // MAF
   if ( c_tot == 0 ) 
     x->add( pos , "NA" , 1 ); 
   else
     x->add( pos , maf , 1 ); 
+
   
   // flag T is REF is minor allele
   x->add( pos , ! altmin , 1 );
@@ -761,10 +795,10 @@ void f_extra_qc_metrics( Variant & var , void * p )
 	}
     }
 
-
+  
   // this will be populated later (N SNPs)
   x->neighbours[ pos ];
- 
+  
 
 }
 
@@ -788,11 +822,11 @@ bool Pseq::LocDB::loc_view( const std::string & group , const std::vector<std::s
   std::set<Region>::iterator i = loc.begin();
   while ( i != loc.end() ) 
     {
-
       pout << i->name << "\t"
 	   << i->coordinate() << "\t"
 	   << i->altname << "\t"
 	   << db->alias( i->name , false );
+
       if ( meta ) 
 	pout << "\t" << i->meta;
       pout << "\n";

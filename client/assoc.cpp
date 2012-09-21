@@ -112,8 +112,7 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   g.perm.initiate( aux.nrep , ntests );
   //  if ( args.has("aperm") ) g.perm.adaptive( args.as_int_vector( "aperm" ) );
   a.fix_null_genotypes = args.has("fix-null");
-
-
+  
   //
   // Apply function
   //
@@ -1276,45 +1275,6 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   a.dump_stats_matrix = args.has( "dump-null-matrix" );
 
 
-  //
-  // Get main output stream
-  //
-
-  Out & pout = Out::stream( "assoc" );
-
-
-  //
-  // Write header, if in stanard OUTPUT mode
-  //
-
-  if ( ! a.dump_stats_matrix )
-    {
-  
-      pout.data_reset();
-      
-      pout.data_group_header( "LOCUS" );
-      
-      pout.data_header( "POS" );
-      
-      if ( a.show_midbp ) 
-	{
-	  pout.data_header( "MID" );
-	  pout.data_header( "BP" );
-	}
-      
-      pout.data_header( "ALIAS" );
-      
-      pout.data_header( "NVAR" );
-      
-      pout.data_header( "TEST" );
-      
-      pout.data_header( "P" );
-      pout.data_header( "I" );
-      pout.data_header( "DESC" );
-      
-      pout.data_header_done();
-    }
-
 
   //
   // Which tests to apply?
@@ -1402,6 +1362,46 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   else      
     Helper::halt("no dichotomous phenotype specified");
   
+  //
+  // Get main output stream
+  //
+
+  Out & pout = Out::stream( "assoc" );
+  Out & pdet = Out::stream( "assoc.det" );
+
+
+  //
+  // Write header, if in stanard OUTPUT mode
+  //
+
+  if ( ! a.dump_stats_matrix )
+    {
+  
+      pout.data_reset();
+      
+      pout.data_group_header( "LOCUS" );
+      
+      pout.data_header( "POS" );
+      
+      if ( a.show_midbp ) 
+	{
+	  pout.data_header( "MID" );
+	  pout.data_header( "BP" );
+	}
+      
+      pout.data_header( "ALIAS" );
+      
+      pout.data_header( "NVAR" );
+      
+      pout.data_header( "TEST" );
+      
+      pout.data_header( "P" );
+      pout.data_header( "I" );
+      pout.data_header( "DESC" );
+      
+      pout.data_header_done();
+    }
+
   
   //
   // Set up permutation class
@@ -1428,6 +1428,11 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   
   if ( args.has( "weights" ) )
     {
+      a.weights = args.has("weights");
+      a.weight_tag = args.as_string( "weights" );
+      
+      plog >> "applying variant-weights to BURDEN, UNIQ and SUMSTAT tests, from " >> a.weight_tag >> "\n"; 
+      
       Pseq::Assoc::Aux_skat::has_weights = true;
       Pseq::Assoc::Aux_skat::use_freq_weights = false;
       Pseq::Assoc::Aux_skat::weights = args.as_string( "weights" );
@@ -1530,7 +1535,7 @@ void g_set_association( VariantGroup & vars , void * p )
   Pseq::Assoc::Aux_calpha aux_calpha;
   Pseq::Assoc::Aux_cancor aux_cancor( 1 , vars.size() , vars.n_individuals() ) ;
 
-  Pseq::Assoc::prelim( vars , &aux_prelim );
+  Pseq::Assoc::prelim( vars , &aux_prelim , data );
 
   
   //  
@@ -1601,8 +1606,21 @@ void g_set_association( VariantGroup & vars , void * p )
 	}
       
     }
+  else
+    {
 
+      // at least ensure this is run once, to get the .assoc.det file produced
+      // even if burden/uniq/etc is not a specified test; but no need to repeat
+      // under the null replicates, etc.
+
+      Pseq::Assoc::stat_burden( vars , 
+ 				&aux_prelim, 
+ 				&aux_burden , 
+ 				&test_text , 
+ 				true );
+    }
   
+
   if ( data->vt || data->fw )
     {
 
@@ -1954,7 +1972,6 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   
   Out & pout = Out::stream( "indiv.enrich" );
 
-
   // for (double i=-5 ; i<=5 ; i += 0.2 )
   //   {
   //     std::cout << i << "\t"
@@ -1966,6 +1983,15 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 
   // return false;
   
+  //
+  // Usage: pseq proj indiv-enrich --mask loc.req={background} 
+  //                                      reg.req={background} 
+  //                               --loc refseq
+  //                               --locset synapse
+  
+  // Specifying a background is option.
+
+
   // We assume the initial scan has to be based on genes --mask loc.group=refseq
 
   // We need a geneset list to be specified by the argment --locset go
@@ -2004,7 +2030,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // example).  When calculating the effective extent of the gene
   // groups, we extract out anything not in the background.
   
-  // this is defined by --mask loc.req= and reg.req=
+  // As noted above, this is defined by --mask loc.req= and reg.req=
 
 
   const std::set<int> & locus_requires = mask.required_loc();
@@ -2112,13 +2138,15 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   g.locdb.get_meta( orig_get_meta );
   g.locdb.get_subregions( orig_get_meta );
   
-  
+  //
   // Now that we've calculated a simple estimate of the prior probability of hitting 
   // a given target (given gene size and the total effective exome being used in the study)
   // now get the empirical counts for the # of variants
-
+  //
   // note: in future, you could imagine other things going into the
-  // calculation of 'f', such as base-context
+  // calculation of 'f', such as base-context  
+  //
+
 
   //
   // For each individual, calculate a) the total number of variants, b) for each set, the 
@@ -2129,20 +2157,21 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   mask.group_loc( loc );
   
   aux_indiv_enrichment aux;
-
+  
   aux.set_slot = &sets;
+
   aux.g2s = &g2s;
   
   plog << "about to start iterating...\n";
-
+  
   g.vardb.iterate( g_set_enrichment , &aux , mask ) ;
-
+  
   plog << "done iterating...\n";
   
-
+  
   //
   // Now we should have populated for each set, for each individual, the total 
-  // number of genes they have with a variant of 'interest'; and also the 
+  // number of genes they have with a variant of 'interest'
   //
   
   // we have populated aux.total_cnts and aux.set_cnts[].  For each individual, for each set, 
@@ -2221,6 +2250,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 	  // sqrt(2) = 1.414214
 	  	  
 	  // S(x) = 0.5 * ( 1 - erfc( s / sqrt(2) ) )	  
+
 	  double myerfc = Helper::PROB::gamma_inc( 0.5 , ( x / 1.414214 ) * ( x / 1.414214 ) ) / 1.772454 ;
 
 	  double interfc = erfc( x / 1.414214 ) ;

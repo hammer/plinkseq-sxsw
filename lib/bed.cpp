@@ -110,7 +110,7 @@ int BEDReader::read_fam( )
       // Optionally, store phenotypic information in 
       if ( inddb )
 	{	  
-
+	  
 	  ind.fid( fid );
 	  ind.iid( iid );
 	  ind.pat( pat );
@@ -321,7 +321,7 @@ bool BEDReader::read_bed()
       
       
       if ( s % 1000 == 0  )
-	plog.counter( "inserted " + Helper::int2str( s ) + " variants" );
+	plog.counter1( "inserted " + Helper::int2str( s ) + " variants" );
       
       
 

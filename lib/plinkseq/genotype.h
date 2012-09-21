@@ -69,6 +69,12 @@ class Genotype {
  public:
   
   static genotype_model_t model;
+
+  // soft-calls
+  static bool using_soft_calls;
+  static bool using_dosage;
+  static bool using_probs;
+  static std::string soft_call_label;
   
   MetaInformation<GenMeta> meta;
 
@@ -242,7 +248,7 @@ class Genotype {
   {
     if ( is_null || ploidy == 0 ) return false;
     if ( ploidy == 1 ) return reference_is_major ? allele1 : allele1 == 0;
-    return reference_is_major ? allele1 || allele2 : allele1 == 0 || allele2 == 0;
+    return reference_is_major ? allele1 != 0 || allele2 != 0 : allele1 == 0 || allele2 == 0;
   }
   
   // number of minor alleles
@@ -250,7 +256,7 @@ class Genotype {
   {
     if ( is_null || ploidy == 0 ) return 0;
     if ( ploidy ==1 ) return reference_is_major ? allele1 : allele1 == 0;
-    return reference_is_major ? allele1 + allele2 : ( allele1 == 0 ) + ( allele2 == 0 ); 
+    return reference_is_major ? ( allele1 != 0 ) + ( allele2 != 0 ) : ( allele1 == 0 ) + ( allele2 == 0 ); 
   }
   
   // given we have na total alleles in the population, return a vector of counts for each allele
@@ -356,6 +362,8 @@ class GenotypeSet{
     
     void size(int n) { calls.resize(n); }
     
+    void reserve(int n) { calls.reserve(n); }
+
     //    void set_consensus_slotmap( SampleVariant * ps , std::vector<int> * pm );
     
     /// Add a Genotype to the GenotypeSet

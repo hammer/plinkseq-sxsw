@@ -14,7 +14,7 @@ bool Pseq::VarDB::load_VCF( Mask & mask )
     // are any optinal locus groups specified (this will act as a mask, such that
     // we only read in variants that fall in this region
 
-    bool region_mask = args.has("filter");
+    bool region_mask = args.has( "filter" );
     
     std::string rmask;
     if ( region_mask ) rmask = args.as_string( "filter" );
@@ -517,12 +517,12 @@ bool Pseq::NetDB::loader( const std::string & db , const std::string & file )
 }
 
 
-bool Pseq::ProtDB::loader( const std::string & db , const std::string & file )
+bool Pseq::ProtDB::loader( const std::string & db , const std::string & file , const std::string & group )
 {
   ProtDBase protdb;
   protdb.attach( db );
   if ( ! protdb.attached() ) Helper::halt( "problem creating/attaching database" );
-  protdb.load( file );
+  protdb.load( file , &g.locdb , group );
   return true;
 }
 
@@ -863,6 +863,12 @@ bool Pseq::VarDB::load_dosage()
 
   std::string store_as = "as-dosage";
   if ( args.has( "format" , "as-posteriors" ) ) store_as = "as-posteriors";
+
+  double maf = 0.0;
+  int mac = 0;
+  if ( args.has( "maf" ) ) maf = args.as_float( "maf" );
+  if ( args.has( "mac" ) ) mac = args.as_int( "mac" );
+
   
   //
   // A single tag, e.g. 'EC' that will be used to specify the posteriors
@@ -951,12 +957,17 @@ bool Pseq::VarDB::load_dosage()
       bool use_map = map_files.size() > 0 ;
       bool use_indiv = indiv_files.size() > 0 ;
 
+      plog << "dropping VARDB indices...\n";
+      g.vardb.drop_index();
+
       for (int f=0;f<files.size();f++)
 	{  
       	  DoseReader reader( &g.vardb ); 
 	  reader.set_input_format( input_format );  
 	  reader.set_metatag( tagname , store_as ); 
 	  reader.set_skip_header( skip_header );
+	  if ( mac ) reader.set_mac( mac );
+	  if ( maf ) reader.set_maf( maf );
 	  if ( ! rsid ) reader.set_id( false );
 	  if ( spaced ) reader.set_spaced();
 	  if ( use_map ) reader.set_mapfile( map_files[f] );
@@ -972,6 +983,9 @@ bool Pseq::VarDB::load_dosage()
 	    Helper::halt( "problem reading dosage file " + files[f] + ", or associated file" );	  
 	  g.vardb.commit();
 	}
+
+      plog << "creating VARDB indices...\n";
+      g.vardb.index();
       
     }
 
@@ -983,6 +997,7 @@ bool Pseq::VarDB::load_dosage()
   if ( file_list_mode ) 
     {
       
+      plog << "dropping VARDB indices...\n";
       g.vardb.drop_index();
       
       // keep track of file IDs -- ID and FAM should always match
@@ -1043,6 +1058,10 @@ bool Pseq::VarDB::load_dosage()
 
 	  reader.set_skip_header( skip_header );
 
+	  if ( mac ) reader.set_mac( mac );
+
+	  if ( maf ) reader.set_maf( maf );
+
 	  if ( spaced ) reader.set_spaced();
 
 	  if ( ! rsid ) reader.set_id( false );
@@ -1061,7 +1080,8 @@ bool Pseq::VarDB::load_dosage()
   // re-index
   //  (note -- if fails above, doesn't matter, as the VARDB will automatically get the indexes 
   //   added back in next time something runs)
-
+  
+  plog << "creating VARDB indices...\n";
   g.vardb.index();  
  
   return true;

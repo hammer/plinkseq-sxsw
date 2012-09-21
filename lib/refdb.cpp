@@ -375,9 +375,9 @@ bool RefDBase::load_VCF( const std::string & file,
   while ( v.parseLine() ) 
     { 
       if ( ++inserted % 1000 == 0 ) 
-	plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	plog.counter1( "parsed " + Helper::int2str( inserted ) + " rows" );
     }
-  plog.counter("\n");
+  plog.counter1("\n");
     
   // Wrap up
   
@@ -1040,8 +1040,6 @@ bool RefDBase::annotate( Variant & v , const int grp_id )
       
       r.meta.parse( r.value() , ';' , false ,  &gname  );
 
-      //v.meta.append( r.meta , gname ); // old version explicitly appended group name
-      
       v.meta.append( r.meta );           // now already done internally      
       
     }

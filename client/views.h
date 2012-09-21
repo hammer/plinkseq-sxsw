@@ -63,16 +63,16 @@ struct XQC_varid {
 
 struct XQCstats {
     
-    XQCstats() 
+  XQCstats() 
 	{
-	    curr_chr = -1;
-	    em_stats = false;
+	  curr_chr = -1;
+	  em_stats = false;
 	}
-    
-    int curr_chr;
-    bool em_stats; // do extra EM-based stats (entropy, etc)
-    
-    template<class T> void add( const XQC_varid & pos , const T & t , int k )
+  
+  int curr_chr;
+  bool em_stats; // do extra EM-based stats (entropy, etc)
+  
+  template<class T> void add( const XQC_varid & pos , const T & t , int k )
 	{
 	    std::stringstream ss;
 	    ss << t;
@@ -163,14 +163,18 @@ struct Opt_geneseq {
     pheno = false; 
     ref = 0; 
     protdb = NULL;
+    protdom.clear();
     all_cds = true;
+    only_variant_sites = false;
   }
 
   bool all_cds;  // show *all* CDS codons in output
+  bool only_variant_sites;
 
   bool pheno;
   int ref;
   ProtDBase * protdb;
+  std::set<std::string> protdom;
   
 };
 

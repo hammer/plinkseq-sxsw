@@ -349,6 +349,15 @@ class Mask {
   bool load_genotype_meta( const std::string & m ) const;
   void set_load_genotype_meta( const std::string & m );
 
+  //
+  // Directly attach meta-information from a file
+  //
+
+  bool onthefly_append() const { return otf_meta_append; }  
+  void onthefly_attach_from_file( const std::string & filename );
+  void onthefly_attach_to_variant( Variant & parent );
+
+  
 
   //
   // If a problem occurred by a routine trying to make a mask, then
@@ -579,12 +588,34 @@ class Mask {
   void skip_indels( const bool b ) { exc_indels = b; } 
   bool skip_indels() const { return exc_indels; } 
   
+  void only_mnps( const bool b ) { req_mnps = b; }
+  bool only_mnps() const { return req_mnps; } 
+
+  void skip_mnps( const bool b ) { exc_mnps = b; } 
+  bool skip_mnps() const { return exc_mnps; } 
+
+  void only_snps( const bool b ) { req_snps = b; }
+  bool only_snps() const { return req_snps; } 
+
+  void skip_snps( const bool b ) { exc_snps = b; } 
+  bool skip_snps() const { return exc_snps; } 
+
   void only_novel( const bool b ) { req_novel = b; }
   bool only_novel() const { return req_novel; } 
 
   void skip_novel( const bool b ) { exc_novel = b; } 
   bool skip_novel() const { return exc_novel; } 
   
+  void add_allele( const std::vector<std::string> & a );
+  void add_allele_ex( const std::vector<std::string> & a );
+
+  bool allele_filter() const { return do_allele_match; }
+  bool allele_ex_filter() const { return do_allele_ex_match; }
+
+  bool allele_match( const std::string & , const std::string & );
+
+  bool test_allele( const std::string & , const std::string & );
+  bool test_allele_ex( const std::string & , const std::string & );
   
   // 
   // QUAL filter
@@ -596,6 +627,9 @@ class Mask {
   // Variant meta-information masks
   //
 
+  int meta_set( const std::string & key );
+  int meta_not_set( const std::string & key );
+  
   int meta_equals( const std::string & key , int value );
   int meta_not_equals( const std::string & key , int value );
 
@@ -609,6 +643,9 @@ class Mask {
   int meta_less_equal( const std::string & key , double value );
   
   // as above, for requires
+
+  int req_meta_set( const std::string & key );
+  int req_meta_not_set( const std::string & key );
 
   int req_meta_equals( const std::string & key , int value );
   int req_meta_not_equals( const std::string & key , int value );
@@ -624,7 +661,9 @@ class Mask {
 
   bool meta_includes() const
     {
-      return meta_eq.size() > 0 || 
+      return meta_is_set.size() > 0 ||
+	meta_is_not_set.size() > 0 ||
+	meta_eq.size() > 0 || 
 	meta_ne.size() > 0 || 
 	meta_has_text.size() > 0 || 
 	meta_has_not_text.size() > 0 || 
@@ -636,7 +675,9 @@ class Mask {
 
   bool meta_requires() const
     {
-      return req_meta_eq.size() > 0 || 
+      return req_meta_is_set.size() > 0 || 
+	req_meta_is_not_set.size() > 0 ||
+	req_meta_eq.size() > 0 || 
 	req_meta_ne.size() > 0 || 
 	req_meta_has_text.size() > 0 || 
 	req_meta_has_not_text.size() > 0 || 
@@ -673,6 +714,9 @@ class Mask {
   // Genotype masks
   //
 
+  int geno_set( const std::string & key );
+  int geno_not_set( const std::string & key );
+
   int geno_equals( const std::string & key , int value );
   int geno_not_equals( const std::string & key , int value );
 
@@ -686,6 +730,9 @@ class Mask {
   int geno_less_equal( const std::string & key , double value );
   
   // as above, for requires
+
+  int req_geno_set( const std::string & key );
+  int req_geno_not_set( const std::string & key );
 
   int req_geno_equals( const std::string & key , int value );
   int req_geno_not_equals( const std::string & key , int value );
@@ -701,7 +748,9 @@ class Mask {
 
   bool geno_includes() const
     {
-      return geno_eq.size() > 0 || 
+      return geno_is_set.size() > 0 ||
+	geno_is_not_set.size() > 0 || 
+	geno_eq.size() > 0 || 
 	geno_ne.size() > 0 || 
 	geno_has_text.size() > 0 || 
 	geno_has_not_text.size() > 0 || 
@@ -713,7 +762,9 @@ class Mask {
 
   bool geno_requires() const
     {
-      return req_geno_eq.size() > 0 || 
+      return req_geno_is_set.size() > 0 || 
+	req_geno_is_not_set.size() > 0 || 
+	req_geno_eq.size() > 0 || 
 	req_geno_ne.size() > 0 || 
 	req_geno_has_text.size() > 0 || 
 	req_geno_has_not_text.size() > 0 || 
@@ -825,6 +876,9 @@ class Mask {
   bool count_filter() const { return mac_filter; }
   bool frequency_filter() const { return maf_filter; }
 
+  bool alt_count_filter() const { return aac_filter; }
+  bool alt_frequency_filter() const { return aaf_filter; }
+
   bool count_filter(const int i) const 
   {       
     // if mac threshold is -1, means ignore
@@ -833,11 +887,27 @@ class Mask {
     return true;
   }
   
+  bool alt_count_filter(const int i) const 
+  {       
+    // if mac threshold is -1, means ignore
+    if ( aac_lower >= 0 && i < aac_lower ) return false;
+    if ( aac_upper >= 0 && i > aac_upper ) return false;
+    return true;
+  }
+
   bool frequency_filter(const double f) const 
     { 
       // if maf threshold is -1, means ignore
       if ( maf_lower >= 0 && f < maf_lower ) return false;
       if ( maf_upper >= 0 && f > maf_upper ) return false;
+      return true;      
+    }
+
+  bool alt_frequency_filter(const double f) const 
+    { 
+      // if maf threshold is -1, means ignore
+      if ( aaf_lower >= 0 && f < aaf_lower ) return false;
+      if ( aaf_upper >= 0 && f > aaf_upper ) return false;
       return true;      
     }
 
@@ -855,6 +925,20 @@ class Mask {
     maf_upper = d;
   }
   
+  void alt_allele_count(const int c, const int d ) 
+  { 
+    aac_filter = true;
+    aac_lower = c; 
+    aac_upper = d;
+  }
+  
+  void alt_allele_frequency(const double c, const double d ) 
+  { 
+    aaf_filter = true;
+    aaf_lower = c; 
+    aaf_upper = d;
+  }
+
   
   void hwe( double l, double u )
   {
@@ -889,6 +973,20 @@ class Mask {
     return true;
   }
   
+
+  bool get_alt_allele_count(int & c, int & d ) 
+  {
+    if ( ! aac_filter ) return false;
+    c = aac_lower; d = aac_upper;
+    return true;
+  }
+  
+  bool get_alt_allele_frequency(double & c, double & d ) 
+  {
+    if ( ! aaf_filter ) return false;
+    c = aaf_lower; d = aaf_upper;
+    return true;
+  }
 
   //
   // Null genotype filter
@@ -1011,6 +1109,9 @@ class Mask {
 
       // var Meta-information 
 
+      meta_is_set.clear();
+      meta_is_not_set.clear();
+
       meta_eq.clear();
       meta_ne.clear();
       
@@ -1023,6 +1124,9 @@ class Mask {
       meta_lt.clear();
       meta_le.clear();
 
+
+      req_meta_is_set.clear();
+      req_meta_is_not_set.clear();
 
       req_meta_eq.clear();
       req_meta_ne.clear();
@@ -1038,6 +1142,9 @@ class Mask {
 
       // Genotypes
 
+      geno_is_set.clear();
+      geno_is_not_set.clear();
+
       geno_eq.clear();
       geno_ne.clear();
       
@@ -1050,6 +1157,9 @@ class Mask {
       geno_lt.clear();
       geno_le.clear();
 
+
+      req_geno_is_set.clear();
+      req_geno_is_not_set.clear();
 
       req_geno_eq.clear();
       req_geno_ne.clear();
@@ -1151,6 +1261,9 @@ class Mask {
       mac_filter = false;
       maf_filter = false;
       
+      aac_filter = false;
+      aaf_filter = false;
+
       has_null_filter = false;
       has_null_prop_filter = false;
       has_case_control_filter = false;
@@ -1492,9 +1605,14 @@ class Mask {
 	assume_missing_is_ref = false;
 	soft_ref = false;
 	genotype_model = GENOTYPE_MODEL_ALLELIC;
+	hard_call = false;
+	hard_call_label = "";
+	hard_call_threshold = 0.1;
 	fixxy_mode = false;
 	mac_filter = false;	
 	maf_filter = false;
+	aac_filter = false;	
+	aaf_filter = false;
 	has_null_filter = false;
 	has_null_prop_filter = false;
 	has_case_control_filter = false;
@@ -1503,6 +1621,8 @@ class Mask {
 	exc_filter_any = false;
 	mac_lower = mac_upper = -1;
 	maf_lower = maf_upper = -1.0;
+	aac_lower = aac_upper = -1;
+	aaf_lower = aaf_upper = -1.0;
 	use_hwe_filter = false;
 	hwe_lower = 0;
 	hwe_upper = 1;
@@ -1518,12 +1638,24 @@ class Mask {
 	merge_mode = MERGE_MODE_EXACT;
 	downcode_mode = DOWNCODE_MODE_ALL_ALT;
 	em_threshold = 0;
+	otf_meta_append = false;
+	otf_meta.clear();
 	will_attach_meta = false;
 	will_attach_all_meta = false;
 	req_biallelic = false;
 	exc_biallelic = false;
 	req_indels = false;
 	exc_indels = false;
+	req_snps = false;
+	exc_snps = false;
+	req_mnps = false;
+	exc_mnps = false;
+	do_allele_match = false;
+	do_allele_ex_match = false;
+	allele_match_ref.clear();
+	allele_match_alt.clear();
+	allele_exclude_ref.clear();
+	allele_exclude_alt.clear();
 	req_novel = false;
 	exc_novel = false;
 	req_monomorphic = false;
@@ -1757,8 +1889,15 @@ class Mask {
     bool will_attach_meta;
     bool will_attach_all_meta;
     std::set<std::string> meta_fields;
-
-
+    
+    //
+    // On the-fly meta-information
+    //
+    
+    bool otf_meta_append;
+    std::map<RefVariant,MetaInformation<RefMeta> > otf_meta;
+    
+    
     //
     // Bialleic SNP status
     //
@@ -1772,12 +1911,30 @@ class Mask {
     bool req_indels;
     bool exc_indels;
 
+    bool req_mnps;
+    bool exc_mnps;
+
+    bool req_snps;
+    bool exc_snps;
+
     bool req_novel;
     bool exc_novel;
+
+    bool do_allele_match;
+    bool do_allele_ex_match;
+
+    std::vector<std::string> allele_match_ref;
+    std::vector<std::string> allele_match_alt;
+
+    std::vector<std::string> allele_exclude_ref;
+    std::vector<std::string> allele_exclude_alt;
 
     //
     // Meta masks
     //
+
+    std::set<std::string> meta_is_set;
+    std::set<std::string> meta_is_not_set;
 
     std::map<std::string,int> meta_eq;
     std::map<std::string,int> meta_ne;
@@ -1791,6 +1948,9 @@ class Mask {
     std::map<std::string,double> meta_lt;
     std::map<std::string,double> meta_le;
 
+
+    std::set<std::string> req_meta_is_set;
+    std::set<std::string> req_meta_is_not_set;
 
     std::map<std::string,int> req_meta_eq;
     std::map<std::string,int> req_meta_ne;
@@ -1819,6 +1979,9 @@ class Mask {
     // Genotype masks
     //
 
+    std::set<std::string> geno_is_set;
+    std::set<std::string> geno_is_not_set;
+
     std::map<std::string,int> geno_eq;
     std::map<std::string,int> geno_ne;
 
@@ -1831,6 +1994,9 @@ class Mask {
     std::map<std::string,double> geno_lt;
     std::map<std::string,double> geno_le;
 
+
+    std::set<std::string> req_geno_is_set;
+    std::set<std::string> req_geno_is_not_set;
 
     std::map<std::string,int> req_geno_eq;
     std::map<std::string,int> req_geno_ne;
@@ -1874,13 +2040,28 @@ class Mask {
     bool                             fixxy_mode;
     std::map<std::string,ploidy_t>   fixxy_map_chr;
     std::vector<Region>              fixxy_map_par;
+
+    bool                             hard_call;
+    std::string                      hard_call_label;
+    double                           hard_call_threshold;
     
  public:
 
     void fixxy( const bool b ) { fixxy_mode = b; }
     bool fixxy() const { return fixxy_mode; }
 
+    bool make_hard_calls() const { return hard_call; } 
+    bool make_hard_calls( const std::string & l , double x ) 
+    { 
+      hard_call = true; 
+      hard_call_label = l;
+      hard_call_threshold = x ; 
+    }
+    
+    void revise_hard_call( Genotype & g );
+
  private:
+
     //
     // EM caller
     //
@@ -1899,6 +2080,15 @@ class Mask {
     double       maf_lower;    
     double       maf_upper;
 
+    // as above, for alternate, not minor, allele
+
+    bool         aac_filter;
+    int          aac_lower;
+    int          aac_upper;
+
+    bool         aaf_filter;
+    double       aaf_lower;    
+    double       aaf_upper;
 
     // HWE filters
 
@@ -1978,93 +2168,6 @@ class Mask {
     bool var_filter_expression() const { return var_eval_expr_set; } 
     bool var_filter_expression_requires_genotypes() const;
     bool var_calc_filter_expression( Variant & );
-
- private:
-    
-    //
-    // Display
-    //
-    
-    std::string onoff(const bool b) const { return b ? "on" : "off" ; } 
-
-    friend std::ostream & operator<<( std::ostream & out , const Mask & m )
-      {
-	
-	if ( m.inc_filter.size() > 0 ) out << "  w/ filter-includes\n";
-	if ( m.req_filter.size() > 0 ) out << "  w/ filter-requires\n";
-	if ( m.exc_filter.size() > 0 ) out << "  w/ filter-excludes\n";
-	
-	if ( m.geno_eq.size() > 0 || 
-	     m.geno_ne.size() > 0 || 
-	     m.geno_has_text.size() > 0 || 
-	     m.geno_has_not_text.size() > 0 || 
-	     m.geno_gt.size() > 0 || 
-	     m.geno_ge.size() > 0 || 
-	     m.geno_lt.size() > 0 || 
-	     m.geno_le.size() > 0 ) out << "  w/ genotype-filters\n";
-	
-	
-	if ( m.in_indset.size() > 0 ) out << "  w/ individual-includes\n";
-	if ( m.ex_indset.size() > 0 ) out << "  w/ individual-excludes\n";
-	
-	
-	// Grouping
-	
-	if ( m.any_grouping() )
-	  {
-	    out << "grouping\n";
-	    out << "  group-by      : ";
-	    
-	    if ( m.group_locus ) out << "loc\n";
-	    else if ( m.group_variant ) out << "var\n";
-	    else if ( m.group_locus_set ) out << "loc_set\n";
-	    
-/* 	    out << "  file-grouping : " << m.onoff( m.file_grouping() ) << "\n" */
-/* 		<< "  file-split    : " << m.onoff( m.file_split() ) << "\n"; */
-	  }
-
-      
-      
-      if ( m.loc() ) out << "  w/ loc-includes\n";
-      if ( m.var() ) out << "  w/ var-includes\n";
-      if ( m.reg() ) out << "  w/ reg-includes\n";
-      if ( m.ref() ) out << "  w/ ref-includes\n";
-      if ( m.loc_set() ) out << "  w/ loc_set-includes\n";
-  
-      if ( m.rloc() ) out << "  w/ loc-requires\n";
-      if ( m.rvar() ) out << "  w/ var-requires\n";
-      if ( m.rreg() ) out << "  w/ reg-requires\n";
-      if ( m.rref() ) out << "  w/ ref-requires\n";
-
-      if ( m.xloc() ) out << "  w/ loc-excludes\n";
-      if ( m.xvar() ) out << "  w/ var-excludes\n";
-      if ( m.xreg() ) out << "  w/ reg-excludes\n";
-      if ( m.xref() ) out << "  w/ ref-excludes\n";
-      
-      if ( m.loc_exceptions() ) out << "  w/ loc-exceptions\n";
-      if ( m.var_exceptions() ) out << "  w/ var-exceptions\n";  
-      
-      
-      if ( m.func() ) out << "  w/ functions\n";
-
-      if ( m.filterFunctions.size() > 0 ) out << "  w/ include-functions\n";
-      if ( m.req_filterFunctions.size() > 0 ) out << "  w/ reqiure-functions\n";
-      if ( m.annot ) out << "  w/ annotation\n";
-
-      if ( m.files() ) out << "  w/ file-includes\n";
-      if ( m.xfiles() ) out << "  w/ file-excludes\n";
-
-      if ( m.var_append() ) out << "  w/ var-appends\n";
-      if ( m.loc_append() ) out << "  w/ loc-appends\n";
-      if ( m.ref_append() ) out << "  w/ ref-appends\n";
-      if ( m.loc_set_append() ) out << "  w/ locset-appends\n";
-
-      if ( m.variant_limit() ) out << "  w/ variant limit " << m.variant_limit() << "\n";
-
-      return out;
-      
-      }
-
 
 
 };

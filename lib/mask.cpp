@@ -5,6 +5,8 @@
 #include "plinkseq/vardb.h"
 #include "plinkseq/gstore.h"
 
+#include <cmath>
+
 using namespace std;
 using namespace Helper;
 
@@ -152,6 +154,14 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "indiv" , "str-list" , "include only these individuals" ); 
   mask_add( s , g , c++ , gl , "indiv.ex" , "str-list" , "exclude these individuals" ); 
 
+  // TO ADD
+  // mask_add( s , g , c++ , gl , "males" , "flag" , "include males" );
+  // mask_add( s , g , c++ , gl , "females" , "flag" , "include females" );
+  // mask_add( s , g , c++ , gl , "known.sex" , "flag" , "include individuals of known sex" );
+  // mask_add( s , g , c++ , gl , "unknown.sex" , "flag" , "include of unknown sex" );
+  // mask_add( s , g , c++ , gl , "founders" , "flag" , "include individuals of known sex" );
+  // mask_add( s , g , c++ , gl , "nonfounders" , "flag" , "include individuals of known sex" );
+  
   // Variant masks, but on whether present in file, etc  
   ++g; c = 0 ; gl = "files" ;
   mask_add( s , g , c++ , gl , "obs.file" , "str-list" , "include variants observed in file(s)" );
@@ -193,21 +203,29 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "meta" , "str-list" , "include variants passing any meta-field criterion" );
   mask_add( s , g , c++ , gl , "meta.req"  , "str-list" , "require variants passing all meta-field criteria" ); 
   mask_add( s , g , c++ , gl , "meta.attach" , "str-list" , "attach meta-fields uploaded to VARDB" );
-
-
+  mask_add( s , g , c++ , gl , "meta.file" , "str-list" , "on-the-fly append meta-fields directly from a file" );
+  
   // Presence/frequency masks
   
   // Frequency 
   ++g; c = 0 ; gl="frequency";
   mask_add( s , g , c++ , gl , "mac" , "int-range" , "include variants with minor allele counts between [n-m]" ); 
   mask_add( s , g , c++ , gl , "maf" , "float-range" , "include variants with minor allele frequency in [n-m]" );
-  mask_add( s , g , c++ , gl , "biallelic" , "flag" , "include only biallelic sites" ); 
-  mask_add( s , g , c++ , gl , "biallelic.ex" , "flag" , "exclude biallelic sites" ); 
+  mask_add( s , g , c++ , gl , "aac" , "int-range" , "include variants with alternate allele counts between [n-m]" ); 
+  mask_add( s , g , c++ , gl , "aaf" , "float-range" , "include variants with alternate allele frequency in [n-m]" );
   mask_add( s , g , c++ , gl , "monomorphic" , "flag" , "include only monomorphic sites" ); 
   mask_add( s , g , c++ , gl , "monomorphic.ex" , "flag" , "exclude monomorphic sites" );
   mask_add( s , g , c++ , gl , "hwe" , "float-range" , "include variants with HWE p-value in [n-m]" ); 
   mask_add( s , g , c++ , gl , "indel" , "flag" , "only consider indels" );
   mask_add( s , g , c++ , gl , "indel.ex" , "flag" , "exclude indels" );
+  mask_add( s , g , c++ , gl , "mnp" , "flag" , "only consider multinucleotide polymorphisms (exc. indels)" );
+  mask_add( s , g , c++ , gl , "mnp.ex" , "flag" , "exclude multinucleotide polymorphisms (exc. indels)" );
+  mask_add( s , g , c++ , gl , "snp" , "flag" , "only consider single nucleotide polymorphisms" );
+  mask_add( s , g , c++ , gl , "snp.ex" , "flag" , "exclude single nucleotide polymorphisms" );
+  mask_add( s , g , c++ , gl , "biallelic" , "flag" , "include only biallelic sites" ); 
+  mask_add( s , g , c++ , gl , "biallelic.ex" , "flag" , "exclude biallelic sites" ); 
+  mask_add( s , g , c++ , gl , "allele" , "str-list" , "include only variants that match pattern" );
+  mask_add( s , g , c++ , gl , "allele.ex" , "str-list" , "exclude variants that match pattern" ); 
   mask_add( s , g , c++ , gl , "novel" , "flag" , "only novel SNPs (ID '.')" );
   mask_add( s , g , c++ , gl , "novel.ex" , "flag" , "exclude novel SNPs (ID '.')" );
 
@@ -222,6 +240,7 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "hard-ref" , "flag" , "0/REF allele always implies presence of REF allele" );
   mask_add( s , g , c++ , gl , "fix-xy" , "str" , "fix X/Y genotypes when loading a VCF" );
   mask_add( s , g , c++ , gl , "genotype-model" , "str" , "set genotype scoring model" );
+  mask_add( s , g , c++ , gl , "hard-call" , "float-range-list" , "hard-call genotypes from soft-calls" );
   mask_add( s , g , c++ , gl , "seg" , "str-list" , "include segment mask(s)" );
   mask_add( s , g , c++ , gl , "seg.req" , "str-list" , "require segment mask(s)" );
   mask_add( s , g , c++ , gl , "seg.ex" , "str-list" , "exclude segment mask(s)" );
@@ -245,9 +264,9 @@ std::set<mask_command_t> populate_known_commands()
  
   // Annotation
   ++g; c = 0 ; gl="annotation";  
-  mask_add( s , g , c++ , gl , "annot" , "str" , "include variants with coding annotation");
-  mask_add( s , g , c++ , gl , "annot.ex" , "str" , "exclude variants with coding annotations");
-  mask_add( s , g , c++ , gl , "annot.req" , "str" , "require variant have coding annotations");
+//   mask_add( s , g , c++ , gl , "annot" , "str" , "include variants with coding annotation");
+//   mask_add( s , g , c++ , gl , "annot.ex" , "str" , "exclude variants with coding annotations");
+//   mask_add( s , g , c++ , gl , "annot.req" , "str" , "require variant have coding annotations");
   mask_add( s , g , c++ , gl , "annot.append" , "str" , "append annotations");
 
 
@@ -814,7 +833,18 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 	  attach_meta_fields(s[i]);
     }
 
+  //
+  // Directly attach meta-information from a file
+  //
+
+  if ( m.has_field( "meta.file" ) )
+    {
+      std::vector<std::string> s = m.get_string( "meta.file" );
+      for (int i=0; i<s.size(); i++)
+	onthefly_attach_from_file( s[i] );
+    }
   
+
   //
   // Include/exclude biallelic SNPs
   // 
@@ -840,7 +870,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     }
 
   //
-  // SNPs vs indels
+  // SNPs vs indels, etc
   //
   
   if ( m.has_field( "indel" ) )
@@ -851,6 +881,41 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   if ( m.has_field( "indel.ex" ) )
     {
       skip_indels( true );
+    }
+
+
+  if ( m.has_field( "mnp" ) )
+    {
+      only_mnps( true );
+    }
+
+  if ( m.has_field( "mnp.ex" ) )
+    {
+      skip_mnps( true );
+    }
+
+  if ( m.has_field( "snp" ) )
+    {
+      only_snps( true );
+    }
+
+  if ( m.has_field( "snp.ex" ) )
+    {
+      skip_snps( true );
+    }
+
+
+  if ( m.has_field( "allele" ) )
+    {
+      std::vector<std::string> k = m.get_string( "allele" );
+      add_allele( k );
+    }
+
+
+  if ( m.has_field( "allele.ex" ) )
+    {
+      std::vector<std::string> k = m.get_string( "allele.ex" );
+      add_allele_ex( k );
     }
 
   //
@@ -899,74 +964,86 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 	      std::vector<std::string> t = parse(s[j],":");
 	      
 	      // should be multiple of 3
-	      if ( t.size() % 3 == 0 ) 
-		for (int i=0; i<t.size(); i+=3)
-		  {
-		    
-		    if ( t[i+1] == "eq" )
-		      {
-			int x;
-			if ( str2int(t[i+2],x) )
-			  req ? req_meta_equals( t[i] , x ) : meta_equals( t[i] , x );
-			else // try as string, is parsed below
-			  t[i+1] = "is";
-		      }
-		    
-		    if ( t[i+1] == "ne" )
-		      {
-			int x;
-			if ( str2int(t[i+2],x) )
-			  req ? req_meta_not_equals( t[i] , x ) : meta_not_equals( t[i] , x );
-			else 
-			  t[i+1] == "not";
-		      }
-		    
-		    if ( t[i+1] == "gt" )
-		      {
-			double x;
-			if ( str2dbl(t[i+2],x) )
-			  req ? req_meta_greater( t[i] , x ) : meta_greater( t[i] , x );
-		      }
-		    
-		    if ( t[i+1] == "ge" )
-		      {
-			double x;
-			if ( str2dbl(t[i+2],x) )
-			  {
-			    req ? req_meta_greater_equal( t[i] , x ) : meta_greater_equal( t[i] , x );
-			  }
-			
-		      }
-		    
-		    if ( t[i+1] == "lt" )
-		      {
-			double x;
-			if ( str2dbl(t[i+2],x) )
-			  req ? req_meta_less( t[i] , x ) : meta_less( t[i] , x );
-		      }
-		    
-		    if ( t[i+1] == "le" )
-		      {
-			double x;
-			if ( str2dbl(t[i+2],x) )
-			  req ? req_meta_less_equal( t[i] , x ) : meta_less_equal( t[i] , x );
-		      }
-		    
-		    if ( t[i+1] == "is" )
-		      {
-			string x = t[i+2] == "*" ? "" : t[i+2] ;
+	      if ( t.size() % 3 != 0 ) 
+		Helper::halt("problem parsing meta={value(s)} in mask\nexpecting meta=TAG:OP:(VAL), e.g. meta=DP:ge:20,QC:set:1");
+	      
+	      for (int i=0; i<t.size(); i+=3)
+		{
+		  
+		  
+		  if ( t[i+1] == "set" )
+		    {
+		      if ( t[i+2] == "0" || t[i+2] == "F" ) 
+			req ? req_meta_not_set( t[i] ) : meta_not_set( t[i] );
+		      else
+			req ? req_meta_set( t[i] ) : meta_set( t[i] );
+		    }
+		  
+		  else if ( t[i+1] == "eq" )
+		    {
+		      int x;
+		      if ( str2int(t[i+2],x) )
 			req ? req_meta_equals( t[i] , x ) : meta_equals( t[i] , x );
-		      }
-		    
-		    if ( t[i+1] == "not" )
-		      {
-			string x = t[i+2] == "*" ? "" : t[i+2] ;
+		      else // try as string, is parsed below
+			t[i+1] = "is";
+		    }
+		  
+		  else if ( t[i+1] == "ne" )
+		    {
+		      int x;
+		      if ( str2int(t[i+2],x) )
 			req ? req_meta_not_equals( t[i] , x ) : meta_not_equals( t[i] , x );
-		      }
-		    
-		  }
+		      else 
+			t[i+1] == "not";
+		    }
+		  
+		  else if ( t[i+1] == "gt" )
+		    {
+		      double x;
+		      if ( str2dbl(t[i+2],x) )
+			req ? req_meta_greater( t[i] , x ) : meta_greater( t[i] , x );
+		    }
+		  
+		  else if ( t[i+1] == "ge" )
+		    {
+		      double x;
+		      if ( str2dbl(t[i+2],x) )
+			{
+			  req ? req_meta_greater_equal( t[i] , x ) : meta_greater_equal( t[i] , x );
+			}
+		      
+		    }
+		  
+		  else if ( t[i+1] == "lt" )
+		    {
+		      double x;
+		      if ( str2dbl(t[i+2],x) )
+			req ? req_meta_less( t[i] , x ) : meta_less( t[i] , x );
+		    }
+		  
+		  else if ( t[i+1] == "le" )
+		    {
+		      double x;
+		      if ( str2dbl(t[i+2],x) )
+			req ? req_meta_less_equal( t[i] , x ) : meta_less_equal( t[i] , x );
+		    }
+		  
+		  else if ( t[i+1] == "is" )
+		    {
+		      string x = t[i+2] == "*" ? "" : t[i+2] ;
+		      req ? req_meta_equals( t[i] , x ) : meta_equals( t[i] , x );
+		    }
+		  
+		  else if ( t[i+1] == "not" )
+		    {
+		      string x = t[i+2] == "*" ? "" : t[i+2] ;
+		      req ? req_meta_not_equals( t[i] , x ) : meta_not_equals( t[i] , x );
+		    }
+		  else
+		    Helper::halt("did not recognise value, '" + t[i+1] + "' (options are set, eq, ne, is, not, gt, lt, ge, le)" );
+		}
 	    }
-
+	  
 	  if ( ! req ) 
 	    req = true;
 	  else 
@@ -1005,32 +1082,43 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 	      std::vector<std::string> t = parse(s[j],":");
 	      
 	      // should be multiple of 3
-	      if ( t.size() % 3 == 0 ) 
+
+	      if ( t.size() % 3 != 0 ) 
+		Helper::halt("problem parsing geno={value(s)} in mask\nexpecting geno=TAG:OP:(VAL), e.g. geno=DP:ge:20,QC:set:");
+
 		for (int i=0; i<t.size(); i+=3)
 		  {
 		    
-		    if ( t[i+1] == "eq" )
+		    if ( t[i+1] == "set" )
+		      {
+			if ( t[i+2] == "0" || t[i+2] == "F" ) 
+			  req ? req_geno_not_set( t[i] ) : geno_not_set( t[i] );
+			else
+			  req ? req_geno_set( t[i] ) : geno_set( t[i] );
+		      }
+
+		    else if ( t[i+1] == "eq" )
 		      {
 			int x;
 			if ( str2int(t[i+2],x) )
 			  req ? req_geno_equals( t[i] , x ) : geno_equals( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "ne" )
+		    else if ( t[i+1] == "ne" )
 		      {
 			int x;
 			if ( str2int(t[i+2],x) )
 			  req ? req_geno_not_equals( t[i] , x ) : geno_not_equals( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "gt" )
+		    else if ( t[i+1] == "gt" )
 		      {
 			double x;
 			if ( str2dbl(t[i+2],x) )
 			  req ? req_geno_greater( t[i] , x ) : geno_greater( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "ge" )
+		    else if ( t[i+1] == "ge" )
 		      {
 			double x;
 			if ( str2dbl(t[i+2],x) )
@@ -1040,32 +1128,33 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 			
 		      }
 		    
-		    if ( t[i+1] == "lt" )
+		    else if ( t[i+1] == "lt" )
 		      {
 			double x;
 			if ( str2dbl(t[i+2],x) )
 			  req ? req_geno_less( t[i] , x ) : geno_less( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "le" )
+		    else if ( t[i+1] == "le" )
 		      {
 			double x;
 			if ( str2dbl(t[i+2],x) )
 			  req ? req_geno_less_equal( t[i] , x ) : geno_less_equal( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "is" )
+		    else if ( t[i+1] == "is" )
 		      {
 			string x = t[i+2] == "*" ? "" : t[i+2] ;
 			req ? req_geno_equals( t[i] , x ) : geno_equals( t[i] , x );
 		      }
 		    
-		    if ( t[i+1] == "not" )
+		    else if ( t[i+1] == "not" )
 		      {
 			string x = t[i+2] == "*" ? "" : t[i+2] ;
 			req ? req_geno_not_equals( t[i] , x ) : geno_not_equals( t[i] , x );
 		      }
-		    
+		    else
+		      Helper::halt("did not recognise value, '" + t[i+1] + "' (options are set, eq, ne, is, not, gt, lt, ge, le)" );
 		  }
 	    }
 
@@ -1089,20 +1178,33 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   
   if ( m.has_field( "maf" ) )
     {
-      dbl_range r( m.get1_string( "maf" ) , -1 ); // 0.05  means include 0.05 or lower
+      dbl_range r( m.get1_string( "maf" ) , -9 ); // must specify a range
       minor_allele_frequency( r.has_lower() ? r.lower() : 0 , r.has_upper() ? r.upper() : 1 );
     }
   
   if ( m.has_field( "mac" ) )
     {
-      // int_range("2", 0) means 2 -->  *:2
+      // int_range("2", 0) means 2 -->  2:2
       // int_range("2", 1) means 2 -->  2:*
       // int_range("2",-1) means 2 -->  *:2
       
-      int_range r( m.get1_string( "mac" ) , -1 ); // 2 means 2 or *lower*
+      int_range r( m.get1_string( "mac" ) , 0 ); // 2 means exactly 2 
       minor_allele_count( r.lower() , r.upper() );
     }
  
+
+  if ( m.has_field( "aaf" ) )
+    {
+      dbl_range r( m.get1_string( "aaf" ) , -9 ); // means must always specify a range explicitly
+      alt_allele_frequency( r.has_lower() ? r.lower() : 0 , r.has_upper() ? r.upper() : 1 );
+    }
+  
+  if ( m.has_field( "aac" ) )
+    {
+      int_range r( m.get1_string( "aac" ) , 0 ); // 2 means exactly 2
+      alt_allele_count( r.lower() , r.upper() );
+    }
+
   if ( m.has_field( "hwe" ) )
     {      
       dbl_range r( m.get1_string( "hwe" ) , 1 ); // x --> include x:*       
@@ -1187,6 +1289,16 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     }
 
 
+  if ( m.has_field( "hard-call" ) )
+    {
+      std::vector<std::string> k = m.get_string( "hard-call") ;
+      double d;
+      if ( k.size() != 2 || ! Helper::str2dbl( k[1] , d ) ) 
+	Helper::halt( "expecting hard-call={label},{threshold}");
+      make_hard_calls( k[0] , d );
+    }
+
+
   if ( m.has_field( "genotype-model" ) )
     {
       std::string model = m.get1_string( "genotype-model" );
@@ -1231,7 +1343,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   
   if ( m.has_field( "null.prop" ) )
     {
-      null_prop_filter( m.get1_string( "null.prop" ) );
+      null_prop_filter( dbl_range( m.get1_string( "null.prop" ) , -9 ) ); // i.e. must be range
     }
 
 
@@ -1291,39 +1403,43 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
 
 
-  if ( m.has_field( "annot" ) ) 
-    {
-      vector<string> k = m.get_string( "annot" );
-      if ( k.size() == 1 && k[0] == "nsSNP" )
-	include_annotation_nonsyn();
-      else
-	for (int i=0; i<k.size(); i++) include_annotation(k[i]);
-    }
+//   if ( m.has_field( "annot" ) ) 
+//     {
+//       std::vector<std::string> k = m.get_string( "annot" );
+//       if ( k.size() == 1 && k[0] == "nsSNP" )
+// 	include_annotation_nonsyn();
+//       else
+// 	for (int i=0; i<k.size(); i++) include_annotation(k[i]);
+//     }
 
 
-  if ( m.has_field( "annot.ex" ) ) 
-    {
-      vector<string> k = m.get_string( "annot.ex" );
-      if ( k.size() == 1 && k[0] == "nsSNP" )
-	exclude_annotation_nonsyn();
-      else
-	for (int i=0; i<k.size(); i++) exclude_annotation(k[i]);
-    }
+//   if ( m.has_field( "annot.ex" ) ) 
+//     {
+//       vector<string> k = m.get_string( "annot.ex" );
+//       if ( k.size() == 1 && k[0] == "nsSNP" )
+// 	exclude_annotation_nonsyn();
+//       else
+// 	for (int i=0; i<k.size(); i++) exclude_annotation(k[i]);
+//     }
 
 
-  if ( m.has_field( "annot.req" ) ) 
-    {
-      vector<string> k = m.get_string( "annot.req" );
-      if ( k.size() == 1 && k[0] == "nsSNP" )
-	{
-	  require_annotation_nonsyn();
-	}
-      else
-	for (int i=0; i<k.size(); i++) require_annotation(k[i]);
-    }
+//   if ( m.has_field( "annot.req" ) ) 
+//     {
+//       vector<string> k = m.get_string( "annot.req" );
+//       if ( k.size() == 1 && k[0] == "nsSNP" )
+// 	{
+// 	  require_annotation_nonsyn();
+// 	}
+//       else
+// 	for (int i=0; i<k.size(); i++) require_annotation(k[i]);
+//     }
+
 
   if ( m.has_field( "annot.append" ) ) 
     {
+      Annotate::setDB( LOCDB );
+      if ( ! Annotate::set_transcript_group( m.get1_string( "annot.append" ) ) )
+	Helper::halt( "problem setting annot LOCDB group, " + m.get1_string( "annot.append" ) );
       append_annotation();
     }
 
@@ -1536,26 +1652,27 @@ bool Mask::eval(Variant & v, void * p)
 
   if ( ! include ) return false;
   
+
   //
   // Any annotation filers?
   //
 
   if ( annot )
-      {
+    {
 
-	// This appends as meta-information the annotations to the variant
-	Annotate::annotate(v);
-
-	if ( ! f_include_annotation( v ) )
-	  return false;
-	
-	if ( ! f_require_annotation( v ) )
-	  return false;
-
-	if ( ! f_exclude_annotation( v ) )
-	  return false;
-	
-      }
+      // This appends as meta-information the annotations to the variant
+      Annotate::annotate(v);
+      
+      if ( ! f_include_annotation( v ) )
+	return false;
+      
+      if ( ! f_require_annotation( v ) )
+	return false;
+      
+      if ( ! f_exclude_annotation( v ) )
+	return false;
+      
+    }
   
   //
   // Passed all filters 
@@ -2519,11 +2636,13 @@ void Mask::group_loc(const string & g)
 
 void Mask::group_reg( const std::vector<std::string> & g )
 {
+
   // allow window specification
   // i.e.  chr1:10..20,chr1:20..30 is fine
+  
   // but also 
   //    w:10:10
-  // meaning a window of 10 bases, sliding over 10 bases \
+  // meaning a window of 10 bases, sliding over 10 bases
   //  question: how to we know the limits? 
   //  answer: 
   
@@ -2917,6 +3036,18 @@ bool Mask::polymorphism_filter( const Variant & v )
       if ( exc_indels &&   is_indel ) return false;
     }
 
+  if ( req_mnps || exc_mnps )
+    {
+      if ( req_mnps && ! v.mnp() ) return false;
+      if ( exc_mnps &&   v.mnp() ) return false;
+    }
+  
+  if ( req_snps || exc_snps ) 
+    {
+      if ( req_snps && ! v.snp() ) return false;
+      if ( exc_snps &&   v.snp() ) return false;
+    }
+
   if ( req_novel && v.name() != "." ) return false;
   if ( exc_novel && v.name() == "." ) return false;
 
@@ -2924,7 +3055,17 @@ bool Mask::polymorphism_filter( const Variant & v )
   if ( exclude_biallelic() &&   v.biallelic() ) return false;
   if ( require_monomorphic() && ! v.monomorphic() ) return false;
   if ( exclude_monomorphic() &&   v.monomorphic() ) return false;
+
+  if ( do_allele_match ) 
+    {
+      if ( ! test_allele( v.reference() , v.alternate() ) ) return false;
+    }
   
+  if ( do_allele_ex_match ) 
+    {
+      if ( ! test_allele_ex( v.reference() , v.alternate() ) ) return false;
+    }
+
   return true;
 }
 
@@ -3068,6 +3209,16 @@ bool Mask::pheno_screen( Individual * person ) const
 // Variant meta-information filters
 //
 
+int Mask::meta_set( const std::string & key )
+{
+  meta_is_set.insert( key );
+}
+
+int Mask::meta_not_set( const std::string & key )
+{
+  meta_is_not_set.insert( key );
+}
+
 int Mask::meta_equals( const std::string & key , int value )
 {
   meta_eq[key] = value;
@@ -3109,6 +3260,16 @@ int Mask::meta_less_equal( const std::string & key , double value )
 }
 
 
+
+int Mask::req_meta_set( const std::string & key )
+{
+  req_meta_is_set.insert( key );
+}
+
+int Mask::req_meta_not_set( const std::string & key )
+{
+  req_meta_is_not_set.insert( key );
+}
 
 int Mask::req_meta_equals( const std::string & key , int value )
 {
@@ -3174,6 +3335,20 @@ bool Mask::eval( SampleVariant & svar )
   if ( meta_requires() )
     {
       
+      std::set<std::string>::const_iterator js = req_meta_is_set.begin();
+      while ( js != req_meta_is_set.end() )
+	{
+	  if ( ! m.has_field( *js ) ) return false;
+	  ++js;
+	}
+
+      js = req_meta_is_not_set.begin();
+      while ( js != req_meta_is_not_set.end() )
+	{
+	  if ( m.has_field( *js ) ) return false;
+	  ++js;
+	}
+
       std::map<string,int>::const_iterator i = req_meta_eq.begin();
       while ( i != req_meta_eq.end() )
 	{
@@ -3369,6 +3544,24 @@ bool Mask::eval( SampleVariant & svar )
 
       bool okay = false;
 
+
+      std::set<std::string>::const_iterator js = meta_is_set.begin();
+      while ( js != meta_is_set.end() )
+	{
+	  if ( m.has_field( *js ) ) { okay = true; break; }
+	  ++js;
+	}
+      if ( okay ) break;
+      
+      js = meta_is_not_set.begin();
+      while ( js != meta_is_not_set.end() )
+	{
+	  if ( ! m.has_field( *js ) ) { okay = true; break; }
+	  ++js;
+	}
+      if ( okay ) break;
+
+
       std::map<string,int>::const_iterator i = meta_eq.begin();
       while ( i != meta_eq.end() )
 	{
@@ -3541,6 +3734,16 @@ bool Mask::eval( SampleVariant & svar )
 // Genotype filters
 //
 
+int Mask::geno_set( const std::string & key )
+{
+  geno_is_set.insert( key );
+}
+
+int Mask::geno_not_set( const std::string & key )
+{
+  geno_is_not_set.insert( key );
+}
+
 int Mask::geno_equals( const std::string & key , int value )
 {
   geno_eq[key] = value;
@@ -3582,6 +3785,16 @@ int Mask::geno_less_equal( const std::string & key , double value )
 }
 
 
+
+int Mask::req_geno_set( const std::string & key )
+{
+  req_geno_is_set.insert( key );
+}
+
+int Mask::req_geno_not_set( const std::string & key )
+{
+  req_geno_is_not_set.insert( key );
+}
 
 int Mask::req_geno_equals( const std::string & key , int value )
 {
@@ -3639,6 +3852,22 @@ bool Mask::eval( const Genotype & g ) const
   
   if ( geno_requires() )
     {
+
+
+      std::set<std::string>::const_iterator js = req_geno_is_set.begin();
+      while ( js != req_geno_is_set.end() )
+	{
+	  if ( ! g.meta.has_field( *js ) ) return false;
+	  ++js;
+	}
+
+      js = req_geno_is_not_set.begin();
+      while ( js != req_geno_is_not_set.end() )
+	{
+	  if ( g.meta.has_field( *js ) ) return false;
+	  ++js;
+	}
+      
 
       std::map<string,int>::const_iterator i = req_geno_eq.begin();
       while ( i != req_geno_eq.end() )
@@ -3811,6 +4040,23 @@ bool Mask::eval( const Genotype & g ) const
       // break when we meet our first condition == T
       
       bool okay = false;
+
+      std::set<std::string>::const_iterator js = geno_is_set.begin();
+      while ( js != geno_is_set.end() )
+	{
+	  if ( g.meta.has_field( *js ) ) { okay = true; break; }
+	  ++js;
+	}
+      if ( okay ) break;
+      
+      js = geno_is_not_set.begin();
+      while ( js != geno_is_not_set.end() )
+	{
+	  if ( ! g.meta.has_field( *js ) ) { okay = true; break; }
+	  ++js;
+	}
+      if ( okay ) break;
+
 
       std::map<string,int>::const_iterator i = geno_eq.begin();
       while ( i != geno_eq.end() )
@@ -4544,3 +4790,297 @@ bool Mask::forced( int achr , int abp1, int abp2,
   *next = *upr;
   return true;
 }
+
+void Mask::add_allele( const std::vector<std::string> & a )
+{
+  // expecting format  --mask allele=G/C,C/G
+  // allow two regular expressions : * , ? (single char)
+
+  //                          allele=*/T
+  //                          allele=?/T
+
+    
+  do_allele_match = true;
+  
+  for ( int i = 0 ; i < a.size() ; i++)
+    {
+      std::vector<std::string> tok = Helper::char_split( a[i] , '/' );
+      if ( tok.size() != 2 ) Helper::halt( "invalid allele specificiation in mask (expect allele=A/T) " + a[i] );
+      allele_match_ref.push_back( tok[0] );
+      allele_match_alt.push_back( tok[1] );
+    }
+
+}
+
+bool Mask::allele_match( const std::string & a , const std::string & t )
+{
+  // t is 'template', that might include wild-cards
+  if ( t    == "*" ) return true;
+  if ( t[0] == '?' ) return a.size() == t.size();  
+  return a == t;  
+}
+
+void Mask::add_allele_ex( const std::vector<std::string> & a )
+{
+  do_allele_ex_match = true;
+
+  for ( int i = 0 ; i < a.size() ; i++)
+    {
+      std::vector<std::string> tok = Helper::char_split( a[i] , '/' );
+      if ( tok.size() != 2 ) Helper::halt( "invalid allele specificiation in mask (expect allele.ex=A/T) " + a[i] );
+      allele_exclude_ref.push_back( tok[0] );
+      allele_exclude_alt.push_back( tok[1] );
+    }
+}
+
+bool Mask::test_allele( const std::string & ref , const std::string & alt )
+{
+  bool match = false;
+  for (int i=0;i<allele_match_ref.size(); i++)
+    {
+      if ( allele_match( ref , allele_match_ref[i] ) )
+	{ match = true; break; }
+    }
+  if ( ! match ) return false;
+  
+  // for now, do not match multi-nucleodides
+  // unless that was explicitly in "A/C,T"
+  
+  match = false;
+  for (int i=0;i<allele_match_ref.size(); i++)
+    {
+      if ( allele_match( alt , allele_match_alt[i] ) )
+	{ match = true; break; }
+    }
+  return match;  
+}
+
+bool Mask::test_allele_ex( const std::string & ref , const std::string & alt )
+{
+  return ! test_allele( ref , alt );
+}
+
+
+void Mask::onthefly_attach_from_file( const std::string & filename )
+{
+
+  if ( ! Helper::fileExists( filename ) ) 
+    Helper::halt( "trouble opening " + filename );
+  
+  int inserted = 0;
+
+  otf_meta_append = true; 
+  InFile F( filename );
+  
+  std::map<std::string,mType> types;
+
+  while ( ! F.eof() )
+    {
+      
+      std::string line = F.readLine();
+	    
+      if ( line == "" ) continue;
+      if ( F.eof() ) break;
+      
+      //
+      // Is this a header field? 
+      // ##Name,Len,Type,"Description"
+      // ##DB,1,Flag,"In dbSNP"
+      //
+
+      if ( line.substr(0,2) == "##" ) 
+	{
+	  
+	  // strip leading ## and tokenize
+
+	  std::vector<std::string> tok = Helper::quoted_parse( line.substr(2) );
+	  
+	  std::string name = "";
+	  int num = -9;
+	  std::string type = "";
+	  mType mt = META_UNDEFINED;
+	  std::string desc;
+  
+	  if ( tok.size() != 4 ) 
+	    {
+	      plog.warn("could not parse header row (expcting ##name,length,type,desc)",
+			line );
+	      continue;
+	    }
+
+	  name = tok[0];
+	  if ( ! Helper::str2int( tok[1] , num ) ) num = -1;
+	  type = tok[2];
+	  desc = tok[3];
+  
+	  if      ( Helper::is_int( type ) ) mt = META_INT;
+	  else if ( Helper::is_float( type ) ) mt = META_FLOAT;
+	  else if ( Helper::is_text( type ) ) mt = META_TEXT;
+	  else if ( Helper::is_flag( type ) ) { mt = META_FLAG; }
+  
+	  //
+	  // Does this contain valid information?
+	  //
+
+	  if ( name == "" || mt == META_UNDEFINED || num < -1 ) continue;
+
+	  // Add as a RefVariant and VarMeta
+	  
+	  MetaInformation<RefMeta>::field( name , mt , num , desc );
+	  MetaInformation<VarMeta>::field( name , mt , num , desc );
+
+	  types[ name ] = mt;
+
+	  // go to next line
+	  continue;
+	}
+      
+      
+      // Otherwise, assume contains data, tab-delimited
+      //  Variant   Key  Value
+      
+      std::vector<std::string> tok = Helper::parse( line , "\t" );
+      
+      if ( tok.size() != 3 ) 
+	{
+	  plog.warn("skipping row of input, not 3 tab-delimited fields",line);
+	  continue;
+	}
+      
+
+      // have we seen this variable?
+      
+      if ( types.find( tok[1] ) == types.end() ) 
+	{
+	  plog.warn( "type not defined in header, skipping" , line );
+	  continue;
+	}
+
+      mType mt = types[ tok[1] ];
+
+
+      //
+      // Resolve variant specifier -- positional or ID-based?
+      //
+      
+      bool is_region = false;
+      Region r( tok[0] , is_region );
+	    
+      RefVariant rkey;
+      RefVariant rvar;
+
+      if ( is_region )
+	{
+	  rkey.chromosome( r.chromosome() );
+	  rkey.start( r.start.position() );
+	  rkey.stop( r.stop.position() );
+	}
+      else // or based on ID
+	{
+	  rkey.name( r.name );
+	}
+      
+
+      //
+      // Insert for each specified variant/file combination
+      //
+
+      
+      std::string & skey = tok[1];
+      std::string & value = tok[2];
+
+      // store in on-the-fly table
+
+      MetaInformation<RefMeta> & m = otf_meta[ rkey ];
+
+      if      ( mt == META_INT )
+	{
+	  int x;
+	  if ( Helper::str2int( value , x ) )
+	    m.set( skey , x );
+	}
+      else if ( mt == META_FLOAT )
+	{
+	  double x;
+	  if ( Helper::str2dbl( value , x ) )
+	    m.set( skey , x );
+	}
+      else if ( mt == META_TEXT )
+	{
+	  m.set( skey , value );
+	}
+      else if ( mt == META_FLAG && value != "0" && value != "F" )
+	{
+	  m.set( skey );
+	}
+      
+      ++inserted;
+      
+    }  // next line of input 
+
+  plog << "read " << inserted 
+       << " variant/value pairs from " << filename << "\n";
+
+  F.close();
+}
+
+
+void Mask::onthefly_attach_to_variant( Variant & parent )
+{
+
+  RefVariant rkey( 0 , 
+		   parent.name() , 
+		   parent.chromosome() , 
+		   parent.position() , 
+		   parent.stop() , 
+		   "" , "" , "" );
+  
+  std::map<RefVariant,MetaInformation<RefMeta> >::iterator ii = otf_meta.find( rkey );
+
+  // Nothing found
+  if ( ii == otf_meta.end() ) return;
+  
+  // Else append  
+  parent.meta.append( ii->second );
+
+
+}
+
+
+void Mask::revise_hard_call( Genotype & g )
+{
+  
+  std::vector<double> d = g.meta.get_double( hard_call_threshold );
+  
+  // dosage (in which case will always be on 0..2 scale) or posterior prob?
+  
+  bool dosage = d.size() == 1;
+
+  // if an invalid specification, set genotype to null
+  if ( ! dosage && d.size() != 3 ) 
+    {
+      g.null( true );
+      return;
+    }
+
+  int geno = 0 ;
+
+  if ( dosage ) 
+    {
+      if      ( d[0] <= hard_call_threshold ) geno = 1;
+      else if ( d[0] >= 2.0 - hard_call_threshold ) geno = 3;
+      else if ( fabs( d[0] - 1.0 ) <= hard_call_threshold ) geno = 2;
+    }
+  else
+    {      
+      if      ( d[0] >= hard_call_threshold ) geno = 1;
+      else if ( d[1] >= hard_call_threshold ) geno = 2;
+      else if ( d[2] >= hard_call_threshold ) geno = 3;      
+    }
+
+  if ( geno == 0 ) g.null( true ) ; 
+  else g.set_alternate_allele_count( geno - 1 );
+
+}
+     
+ 

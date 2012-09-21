@@ -22,11 +22,7 @@ Pseq::VarDB::SomeQualityEventOracle::SomeQualityEventOracle(const Variant& v, do
 	for (int indivInd = 0; indivInd < numIndivs; ++indivInd) {
 		const Genotype& gt = v(indivInd);
 
-		// TODO: Replace this code once pseq can properly parse Character in INFO and FORMAT:
-		//
-		//if (gt.meta.has_field("DSCVR") && gt.meta.get1_char("DSCVR") == 'Y')
-		//
-		if (gt.meta.has_field("DSCVR") && gt.meta.get1_int("DSCVR") == 1)
+		if (gt.meta.has_field("DSCVR") && gt.meta.get1_string("DSCVR") == "Y")
 			_discoveredIndiv.insert(indivInd);
 
 		indivAltStatus[indivInd] = vector<EventStatus>(_numAltAlleles, MISSING);
@@ -269,7 +265,8 @@ bool Pseq::VarDB::cnv_denovo_scan(Mask& mask) {
 	if (p.size() != 3)
 		Helper::halt("expect --param MIN_SQ MIN_NQ REQUIRE_DE_NOVO_DISCOVERY_IN_CHILD");
 
-	Out& dnIndivOut = Out::stream("denovo.indiv");
+	Out& dnCNVout = Out::stream("denovo.cnv");
+	Out& dnIndivOut = Out::stream("denovo.cnv.indiv");
 
 	AuxCNVdeNovoData* aux = new AuxCNVdeNovoData(p);
 
@@ -300,7 +297,7 @@ bool Pseq::VarDB::cnv_denovo_scan(Mask& mask) {
 			aux->childrenSummary[person->id()] = ChildTransmissionSummary();
 	}
 
-	dnIndivOut
+	dnCNVout
 	CLASS_ALLELE_HEADER
 	<< "\n";
 

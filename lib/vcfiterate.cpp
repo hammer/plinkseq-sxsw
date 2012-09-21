@@ -115,13 +115,19 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
   // Respect 'reg' and 'loc' from command line.
   // But not loc.subset; loc.req, loc.ex, etc
   
-
   std::set<Region> filter;
   std::string locinc = mask.loc_include_string();
-  if ( locinc != "" ) 
-    filter = GP->locdb.get_regions( locinc );
+  int l2 = 0;
   
-  
+  if ( locinc != "" && locinc != "." ) 
+    {
+      if ( ! Helper::str2int( locinc , l2 ) )
+	Helper::halt("could not parse 'loc' mask");
+      
+      if ( l2 > 0 ) 
+	  filter = GP->locdb.get_regions( l2 );
+    }
+
   std::set<Region> reginc = mask.included_reg();
   std::set<Region>::iterator ii = reginc.begin();
   while ( ii != reginc.end() ) 

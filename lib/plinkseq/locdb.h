@@ -248,7 +248,9 @@ class LocDBase {
    std::set<Region> get_regions(uint64_t grp_id);
    std::set<Region> get_regions(uint64_t grp_id,int,int,int);
    std::vector<uint64_t> get_region_ids(uint64_t grp_id,int,int,int);
-   
+
+   uint64_t get_region_id( uint64_t , const std::string & );
+
    std::set<Region> get_regions( const std::string & group , const Region & );
    std::set<Region> get_regions( const std::string & group , const Variant & );
 
@@ -375,6 +377,8 @@ class LocDBase {
   sqlite3_stmt * stmt_loc_lookup_group;
   sqlite3_stmt * stmt_loc_lookup_group_and_name;
   sqlite3_stmt * stmt_loc_lookup_id_group_and_range;
+
+  sqlite3_stmt * stmt_loc_fetch_id_given_name;
 
   sqlite3_stmt * stmt_loc_fetch_altnames;
   sqlite3_stmt * stmt_loc_fetch_altnames_indel;

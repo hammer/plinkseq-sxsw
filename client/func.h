@@ -133,12 +133,11 @@ namespace Pseq
   namespace ProtDB
   {
     
-    bool loader( const std::string & db , const std::string & file );
+    bool loader( const std::string & db , const std::string & file , const std::string & group );
     
     bool lookup( const std::string & db , const std::string & gene , const std::string & group = "" , Mask * mask = NULL );
-    
-    bool mapper( const std::string & db , const std::string & group , const std::string & source , const std::string & feature );
-
+   
+    bool lookup( const std::string & db );
   }
 
 
@@ -237,7 +236,7 @@ namespace Pseq
       
       bool lookup( Region & );
       
-      bool load_transcripts( std::string );
+      //      bool load_transcripts( std::string );
 
       bool loc_stats( const std::string & , const std::string & );
 

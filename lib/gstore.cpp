@@ -188,9 +188,13 @@ bool GStore::vardb_load_vcf( Mask & mask ,
   // from VCF that belong in a certain LOCDB group?
   
   std::set<Region> filter;
+
   if ( region_mask )
-    filter = locdb.get_regions( *region_mask );
-  
+    {
+      filter = locdb.get_regions( *region_mask );      
+      plog << "filtering on " << filter.size() << " regions from " << *region_mask << "\n";
+    }
+
   std::set<Region> * pfilter = region_mask ? &filter : NULL  ;
 
   std::set<File*> files = fIndex.get( VCF );
@@ -200,8 +204,12 @@ bool GStore::vardb_load_vcf( Mask & mask ,
       std::string filename = (*i)->name();      
       // Do not reload VCF files already in VARDB
       if ( vardb.fileID( (*i)->name() ) == 0 )
-	if ( ! vardb_load_vcf( filename , (*i)->tag() , (*i)->comment() , mask , includes , excludes , pfilter ) )
+	{
+	  if ( ! vardb_load_vcf( filename , (*i)->tag() , (*i)->comment() , mask , includes , excludes , pfilter ) )
 	  return false;
+	}
+      else plog.warn( "skipping VCF file already loaded into VARDB" , (*i)->name() );
+
       ++i;
     }
   
@@ -257,15 +265,15 @@ bool GStore::vardb_load_vcf( const std::string & file,
   
   int inserted = 0;
 
-  plog.counter( "parsing..." );
+  plog.counter1( "parsing..." );
 
   while ( v.parseLine() ) 
     { 
       if ( ++inserted % 1000 == 0 ) 
-	plog.counter( "parsed " + Helper::int2str( inserted ) + " rows" );
+	plog.counter1( "parsed " + Helper::int2str( inserted ) + " rows" );
     }
-  plog.counter("\n");
-    
+  plog.counter1("\n");
+  
   // Wrap up
   
   vardb.commit();    

@@ -69,6 +69,7 @@ struct PLINKSeq {
   static std::string & ANNOT_CHANGE();
   static std::string & ANNOT_CODON();
   static std::string & ANNOT_PROTEIN();
+  static std::string & ANNOT_DETAILS();
   static std::string & ANNOT_SUMMARY();
 
   static std::string & DEFAULT_PHENOTYPE();
