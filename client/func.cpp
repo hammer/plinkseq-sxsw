@@ -1934,18 +1934,22 @@ bool Pseq::VarDB::make_counts_file( Mask &m, const std::string & name  )
 }
 
 
-bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
+bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes , bool qt )
 {
 
-  Out & pout = Out::stream( genotypes ? "gcounts" : "counts" );
+  // Wrapper for either QT means, genotypic counts, or allelic counts
+  Out & pout = Out::stream( qt ? "means" : ( genotypes ? "gcounts" : "counts" ) );
   
   OptSimpleCounts opt;
   opt.apply_annot = args.has( "annotate" );
   opt.apply_full_annot = args.has( "full-annotate" );
   if ( opt.apply_full_annot ) opt.apply_annot = true;
   opt.dichot_pheno = g.phmap.type() == PHE_DICHOT;
+  opt.qt_pheno = g.phmap.type() == PHE_QT;
   opt.show_filter = args.has( "show-filters" );
   opt.genotypes = genotypes;
+  
+  if ( qt && ! opt.qt_pheno ) Helper::halt( "no QT specified" );  
   
   pout << "VAR";
   pout << "\tREF/ALT";
@@ -1959,10 +1963,13 @@ bool Pseq::VarDB::simple_counts( Mask & m , bool genotypes )
       pout << "\tMINOR";
 
       // binary phenotype?
-      if ( g.phmap.type() == PHE_DICHOT )
+      if ( opt.dichot_pheno )
 	pout << "\tCNTA"
 	     << "\tCNTU"
 	     << "\tTOTA\tTOTU";
+      else if ( opt.qt_pheno ) // collapse HET and HOM alternate genotypes for now
+	pout << "\tREFMEAN\tREFSD\tREFN"
+	     << "\tALTMEAN\tALTSD\tALTN";
       else
 	pout << "\tCNT\tTOT";
     }

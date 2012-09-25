@@ -99,7 +99,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 	  << "swap-ids|input,indop|swap individual IDs in the VARDB and INDDB|ARG:file"
 
-	  << "delete-meta|varop|remove meta-information|ARG:group" 
+	  << "delete-meta|varop|remove meta-information|ARG:group,all" 
 		
 	  << "var-set|input,varop|add a variant-set to a VARDB|ARG:group,file"
 
@@ -308,15 +308,17 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 
 
 
-    //
-    // Genotype-phenotype association models
-    //
-
-
+      //
+      // Genotype-phenotype association models
+      //
+      
+      
 	  << "counts|views,tests|summary/count statistics|VCF|ARG:output-vcf,name,annotate,full-annotate,show-filters,meta,phenotype|OUT:counts"
-	
+      
 	  << "g-counts|views,tests|genotype summary/count statistics|VCF|ARG:output-vcf,name|OUT:gcounts"
-	
+      
+	  << "means|views,tests|summary QT means per variant|VCF|ARG:annotate,full-annotate,show-filters,meta,phenotype|OUT:means"
+      
 	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$burden$calpha$uniq$vt$fw$sumstat$two-hit$skat$skato,info,fix-null,perm,dump-null-matrix,midpoint|OUT:assoc"
     
 	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta|OUT:vassoc"
@@ -369,6 +371,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	  << "prot-load|input,prot|populate a PROTDB|ARG:protdb,file,group"
       
 	  << "prot-view|views,prot|view entries from a PROTDB|ARG:protdb,name,group"
+
 
     //
     // Misc. QC etc
@@ -462,9 +465,10 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "type"       , STRING , "type of project entry");
     reg( "declare"    , STRING_VECTOR , "on-the-fly declaration of meta-attribute types" );
 
-    reg( "group"      , STRING_VECTOR , "generic group label(s)" );    
+    reg( "group"      , STRING_VECTOR , "generic group label(s)" ); 
+    reg( "all"        , NONE          , "generic group label(s)" );
     reg( "domain"     , STRING_VECTOR , "protein domain group from PROTDB" );
-    reg( "id" , INT_VECTOR , "generic numeric IDs" );
+    reg( "id"         , INT_VECTOR    , "generic numeric IDs" );
 
     reg( "whitespace", NONE , "allow whitespace delimited input" );
     reg( "show-id" , NONE , "use chr:position:id variant format in output");
@@ -536,7 +540,8 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     
     // Genotype/phenotype inputs
 
-    reg( "phenotype" , STRING_VECTOR, "phenotype specification");
+    reg( "phenotype" , STRING, "phenotype specification");
+    reg( "phenotype-file" , STRING_VECTOR, "phenotype specification from file");
     reg( "make-phenotype" , STRING, "dichotomise factor");
 
     reg( "from-vardb" , NONE , "list individuals from VARDB, not INDDB" );

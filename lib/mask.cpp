@@ -1479,11 +1479,15 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 
   if ( m.has_field( "gene" ) )
     {
+      int added = 0;
       if ( group_mode ) group_loc( PLINKSeq::DEFAULT_LOC_GROUP() );
       std::vector<std::string> k = m.get_string( "gene" );
       if ( k.size() > 0 ) 
 	for ( int i = 0 ; i < k.size() ; i++ )
-	  subset_loc_altname( PLINKSeq::DEFAULT_LOC_GROUP() , k[i] );
+	  {
+	    if ( subset_loc_altname( PLINKSeq::DEFAULT_LOC_GROUP() , k[i] ) == 0 )
+	      Helper::halt( "no transcripts match " + k[i] + " in the LOCDB");
+	  }
     }
 
   if ( m.has_field( "reg.group" ) )
@@ -1605,6 +1609,7 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       std::vector<std::string> t = m.get_string( "load-vmeta" );
       for (int i=0;i<t.size(); i++) set_load_variant_meta( t[i] );      
     }
+
 
 
   // TODO: Based on the command and the mask/options/arguments, determine what needs to be loaded and automatically set this.
@@ -2241,18 +2246,20 @@ void Mask::skip_var(const int s, const std::vector<std::string> & d)
 // Specify individual genes based on altname
 //
 
-void Mask::subset_loc_altname(const std::string & group , const std::string & altname )
+int Mask::subset_loc_altname(const std::string & group , const std::string & altname )
 {
-  std::vector<std::string> s = locdb->fetch_name_given_altname( group , altname );
-  if ( s.size() > 0 ) 
-    subset_loc( group , s );
+  std::vector<std::string> s = locdb->fetch_name_given_altname( group , altname );    
+  if ( s.size() > 0 )  subset_loc( group , s );
   else plog.warn( "coult not find any alternate gene names" , group + ":" + altname );
+  return s.size() > 0 ; 
 }
 
-void Mask::subset_loc_altname(const std::string & grp, const std::vector<std::string>& n)
+int Mask::subset_loc_altname(const std::string & grp, const std::vector<std::string>& n)
 {
+  int na = 0;
   for (int i=0; i<n.size(); i++)
-    subset_loc_altname( grp , n[i] );
+    na += subset_loc_altname( grp , n[i] );
+  return na;
 }
 
 
@@ -2423,8 +2430,11 @@ int Mask::exclude_file( const string & filetag )
     {
       ex_files.insert(id); 
     }
-  else 
-    Helper::halt( "problem with file.ex mask specification" );
+  
+  // not a useful check -- i.e. if we filter out all individuals from a file because of 
+  // another mask, this gets tripped.
+//   else 
+//     Helper::halt( "problem with file.ex mask specification" );
 
   return ex_files.size();
 }
@@ -3192,10 +3202,12 @@ bool Mask::pheno_screen( Individual * person ) const
   i = in_phe.begin();
   while ( i != in_phe.end() )
     {
+      
+      
       std::set<std::string>::const_iterator j = i->second.begin();
       while ( j != i->second.end() )
-	{	  
-	  if ( person->meta.as_string( i->first ) == *j ) included = true;      
+	{	 	  
+	  if ( person->meta.as_string( i->first ) == *j ) included = true;
 	  ++j;
 	}
       ++i;

@@ -329,6 +329,9 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
   else 
     aux->stat_burden = Helper::chi2x2( cnt_a , cnt_u , all_a - cnt_a , all_u - cnt_u );
   
+
+  std::cout << "stats = " << aux->stat_burden << "\t" << cnt_a << " " << cnt_u << " " << all_a - cnt_a << " " << all_u - cnt_u << "\n";
+
   // uniq-burden test
 
   if ( all_a == 0 || all_u == 0 || unq_a / (double)all_a <= unq_u / (double)all_u ) 

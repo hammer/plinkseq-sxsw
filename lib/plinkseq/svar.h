@@ -9,6 +9,8 @@
 
 #include <ostream>
 
+typedef unsigned int uint;
+
 class Genotype;
 class Mask;
 class BCF;
@@ -86,9 +88,9 @@ class SampleVariant {
   std::string alternate() const { return alt; }
   
   /// Return allele label of k-th allele (0 is reference)
-  std::string alternate( const int k ) const
+  std::string alternate( const uint k ) const
     {
-      if ( k < 0 || k >= alleles.size() ) return ".";
+      if ( k >= alleles.size() ) return ".";
       return alleles[k].name();
     }
   

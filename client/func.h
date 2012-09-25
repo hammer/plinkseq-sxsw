@@ -92,7 +92,7 @@ namespace Pseq
       
       bool make_counts_file(Mask &m , const std::string & );
 
-      bool simple_counts(Mask &m, bool);
+      bool simple_counts(Mask &m, bool, bool);
 
       bool lookup_list(const std::string & filename, Mask &m, const std::vector<Region> * regs = NULL );
 

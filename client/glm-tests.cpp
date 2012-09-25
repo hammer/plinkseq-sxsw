@@ -171,109 +171,119 @@ void f_glm_association( Variant & v , void * p )
 	}
     }
 
-  if ( an == 0 ) Helper::halt("no valid observations");
 
-  Data::Vector<double> y( an );
-  Data::Matrix<double> x( an , 1 + np + nc ) ;
+  //
+  // Only perform test if some non-missing observations
+  //
 
-  // Populate
-  int ni = 0;
-  for (int i=0; i<n; i++)
-    {
+  bool valid = an > 0;
 
-      if ( ! mask[i] ) 
-	{
-	  // DV
-	  y[ni] = data->y[i];
-	  
-	  // Intercept
-	  x(ni,0) = 1;
-	  
-	  // Genotype
-	  if ( data->use_dosage ) // dosage of alt-allele(s)
-	    {	      
-	      x(ni,1) = v(i).meta.get1_double( data->softtag );
-	    }	  
-	  else if ( data->use_postprobs ) // post-probs (assume biallelic)
-	    {
-	      std::vector<double> pp = v(i).meta.get_double( data->softtag ); 
-	      x(ni,1) = pp[1] + 2 * pp[2]; 		
-	    }
-	  else // use Genotype::genotype_model to score()
-	    {
-	      //x(ni,1) = v(i).minor_allele_count( true );
-	      x(ni,1) = v(i).score();
-	    }
-
-	  // Covariates (1,variant,covar)
-	  int z = 1; // skip first two slots
-	  for (int j=0;j<nc;j++) x(ni,++z) = data->c(i,j);
-	  
-	  ++ni;
-	}
-    }
-
-  // Perform test
-  
-  GLM glm( data->dichot_pheno ? GLM::LOGISTIC : GLM::LINEAR );
-
-//   for (int i=0;i<an;i++)
-//     {
-//       std::cout << "data = " << y[i] << "\t";
-//       for (int j=0;j<x.dim2();j++) 
-// 	std::cout << "\t" << x(i,j);
-//       std::cout << "\n";
-//     }
-
-  glm.set( y , x ); 
-
-  glm.fit();
-
-  bool valid = glm.valid();
-  
-  // Aux. output
-  
-  // calc freqs taking phenotype status into account
   double maf = 0;
   double mafa = 0 , mafu = 0;
   int tot = 0, tota = 0 , totu = 0;
-  for (int i=0; i<n; i++)
+  double pval = 0;
+  
+  GLM glm( data->dichot_pheno ? GLM::LOGISTIC : GLM::LINEAR );
+
+  if ( valid ) 
     {
-
-      if ( ! mask[i] ) 
+      
+      Data::Vector<double> y( an );
+      Data::Matrix<double> x( an , 1 + np + nc ) ;
+      
+      // Populate
+      int ni = 0;
+      for (int i=0; i<n; i++)
 	{
-
-	  int c = v(i).copy_number(); 
-	  int a = v(i).minor_allele_count( true );
 	  
-	  maf += a;
-	  tot += c;
-	  if ( data->dichot_pheno ) 
+	  if ( ! mask[i] ) 
 	    {
-	      if ( v.ind(i)->affected() == CASE ) 
+	      // DV
+	      y[ni] = data->y[i];
+	      
+	      // Intercept
+	      x(ni,0) = 1;
+	      
+	      // Genotype
+	      if ( data->use_dosage ) // dosage of alt-allele(s)
+		{	      
+		  x(ni,1) = v(i).meta.get1_double( data->softtag );
+		}	  
+	      else if ( data->use_postprobs ) // post-probs (assume biallelic)
 		{
-		  tota += c;
-		  mafa += a;
+		  std::vector<double> pp = v(i).meta.get_double( data->softtag ); 
+		  x(ni,1) = pp[1] + 2 * pp[2]; 		
 		}
-	      else 
+	      else // use Genotype::genotype_model to score()
 		{
-		  totu += c;
-		  mafu += a;
+		  //x(ni,1) = v(i).minor_allele_count( true );
+		  x(ni,1) = v(i).score();
 		}
+	      
+	      // Covariates (1,variant,covar)
+	      int z = 1; // skip first two slots
+	      for (int j=0;j<nc;j++) x(ni,++z) = data->c(i,j);
+	      
+	      ++ni;
 	    }
 	}
-    }
-  
-  maf /= tot ? (double)tot : 1;
-  mafa /= tota ? (double)tota : 1;
-  mafu /= totu ? (double)totu : 1;
-  
-  double pval = 0;
-  if ( valid ) pval = glm.test_pval();
-  if ( pval < 0 ) valid = false;
-  
+      
+      
+      //
+      // Perform test
+      //
+                 
+      glm.set( y , x ); 
+
+      glm.fit();
+      
+      valid = glm.valid();
+      
+      // Aux. output
+      
+      // calc freqs taking phenotype status into account
+
+      for (int i=0; i<n; i++)
+	{
+	  
+	  if ( ! mask[i] ) 
+	    {
+	      
+	      int c = v(i).copy_number(); 
+	      int a = v(i).minor_allele_count( true );
+	      
+	      maf += a;
+	      tot += c;
+	      if ( data->dichot_pheno ) 
+		{
+		  if ( v.ind(i)->affected() == CASE ) 
+		    {
+		      tota += c;
+		      mafa += a;
+		    }
+		  else 
+		    {
+		      totu += c;
+		      mafu += a;
+		    }
+		}
+	}
+	}
+      
+      maf /= tot ? (double)tot : 1;
+      mafa /= tota ? (double)tota : 1;
+      mafu /= totu ? (double)totu : 1;      
+      
+      if ( valid ) pval = glm.test_pval();
+      if ( pval < 0 ) valid = false;
+      
+    } // end of testing (if valid == T)
+
+
+  //
   // Output results
-  
+  //
+
   Out & pout = Out::stream( "glm" );
 
   if ( valid )

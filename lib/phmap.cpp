@@ -193,10 +193,11 @@ int PhenotypeMap::set_phenotype( const std::string & phenotype )
   int nonmissing = 0;
   
   phenotype_name = phenotype;
-
+  
   mType mt = MetaInformation<IndivMeta>::type( phenotype ) ;
-
-  if ( mt == META_UNDEFINED ) return 0;
+  
+  if ( mt == META_UNDEFINED ) 
+    Helper::halt( "could not find phenotype " + phenotype );
 
   if ( mt == META_INT )     
     phenotype_type = PHE_DICHOT; 

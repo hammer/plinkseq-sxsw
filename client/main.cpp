@@ -770,6 +770,9 @@ int main(int argc, char ** argv)
 						"symbol" , 
 						PLINKSeq::DEFAULT_LOC_GROUP() ) ;
 	      
+	      if ( trans_names.size() == 0 ) 
+		Helper::halt( "could not find " + t[i] + " in LOCDB" );
+
 	      std::vector<std::string> tnames;
 	      std::set<std::string>::iterator ii = trans_names.begin();
 	      while ( ii != trans_names.end() )
@@ -911,17 +914,22 @@ int main(int argc, char ** argv)
   
   if ( command == "delete-meta" )
     {
-      if ( ! args.has("group") )
-	g.vardb.flush_indep_meta( );
-      else
+      if ( args.has( "all" ) )
+	{	  
+	  g.vardb.flush_indep_meta( );
+	}
+      else if ( args.has( "group" ) ) 
 	{
 	  std::string group = Pseq::Util::single_argument<std::string>( args , "group" );
 	  g.vardb.flush_indep_meta( group );
 	}
+      else
+	Helper::halt( "must specify --group {name}   OR --all " );
+      
       Pseq::finished();
     }
-  
 
+  
   //
   // Add a descriptive 'tag' (i.e. short name) to a file in VARDB
   //
@@ -1316,11 +1324,16 @@ int main(int argc, char ** argv)
     // If a phenotype, or covariates, have been specified, by default require that we see these
     // This can be over-riden by adding phe.allow.missing to the --mask 
     //
-
+    
     std::string phenotype_name = PLINKSeq::DEFAULT_PHENOTYPE();
     if ( ! g.single_file_mode() )
       {
-	if ( args.has("phenotype") ) phenotype_name = args.as_string("phenotype");
+	if ( args.has("phenotype") ) 
+	  {
+	    phenotype_name = args.as_string("phenotype");
+	    if ( ! g.phmap.phenotype_exists( phenotype_name ) )
+	      Helper::halt( "could not find " + phenotype_name );
+	  }
 	else if ( args.has("make-phenotype") )
 	  {
 	    std::vector<std::string> k = Helper::char_split( args.as_string("make-phenotype") , '=' );
@@ -1333,7 +1346,8 @@ int main(int argc, char ** argv)
 	maskspec += " phe.obs=" + phenotype_name;
       }
 	
-
+    
+    
     //
     // ---------------------------------------------------------------------------
     //
@@ -1346,7 +1360,7 @@ int main(int argc, char ** argv)
     //
     
     Mask m( maskspec , filtspec , filter_T_include , pcomm.groups( command ) );
-
+    
 
     //
     // Set up individual-map and connect it to VARDB give a mask;
@@ -1355,7 +1369,9 @@ int main(int argc, char ** argv)
 
     g.register_mask( m );
 
-    
+        
+	
+
     //
     // In single-VCF mode, read header, set meta-types
     //
@@ -1376,31 +1392,42 @@ int main(int argc, char ** argv)
     // Set phenotype (as used by Mask phe.unobs)
     //
     
-    if ( args.has( "phenotype" ) )
+    if ( args.has( "phenotype-file" ) )
       {		
+
+	// in project mode, this function is basically saying that we want to create a 
+
+	if ( args.has( "phenotype" ) )
+	  Helper::halt( "cannot specify both --phenotype and --phenotype-file" );
+
 	// in single-file mode, we need to upload the phenotypes on the fly
 	
-	if ( g.single_file_mode() ) 
-	  {
-	    // in this case, expect phenotype to be two columns	    
-	    std::vector<std::string> k = args.as_string_vector( "phenotype" );
-	    if ( k.size() != 2 ) Helper::halt( "expecting --phenotype filename label" );
-	    g.phmap.direct_load( k[0] , k[1] );
-	  }
-	else
+	// If two cols specified, means load from file / name
+	std::vector<std::string> k = args.as_string_vector( "phenotype-file" );
+	
+	if ( k.size() != 2 ) 
+	  Helper::halt( "expecting --phenotype-file filename label" );
+	
+	g.phmap.direct_load( k[0] , k[1] );       	
+      }
+    else if ( args.has( "phenotype" ) )
+      {
+	if ( ! g.single_file_mode() ) 	
 	  {
 	    if ( ! Pseq::IndDB::set_phenotype( args.as_string( "phenotype" ) ) ) 
 	      Helper::halt("no individuals selected / problem setting phenotype " + args.as_string( "phenotype" ));
 	  }
+	else
+	  Helper::halt( "must specify --phenotype-file in single-file mode" );
       }
-
-    else if ( args.has("make-phenotype") )
+    else if ( args.has( "make-phenotype") )
       {
 	// expect format: factor definition
 	std::string k = args.as_string( "make-phenotype" );
 	if ( ! Pseq::IndDB::make_phenotype( k ) )
 	  Helper::halt("problem setting phenotype " + args.as_string( "make-phenotype" ) );
       }
+
 
     else if ( PLINKSeq::DEFAULT_PHENOTYPE() != "" ) 
       {
@@ -1861,10 +1888,24 @@ int main(int argc, char ** argv)
 	    Out output( command == "counts" ? "counts" : "gcounts" , 
 			command == "counts" ? "VCF from counts" : "VCF from g-counts" );
 	    bool genotypes = command == "g-counts" ;
-	    Pseq::VarDB::simple_counts( m , genotypes );
+	    Pseq::VarDB::simple_counts( m , genotypes , false ); // false --> not QT
 	  }
 	Pseq::finished();
       }
+
+
+    //
+    // Similar to the above, but for QTs
+    //
+    
+    if ( command == "means" )
+      {
+	Out output( "means" , "QT means stratified by variant" );
+	bool genotypes = command == "g-counts" ;
+	Pseq::VarDB::simple_counts( m , genotypes , true ); // true --> using QT
+	Pseq::finished();
+      }
+
 
 
     //
@@ -2252,6 +2293,7 @@ int main(int argc, char ** argv)
 	Pseq::finished();
       }
 
+
     // 
     // Association tests (with group or phenotype) 
     //
@@ -2272,7 +2314,9 @@ int main(int argc, char ** argv)
 	if( args.has( "tests", "two-hit") )
 	  output2 = new Out( "twohit.vars" , "variants from two-hit test" );
 	
-	Out * outmatrix = args.has( "dump-null-matrix" ) ? new Out( "matrix" , "permuted null statistic matrix" ) : NULL;
+	Out * outmatrix = args.has( "dump-null-matrix" ) 
+	  ? new Out( "matrix" , "permuted null statistic matrix" ) 
+	  : NULL;
 	
 	// if no perms specified, use adaptive permutation mode
 	Pseq::Assoc::set_assoc_test( m , args );
@@ -2285,6 +2329,7 @@ int main(int argc, char ** argv)
 	Pseq::finished();
 	
       }
+    
     
     if ( command == "net-assoc" )
       {

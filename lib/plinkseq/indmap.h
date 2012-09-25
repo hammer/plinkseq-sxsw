@@ -9,6 +9,8 @@
 #include "plinkseq/meta.h"
 #include "plinkseq/defs.h"
 
+typedef unsigned int uint;
+
 class VarDBase;
 class Mask;
 class PhenotypeMap;
@@ -186,7 +188,7 @@ class IndividualMap {
       
       out << "Reverse mapping\n";     
       out << a.uniq.size() << " " << a.mult.size() << "\n";
-      for (int j=0; j<a.uniq.size(); j++)
+      for (uint j=0; j<a.uniq.size(); j++)
 	{
 	out << j << "\t"
 		  << a.uniq[j].p1 << " , "

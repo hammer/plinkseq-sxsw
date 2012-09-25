@@ -33,7 +33,7 @@ class Eval {
 
   // primary functions
   
-  bool genmeta( const bool b ) { genmeta_mode = b; } 
+  void genmeta( const bool b ) { genmeta_mode = b; } 
   
   bool parse( const std::string & input );
 

@@ -21,6 +21,8 @@
 #include "indmap.h"
 #include "svar.h"
 
+typedef unsigned int uint;
+
 class Individual;
 class Genotype;
 class SampleVariant;
@@ -319,20 +321,20 @@ class Variant {
   SampleVariant * psample(const int s) 
     {
       if ( s == -1 ) return &consensus;
-      return s < 0 || s >= svar.size() ? NULL : &(svar[s]);
+      return s < 0 || s >= (int)svar.size() ? NULL : &(svar[s]);
     }
   
   const SampleVariant * psample(const int s) const
-    {
-      if ( s == -1 ) return &consensus;
-      return s < 0 || s >= svar.size() ? NULL : &(svar[s]);
-    }
-
+  {
+    if ( s == -1 ) return &consensus;
+    return s < 0 || s >= (int)svar.size() ? NULL : &(svar[s]);
+  }
+  
   const SampleVariant & sample(const int s) const 
-    {
-      return s == -1 ? consensus : svar[ s ] ;
-    }
-
+  {
+    return s == -1 ? consensus : svar[ s ] ;
+  }
+  
   SampleVariant & sample(const int s) 
     {
       return s == -1 ? consensus : svar[ s ] ;

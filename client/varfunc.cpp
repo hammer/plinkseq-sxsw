@@ -404,6 +404,36 @@ void f_lookup_annotator( Variant & var , void * p )
   Region region( var );
 
   Out & pout = Out::stream( "meta" );
+
+
+
+  std::string s = var.coordinate();
+
+  pout << s << "\t"
+       << "allele_ref\t"
+       << var.reference() << "\n"
+       << s << "\t"
+       << "allele_alt\t"
+       << var.alternate() << "\n";
+
+  //
+  // Fetch from SEQDB
+  //
+
+  if ( aux->append_seq ) 
+    {
+      if ( region.length() <= 10 )
+	pout << s << "\t" 
+	     << "seqdb_ref" << "\t"
+	     << g.seqdb.lookup( region ) << "\n";	        
+      else
+	pout << s << "\t" 
+	     << "seqdb_ref" << "\t"
+	     << "." << "\n";	        
+
+    }
+
+
   
   if ( aux->append_annot ) 
     {
@@ -450,38 +480,14 @@ void f_lookup_annotator( Variant & var , void * p )
     }
 
 
-  std::string s = var.coordinate();
-
-  pout << s << "\t"
-       << "allele_ref\t"
-       << var.reference() << "\n"
-       << s << "\t"
-       << "allele_alt\t"
-       << var.alternate() << "\n";
-
-
-  // Fetch from SEQDB
-  
-  if ( aux->append_seq ) 
-    {
-      if ( region.length() <= 10 )
-	pout << s << "\t" 
-	     << "seqdb_ref" << "\t"
-	     << g.seqdb.lookup( region ) << "\n";	        
-      else
-	pout << s << "\t" 
-	     << "seqdb_ref" << "\t"
-	     << "." << "\n";	        
-
-    }
   
   // Fetch from VARDB 
-
+  
   std::set<Variant> vars = g.vardb.fetch( region );
-
-
+  
   if ( vars.size() == 0  )
     {
+      
       if ( aux->vardb ) 
 	{
 	  
@@ -499,26 +505,30 @@ void f_lookup_annotator( Variant & var , void * p )
 	}
     }
 
+  
   pout << s << "\t"
        << "nvar" << "\t"
        << vars.size() << "\n";		    
+  
 
   int cnt = 0;
   std::set<Variant>::iterator v = vars.begin();
-
+  
+  std::stringstream ss_var, ss_case, ss_con;
+  bool any_var = false, any_cc = false;
+  
   while ( v != vars.end() )
     {
       
       ++cnt;
-
-      if ( vars.size() > 1 ) 
-	pout << s << "\t"
-	     << "var_" << cnt << "\t"
-	     << *v << "\n";		    
-      else
-	pout << s << "\t"
-	     << "var" << "\t"
-	     << *v << "\n";		    	
+      
+      any_var = true;
+      
+      if ( cnt > 1 )
+	ss_var << "," << *v << ":" << v->reference() << "/" << v->alternate() ;
+      else 
+	ss_var << *v << ":" << v->reference() << "/" << v->alternate() ;
+      
       
       // 
       // Either allele counts; or stratify by case/control
@@ -542,39 +552,60 @@ void f_lookup_annotator( Variant & var , void * p )
 		control_n += (*v)(j).minor_allele_count( true );
 	    }
 	}
-
+      
       if ( aux->append_phe )
 	{
-	  if ( vars.size() > 1 ) 
-	    pout << s << "\t"
-		 << "case_" << cnt << "\t" 
-		 << case_n << "\n" 
-		 << s << "\t"
-		 << "con_" << cnt << "\t" 
-		 << control_n << "\n";
+
+	  any_cc = true;
+	  
+	  if ( cnt > 1 )
+	    {
+	      ss_case << "," << case_n;
+	      ss_con << "," << control_n;
+	    }
 	  else
-	    pout << s << "\t"
-		 << "case" << "\t" 
-		 << case_n << "\n" 
-		 << s << "\t"
-		 << "con" << "\t" 
-		 << control_n << "\n";
+	    {
+	      ss_case << case_n;
+	      ss_con << control_n;
+	    }
+
 	}
       else
 	{
-	  if ( vars.size() > 1 )
-	    pout << s << "\t"
-		 << "cnt_" << cnt << "\t" 
-		 << control_n << "\n";
+	  if ( cnt > 1 )
+	    ss_con << "," << control_n;
 	  else
-	    pout << s << "\t"
-		 << "cnt" << "\t" 
-		 << control_n << "\n";
+	    ss_con << control_n;	 
 	}
 
       ++v;
       
     }
+
+  
+  if ( any_var )    
+    pout << s << "\t"
+	 << "var" << "\t"
+	 << ss_var.str() << "\n";
+  
+  if ( any_cc )
+    {
+
+      if ( aux->append_phe )
+	pout << s << "\t"
+	     << "case" << "\t"
+	     << ss_case.str() << "\n"      
+	  
+	     << s << "\t"
+	     << "con" << "\t"
+	     << ss_con.str() << "\n";
+      else
+	pout << s << "\t"
+	     << "cnt" << "\t"
+	     << ss_con.str() << "\n";
+    }
+
+
   
 
   if ( aux->append_prot ) 
@@ -701,9 +732,11 @@ void f_lookup_annotator( Variant & var , void * p )
   
   if ( aux->append_loc ) 
     {
+
       std::set<std::string>::iterator i = aux->locs.begin();
       while ( i != aux->locs.end() )
 	{
+
 	  std::set<Region> rregs = g.locdb.get_regions( *i , region );
 	  if ( rregs.size() == 0 ) 
 	    {
@@ -717,7 +750,7 @@ void f_lookup_annotator( Variant & var , void * p )
 	    {
 	      pout << s << "\t"
 		   << "loc_" << *i << "\t"
-		   << j->coordinate() << ":"
+		//<< j->coordinate() << ":"
 		   << j->name << "\n";
 
 	      if ( aux->append_aliases )
@@ -876,6 +909,18 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
     }
   
 
+  if ( aux.append_aliases )
+    {
+
+      std::set<std::string>::iterator jj = aux.aliases.begin();
+      while ( jj != aux.aliases.end() )
+	{	  
+	  pout << "##" << "loc_" << *jj << ",.,String,\"LOCDB alias group\"\n";
+	  ++jj;
+	}
+    }
+
+
   if ( aux.append_ref ) 
     {
       std::set<std::string>::iterator i = aux.refs.begin();
@@ -964,7 +1009,7 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 	      var.consensus.alternate( alt_allele );	  
 
 	      f_lookup_annotator( var , &aux );
-
+	      
 	    }
 	  else
 	    plog.warn( "not a valid region" , line[0] );

@@ -2214,3 +2214,22 @@ double Statistics::dchisq( double x , double df )
   return -1;
 }
 
+
+bool Statistics::t_test( double u1, double s1, int n1 ,
+			 double u2 , double s2 , int n2 ,
+			 double * pvalue , double * p_lower , double * p_upper )
+{
+  // Welch's t-test, unequal samples, unequal variances
+  if ( n1 < 2 || n2 < 2 ) return false;
+  if ( s1 <= 0 || s2 <= 0 ) return false;
+  if ( pvalue == NULL ) return false;
+  double x1 = s1 / (double) n1;
+  double x2 = s2 / (double) n2;
+  double t = ( u1 - u2 ) / sqrt( x1 + x2 );
+  double df = ( ( x1 + x2 ) * ( x1 + x2 ) ) / ( x1*x1/(double)(n1-1) + x2*x2/(double)(n2-1)  );
+  *pvalue = t_prob( t , df );
+  if ( p_lower ) *p_lower = u1 < u2 ? *pvalue * 0.5 : 1.0 ;
+  if ( p_upper ) *p_upper = u1 > u2 ? *pvalue * 0.5 : 1.0 ;
+  return true;
+}
+

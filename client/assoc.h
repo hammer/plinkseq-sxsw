@@ -27,8 +27,6 @@ namespace Pseq
 
       bool variant_assoc_test( Mask & , Aux_vassoc_options &  , const Pseq::Util::Options & options );
 
-      bool variant_qtassoc_test( Mask & , Aux_vassoc_options &  , const Pseq::Util::Options & options );
-
       bool glm_assoc_test( Mask & , Aux_glm &  );
 
       bool glm_assoc_testlist( Mask & , Aux_glm & );
@@ -41,12 +39,13 @@ namespace Pseq
 
       struct Aux 
       {
-	Aux() { g=0; rseed=0; show_info = false; fix_null_genotypes = true; weights = false; } 
+	Aux() { g=0; rseed=0; show_info = false; fix_null_genotypes = true; weights = false; qt = false; } 
 	GStore * g;
 	long int rseed;
 	bool show_info;
 	bool fix_null_genotypes;
 	bool weights;
+	bool qt;
 	std::string weight_tag;
       };
       
@@ -58,6 +57,7 @@ namespace Pseq
 	  separate_chr_bp = false;
 	  nrep = 0;
 	  yates_chisq = false;
+	  qt = false;
 	}
 	
 	bool show_istat;
@@ -65,6 +65,7 @@ namespace Pseq
 	bool separate_chr_bp;
 	bool yates_chisq;
 	int nrep;
+	bool qt;
       };
       
 

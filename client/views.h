@@ -95,6 +95,7 @@ struct OptSimpleCounts
   bool apply_annot;
   bool apply_full_annot;
   bool dichot_pheno;
+  bool qt_pheno;
   bool show_filter;
   std::set<std::string> meta;
   bool genotypes;

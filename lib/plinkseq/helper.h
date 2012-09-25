@@ -611,6 +611,7 @@ class int_range {
       }
     else 
       if ( r.has_lwr ) out << ":*";
+    return out;
   }
 
   int_range() { reset(); }

@@ -36,10 +36,11 @@ int VarDBase::loader_indep_meta( const std::string & filename , int f , const st
   sql.reset( stmt_fetch_indep_meta_group );
   
 
+  //
   // Read in variant information.  If we are given a clue about the
   // meta-field, insert it from the header.  Otherwise, assume it is
   // text
-
+  //
 
   sql.begin();
   
@@ -81,21 +82,25 @@ int VarDBase::loader_indep_meta( const std::string & filename , int f , const st
       
       std::set<uint64_t> var_ids;
       
+      //
       // Lookup based on region; just allow start-base lookup for now, positionally
+      //
 
       if ( is_region )
 	{
-	  sql.bind_int( stmt_fetch_var_from_position , ":chr" , r.chromosome() );
-	  sql.bind_int( stmt_fetch_var_from_position , ":bp1" , r.start.position() );
 
-	  while ( sql.step( stmt_fetch_var_from_position ) )
+	  sql.bind_int( stmt_fetch_var_from_position2 , ":chr" , r.chromosome() );
+	  sql.bind_int( stmt_fetch_var_from_position2 , ":bp1" , r.start.position() );
+	  sql.bind_int( stmt_fetch_var_from_position2 , ":bp2" , r.stop.position() );
+	  
+	  while ( sql.step( stmt_fetch_var_from_position2 ) )
 	    {
-	      int var_id = sql.get_int64( stmt_fetch_var_from_position , 0 );
-	      int file_id = sql.get_int64( stmt_fetch_var_from_position , 1 );
+	      int var_id = sql.get_int64( stmt_fetch_var_from_position2 , 0 );
+	      int file_id = sql.get_int64( stmt_fetch_var_from_position2 , 1 );
 	      if ( f == 0 || f == file_id ) var_ids.insert( var_id );
 	    }
 	  
-	  sql.reset( stmt_fetch_var_from_position );	  
+	  sql.reset( stmt_fetch_var_from_position2 );	  
 	}
       else // or based on ID
 	{
@@ -134,28 +139,6 @@ int VarDBase::loader_indep_meta( const std::string & filename , int f , const st
       nkey = indep_metamap[ skey ];
       
 
-      //
-      // A valid value?
-      //
-      
-  //     meta_index_t midx = MetaInformation<VarMeta>::field( skey );	  
-      
-//       if ( midx.mt == META_INT ) 
-// 	{
-	  
-// 	}
-
-// 	|| midx.mt == META_BOOL )
-// 	target.meta.set( key , sql.get_int( stmt_fetch_indep_meta_value , 1 ) );
-// 	  else if ( midx.mt == META_FLOAT ) 
-// 	    target.meta.set( key , sql.get_double( stmt_fetch_indep_meta_value , 1 ) );
-// 	  else if ( midx.mt == META_FLAG && sql.get_int( stmt_fetch_indep_meta_value , 1 ) != 0 ) 
-// 	    target.meta.set( key );
-// 	  else // META_TEXT as default
-// 	    target.meta.set( key , sql.get_text( stmt_fetch_indep_meta_value , 1 ) );
-  
-      
-      
       //
       // Insert actual value (as text for now)
       //

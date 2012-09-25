@@ -133,6 +133,8 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
   std::set<int> obs_files;
   
   //  std::vector<std::vector<std::string> > inds = vardb.fetch_individuals();
+  
+  
 
   //
   // Start a transaction
@@ -250,7 +252,6 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
     {      
       if ( m.use_file( f->first ) && obs_files.find( f->first ) == obs_files.end() )
 	{
-	  //	  std::cout << "excluding file " << f->second << "\n";
 	  m.exclude_file( f->second ) ;
 	}
       ++f;      

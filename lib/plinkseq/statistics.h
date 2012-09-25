@@ -60,6 +60,11 @@ namespace Statistics {
   double t_prob( double x, double df );
   double ltqnorm( double p );
   double normden( double x , double m = 0 , double sd = 1 );
+  
+  bool t_test( double u1, double sd1, int n1 ,
+	       double u2 , double s2 , int n2 ,
+	       double * pvalue , double * p_lower = NULL , double * p_upper = NULL );
+
 
   // Beta distribution density probability function
   double beta( double , double , double );

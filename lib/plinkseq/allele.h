@@ -46,7 +46,8 @@ class Allele {
 
     // allele type defined w.r.t reference 
     
-    if ( aname == reference ) atype == ALLELE_REFERENCE;
+    if ( aname == reference ) 
+      atype = ALLELE_REFERENCE;
 
     // Null alleles    
     else if ( aname == "" || aname == "." || aname == "N" ) 

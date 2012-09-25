@@ -347,6 +347,8 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	  
 	  if ( mask.loc_exceptions() )
 	    {	
+	      //std::cout << "loc = " << Helper::int2str( mask.group_set() ) << "\n";
+
 	      query += " INNER JOIN ( SELECT * FROM tmp.loc WHERE group_id == " 
 		+ Helper::int2str( mask.group_set() ) + " AND name == :grp_value ) AS x "
 		" ON v.chr == x.chr AND v.bp1 BETWEEN x.bp1 AND x.bp2 ";	
@@ -1486,9 +1488,13 @@ void VarDBase::build_temporary_db( Mask & mask )
       //
       // Consider each group
       //
-      
+
+
       sql.begin();
       const std::set<int> & lset = mask.included_loc();
+
+      int included = 0;
+
       std::set<int>::iterator i =  lset.begin();
       while ( i != lset.end() )
 	{
@@ -1502,7 +1508,7 @@ void VarDBase::build_temporary_db( Mask & mask )
 	    {		    
 	      
 	      std::string n = sql.get_text( stmt_tmp_locus_iterate , 3 );
-		  
+
 	      //
 	      // Implicit or explicit exclusion of this locus?
 	      //
@@ -1510,7 +1516,6 @@ void VarDBase::build_temporary_db( Mask & mask )
 	      if ( skip_names.find(n) != skip_names.end() ) { continue; }
 	      if ( names.size() > 0 
 		   && names.find(n) == names.end() ) { continue; }
-	      
 	      
 	      int chr = sql.get_int( stmt_tmp_locus_iterate , 0 );
 	      int bp1 = sql.get_int( stmt_tmp_locus_iterate , 1 );
@@ -1524,11 +1529,16 @@ void VarDBase::build_temporary_db( Mask & mask )
 	    
 	      sql.step( stmt_tmp_insert );
 	      sql.reset( stmt_tmp_insert );
+
+	      ++included;
 	      
 	    }
 	  sql.reset( stmt_tmp_locus_iterate );
 	  ++i;
 	}
+      
+      if ( included == 0 ) 
+	Helper::halt( "could not find match for any specified loci in LOCDB" );
       
       sql.commit();
       

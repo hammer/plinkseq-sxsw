@@ -87,8 +87,9 @@ bool Eval::get_token( std::string & input ,  Token & tok )
   
   if ( ( c >= "0" && c <= "9" ) || c == "." || ( (!previous_value) && ( c=="-" || c=="+" ) ) )
     {
-      int p = 1;
 
+      uint p = 1;
+      
       bool need_leading_zero = c == ".";
       
       while ( 1 ) 
@@ -179,7 +180,7 @@ bool Eval::get_token( std::string & input ,  Token & tok )
   // a literal string
   else if ( c == "'" )
     {
-      int p = 1;
+      uint p = 1;
       bool found = false;
       while ( 1 ) 
 	{
@@ -197,7 +198,7 @@ bool Eval::get_token( std::string & input ,  Token & tok )
   else if ( c == "{" )
     {
       int cnt = 1;
-      int p = 1;
+      uint p = 1;
       bool found = false;
       while ( 1 ) 
 	{
@@ -236,7 +237,7 @@ bool Eval::get_token( std::string & input ,  Token & tok )
 
       // read until space or next operator char, or comma
 
-      int p = 1;
+      uint p = 1;
       while ( 1 ) 
 	{
 	  if ( p == input.size() ) break;
@@ -330,6 +331,10 @@ int Eval::op_preced( const Token & c )
     case Token::ASSIGNMENT_OPERATOR : return 1;
       
     case Token::ARG_SEPARATOR : return 0;
+
+    default:
+      break;
+      
     }
   return 0;
 }
@@ -353,6 +358,9 @@ bool Eval::op_left_assoc(const Token & tok )
       
     case Token::ASSIGNMENT_OPERATOR :
     case Token::NOT_OPERATOR : return false;
+
+    default:
+      break;
     }
   return false;
 }
@@ -363,7 +371,8 @@ unsigned int Eval::op_arg_count( const Token & tok )
   Token::tok_type t = tok.type();
   
   switch( t )  
-    {	      
+    {
+      
     case Token::NOT_OPERATOR :  return 1;
       
     case Token::ASSIGNMENT_OPERATOR :       
@@ -382,6 +391,10 @@ unsigned int Eval::op_arg_count( const Token & tok )
     case Token::OR_OPERATOR : return 2;
             
     case Token::FUNCTION : return Token::fn_map[ tok.name() ];
+
+    default:
+      break;
+
     }
   return 0;
 }
@@ -619,12 +632,12 @@ bool Eval::execute( const std::vector<Token> & input )
   std::vector<Token> stack;
   
   // redundant, but keep track of stack size here also
-  unsigned int sl = 0;
+  uint sl = 0;
   
   
   // While there are input tokens left
   
-  for (int i = 0 ; i < input.size() ; i++ )
+  for (uint i = 0 ; i < input.size() ; i++ )
     {
       
       // Read the next token from input.
@@ -654,7 +667,7 @@ bool Eval::execute( const std::vector<Token> & input )
 	  
 	  // If there are fewer than n values on the stack
 	  
-	  if ( sl < nargs && nargs != -1 ) 
+	  if ( (int)sl < nargs && nargs != -1 ) 
 	    {
 	      errmsg( "not enough arguments for " + c.name() ) ;
 	      return false;
@@ -720,6 +733,7 @@ bool Eval::execute( const std::vector<Token> & input )
 	      else if ( c.name() == "ifelse" ) res = func.fn_ifelse( args[2], args[1], args[0] );
 	      
 	      // vector functions
+	
 	      else if ( c.name() == "element" ) res = func.fn_vec_extract( args[1] , args[0] );
 	      
 	      else if ( c.name() == "length" )  res = func.fn_vec_length( args[0] );	      
@@ -1175,7 +1189,6 @@ Token Eval::eval_gfunc( const std::string & expr , int gmode )
   Eval e;
 
   // replace any delimiter fields that were previously set to ':' instead of ';'
-
   std::string e2 = expr;
 
   for (int i=0;i<e2.size();i++)

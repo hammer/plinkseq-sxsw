@@ -40,7 +40,7 @@ struct BCF_header {
     return p;
   }
 
-  bool dictionary( const int p , std::string * str ) const
+  bool dictionary( const uint p , std::string * str ) const
   {
     if ( p < 0 || p >= num2string.size() ) return false;
     *str = num2string[p];
@@ -77,7 +77,7 @@ struct BCF_header {
     return p;
   }
 
-  bool contig_dictionary( const int p , std::string * str ) const
+  bool contig_dictionary( const uint p , std::string * str ) const
   {
     if ( p < 0 || p >= contig_num2string.size() ) return false;
     *str = contig_num2string[p];
@@ -125,7 +125,7 @@ class BCF {
     bcf2_void    = 99 
   }; 
   
-  void dictionary_set( const int k , const std::string & v )
+  void dictionary_set( const uint k , const std::string & v )
   {
     if ( k == hdr.num2string.size() ) 
       {
@@ -141,7 +141,7 @@ class BCF {
     hdr.string2num[v] = k;
   }
   
-  void contig_dictionary_set( const int k , const std::string & v )
+  void contig_dictionary_set( const uint k , const std::string & v )
   {
     if ( k == hdr.contig_num2string.size() ) 
       {

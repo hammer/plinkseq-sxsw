@@ -931,7 +931,7 @@ void f_simple_counts( Variant & var , void * p )
   
   OptSimpleCounts * data = (OptSimpleCounts*)p;
 
-  Out & pout = Out::stream( data->genotypes ? "gcounts" : "counts" );
+  Out & pout = Out::stream( data->qt_pheno ? "means" : ( data->genotypes ? "gcounts" : "counts" ) );
   
   std::string gene = ".";
   std::vector<std::string> genevec;
@@ -1002,7 +1002,7 @@ void f_simple_counts( Variant & var , void * p )
 	      ++ii;
 	    }	  
 	}
-      else
+      else // no phenotype
 	{
 
 	  gcntu = var.genotype_counts( UNKNOWN_PHE );
@@ -1025,12 +1025,72 @@ void f_simple_counts( Variant & var , void * p )
       
       bool ma, control_ma;
       
+      // QT means
+      double refmean = 0 , altmean = 0;
+      double refsd = 0   , altsd   = 0;
+      int    refn  = 0   , altn    = 0;
+
       if ( data->dichot_pheno ) 
 	{
 	  ma = var.n_minor_allele( &case_count , &case_tot , NULL , CASE );
 	  control_ma = var.n_minor_allele( &control_count , &control_tot , NULL , CONTROL );
 	  // flip alleles?
 	  if ( control_ma != ma ) control_count = control_tot - control_count; 
+	}
+      else if ( data->qt_pheno )
+	{
+
+	  // 
+	  //	pout << "\tREFMEAN\tREFSD\tREFN"
+	  //  << "\tALTMEAN\tALTSD\tALTN";
+	  	  
+	  const int n = var.size();
+	  
+	  for (int i = 0; i < n; i++)
+	    {	  	  
+	      if ( ! ( var.ind(i)->missing() || var(i).null() ) )
+		{
+		  // always get 'alternate' allele
+		  int ac = var(i).minor_allele_count( true );
+		  
+		  if ( ac ) 
+		    {
+		      ++altn;
+		      altmean += var.ind(i)->qt();
+		    }
+		  else
+		    {
+		      ++refn;
+		      refmean += var.ind(i)->qt();
+		    }
+		}
+	    }
+	  
+	  refmean /= (double)refn;
+	  altmean /= (double)altn;
+
+	  for (int i = 0; i < n; i++)
+	    {	  	  
+	      if ( ! ( var.ind(i)->missing() || var(i).null() ) )
+		{
+		  // always get alternate allele 
+		  int ac = var(i).minor_allele_count( true );
+		  
+		  if ( ac ) 
+		    {
+		      altsd += ( var.ind(i)->qt() - altmean ) * ( var.ind(i)->qt() - altmean );
+		    }
+		  else
+		    {
+		      refsd += ( var.ind(i)->qt() - refmean ) * ( var.ind(i)->qt() - refmean );		      
+		    }
+		}
+	    }
+	  
+	 
+	  altsd /= (double)(altn-1);
+	  refsd /= (double)(refn-1);
+	  
 	}
       else
 	ma = var.n_minor_allele( &case_count , &case_tot );
@@ -1046,13 +1106,43 @@ void f_simple_counts( Variant & var , void * p )
       if ( data->dichot_pheno )
 	pout << "\t" << case_count
 	     << "\t" << control_count ;
+      else if ( data->qt_pheno )
+	{
+
+	  if ( refn >= 1 )
+	    pout << "\t" << refmean;
+	  else
+	    pout << "\tNA";
+
+	  if ( refn >= 2 )
+	    pout << "\t" << refsd;
+	  else
+	    pout << "\tNA";
+	  
+	  pout << "\t" << refn;
+
+	  // -----------------------------
+
+	  if ( altn >= 1 )
+	    pout << "\t" << altmean;
+	  else
+	    pout << "\tNA";
+
+	  if ( altn >= 2 )
+	    pout << "\t" << altsd;
+	  else
+	    pout << "\tNA";
+	  
+	  pout << "\t" << altn;
+	  
+	}
       else
 	pout << "\t" << case_count ;
       
       if ( data->dichot_pheno )
 	pout << "\t" << case_tot 
 	     << "\t" << control_tot;
-      else
+      else if ( ! data->qt_pheno )
 	pout << "\t" << case_tot;
     }
 

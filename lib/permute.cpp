@@ -248,6 +248,8 @@ bool Permute::score( const std::vector<double> & v )
       if ( performed == 0 ) 
 	{
 
+	  //	  std::cout << "orig = " << v[s] << "\n";
+
 	  int test = scores[s].size();
 	  
 	  if ( valid )
@@ -272,6 +274,7 @@ bool Permute::score( const std::vector<double> & v )
 	      if ( valid ) 
 		{
 		  
+
 		  if ( v[s] > original_score[s] ) ++r[s];
 		  else if ( v[s] == original_score[s] ) 
 		    {
@@ -301,6 +304,7 @@ bool Permute::score( const std::vector<double> & v )
 		      max_score[s][ performed - 1 ] = v[s];
 		    }
 		  
+		  //		  std::cout << "perm = " << v[s] << "\t" << mintie[s] << "\t" << best_perm_score[s] << "\n";
 
 		  // track minimum p-value within site
 		  if ( performed == 1 || v[s] > best_perm_score[s] )

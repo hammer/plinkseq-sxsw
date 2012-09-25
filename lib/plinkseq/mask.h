@@ -231,9 +231,9 @@ class Mask {
   void skip_loc_set(const std::string & , const std::string &, const std::string & );
   
   // search by 'alternate name' (i.e. typically gene symbol, where 'name' is transcript ID)
-  // and so alternate name is not assumed to be unique
-  void subset_loc_altname(const std::string & , const std::string&);
-  void subset_loc_altname(const std::string & , const std::vector<std::string>&);
+  // and so alternate name is not assumed to be unique; return number of transcripts added
+  int subset_loc_altname(const std::string & , const std::string&);
+  int subset_loc_altname(const std::string & , const std::vector<std::string>&);
     
 
   //

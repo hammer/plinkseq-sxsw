@@ -17,15 +17,13 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
 				      const Pseq::Util::Options & args )
 {
 
+
   //
-  // Single variant association testsing; assumes a dichotomous phenotype; QTs 
-  // are redirected to a different function (below)
+  // Single variant association testsing; assumes a dichotomous or QT
   //
   
-  if ( g.phmap.type() == PHE_QT ) 
-    return variant_qtassoc_test( m , aux , args );
-  else if ( ! g.phmap.type() == PHE_DICHOT ) 
-    Helper::halt("basic association tests assumes a dichotomous phenotype");
+  if ( ! ( g.phmap.type() == PHE_DICHOT || g.phmap.type() == PHE_QT ) )
+    Helper::halt("v-assoc requires a dichotomous phenotype or quantitive trait");
   
 
   //
@@ -41,11 +39,15 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   
   bool show_ival = args.has( "info" );
   bool show_meta = args.has( "vmeta" );
-
+  
   // Use Yates-chisq (instead of standard, or instead of Fisher's exact if no perms)
 
   aux.yates_chisq = args.has( "yates" );
-
+  
+  // QT testing?
+  
+  aux.qt = g.phmap.type() == PHE_QT;
+  
 
   //
   // Header row
@@ -72,30 +74,44 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   pout.data_header( "MAF" );
   pout.data_header( "HWE" );
 
-  pout.data_header( "MINA" );
-  pout.data_header( "MINU" );
+  if ( aux.qt )
+    {
+      pout.data_header( "REF" );
+      pout.data_header( "HET" );
+      pout.data_header( "HOM" );
+      
+      pout.data_header( "REFN" );
+      pout.data_header( "HETN" );
+      pout.data_header( "HOMN" );
 
-  pout.data_header( "OBSA" );
-  pout.data_header( "OBSU" );
-
-  pout.data_header( "REFA" );
-  pout.data_header( "HETA" );
-  pout.data_header( "HOMA" );
-
-  pout.data_header( "REFU" );
-  pout.data_header( "HETU" );
-  pout.data_header( "HOMU" );
+    }
+  else // binary trait
+    {
+      pout.data_header( "MINA" );
+      pout.data_header( "MINU" );
+      
+      pout.data_header( "OBSA" );
+      pout.data_header( "OBSU" );
+      
+      pout.data_header( "REFA" );
+      pout.data_header( "HETA" );
+      pout.data_header( "HOMA" );
+      
+      pout.data_header( "REFU" );
+      pout.data_header( "HETU" );
+      pout.data_header( "HOMU" );
+    }
 
   pout.data_header( "P" );
-  pout.data_header( "OR" );
+  pout.data_header( aux.qt ? "BETA" : "OR" );
   if ( aux.nrep ) pout.data_header( "I" );
-
+  
   pout.data_header( "PDOM" );
-  pout.data_header( "ORDOM" );
+  pout.data_header( aux.qt ? "BETADOM" : "ORDOM" );
   if ( aux.nrep ) pout.data_header( "IDOM" );
 
   pout.data_header( "PREC" );
-  pout.data_header( "ORREC" );
+  pout.data_header( aux.qt ? "BETAREC" : "ORREC" );
   if ( aux.nrep ) pout.data_header( "IREC" );
 
   pout.data_header_done();
@@ -111,7 +127,7 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
   a.show_info = args.has( "info" );
   g.perm.initiate( aux.nrep , ntests );
   //  if ( args.has("aperm") ) g.perm.adaptive( args.as_int_vector( "aperm" ) );
-  a.fix_null_genotypes = args.has("fix-null");
+  a.fix_null_genotypes = args.has( "fix-null" );
   
   //
   // Apply function
@@ -144,23 +160,24 @@ bool Pseq::Assoc::variant_assoc_test( Mask & m ,
 void f_variant_association( Variant & v , void * p )
 {
   
-  // Implements single-variant association tests; assumes a dominant
-  // model based on non-ref alleles (i.e. rather than minor allele)
-
+  //
+  // Implements single-variant association tests; explicitly testing alternate versus 
+  // reference alleles; always presents the genotypic as well as allelic tests; for 
+  // binary traits;  uses permutation 
   
+
   //
   // For now, skip anything other than a basic SNP
   //
   
-  // Handle multi-allelic markers in separate funcion
-    
   if ( ! v.biallelic() ) return;
 
-  //
-  // Copy-number variable markers? 
-  //
 
-  // TODO ... (?) 
+  //
+  // TODO: Copy-number variable markers? 
+  //
+  
+  
   
   //
   // Set up permutations
@@ -180,6 +197,7 @@ void f_variant_association( Variant & v , void * p )
     g->perm.fix( VarFunc::missing_genotype_mask( v ) );
 
   
+
   //
   // Begin permutations
   //
@@ -519,372 +537,28 @@ void f_variant_association( Variant & v , void * p )
 
 
 
-
-//
-// Quantitative traits
-//
-
-
-bool Pseq::Assoc::variant_qtassoc_test( Mask & m , 
-					Pseq::Assoc::Aux_vassoc_options & aux , 
-					const Pseq::Util::Options & args )
-{
-  
-
-//   //
-//   // Allelic, dominant, recessive tests
-//   //
-  
-//   const int ntests = 3 ;
-  
-
-//   //
-//   // Display options
-//   //
-  
-//   bool show_meta = args.has("vmeta");
-
-
-//   //
-//   // Header row
-//   //
-  
-//   // T 0 means 'variant level info', e.g. VMETA
-//   //     that we only list once, and reference
-//   //     and omnibus test statistic, if any
-
-//   //   1 is alternate allele 1
-
-//   //   2 is alternate allele 2, etc
-
-
-//   pout.data_reset();
-  
-//   pout.data_group_header( "VAR" );
-//   pout.data_header( "REF" );
-//   pout.data_header( "SAMPLES" );
-//   pout.data_header( "FILTER" );
-//   pout.data_header( "VMETA" );
-//   pout.data_header( "CONMETA" );
-//   pout.data_header( "ALT" );
-
-//   pout.data_header( "MAF" );
-//   pout.data_header( "HWE" );
-
-//   pout.data_header( "REFMEAN" );
-//   pout.data_header( "REFSD" );
-//   pout.data_header( "REFOBS" );
-  
-//   pout.data_header( "HETMEAN" );
-//   pout.data_header( "HETSD" );
-//   pout.data_header( "HETOBS" );
-  
-//   pout.data_header( "HOMMEAN" );
-//   pout.data_header( "HOMSD" );
-//   pout.data_header( "HOMOBS" );
-
-//   pout.data_header( "P" );
-//   pout.data_header( "BETA" );
-
-//   pout.data_header( "PDOM" );
-//   pout.data_header( "BETADOM" );
-
-//   pout.data_header( "PREC" );
-//   pout.data_header( "BETAREC" );
-  
-//   pout.data_header_done();
-
-  
-//   //
-//   // Set up permutation class, etc
-//   //
-  
-//   Pseq::Assoc::Aux a;
-//   a.g     = &g;
-//   a.rseed = time(0);
-//   g.perm.initiate( aux.nrep , ntests );
-//   a.fix_null_genotypes = args.has("fix-null");
-
-  
-  
-//   // Set phenotype
-
-//   Pseq::Assoc::Aux_glm aux;
-  
-//   const int n = g.indmap.size();
-//   aux.y.resize( n );
-//   aux.mask.resize( n , false );
-  
-//   for (int i=0; i < n; i++)
-//     {      
-
-//       Individual * person = g.indmap.ind(i);
-      
-//       if ( person->missing() )
-// 	aux.mask[i] = true; //mask out
-//       else
-// 	aux.y[i] = person->qt();
-
-//     }
-
-
-//   //
-//   // Apply function
-//   //
-
-//   g.vardb.iterate( f_variant_qtassociation , &aux , m );
-
-
-//   //
-//   // Post-processing to obtain corrected p-values
-//   //
-
-//   //  pout << Helper::sw( "TEST" , 10 ) 
-//   // 	    << Helper::sw( "VAR" , 10 )
-//   // 	    << Helper::sw( "PCORR" , 10 )
-//   // 	    << "\n";
-  
-//   //   for (int t=0; t < g.perm.n_tests(); t++)
-//   //     for (int s=0; s < g.perm.n_stats(); s++)
-//   //       pout << Helper::sw( s , 10 ) 
-//   // 		<< Helper::sw( t , 10 ) 
-//   // 		<< Helper::sw( g.perm.max_pvalue(s,t) , 10 ) 
-//   // 		<< "\n";
-  
-  return true;
-  
-}
-
-
-
 void f_variant_qtassociation( Variant & v , void * p )
 {
   
-  // Implements single-variant quantitative trait association tests
-  // Uses univariante linear regression to calculate a quick beta and P, etc
 
-  //
-  // For now, skip anything other than a basic SNP.
-  //
-  
-  if ( ! v.biallelic() ) return;
-  
-  //
-  // Copy-number variable markers? 
-  //
-
-  // TODO ... (?) 
-
-  
-//   Pseq::Assoc::Aux_glm * data = (Pseq::Assoc::Aux_glm *)p;
+//   //
+//   // Implements single-variant association tests; explicitly testing alternate versus 
+//   // reference alleles; always presents the genotypic as well as allelic tests; for 
+//   // QTs;  uses permutation 
   
 
-//   // Extract out non-missing phenotypes
-//   // (in future, set up a MASK on the MATRIX)
+//   //
+//   // For now, skip anything other than a basic SNP
+//   //
   
-//   // For a given variant, get non-missing n and 
-//   // create phenotypes
+//   if ( ! v.biallelic() ) return;
+
+
+//   //
+//   // TODO: Copy-number variable markers? 
+//   //
   
-//   const int n = v.size();
-//   const int np = 1;  // num of (genetic) parameters
-
-//   // actual number of non-missing individuals
-
-//   int an = n;
-
-//   std::vector<bool> mask( n , false ); // F means include
-  
-//   for (int i=0; i<n; i++)
-//     {
-//       if ( data->mask[i] ) { --an; mask[i] = true; }
-//       else if ( data->c.masked(i) ) { --an; mask[i] = true; }
-//       else if ( data->use_dosage && ! v(i).meta.has_field( data->softtag ) ) { --an; mask[i] = true; }
-//       else if ( data->use_postprobs && ( ( ! v(i).meta.has_field( data->softtag ) ) || v(i).meta.get_double( data->softtag ).size() != 3 ) ) { --an; mask[i] = true; }
-//       else if ( v(i).null() ) { --an; mask[i] = true; }
-//     }
-
-//   Data::Vector<double> y( an );
-
-//   Data::Matrix<double> x( an , 2 );  // 2 = intercept plus basic encoding
-
-//   // Populate
-
-//   int ni = 0;
-
-//   for (int i=0; i<n; i++)
-//     {
-  
-//       if ( ! mask[i] ) 
-// 	{
-	
-// 	  // DV
-// 	  y[ni] = data->y[i];
-	  
-// 	  // Intercept
-// 	  x(ni,0) = 1;
-	  
-// 	  // Genotype
-// 	  if ( data->use_dosage ) // dosage of alt-allele(s)
-// 	    {
-// 	      x(ni,1) = v(i).meta.get1_double( data->softtag );
-// 	    }	  
-// 	  else if ( data->use_postprobs ) // post-probs (assume biallelic)
-// 	    {
-// 	      std::vector<double> pp = v(i).meta.get_double( data->softtag ); 
-// 	      x(ni,1) = pp[1] + 2 * pp[2]; 		
-// 	    }
-// 	  else // use Genotype::genotype_model to score()
-// 	    {
-// 	      //x(ni,1) = v(i).minor_allele_count( true );
-// 	      x(ni,1) = v(i).score();
-// 	    }
-
-// 	  ++ni;
-// 	}
-//     }
-
-
-//   // Perform test
-
-//   GLM glm( GLM::LINEAR );
-  
-//   glm.set( y , x ); 
-
-//   glm.fit(); // should use fast univariate fit() 
-  
-//   bool valid = glm.valid();
-  
-//   // Aux. output
-  
-//   // calc genotype freqs taking phenotype status into account
-  
-//   // minor allele frequency
-//   double maf = 0;
-
-//   // genotype frequencies (reference-based)
-//   double f_ref = 0, f_het = 0 , f_hom = 0;
-  
-//   int tot_allele = 0, tot_genotype = 0;
-  
-//   for (int i=0; i<n; i++)
-//     {
-
-//       if ( ! mask[i] ) 
-// 	{
-
-// 	  int c = v(i).copy_number(); 
-
-// 	  int a = v(i).minor_allele_count( true );
-
-// 	  maf          += a;
-// 	  tot_allele   += c;
-// 	  tot_genotype += 1;
-	  
-// 	  if ( a == 0 ) ++f_ref;
-// 	  else if ( a == 1 ) ++f_het;
-// 	  else ++f_hom;
-	  
-// 	}
-      
-//     }
-  
-//   maf /= tot_allele ? (double)tot_allele : 1;
-//   f_ref /= tot_genotype ? (double)tot_genotype : 1 ;
-//   f_het /= tot_genotype ? (double)tot_genotype : 1 ;
-//   f_hom = 1 - f_het - f_ref;
-
-//   double pval = valid ? glm.test_pval() : -1 ;
-
-//   if ( pval < 0 ) valid = false;
-  
-//   // Output results
-
-//   if ( valid )
-//     {
-      
-//       double se = glm.test_se();
-//       double statistic = glm.test_statistic();
-//       double coef = glm.test_coef();
-
-//       // For now, let's ignore long-format potential for output. 
-     
-//       pout.data_group( v );
-
-//       pout.data( v.reference() );
-      
-//       pout.data( v.alternate() , 1 );  
-            
-//       pout.data( an , 1 );
-
-//       pout.data( maf , 1 );
-          
-//       if ( data->dichot_pheno )
-// 	{
-// 	  if ( ! data->has_covar ) 
-// 	    {
-// 	      pout.data( mafa );
-// 	      pout.data( mafu );
-// 	    }
-// 	  pout.data( coef );
-// 	}
-//       else
-// 	{
-// 	  pout.data( coef );      
-// 	}
-      
-//       pout.data( se );  
-//       pout.data( statistic );
-//       pout.data( pval );
-      
-//       pout.print_data_group();
-      
-//     }
-//   else
-//     {
-     
-//       pout.data_group( v );
-
-//       pout.data( v.reference() );
-//       pout.data( v.alternate() , 1 );  
-
-//       pout.data( an , 1 );      
-
-//       pout.data( maf , 1 );    
-
-//       if ( data->dichot_pheno )
-// 	{
-// 	  if ( data->has_covar ) 
-// 	    pout.data( maf );
-// 	  else
-// 	    {
-// 	      pout.data( mafa );
-// 	      pout.data( mafu );
-// 	    }
-// 	  pout.data( "NA" );
-// 	}
-//       else
-// 	{
-// 	  pout.data( maf );
-// 	  pout.data( "NA" );      
-// 	}
-      
-//       pout.data( "NA" );  
-//       pout.data( "NA" );
-//       pout.data( "NA" );
-      
-//       pout.print_data_group();
-      
-//     }
-
-
-
-
-//   // ---------------------------------------------------------------------------------------
-
-
-
-
-
+    
 //   //
 //   // Set up permutations
 //   //
@@ -903,62 +577,60 @@ void f_variant_qtassociation( Variant & v , void * p )
 //     g->perm.fix( VarFunc::missing_genotype_mask( v ) );
 
   
+
 //   //
 //   // Begin permutations
 //   //
   
-//   std::vector<double>  
-
-
-//   int obs_a = 0 , obs_u = 0 , obs_tota = 0, obs_totu = 0;
-
+//   int    obs_ref  = 0 , obs_het  = 0 , obs_hom  = 0;
+//   double mean_ref = 0 , mean_het = 0 , mean_hom = 0;
+//   double var_ref  = 0 , var_het  = 0 , var_hom  = 0;
+  
 //   const int n = v.size();
   
-//   int tota = 0, totu = 0;
-  
-//   std::set<int> het_carriers;
-//   std::set<int> hom_carriers;
-//   std::set<int> missing;
-
-//   int obs_refa, obs_heta , obs_homa;
-//   int obs_refu, obs_hetu , obs_homu;
-
 //   double obs_maf;
 //   double obs_hwe;
 
+//   // t-test values
+//   // use both empirical and asympotic p-values
 //   double obs_statistic;
 //   double obs_statistic_dom;
 //   double obs_statistic_rec;
-      
-//   double obs_odds;
-//   double obs_odds_dom;
-//   double obs_odds_rec;
-
-//   double fisher_pv0, fisher_pv1, fisher_pv2;
+  
+//   double obs_beta;
+//   double obs_beta_dom;
+//   double obs_beta_rec;
 
 //   for (int p = 0; p < R ; p++ )
 //     {
-
+      
 //       std::vector<double> statistics(3,0);
       
 //       double & statistic     = statistics[0];
 //       double & statistic_dom = statistics[1];
 //       double & statistic_rec = statistics[2];
       
-//       // Output original data, calculate OR, track alt.allele carriers
+
+//       // Genotype counts
+//       int ref = 0; 
+//       int het = 0;
+//       int hom = 0;
+	  
+//       // Means
+//       double refm = 0.0;
+//       double hetm = 0.0;
+//       double homm = 0.0;
       
-//       if ( p == 0 )
-// 	{
-
-// 	  // Genotype counts
-// 	  int refa = 0 , refu = 0;
-// 	  int heta = 0 , hetu = 0;
-// 	  int homa = 0 , homu = 0;
-
-// 	  for (int i=0; i<n; i++)
+//       for (int i=0; i<n; i++)
 // 	    {
 	      
-// 	      affType aff = v.ind( g->perm.pos( i ) )->affected();
+// 	      int pos = p == 0 ? i : g->perm.pos( i );
+	      
+// 	      if ( v.ind( pos )->missing() ) continue;
+
+// 	      if ( v(i).null() )
+
+// 	      double qt = v.ind( g->perm.pos( i ) )->qt();
 	      
 // 	      if ( v(i).null() )
 // 		{
@@ -1198,6 +870,8 @@ void f_variant_qtassociation( Variant & v , void * p )
 //   //
 //   // Output empirical p-value (and minimum obtainable, optionally)
 //   //
+
+//   Out & pout = Out::stream( "vassoc" );
   
 //   pout.data_group( v );
 
@@ -1875,7 +1549,9 @@ void g_set_association( VariantGroup & vars , void * p )
 
 
 
+//
 // Per-individual set-enrichment scan
+//
 
 struct aux_indiv_enrichment{
 
@@ -1901,6 +1577,8 @@ void g_set_enrichment( VariantGroup & vars , void * p )
 
   aux_indiv_enrichment * aux = (aux_indiv_enrichment*)p;
   
+  std::cout << "vars. = " << vars.name() << "\n";
+
   int a = 0;
   const int n = g.indmap.size();
   const int s = vars.size();
@@ -1913,6 +1591,7 @@ void g_set_enrichment( VariantGroup & vars , void * p )
       altmin[j] = vars(j).n_minor_allele( &c , &c_tot );      
       maf[j] = (double)c/(double)c_tot;
       if ( maf[j] > 0.5 ) maf[j] = 1-maf[j];
+      if ( maf[j] == 0 ) maf[j] = 1.0;
     }
 
 
@@ -1937,10 +1616,11 @@ void g_set_enrichment( VariantGroup & vars , void * p )
       
       if ( observed ) 
 	{
-	  std::cout << "  adding " << vars( added ) 
-	   	    << "  for indiv " << vars( added ).ind(i)->id() 
-	     	    << "  MAF = " << w << "\n";
-
+	  
+// 	  std::cout << "  adding " << vars( added ) 
+// 	   	    << "  for indiv " << vars( added ).ind(i)->id() 
+// 	     	    << "  MAF = " << w << "\n";
+	  
 	  w = 1 / w;
 	  
 	  // TEMP
@@ -1950,8 +1630,7 @@ void g_set_enrichment( VariantGroup & vars , void * p )
 	  std::set<int> & ss = (*aux->g2s)[ vars.name() ];
 	  std::set<int>::iterator ii = ss.begin();
 	  while ( ii != ss.end() )
-	    {	
-	      //  std::cout << "   adding to set " << (*aux->set_slot)[*ii] << "\n";
+	    {		      
 	      aux->set_cnts[ (*aux->set_slot)[ *ii ]][ i ]  += w;
 	      aux->set_sqrs[ (*aux->set_slot)[ *ii ]][ i ]  += w * w ;
 	      ++ii;
@@ -2033,7 +1712,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // As noted above, this is defined by --mask loc.req= and reg.req=
 
 
-  const std::set<int> & locus_requires = mask.required_loc();
+  const std::set<int> & locus_requires     = mask.required_loc();
   const std::set<Region> & region_requires = mask.required_reg();
 
   std::set<Region> requires = region_requires;
@@ -2046,7 +1725,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 	{
 	  requires.insert( *ri );
 	  ++ri;
-	}	     
+	}
       ++il;
     }
  
@@ -2058,9 +1737,12 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // 
   
   std::set<Region> all_genes = g.locdb.get_regions( loc );
-  
+
+
+  //
   // flatten
-  
+  //
+
   all_genes = RegionHelper::region_merge_overlap( all_genes );
   
   // only include 'required' regions, if specifed (--mask reg.req=  loc.req= )
@@ -2081,7 +1763,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   
   std::map<std::string,std::set<Region> > targets = g.locdb.fetch_set_regions( loc , locset ); 
   
-  plog << targets.size() << " set regions\n";
+  //  plog << targets.size() << " set regions\n";
 
   // get gene-name --> gene-sets mapping 
   std::vector<std::string> sets = g.locdb.fetch_set_names( loc , locset );
@@ -2089,6 +1771,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   plog << sets.size() << " sets found\n";
   
   // track gene -> sets
+  
   std::map<std::string,std::set<int> > g2s;
   for (int s=0;s<sets.size();s++)
     {
@@ -2100,6 +1783,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   
   std::cout << "\n";
 
+
   //
   // get % hitting target by chance  (background rate 'f')
   //
@@ -2109,9 +1793,9 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   std::map<std::string,std::set<Region> >::iterator ii = targets.begin();
   while ( ii != targets.end() )
     {
-
+      
       //      std::cout << "processing " << ii->first << "\n";
-
+      
       std::set<Region> target_genes = RegionHelper::region_merge_overlap( ii->second );
       
       if ( requires.size() > 0 ) 
@@ -2191,8 +1875,15 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // where Et = f ( Nt + Nb ) 
   //       Rb = (1-f) ( Nt + Nb ) 
 
+
   // S(s) = 0.5 * ( 1 - erfc( s / sqrt(2) ) )
   // to get 1-tailed p-value
+
+  // MathWorld : pnorm(x) - 1/2 = (1/2)*erf(x/sqrt(2)) 
+  
+
+  // S = -2.2692
+  // 0.551069,1.97674
 
   // erfc(z) = IG( 0.5 , z^2 ) / sqrt(pi)       
   // 'complementary error function'   
@@ -2249,13 +1940,11 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 	  // sqrt(PI) = 1.772454
 	  // sqrt(2) = 1.414214
 	  	  
-	  // S(x) = 0.5 * ( 1 - erfc( s / sqrt(2) ) )	  
+	  // S(x) = 0.5 * ( 1 - erfc( s / sqrt(2) ) )	  	  
+	  // double myerfc = Helper::PROB::gamma_inc( 0.5 , ( x / 1.414214 ) * ( x / 1.414214 ) ) / 1.772454 ;
 
-	  double myerfc = Helper::PROB::gamma_inc( 0.5 , ( x / 1.414214 ) * ( x / 1.414214 ) ) / 1.772454 ;
-
-	  double interfc = erfc( x / 1.414214 ) ;
 	  
-	  double S = 0.5 * ( 1 - interfc ) ; 
+	  double pv = x < 0 ? 1.0 : 0.5 * ( 1 - erf( x / 1.414214 ) ) ; 
 	  
 	  // to get 1-tailed p-value, S
 	  
@@ -2265,9 +1954,8 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 		<< "w=" << w_set << "," << w_bak << "," << w_total << "\t"
 		<< "q=" << q_set << "," << q_bak << "," << q_total << "\t"
 		<< "e=" << e_set << "," << e_bak << "\t" 
-		<< "s=" << x << "\t"
-		<< "erfc=" << myerfc << "," << interfc << "\t"
-		<< "p=" << S << "\n";
+		<< "s=" << x << "\t"		
+		<< "p=" << pv << "\n";
 	  
 	  // std::cout << sets[s] << "\t" 
 	  // 	    << g.indmap(i)->id() << "\t"	  
