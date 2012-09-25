@@ -121,7 +121,7 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 	  
 	  std::vector<int> pl;
 	  std::vector<int> ad;
-	  double ab  = 0;
+	  double ab  = -1;
 	  
 	  if ( vars.geno(v,i).meta.has_field( PLINKSeq::DEFAULT_AD() ) )  
 	    {
@@ -180,7 +180,7 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 
 	  if( annot1.length() == 0 )
 	    annot1 = ".";
-	  if( d == 2 && ab < PLINKSeq::DEFAULT_AB_HOMMAX() && pass )
+	  if( d == 2 && (ab < PLINKSeq::DEFAULT_AB_HOMMAX() || ab == -1) && pass )
 	    {         
 	      if( vars.ind( j )->affected() == CASE){
 		if(original)
@@ -205,9 +205,8 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 		uhomi++;
 	      }
 	    }
-
 	  // found het, store for later
-	  if( d == 1 && ab > PLINKSeq::DEFAULT_AB_HETMIN() && ab < PLINKSeq::DEFAULT_AB_HETMAX() && pass){
+	  if( d == 1 && ((ab > PLINKSeq::DEFAULT_AB_HETMIN() && ab < PLINKSeq::DEFAULT_AB_HETMAX()) || ab == -1) && pass){
 	    hets.push_back(v);	  	  
 	    ann.push_back(annot1);
 	    if ( vars.ind(j)->affected() == CASE )
@@ -310,6 +309,8 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 	uhet++; 
     }
   
+
+
   // skip chrX and Y 
   //  haploid ??? chrX ?? 
 
@@ -317,8 +318,9 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
   double a = 2 * aux->ncontrols;
   double arec = ahom + achet;
   double urec = uhom + uchet;
-  
   double f = (( 2 * urec ) + uhet) / a;
+
+  //double f = (uhet + (2*urec))/(2*aux->ncontrols);
 
   double pAA = f * f;
   double pAA_1 = urec / aux->ncontrols;
