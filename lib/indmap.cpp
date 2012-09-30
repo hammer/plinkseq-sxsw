@@ -272,11 +272,13 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
 
   const int n = id_list.size();
 
+
   //
   // Handle n==0 cases specially
   //
 
-  if ( n == 0 ) { is_multi_sample = true; } 
+  //  if ( n == 0 ) { is_multi_sample = true; } 
+
 
   //
   // (-1,-1) in uniq implies this person seen more than once, and so
@@ -306,11 +308,10 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
 
   //
   // Handle a special case: if no genotype-level data are supplied, then 
-  // do not treat as a flat alignment.  Need to revisit this, but should 
-  // make life easier with ACDB
+  // do not treat as a flat alignment. 
   //
 
-  if ( n == 0 ) is_flat = false;
+  if ( n == 0 ) is_flat = true;
 
 
   //
@@ -333,7 +334,7 @@ int IndividualMap::populate( VarDBase & vardb, PhenotypeMap & phmap , Mask & m )
 	}
       else
 	{
-	  
+
 	  is_flat = false;
 	  
 	  std::map<int,int>::iterator j = m.begin();

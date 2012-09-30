@@ -145,7 +145,7 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "ref.ex" , "str-list" , "exclude variants in reference variant groups" );  
   mask_add( s , g , c++ , gl , "ref.req" , "str-list" , "include only variants in all listed reference variant groups" ); 
   mask_add( s , g , c++ , gl , "ref.append" , "str-list" , "append meta-information from REFDB groups" );
-  
+  mask_add( s , g , c++ , gl , "ref.allelic" , "flag" , "ALT allele specific REFDB matching (biallelic sites only)");
 
   // People/sample masks
   ++g; c = 0 ; gl="samples";

@@ -250,17 +250,17 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	
 	
 	  << "ref-load|input,refop|load data (VCF or flat-file) into REFDB|ARG:file,group,vcf"
-	
+      
 	  << "*load-weights|input,refop|load weight table|ARG:name,file" 
-	
+      
 	  << "*score-weights|annot|score variants for weights|VCF|ARG:name|OUT:scores"
-	
+      
 	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:format$build$repeat-mode$iupac,file,name,description,"
-	
+      
 	  << "lookup|misc,annot|lookup various annotatations for a list of positions|ARG:loc,alias,ref,protdb,annotate|OUT:meta"
-	
-	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta|OUT:refvars"
-	
+      
+	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta,verbose|OUT:refvars"
+      
 	  << "seq-view|views|view regions of sequence from SEQDB|ARG:compact,region|OUT:seq"
 
 
@@ -372,7 +372,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
       
 	  << "prot-view|views,prot|view entries from a PROTDB|ARG:protdb,name,group"
 
-
+	  << "prot-summary|views,prot|summary of a PROTDB|ARG:protdb"
     //
     // Misc. QC etc
     //

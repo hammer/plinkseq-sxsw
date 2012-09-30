@@ -138,6 +138,9 @@ namespace Pseq
     bool lookup( const std::string & db , const std::string & gene , const std::string & group = "" , Mask * mask = NULL );
    
     bool lookup( const std::string & db );
+
+    bool summary( const std::string & db );
+    
   }
 
 

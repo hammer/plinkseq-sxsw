@@ -10,6 +10,7 @@ struct aux_protview {
   std::set<Feature> features;
 };
 
+
 void f_view_variants_prot_loc_annot( Variant & v , void * p )
 {
   std::cout << v << "\t";  
@@ -144,3 +145,26 @@ bool Pseq::ProtDB::lookup( const std::string & db )
 
   return true;
 }
+
+
+
+
+bool Pseq::ProtDB::summary( const std::string & db ) 
+{
+  
+  //
+  // Summary of an entire PROTDB
+  //
+  
+  ProtDBase protdb;
+  
+  protdb.attach( db );
+  
+  if ( ! protdb.attached() ) Helper::halt( "could not attach PROTDB" );  
+  
+  plog << protdb.summary();
+  
+  return true;
+}
+
+

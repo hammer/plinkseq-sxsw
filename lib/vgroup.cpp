@@ -372,6 +372,24 @@ int VariantGroup::midposition() const
   
 }
 
+bool VariantGroup::location( int * chr , int * bp1 , int * bp2 ) const
+{
+  if ( chr == NULL || bp1 == NULL || bp2 == NULL ) return false;
+  if ( size() == 0 ) return false;
+  *chr = var(0).chromosome();
+  *bp1 = var(0).position();
+  *bp2 = var(0).stop();
+  for (int i=1; i<size(); i++)
+    {
+      if ( var(i).chromosome() != *chr ) { *chr=0; return false; }
+      if ( var(i).position() < *bp1 ) 
+	*bp1 = var(i).position();
+      if ( var(i).stop() > *bp2 ) 
+	*bp2 = var(i).stop();
+    }
+  return true;
+}
+
 int VariantGroup::span() const
 {
   if ( size() == 0 ) return -1;

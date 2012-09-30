@@ -1045,42 +1045,38 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 
 
   //
-  // Write header, if in stanard OUTPUT mode
+  // Write header for 'assoc' file
   //
 
-  if ( ! a.dump_stats_matrix )
-    {
+  pout.data_reset();
+      
+  pout.data_group_header( "LOCUS" );
   
-      pout.data_reset();
-      
-      pout.data_group_header( "LOCUS" );
-      
-      pout.data_header( "POS" );
-      
-      if ( a.show_midbp ) 
-	{
-	  pout.data_header( "MID" );
-	  pout.data_header( "BP" );
-	}
-      
-      pout.data_header( "ALIAS" );
-      
-      pout.data_header( "NVAR" );
-      
-      pout.data_header( "TEST" );
-      
-      pout.data_header( "P" );
-      pout.data_header( "I" );
-      pout.data_header( "DESC" );
-      
-      pout.data_header_done();
+  pout.data_header( "POS" );
+  
+  if ( a.show_midbp ) 
+    {
+      pout.data_header( "MID" );
+      pout.data_header( "BP" );
     }
+  
+  pout.data_header( "ALIAS" );
+  
+  pout.data_header( "NVAR" );
+  
+  pout.data_header( "TEST" );
+  
+  pout.data_header( "P" );
+  pout.data_header( "I" );
+  pout.data_header( "DESC" );
+  
+  pout.data_header_done();
 
   
   //
   // Set up permutation class
   //
-   
+  
   g.perm.initiate( nrep , ntests );
   a.fix_null_genotypes = args.has( "fix-null" );
  
@@ -1105,7 +1101,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
       a.weights = args.has("weights");
       a.weight_tag = args.as_string( "weights" );
       
-      plog >> "applying variant-weights to BURDEN, UNIQ and SUMSTAT tests, from " >> a.weight_tag >> "\n"; 
+      plog >> "Applying variant-weights to BURDEN, UNIQ and SUMSTAT tests, from " >> a.weight_tag >> "\n"; 
       
       Pseq::Assoc::Aux_skat::has_weights = true;
       Pseq::Assoc::Aux_skat::use_freq_weights = false;
@@ -1340,7 +1336,7 @@ void g_set_association( VariantGroup & vars , void * p )
   if ( data->cancor )
     {
       Pseq::Assoc::stat_cancor( vars , &aux_prelim, &aux_cancor , &test_text , true );
-      test_name.push_back("CANCOR");
+      test_name.push_back( "CANCOR" );
       test_statistic.push_back( aux_cancor.stat );
     }
   
@@ -1466,13 +1462,14 @@ void g_set_association( VariantGroup & vars , void * p )
 	  double statistic = Pseq::Assoc::stat_two_hit( vars , &aux_prelim , &aux_two_hit , NULL , false );
 	  test_statistic.push_back( statistic );
 	}
+
       if ( data->skat )
 	{	  
 	  double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , NULL , false  );
 	  test_statistic.push_back( statistic );
 	  if ( data->dump_stats_matrix ) *pmat << "\t" << statistic;
 	}
-
+      
 
 
       //
@@ -1495,9 +1492,8 @@ void g_set_association( VariantGroup & vars , void * p )
   pout.data_group( vars.name() );
   pout.data( vars.coordinate() );
   pout.data( g->locdb.alias( vars.name() , false ) );
-  //pout.data( "." );
   pout.data( vars.size() );
-      
+  
   if ( data->show_midbp)
     {
       pout.data( vars.midposition() );
@@ -1553,6 +1549,32 @@ void g_set_association( VariantGroup & vars , void * p )
 // Per-individual set-enrichment scan
 //
 
+struct vidx_t { 
+  vidx_t( int chr , int bp ) : chr(chr) , bp(bp) { } 
+  int chr;
+  int bp;
+  bool operator<( const vidx_t & rhs ) const
+  {
+    if ( chr < rhs.chr ) return true;
+    if ( chr > rhs.chr ) return false;
+    return bp < rhs.bp;
+  }
+};
+
+struct aux_var_in_set {
+  
+  vidx_t   vidx;   // variant index
+  int      setid;  // set-name
+  
+  bool operator<( const aux_var_in_set & rhs ) const
+  {
+    if ( vidx     <  rhs.vidx ) return true;
+    if ( rhs.vidx <  vidx     ) return false;
+    return setid < rhs.setid;
+   } 
+};
+
+
 struct aux_indiv_enrichment{
 
   // counts per set/per individual
@@ -1562,22 +1584,74 @@ struct aux_indiv_enrichment{
   std::map<std::string,std::map<int,double> > set_cnts;
   std::map<std::string,std::map<int,double> > set_sqrs;
   
-  // per individual, keep track of the rare alleles
-  std::map<int,std::set<std::string> > total_vars;
-  std::map<std::string,std::map<int,std::set<std::string> > > set_vars;
 
+  // per individual, keep track of the rare alleles
+  // i.e. for a given set, only count each rare allele once
+  //      but keep track of the genes it hits
+  //      use variant index to track
+  
+  // for this individual, have we already seen this variant?
+  //  but same variant can be in different genes, that have different set memberships
+  //  so need to track what actually gets added?
+  
+  // for each individual, track which genes have been mapped to which
+  // sets i.e. all overlapping genes also get 'tracked' as having
+  // mapped to the sets that the index gene gets mapped to.  This
+  // means that that gene cannot subsequently be counted for the same
+  // set in the same individual. (but it could count towards different
+  // sets, i.e. those other than already implicated by the index gene)
+  
+  // tracked_overlap{indiv}->{gene}->{sets} 
+  std::map<int,std::map<uint64_t,std::set<int> > > track_overlap;
+  
+  // track hits (that also reports overlap), from index
+  // track_hits{indiv}->{set}->{vars/genes}
+  std::map<int,std::map<int,std::vector<vidx_t> > > track_var_hits;
+  std::map<int,std::map<int,std::vector<int> > > track_gene_hits;
+  
   // for determining which sets to add to
   std::map<std::string,std::set<int> > * g2s;
   std::vector<std::string> * set_slot;
+  std::map<std::string,int> * set_map;
+
+  // locdb group
+  int gid;
+  std::map<uint64_t,std::string> gene_names;
+
 };
+
 
 
 void g_set_enrichment( VariantGroup & vars , void * p )
 {
-
-  aux_indiv_enrichment * aux = (aux_indiv_enrichment*)p;
   
-  std::cout << "vars. = " << vars.name() << "\n";
+  if ( vars.size() == 0 ) return;
+  
+  int chr = 0, bp1 = 0, bp2 = 0;
+
+  // get location, ensuring maps to a single chromosome interval in this case
+  
+  if ( ! vars.location( &chr, &bp1, &bp2 ) ) return;
+  
+  aux_indiv_enrichment * aux = (aux_indiv_enrichment*)p;
+
+
+  // get ID for this region
+  uint64_t index_gene_id = g.locdb.get_region_id( aux->gid , vars.name() );
+
+  // and track the actual name with this ID
+  aux->gene_names[ index_gene_id ] = vars.name();
+
+  // for this gene, pull all overlapping genes IDs (which will include 'gene_id' index)
+  std::vector<uint64_t> gene_ids = g.locdb.get_region_ids( aux->gid , chr , bp1 , bp2 );
+
+//   std::cout << vars.name() << "\t"
+// 	    << index_gene_id << "\t"
+// 	    << gene_ids.size() << "\n";
+
+  //
+  // Get MAFs for each variant, given sample
+  //
 
   int a = 0;
   const int n = g.indmap.size();
@@ -1587,58 +1661,107 @@ void g_set_enrichment( VariantGroup & vars , void * p )
   std::vector<double> maf(s);
   for (int j = 0 ; j < s ; j++  )
     {
-      int c, c_tot;      
-      altmin[j] = vars(j).n_minor_allele( &c , &c_tot );      
+      int c, c_tot;
+      altmin[j] = vars(j).n_minor_allele( &c , &c_tot );
       maf[j] = (double)c/(double)c_tot;
       if ( maf[j] > 0.5 ) maf[j] = 1-maf[j];
       if ( maf[j] == 0 ) maf[j] = 1.0;
     }
 
 
+  //
+  // Primary loop over each individual
+  //
+  
   for ( int i = 0 ; i < n ; i++ )
     {
 
+      // For this individual, get list of sets that have already been implicated by this gene, 
+      // if this gene happened to overlap previous index genes
+      
+      const std::set<int> already_implicated = aux->track_overlap[ i ][ index_gene_id ]; 
+      
       bool observed = false;
       double w = 1; 
       int added = 0;
-
+      
       for (int j = 0 ; j < s ; j++  )
 	{	  	  
 	  if ( vars(j,i).minor_allele( altmin[j] ) )
 	    {	      
 	      observed = true;
+	      
 	      if ( maf[j] < w ) { w = maf[j]; added = j; } 
+	      	      
 	    }
 	}
-      
+
+      //
       // for an individual, we get a (weighted) score which is the 
       // 1/MAF for the lowest frequency variant that have 
-      
+      //
+
       if ( observed ) 
 	{
-	  
-// 	  std::cout << "  adding " << vars( added ) 
-// 	   	    << "  for indiv " << vars( added ).ind(i)->id() 
-// 	     	    << "  MAF = " << w << "\n";
-	  
-	  w = 1 / w;
-	  
-	  // TEMP
-	  w = 1 ; // unweighted
-	  // TEMP
-	  
+
+	  // MAF weighted
+	  //w = 1.0 / w;
+	  w = 1.0;
+
 	  std::set<int> & ss = (*aux->g2s)[ vars.name() ];
 	  std::set<int>::iterator ii = ss.begin();
 	  while ( ii != ss.end() )
-	    {		      
+	    {
+	      // has this set already been implicated by this gene?
+	      
+	      if ( already_implicated.find( *ii ) != already_implicated.end() )
+		{
+// 		  std::cout << "not counting " << index_gene_id << "(" << vars.name() 
+// 			    << ") as already implicated for " << *ii << "\n";
+		  ++ii;
+		  continue; // then just skip
+		}
+
+	      //
+	      // otherwise, count the 'best' variant towards this set 
+	      //
+	      
 	      aux->set_cnts[ (*aux->set_slot)[ *ii ]][ i ]  += w;
-	      aux->set_sqrs[ (*aux->set_slot)[ *ii ]][ i ]  += w * w ;
+	      aux->set_sqrs[ (*aux->set_slot)[ *ii ]][ i ]  += w * w ;	      	      
+	      
+	      //
+	      // and record that this index, and all overlaps, have
+	      // contributed for this person
+	      //
+	      
+	      std::vector<uint64_t>::iterator jj = gene_ids.begin();
+	      while ( jj != gene_ids.end() )
+		{
+		  //		  std::cout << "acknowledging that " << *jj << " now implicates " << *jj << " for " << *ii << "\n"; 
+		  aux->track_overlap[i][ *jj ].insert( *ii );
+		  ++jj;
+		}
+
+
+	      //
+	      // Track for output, the actual 'index variant' hit, and genes for this person/set
+	      //
+	      
+	      aux->track_var_hits[i][*ii].push_back( vidx_t( vars(added).chromosome() , vars(added).position() ) );
+	      aux->track_gene_hits[i][*ii].push_back( index_gene_id );	      
+
 	      ++ii;
 	    }
 	  
-	  // add as background 
+	  // and for the background, track exactly the same quantity, but irrespective of set-membership
+	  
+	  // add as background
+	  
 	  aux->total_cnts[i] += w ;
 	  aux->total_sqrs[i] += w * w ;
+	  
+	  // track the variants observed here, in relation to the sets they've hit (via this gene)
+	  
 	}
       
     }
@@ -1650,38 +1773,30 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 {
   
   Out & pout = Out::stream( "indiv.enrich" );
-
-  // for (double i=-5 ; i<=5 ; i += 0.2 )
-  //   {
-  //     std::cout << i << "\t"
-  // 		<< erfc(i) << "\t" 
-  // 		<< Helper::PROB::gamma_inc( 0.5 , i*i ) / 1.772454 
-  // 		<< "\n";
-  //   }
-
-
-  // return false;
   
   //
   // Usage: pseq proj indiv-enrich --mask loc.req={background} 
   //                                      reg.req={background} 
   //                               --loc refseq
   //                               --locset synapse
-  
+  //
+
   // Specifying a background is option.
 
-
   // We assume the initial scan has to be based on genes --mask loc.group=refseq
-
+  
   // We need a geneset list to be specified by the argment --locset go
   // and that this relates to a locset that has been loaded into the LOCDB
   // (and that will match in terms of 'refseq')
   
+  //
   // Populate a list of individual / gene initially
+  //
   
   std::string locset = args.as_string( "locset" );
   std::string loc = args.as_string( "loc" );
-
+  
+  
   //
   // Speed-up by not pulling meta-info or subregions here
   //
@@ -1719,17 +1834,20 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   std::set<int>::iterator il = locus_requires.begin();
   while ( il != locus_requires.end() ) 
     {
-      std::set<Region> r = g.locdb.get_regions( *il );
-      std::set<Region>::iterator ri = r.begin();
-      while ( ri != r.end())
+      if ( requires.size() == 0 ) 
+	requires = g.locdb.get_regions( *il );
+      else
 	{
-	  requires.insert( *ri );
-	  ++ri;
+	  std::set<Region> rtmp = g.locdb.get_regions( *il );
+	  requires = RegionHelper::region_require( requires , rtmp ); 
 	}
       ++il;
     }
+  
+  //plog << "Prior to merging, " << requires.size() << " required intervals\n";
+  requires = RegionHelper::region_merge_overlap( requires );  
  
-  requires = RegionHelper::region_merge_overlap( requires );
+ plog << "\nPost merging, " << requires.size() << " required intervals (reg.req & loc.req masks)\n";
 
   
   //
@@ -1740,13 +1858,20 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 
 
   //
-  // flatten
+  // Flatten
   //
-
+  
+  plog << "Initial gene/transcript list contains " << all_genes.size() << " entries\n";
+  
   all_genes = RegionHelper::region_merge_overlap( all_genes );
   
+  plog << "After merging, we now have " << all_genes.size() << " entries\n";
+
+
+  //
   // only include 'required' regions, if specifed (--mask reg.req=  loc.req= )
-  
+  //
+
   if ( requires.size() > 0 ) 
     all_genes = RegionHelper::region_require( all_genes , requires );
   
@@ -1754,7 +1879,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   
   double span = RegionHelper::region_span( all_genes );
   
-  plog << "total gene list, " << all_genes.size() << " intervals spanning " << span << " bp\n";
+  plog << "After intersecting with masks, " << all_genes.size() << " intervals spanning " << span << " bp\n\n";
   
   
   //
@@ -1762,8 +1887,6 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   //
   
   std::map<std::string,std::set<Region> > targets = g.locdb.fetch_set_regions( loc , locset ); 
-  
-  //  plog << targets.size() << " set regions\n";
 
   // get gene-name --> gene-sets mapping 
   std::vector<std::string> sets = g.locdb.fetch_set_names( loc , locset );
@@ -1776,13 +1899,13 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   for (int s=0;s<sets.size();s++)
     {
       std::vector<std::string> members = g.locdb.fetch_set_members( loc , locset , sets[s] );
-      std::cout << members.size() << " members in " << sets[s] << "\n";
+      plog << "  " << members.size() << " members in " << sets[s] << "\n";
       for (int m = 0 ; m < members.size(); m++ ) 
 	g2s[ members[m] ].insert( s );      
     }
   
-  std::cout << "\n";
-
+  plog << "\n";
+  
 
   //
   // get % hitting target by chance  (background rate 'f')
@@ -1794,20 +1917,12 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   while ( ii != targets.end() )
     {
       
-      //      std::cout << "processing " << ii->first << "\n";
-      
       std::set<Region> target_genes = RegionHelper::region_merge_overlap( ii->second );
       
       if ( requires.size() > 0 ) 
 	target_genes = RegionHelper::region_require( target_genes , requires );
-       
+      
       double target_span = RegionHelper::region_span( target_genes );
-
-      // std::cout << "set = " << ii->first << " : " 
-      // 		<< ii->second.size() << " --> "
-      // 		<< target_genes.size() << " intervals, " 
-      // 		<< target_span << " bp, "
-      // 		<< ( target_span / span ) * 100.0 << "%\n";
       
       f[ ii->first ] = ( target_span / span ) ; 
       
@@ -1844,25 +1959,48 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   
   aux.set_slot = &sets;
 
-  aux.g2s = &g2s;
+  // assign a unique numeric ID to each set, for easier tracking, that 
+  // can be quickly looked-up
   
-  plog << "about to start iterating...\n";
+  std::map<std::string,int> set_map;
+  for (int s=0; s<sets.size(); s++ ) set_map[ sets[s] ] = s; 
+  aux.set_map = &set_map;
+
+  // Gene --> set mapping
+
+  aux.g2s = &g2s;
+
+  aux.gid = g.locdb.lookup_group_id( loc );
+
+  if ( aux.gid == 0 ) 
+    Helper::halt( "could not find locus-group " + loc );
+
+  plog << "Now iterating over all genes...\n";
+  
+  // header row
+  pout << "ID\tPHE\tSET\tP\tF\tOBS1\tOBS0\tEXP1\tEXP0\tGENES\tVARS\n";
   
   g.vardb.iterate( g_set_enrichment , &aux , mask ) ;
   
-  plog << "done iterating...\n";
+  plog << "\n...finished, now calculating per-individual enrichment\n";
   
   
+
   //
   // Now we should have populated for each set, for each individual, the total 
   // number of genes they have with a variant of 'interest'
   //
   
+
+  //
   // we have populated aux.total_cnts and aux.set_cnts[].  For each individual, for each set, 
   // determine the probability that they have n of m (weighted) counts
+  //
+
 
   // Use weighted binominal heuristic test, as described here:
   //   http://www.cv.nrao.edu/adass/adassVI/theilerj.html
+
 
   // Li & Ma (1983) ratio of Poisson likelihoods method
 
@@ -1879,17 +2017,6 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   // S(s) = 0.5 * ( 1 - erfc( s / sqrt(2) ) )
   // to get 1-tailed p-value
 
-  // MathWorld : pnorm(x) - 1/2 = (1/2)*erf(x/sqrt(2)) 
-  
-
-  // S = -2.2692
-  // 0.551069,1.97674
-
-  // erfc(z) = IG( 0.5 , z^2 ) / sqrt(pi)       
-  // 'complementary error function'   
-  // http://mathworld.wolfram.com/Erfc.html
-  //  where IG(a,b) is the incomplete gamma function
-  
   // Weighted counts:
   //   given sample frequencies (or any other types of arbitary weights), we wish 
 
@@ -1897,16 +2024,20 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
   //  Qt  = sum { w_i ^2 }              "
 
   // no assumptions about weights summing or averaging to unity. 
-  
+
+  //
   // heuristic for P value
+  //
+  // At = 'size of target genes'
+  // Ab = 'size of non-target genes'
+  // f = At / ( At + Ab ) 
 
   // S = ( sqrt(  ( ( 2 Wt + Wb ) / ( Qt + Qb )  )   *   ( Wt * ln( Wt / Et )  + Wb * ln ( Wb / Eb ) ) ) ) 
 
   // where Et = f * ( Wt + Wb ) 
   //       Eb = (1-f) * ( Wt + Wb ) 
 
-  // double Helper::PROB::gamma_inc ( double p, double x )
-  // double Helper::PROB::gamma_inc ( 0.5 , z * z ) ;
+
 
   const int n = g.indmap.size();
   
@@ -1928,49 +2059,81 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 	  double e_set = f[ sets[s] ] * w_total;
 	  double e_bak = w_total - e_set ; 
 
-
-	  // double x = sqrt( ( ( ( 2 * ( w_set + w_bak ) ) ) / 
-	  // 		     ( q_set + q_bak ) ) * ( w_set * log( w_set / e_set ) + w_bak * log( w_bak / e_bak ) ) );
 	  
+
+	  // alpha = f / ( 1 - f )
 
 	  double alpha =  f[ sets[s] ] / (1- f[ sets[s] ] );
 	  
-	  double x = ( w_set - alpha * w_bak ) /  sqrt( alpha * q_set + alpha * q_bak )  ; 
+	  // can swap in a different approximation from Li & Ma (1983) here:
 
-	  // sqrt(PI) = 1.772454
-	  // sqrt(2) = 1.414214
-	  	  
-	  // S(x) = 0.5 * ( 1 - erfc( s / sqrt(2) ) )	  	  
-	  // double myerfc = Helper::PROB::gamma_inc( 0.5 , ( x / 1.414214 ) * ( x / 1.414214 ) ) / 1.772454 ;
-
+	  double x = ( w_set - alpha * w_bak ) /  sqrt( alpha * q_set + alpha * q_bak )  ; 	  
 	  
+// 	  double x = sqrt( ( ( ( 2 * ( w_set + w_bak ) ) ) / 
+// 	   		     ( q_set + q_bak ) ) * ( w_set * log( w_set / e_set ) + w_bak * log( w_bak / e_bak ) ) );
+	  
+	  // one-sided p-value
+
 	  double pv = x < 0 ? 1.0 : 0.5 * ( 1 - erf( x / 1.414214 ) ) ; 
+
+	  //
+	  // primary output
+	  // 
+
+	  pout  << g.indmap(i)->id() << "\t"
+		<< ( g.indmap(i)->affected() == CASE ? "CASE" : g.indmap(i)->affected() == CONTROL ? "CONTROL" : "." ) << "\t"		
+		<< sets[s] << "\t"
+		<< pv << "\t"
+		<< f[ sets[s] ] << "\t"
+		<< w_set << "\t" << w_bak << "\t"		
+		<< e_set << "\t" << e_bak << "\t";
 	  
-	  // to get 1-tailed p-value, S
+
+	  //
+	  // gene list
+	  //
+
+	  if ( aux.track_gene_hits[i].find(s) != aux.track_gene_hits[i].end() )
+	    {
+	      std::vector<int> & genes = aux.track_gene_hits[i][s];
+	      std::vector<int>::iterator gii = genes.begin();
+	      while ( gii != genes.end() )
+		{
+		  pout << aux.gene_names[ *gii ] << ";";
+		  ++gii;
+		}
 	  
-	  pout  << "Indiv=" << g.indmap(i)->id() << "\t"
-		<< "Set=" << sets[s] << "\t"
-		<< "f=" << f[ sets[s] ] << "\t"
-		<< "w=" << w_set << "," << w_bak << "," << w_total << "\t"
-		<< "q=" << q_set << "," << q_bak << "," << q_total << "\t"
-		<< "e=" << e_set << "," << e_bak << "\t" 
-		<< "s=" << x << "\t"		
-		<< "p=" << pv << "\n";
+	    }
+	  else
+	    pout << ".";
 	  
-	  // std::cout << sets[s] << "\t" 
-	  // 	    << g.indmap(i)->id() << "\t"	  
-	  // 	    << w_set << " " << w_bak << "\t"
-	  // 	    << x << " " << erfc << "\t"
-	  // 	    << S << "\n";
+	  pout << "\t";
 	  
-	}
+	  
+	  //
+	  // var list
+	  //
+
+	  if ( aux.track_var_hits[i].find(s) != aux.track_var_hits[i].end() )
+	    {
+	      std::vector<vidx_t> & vars = aux.track_var_hits[i][s];
+	      std::vector<vidx_t>::iterator vii = vars.begin();
+	      while ( vii != vars.end() )
+		{
+		  pout << Helper::chrCode( vii->chr ) << ":" << vii->bp << ";";
+		  ++vii;
+		}
+	    }
+	  else
+	    pout << ".";
+
+	  pout << "\n";
 
 
-    }
+	} // next set
+      
+    } // next individual
 		 
-  
- 
-
 
   return true ;
 

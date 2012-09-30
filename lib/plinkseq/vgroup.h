@@ -73,6 +73,8 @@ class VariantGroup {
 
   std::string coordinate() const ;
 
+  bool location( int * chr , int * bp1 , int * bp2 ) const;
+
   int midposition() const;
 
   int span() const;

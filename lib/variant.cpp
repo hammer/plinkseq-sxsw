@@ -26,6 +26,7 @@ Variant::Variant( const std::string & n, int c, int b )
   bp = bp2 = b;      
 }
 
+
 void Variant::init()
 {
   chr = bp = bp2 = 0;    
@@ -102,13 +103,14 @@ bool Variant::make_consensus( IndividualMap * a )
   // VCF as a single variant.  In that case, the force_unflat()
   // flag will be set and we can use that.
 
+  
   bool sites_only = align->size() == 0;
-
-  if ( sites_only || ( ( ! align->multi_sample() ) && align->flat() ) ) 
+    
+  if ( ( sites_only && ! align->multi_sample() ) || ( ( ! align->multi_sample() ) && align->flat() ) ) 
     {
       
       int n_alleles = consensus.parse_alleles();
-      
+
       // for biallelic markers, we can leave now
       if ( n_alleles == 2 ) 
 	{	  

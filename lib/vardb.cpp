@@ -1049,7 +1049,7 @@ uint64_t VarDBase::insert_consensus( uint64_t file_id , const Variant & var )
   blob vdata = var.consensus.encode_vmeta_BLOB();
   blob gdata = var.consensus.encode_geno_BLOB();
   blob gmdata = var.consensus.encode_gmeta_BLOB();
-
+  
   sql.bind_int64( stmt_insert_variant_data , ":var_id" , var_id );
 
   sql.bind_blob( stmt_insert_variant_data , ":data" , data );

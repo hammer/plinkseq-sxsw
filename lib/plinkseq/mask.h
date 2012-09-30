@@ -1361,7 +1361,10 @@ class Mask {
   bool loc_append() const { return app_locset.size() > 0; }
   bool loc_set_append() const { return app_locset_set.size() > 0; }
   bool ref_append() const { return app_refset.size() > 0; }
-  
+
+  void ref_allelic( const bool b ) { ref_allelic_match = b; }
+  bool ref_allelic() const { return ref_allelic_match; }
+
   bool append() const 
   { return var_append() || loc_append() || ref_append() || var_set_append() || loc_set_append() ; }
   
@@ -1370,8 +1373,7 @@ class Mask {
   int ref_size() const { return in_refset.size(); } 
 
   int variant_limit() const { return max_var_count; }
-  
-  
+    
   bool loc_any() const { return loc() || loc_append() || rloc() || xloc() || loc_set(); }
   bool var_any() const { return var() || var_append() || rvar() || xvar() || var_set(); }
   bool ref_any() const { return ref_append(); }
@@ -1603,6 +1605,7 @@ class Mask {
 	req_segs.clear();
 	ex_segs.clear();
 	assume_missing_is_ref = false;
+	ref_allelic_match = false;
 	soft_ref = false;
 	genotype_model = GENOTYPE_MODEL_ALLELIC;
 	hard_call = false;
@@ -1718,7 +1721,7 @@ class Mask {
     std::set<int> in_refset; 
     std::set<int> req_refset; 
     std::set<int> ex_refset; 
-
+    
     // Locus-sets
 
     std::set<int> in_locset_set;
@@ -1897,6 +1900,11 @@ class Mask {
     bool otf_meta_append;
     std::map<RefVariant,MetaInformation<RefMeta> > otf_meta;
     
+    //
+    // REFDB matching
+    //
+    
+    bool ref_allelic_match;
     
     //
     // Bialleic SNP status

@@ -2180,7 +2180,8 @@ int main(int argc, char ** argv)
 	if ( ! args.has( "group" ) ) Helper::halt("no group specified");
 	std::string grp = Pseq::Util::single_argument<std::string>( args , "group" );
 	bool with_meta = args.has( "vmeta" );
-	g.refdb.dump( grp , with_meta );
+	bool with_verbose = args.has( "verbose" );
+	g.refdb.dump( grp , with_meta , with_verbose );
 	Pseq::finished();
       }
 
@@ -2503,26 +2504,35 @@ int main(int argc, char ** argv)
     //
     // View a ProtDB 
     //
+    
+    if ( command == "prot-view" )
+      {
+	
+	if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );      
+	
+	Out output( "prot" , "protein domain/annotations" );
+	
+	if ( args.has( "group" ) && args.has("name") )
+	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) , args.as_string( "group" ) , &m );
+	else if ( args.has( "name" ) )
+	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) );
+	else
+	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) );
+	
+	Pseq::finished();
+      }
 
-  if ( command == "prot-view" )
-    {
-      
-      if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );      
-      
-      Out output( "prot" , "protein domain/annotations" );
-      
-      if ( args.has( "group" ) && args.has("name") )
-	Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) , args.as_string( "group" ) , &m );
-      else if ( args.has( "name" ) )
-	Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) );
-      else
-	Pseq::ProtDB::lookup( args.as_string( "protdb" ) );
+    
+    //
+    // Summary for a PROTDB
+    //
 
-      Pseq::finished();
-    }
-
-
-
+    if ( command == "prot-summary" )
+      {	
+	if ( ! args.has( "protdb" ) ) Helper::halt( "no --protdb specified" );      	
+	Pseq::ProtDB::summary( args.as_string( "protdb" ) );	
+	Pseq::finished();
+      }
     
 
     //

@@ -157,7 +157,10 @@ bool RefDBase::init()
   //
 
   stmt_lookup = 
-    sql.prepare( "SELECT * FROM refvariants WHERE chr == :chr AND bp1 == :bp1 AND group_id == :group_id ; "  );
+    sql.prepare( "SELECT * FROM refvariants WHERE chr == :chr AND bp1 == :bp1 AND :bp2 == :bp2 AND group_id == :group_id ; "  );
+
+  stmt_lookup_allelic_match = 
+    sql.prepare( "SELECT * FROM refvariants WHERE chr == :chr AND bp1 == :bp1 AND bp2 == :bp2 AND group_id == :group_id AND alt == :alt ; "  );
 
   stmt_lookup_range = 
     sql.prepare( "SELECT * FROM refvariants "
@@ -237,6 +240,7 @@ bool RefDBase::release()
 
   sql.finalise( stmt_dump );
   sql.finalise( stmt_lookup );
+  sql.finalise( stmt_lookup_allelic_match );
   sql.finalise( stmt_insert );
   sql.finalise( stmt_lookup_dbsnp );
   sql.finalise( stmt_lookup_range );
@@ -930,49 +934,56 @@ int RefDBase::count( const Region & region , const std::string & grp_name  )
 }
 
 
-RefVariant RefDBase::lookup( const Variant & v , const std::string & grp_name )
+RefVariant RefDBase::lookup( const Variant & v , const std::string & grp_name , const std::string & alt_match )
 {
     if ( ! attached() ) return RefVariant();
-    return lookup( v, lookup_group_id( grp_name ) );
+    return lookup( v, lookup_group_id( grp_name ) , alt_match );
 }
 
-RefVariant RefDBase::lookup( const Variant & v , int grp_id )
+RefVariant RefDBase::lookup( const Variant & v , int grp_id , const std::string & alt_match )
 {
+  
+  //
   // Create variant -- by default, has 'observed'
   // flag set to false
+  //
+  
+  bool allelic_match = alt_match != ".";
   
   RefVariant r;
   
-  // Search given chromosome position
+  //
+  // Search given chromosome position, and optionally, match on ALT allele
+  //
+
+  sqlite3_stmt * s = allelic_match ? stmt_lookup_allelic_match : stmt_lookup ;
   
-  sql.bind_int( stmt_lookup , ":chr" , v.chromosome() );
-  sql.bind_int( stmt_lookup , ":bp1" , v.position() );
-  sql.bind_int( stmt_lookup , ":group_id" , grp_id );
+//   std::cout << "looking for " << v.chromosome() << " " 
+// 	    << v.position() << " " 
+// 	    << v.stop() << " "
+// 	    << grp_id << " " 
+// 	    << v.alternate() << " " << allelic_match << "\n";
+
+  sql.bind_int( s , ":chr" , v.chromosome() );
+  sql.bind_int( s , ":bp1" , v.position() );
+  sql.bind_int( s , ":bp2" , v.stop() );
+  sql.bind_int( s , ":group_id" , grp_id );
+  if ( allelic_match ) 
+    sql.bind_text( s , ":alt" , v.alternate() );
   
-  if ( sql.step( stmt_lookup ) )
-    r = construct( stmt_lookup );
-  
-  sql.reset( stmt_lookup );
+  //
+  // should allow for more than one match here....
+  //
+
+  if ( sql.step( s ) )
+    {
+      r = construct( s );
+    }
+ 
+  sql.reset( s );
   
   return r;
-
-  // abandon lookup by name
-//   if ( r.observed() ) 
-//     return r;
   
-//   // Otherwise, search given dbSNP number
-//   if ( v.name() != "0" && v.name() != "" && v.name() != "." )
-//     {
-//       sql.bind_text( stmt_lookup_dbsnp , ":snp" , v.name() );
-//       sql.bind_int( stmt_lookup_dbsnp , ":group_id" , grp_id );
-//       if ( sql.step( stmt_lookup_dbsnp ) )
-// 	r = construct( stmt_lookup_dbsnp );
-//       sql.reset( stmt_lookup_dbsnp );
-//       if ( r.observed() ) 
-// 	return r;	
-//     }
-//   // Otherwise, return a null result    
-//   return r;  
 }
 
 
@@ -1007,10 +1018,10 @@ std::set<RefVariant> RefDBase::lookup( const Region & region , const std::string
 
 
 
-bool RefDBase::annotate( Variant & v , const int grp_id )
+bool RefDBase::annotate( Variant & v , const int grp_id , const std::string & alt_match )
 {
   
-  RefVariant r = lookup( v , grp_id );
+  RefVariant r = lookup( v , grp_id , alt_match );
   
   if ( ! r.observed() ) return false;
 
@@ -1048,11 +1059,11 @@ bool RefDBase::annotate( Variant & v , const int grp_id )
 }
 
 
-bool RefDBase::annotate( Variant & v , const std::string & name )
+bool RefDBase::annotate( Variant & v , const std::string & name , const std::string & alt_match )
 {
   int id = lookup_group_id( name );
   if ( id == 0 ) return false;
-  return annotate(v,id);  
+  return annotate(v,id , alt_match );  
 }
 
 RefVariant RefDBase::construct( sqlite3_stmt * s)
@@ -1199,7 +1210,7 @@ std::map< std::string, std::map<std::string,std::string> > RefDBase::get_metatyp
 
 
 
-void RefDBase::dump( const std::string & grp , bool with_meta )
+void RefDBase::dump( const std::string & grp , bool with_meta , bool with_verbose )
 {
 
   Out & pout = Out::stream( "refvars" );
@@ -1210,7 +1221,15 @@ void RefDBase::dump( const std::string & grp , bool with_meta )
   while ( iterate( &rv ) )
     {
       pout << rv;
-      if ( with_meta ) pout << "\t" << rv.value();
+      if ( with_verbose ) 
+	{
+	  std::vector<std::string> tok = Helper::char_split( rv.value() , ';' );
+	  for ( int i = 0 ; i < tok.size() ; i ++ ) 
+	    pout << "\t" << tok[i] << "\n";
+	  pout << "\n";
+	}
+      else if ( with_meta ) pout << "\t" << rv.value();
+      
       pout << "\n";
     }
   return;

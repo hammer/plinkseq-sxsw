@@ -539,3 +539,38 @@ void ProtDBase::dump( Out & pout )
   return;
 }
 
+
+
+
+
+
+std::string ProtDBase::summary()
+{
+
+  sqlite3_stmt * stmt_summary = 
+    sql.prepare( "select source_id , count(1) , count( distinct feature_id ) , count ( distinct feature_name ) , count( distinct transcript_id) from main group by source_id ; " );
+
+  std::stringstream ss;
+
+  ss << "---Protein-domain DB summary---\n\n";
+  
+  while ( sql.step(stmt_summary) )
+    {      
+      std::string source_id = sql.get_text( stmt_summary , 0 );
+      int n       = sql.get_int( stmt_summary , 1 );
+      int nfid    = sql.get_int( stmt_summary , 2 );
+      int nfname  = sql.get_int( stmt_summary , 3 );
+      int nftrans = sql.get_int( stmt_summary , 4 );
+      
+      ss << source_id << "\n"
+	 << "  " << n << " domain/transcript mappings\n"
+	 << "  " << nfid << " unique domain feature IDs (" << nfname << " unique feature names)\n"
+	 << "  " << nftrans << " unique transcripts with at least one mapping\n"; 
+    }
+
+  sql.reset( stmt_summary );
+  sql.finalise( stmt_summary );
+  
+  return ss.str();
+}
+

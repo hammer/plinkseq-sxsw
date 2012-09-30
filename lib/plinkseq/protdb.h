@@ -147,6 +147,8 @@ class ProtDBase {
   
   void dump( Out & pout );
 
+  std::string summary();
+
  private:
   
   

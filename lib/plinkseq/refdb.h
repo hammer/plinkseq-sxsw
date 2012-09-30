@@ -243,20 +243,20 @@ class RefDBase {
     
     // Core queries
     
-    RefVariant lookup( const Variant & , const int grp_id );
-    RefVariant lookup( const Variant & , const std::string &  );
+    RefVariant lookup( const Variant & , const int grp_id , const std::string & alt_match = "." );
+    RefVariant lookup( const Variant & , const std::string &  , const std::string & alt_match = "." );
 
     std::set<RefVariant> lookup( const Region & , const int , const int limit = 0 );
     std::set<RefVariant> lookup( const Region & , const std::string & , const int limit = 0 );
 
-    bool annotate( Variant & , const std::string & );
-    bool annotate( Variant & , const int grp_id );
+    bool annotate( Variant & , const std::string & , const std::string & alt_match = "." );
+    bool annotate( Variant & , const int grp_id , const std::string & alt_match = "." );
     
     int count( const Region & , const std::string & );
 
     // Data-dumper
     
-    void dump( const std::string & grp , bool with_meta );
+    void dump( const std::string & grp , bool with_meta , bool with_verbose );
 
     // Groups
     
@@ -293,6 +293,7 @@ class RefDBase {
       
     sqlite3_stmt * stmt_dump;
     sqlite3_stmt * stmt_lookup;
+    sqlite3_stmt * stmt_lookup_allelic_match;
     sqlite3_stmt * stmt_lookup_range;
     sqlite3_stmt * stmt_lookup_dbsnp;
     sqlite3_stmt * stmt_lookup_range_count;

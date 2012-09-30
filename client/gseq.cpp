@@ -419,7 +419,7 @@ void g_geneseq( VariantGroup & vars , void * p )
 	  refannot += ss2.str();
 	}
       
-      if ( printing && aux->protdb && cpos == 0 && pdm.find( apos ) != pdm.end() )
+      if ( cds && printing && aux->protdb && cpos == 0 && pdm.find( apos ) != pdm.end() )
 	{
 	  refannot += pdm[ apos ];
 	}
