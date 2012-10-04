@@ -1706,8 +1706,9 @@ void g_set_enrichment( VariantGroup & vars , void * p )
 
 	  // MAF weighted
 	  //w = 1.0 / w;
-	  w = 1.0;
 
+	  w = 1.0;
+	  
 	  std::set<int> & ss = (*aux->g2s)[ vars.name() ];
 	  std::set<int>::iterator ii = ss.begin();
 	  while ( ii != ss.end() )
@@ -2059,8 +2060,7 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 	  double e_set = f[ sets[s] ] * w_total;
 	  double e_bak = w_total - e_set ; 
 
-	  
-
+	 
 	  // alpha = f / ( 1 - f )
 
 	  double alpha =  f[ sets[s] ] / (1- f[ sets[s] ] );
@@ -2076,6 +2076,18 @@ bool Pseq::Assoc::set_enrich_wrapper( Mask & mask , const Pseq::Util::Options & 
 
 	  double pv = x < 0 ? 1.0 : 0.5 * ( 1 - erf( x / 1.414214 ) ) ; 
 
+
+	  //
+	  // Also just use Fisher's
+	  //
+
+	  // 2x2 contingency table, assuming exact events (no weights...)
+
+// 	  double pv_fisher = 1;
+// 	  if ( ! Helper::fisher( w_set , &pv_fisher ) ) 
+// 	    plog.warn( "problem evaluating Fisher's exact" , vars.name() );
+	  
+	  
 	  //
 	  // primary output
 	  // 
