@@ -1508,12 +1508,15 @@ void VarDBase::build_temporary_db( Mask & mask )
 	    {		    
 	      
 	      std::string n = sql.get_text( stmt_tmp_locus_iterate , 3 );
+	      
+	      std::cout << "n = " << n << "\n";
 
 	      //
 	      // Implicit or explicit exclusion of this locus?
 	      //
 	      
 	      if ( skip_names.find(n) != skip_names.end() ) { continue; }
+	      
 	      if ( names.size() > 0 
 		   && names.find(n) == names.end() ) { continue; }
 	      
@@ -1521,6 +1524,8 @@ void VarDBase::build_temporary_db( Mask & mask )
 	      int bp1 = sql.get_int( stmt_tmp_locus_iterate , 1 );
 	      int bp2 = sql.get_int( stmt_tmp_locus_iterate , 2 );
 	      
+	      std::cout << "adding loc = " << n << " " << chr << " " << bp1 << " " << bp2 << "\n";
+
 	      sql.bind_int( stmt_tmp_insert, ":chr" , chr ); 
 	      sql.bind_int( stmt_tmp_insert, ":bp1" , bp1 ); 
 	      sql.bind_int( stmt_tmp_insert, ":bp2" , bp2 ); 

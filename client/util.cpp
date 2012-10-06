@@ -190,7 +190,9 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
 	// 
 	
 	  << "loc-load|input,locop|load from a .GTF or .REG file into LOCDB|ARG:file,group,keep-unmerged"
-	
+      
+	  << "gtf-check|input,locop|check a .GTF (i.e. prior to loc-load'ing|ARG:file,add-frame"
+      
 	  << "locset-load|input,locop|load a locus-set|ARG:file,name,group,alternate-name"
 	
 	  << "loc-load-alias|input,locop|load a gene-alias table|ARG:file" 
@@ -494,7 +496,8 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
 
     // locus operations
     reg( "keep-unmerged" , NONE , "retain unmerged region group when loading GTF" );
-    
+    reg( "add-frame"     , NONE , "add frame to a GTF during gtf-check" );
+
     reg( "mask", STRING_VECTOR, "mask specification");
     
     reg( "include", STRING, "filter specification");

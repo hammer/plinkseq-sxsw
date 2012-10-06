@@ -851,7 +851,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  
 	  // Determine reading frame
 	  int frame = r_cds.subregion[ first_exon ].meta.get1_int( PLINKSeq::TRANSCRIPT_FRAME() ) ;
-
+	  
 	  // Build variant sequence
 	  std::string var_allele = *a;
 
@@ -1577,7 +1577,8 @@ std::string Annotate::translate_reference( const Region & region , bool verbose 
 std::string Annotate::translate(std::string & seq, int frame , std::vector<std::string> & codons )
 {
   Helper::str2upper(seq);
-  
+
+  // TODO Need to check logic here
   if ( seq.size() - frame == 1 ) seq += "-";
   else if ( seq.size() - frame == 2 ) seq += "--";
   

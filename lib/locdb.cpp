@@ -1,11 +1,13 @@
 #include "plinkseq/locdb.h"
 #include "plinkseq/defs.h"
 #include "plinkseq/regions.h"
+#include "plinkseq/gstore.h"
+#include "plinkseq/annot.h"
 
 #include <iostream>
 #include <set>
 
-
+extern GStore * GP;
 
 bool LocDBase::wipe( const std::string & n )
 {
@@ -1108,8 +1110,7 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
   // Expect GTF2.2 format, as documented 
   //  http://mblab.wustl.edu/GTF22.html
   
-  // Register meta-types
-  
+  // Register meta-types  
 
   uint64_t group_id = set_group_id( grp );
   
@@ -1126,6 +1127,7 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
   
   std::set<std::string> names;
   
+
   /////////////////////////////////////////
   //                                     //
   // Process each row of input           //
@@ -1136,11 +1138,13 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
     {
 
       // tab-delimited line
+
       std::vector<std::string> tok = Helper::char_split( f.readLine() , '\t' );
       
       if ( tok.size() == 0 ) continue;
-
+      
       // Should contain exactly 9 tab-delimited elements      
+
       if ( tok.size() != 9 ) 
 	{
 	  plog.warn("line in GTF column count != 9");
@@ -1172,6 +1176,7 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
 	}
       
       // remove quotes and last semi-colon
+
       if ( tok2[0] != "gene_id" ) plog.warn("expecting gene_id in GTF :" + tok2[0] );
       if ( tok2[2] != "transcript_id" ) plog.warn("expecting transcript_id in GTF :" + tok2[2]);
 
@@ -1246,6 +1251,9 @@ uint64_t LocDBase::load_GTF( const std::string & filename, const std::string & g
       
       if ( Helper::str2int( tok[7] , frame ) ) 
 	{	
+	  // GTF encodes frame 021,021 (as number of bases to next start of codon (inc. this one)
+	  if ( frame == 2 ) frame = 1;
+	  else if ( frame == 1 ) frame = 2;
 	  r.meta.set( PLINKSeq::TRANSCRIPT_FRAME() , frame );
 	}
 
@@ -3226,3 +3234,489 @@ uint64_t LocDBase::get_region_id( uint64_t gid , const std::string & name )
   sql.reset( stmt_loc_fetch_id_given_name );
   return t;
 }
+
+bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool add_frame )
+{
+  
+  // as well as checking the basic syntax/format of the GTF, this function
+  // will check the integrity of the implied transcript models (see below)
+
+
+  // could add option to add frame, if that is not present
+
+  //
+  // Expect GTF2.2 format, as documented 
+  //  http://mblab.wustl.edu/GTF22.html
+
+  if ( ! Helper::fileExists( filename ) ) return false;
+  
+  InFile f( filename );
+    
+  // keep track of transcripts we've seen
+
+  int inserted = 0;  
+  std::map<std::string,std::vector<Region> > regions;
+  
+  /////////////////////////////////////////
+  //                                     //
+  // Process each row of input           //
+  //                                     //
+  /////////////////////////////////////////
+
+  int errs = 0;
+  int warns = 0;
+
+  while ( ! f.eof() )
+    {
+
+      // tab-delimited line
+
+      std::string str = f.readLine();
+
+      std::vector<std::string> tok = Helper::char_split( str , '\t' );
+
+      // skip comments and empty lines; not errors
+      if ( tok.size() == 0 ) continue;
+      if ( tok[0][0] == '#' ) continue;
+
+      // Should contain exactly 9 tab-delimited elements      
+      if ( tok.size() != 9 ) 
+	{
+	  plog << "!!!\tfile_format\t"
+	       << "other than 9 tab-delimited fields: " << str << "\n\n";
+	  ++errs;
+	  continue;
+	}
+      
+      
+      // <seqname> <source> <feature> <start> <end> <score> <strand> <frame> [attributes] [comments]
+      // AB000381 Twinscan  CDS          380   401   .   +   0  gene_id "001"; transcript_id "001.1";
+
+            
+      // Start/stop positions
+
+      int p1,p2;
+      if ( ! Helper::str2int( tok[ 3 ] , p1 ) ) 
+	{
+	  plog << "!!!\tfile_format\t"
+	       << "non-numeric value for bp1 " << tok[3] << " for row: " << str << "\n";
+	  ++errs;
+	  continue;
+	}
+
+      if ( ! Helper::str2int( tok[ 4 ] , p2 ) ) 
+	{
+	  plog << "!!!\tfile_format\t"
+	       << "non-numeric value for bp2 " << tok[4] << " for row: " << str << "\n";
+	  ++errs;
+	  continue;
+	}      
+ 
+     // Name (from transcript_id)
+
+      std::vector<std::string> tok2 = Helper::char_split( tok[8] , ' ' , false );
+      
+      // requires atleast 4 manadatory fields: gene_id XXX transcript_id XXX
+      
+      if ( tok2.size() < 4 ) 
+	{
+	  plog << "!!!\tfile_format\t"
+	       << "expecting at least [ gene_id \"ID\"; transcript_id \"ID\"; ] : " << str << "\n";
+	  ++errs;
+	  continue;
+	}
+      
+      // remove quotes and last semi-colon
+
+      if ( tok2[0] != "gene_id" ) 
+	{
+	  plog << "!!!\tfile_format\t"
+	       << "expecting gene_id in GTF :" << str << "\n";
+	  ++errs;
+	  continue;
+	}
+ 
+      if ( tok2[2] != "transcript_id" ) 
+	{
+	  plog << "!!!\tfile_format\t"
+	       << "expecting gene_id in GTF :" << str << "\n";
+	  ++errs;
+	  continue;
+	}
+      
+      if ( tok2[1].substr( tok2[1].size()-1 ) == ";" ) tok2[1] = tok2[1].substr( 0, tok2[1].size()-1 );
+      else 
+	{	  
+	  plog << "!!!\tfile_format\t"
+	       << "expecting ';' character after gene_id : " << str << "\n";
+	  ++errs;
+	  continue;
+	}
+
+      if ( tok2[3].substr( tok2[3].size()-1 ) == ";" ) tok2[3] = tok2[3].substr( 0, tok2[3].size()-1 );
+      else 
+	{
+	  plog << "!!!\tfile_format\t"
+	       << "expecting ';' character after gene_id : " << str << "\n";
+	  ++errs;
+	  continue;
+	}
+      
+      
+      tok2[1] = Helper::unquote( tok2[1] );
+      tok2[3] = Helper::unquote( tok2[3] );
+
+      // tok2[0] should equal  gene_id
+      // use either gene-name or transcript name as 'name' 
+      
+      std::string name = use_geneid ? tok2[1] : tok2[3];
+      
+      int chromosome = Helper::chrCode( tok[0] ) ;
+      
+      if ( chromosome == 0 ) 
+	{
+	  plog << name << "\t"
+	       << "unknown_chrcode" << "\t"
+	       << tok[0] << "\n";
+	  ++errs;
+	  continue;
+	}
+      
+
+      // make a region:
+
+      Region r( chromosome ,
+		p1 , p2 , 
+		name , 
+		0 );
+
+
+      //
+      // Track gene-name, if unique name is a transcript
+      //
+      
+      if ( ! use_geneid ) r.altname = tok2[1];
+      else r.altname = tok2[3]; 
+      
+      std::string & feature = tok[2];
+      
+      if ( feature != "exon" && 
+	   feature != "CDS" && 
+	   feature != "start_codon" && 
+	   feature != "stop_codon" ) 
+	{
+	  plog << "??? did not recognize feature ( not 'exon', 'CDS', 'start_codon' or 'stop_codon' ) : " << str << "\n";
+	  ++warns;
+	  continue;
+	}
+      
+      r.meta.set( "feature" , feature );
+      
+
+      // Track strand for CDS (-1,1,  0=missing)
+      
+      // Use 'strand' to encode two distinct things: a) whether
+      //  transcript is on +ve or -ve strand, b) but also some
+      //  meta-data about the type of feature. Not particularly
+      //  elegant, but will work for now...
+
+      //         <other>     0
+      //         CDS         -1,+1
+      //         exon        -2,+2
+      //         start_codon -3,+3
+      //         stop_codon  -4,+4
+
+      int strand = 0;
+      if      ( tok[6] == "-" ) strand = -1;
+      else if ( tok[6] == "+" ) strand =  1;
+      else
+	{
+	  plog << name << "\t"
+	       << "invalid_strand" << "\t"
+	       << tok[6] << "\n";
+	  ++errs;
+	  continue;
+	}
+      
+      if      ( feature == "exon" )        strand *= 2;
+      else if ( feature == "start_codon" ) strand *= 3;
+      else if ( feature == "stop_codon" )  strand *= 4;
+      
+      r.meta.set( PLINKSeq::TRANSCRIPT_STRAND() , strand );      
+      
+      //
+      // Frame: for CDS 0, 1 or 2 
+      //
+      
+      int frame = 0;
+      
+      if ( Helper::str2int( tok[7] , frame ) ) 
+	{	
+
+	  if ( feature == "CDS" )
+	    if ( frame != 0 && frame != 1 && frame != 2 ) 
+	      {
+		plog << "expecting frame to be 0, 1 or 2, not [" << tok[7] << "] : " << str << "\n"; 
+		++errs;
+		continue;
+	      }
+	  
+	  r.meta.set( PLINKSeq::TRANSCRIPT_FRAME() , frame );
+	}
+      else
+	{
+
+	  if ( tok[7] != "." )
+	    {
+	      plog << "expecting frame to be 0, 1 or 2 or '.', not [" << tok[7] << "] : " << str << "\n"; 
+	      ++errs;
+	      continue;
+	    }
+	}
+
+    
+      ///////////////////////////
+      // Add region to database
+      
+      //
+      // store
+      //
+
+      regions[ name ].push_back( r );
+      
+    }
+
+  //
+  // Now validate 
+  //
+  
+  // Specifically, will complain if any of the following (up to user
+  // to then fix / remove the offending transcripts, etc)
+  
+  // a) that has one whole start_codon, one stop_codon (even if split across exons)
+  // b) that stop_codon is after last 
+  // c) that all transcripts are >= 1 base in length
+  // d) that total transcript length is mod 3
+  // e) that each new CDS starts at the correct frame
+  // f) that start is < stop (of otherwise if -ve strand)
+  // g) if has non-standard chr codes, give warning
+  // h) that CDS do not overlap
+  // i) that has at least one CDS (currently)
+  // j) transcripts that map to different to difference chromosomes
+  // k) ununusally large or small transcripts (including large introns)
+  // l) that the start_cond / CDS is a same position, has frame 0, and is Met AA
+  // m) that there are no nonsense codons within the transcript
+  // n) that stop_codon is one base after final CDS exon
+
+  
+  bool has_seqdb = GP->seqdb.attached();
+  
+  if ( ! has_seqdb ) 
+    plog.warn( "no SEQDB attached, unable to perform certain checks" );
+  
+  // Q. what about 0-based genomic encoding? 
+  std::map<std::string , std::vector<Region> >::iterator ii = regions.begin();
+  
+  while ( ii != regions.end() )
+    {
+      
+      // get sequence
+      std::string sequence = "";
+      
+      // implied sequence length
+      int cds_length = 0;
+      std::vector<Region> & ints = ii->second;
+      
+      
+      //
+      // start / stop codon
+      //
+      
+      int start_seg = 0 , start_pos = 0;
+      int stop_seg = 0 , stop_pos = 0;
+      
+
+      bool negative_strand = false;
+      bool positive_strand = false;
+
+      for (int i=0;i < ints.size(); i++)
+	{
+	  int s = ints[i].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
+	  if ( s == -1 ) negative_strand = true;
+	  if ( s == +1 ) positive_strand = true;
+	}
+
+      std::set<Region> ordered;
+      
+      for (int i=0;i<ints.size();i++)
+	{
+	  
+	  int s = ints[i].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
+	  
+
+	  bool is_cds = false , is_start = false , is_stop = false;
+	  
+	  if ( s == -1 || s == +1 ) is_cds = true;
+	  if ( s == -3 || s == +3 ) is_start = true;
+	  if ( s == -4 || s == +4 ) is_stop = true;
+	  
+	  if ( is_cds )
+	    {	      
+	      // track ordering 
+	      
+	      if ( ints[i].stop.position() < ints[i].start.position() ) 
+		{
+		  plog << ii->first << "\t" 
+		       << "backwards_interval" << "\t"
+		       << ints[i].coordinate() << "\n";
+		}
+	      
+	      ordered.insert( ints[i] );	     
+	      cds_length += ints[i].length();
+
+	    }
+	  else if ( is_start )
+	    {	      
+	      if ( start_seg == 0 ) start_pos = negative_strand ? ints[i].stop.position() : ints[i].start.position();
+	      start_seg += ints[i].length();
+	    }
+	  else if ( is_stop )
+	    {
+	      if ( stop_seg == 0 ) stop_pos = negative_strand ? ints[i].stop.position() : ints[i].start.position();
+	      stop_seg += ints[i].length();	      
+	    }
+	  // otherwise, no need to check other feature types (for now only 'exon' is allowed anyway)
+	}
+      
+
+      // allow for non-coding transcripts: if no CDS, start, stop, but only 'exon'
+      if ( ordered.size() > 1 )
+	{
+	  if ( start_seg != 3 ) plog << ii->first << "\t" << "bad_start_codon" << "\t" << "size " << start_seg << "\n";
+	  if ( stop_seg  != 3 ) plog << ii->first << "\t" << "bad_stop_codon" << "\t" << "size " << stop_seg << "\n";
+	}
+
+      //
+      // is this transcript a protein-coding gene w/ CDS?
+      //
+
+      bool has_cds = ordered.size() > 0 ;
+      
+      
+      if ( has_cds )
+	{
+	  if ( negative_strand == positive_strand ) 
+	    {
+	      plog << ii->first  << "bad_strand\n";
+	    }
+	}
+	  
+      
+      
+
+      //
+      // check for overlap of any CDS 
+      //
+      
+      if ( ordered.size() > 1 ) 
+	{
+	  std::set<Region>::iterator jj = ordered.begin();
+	  std::set<Region>::iterator kk = ordered.begin();
+	  ++kk;
+	  while ( kk != ordered.end() ) 
+	    {
+	      if ( jj->start.chromosome() == kk->start.chromosome() &&  jj->stop.position() >= kk->start.position()  ) 
+		plog << ii->first << "\toverlapping_CDS_exons\n";
+	      else if ( jj->start.chromosome() != kk->start.chromosome() )
+		plog << ii->first << "\tmapped_to_multiple_chromosomes\t" << Helper::chrCode( jj->start.chromosome() ) << " and " << Helper::chrCode( kk->start.chromosome() ) << "\n";
+	      else if ( kk->start.position() - jj->stop.position() > 2000000 ) 
+		plog << ii->first << "over_2mb_intronic_gap\n";
+	      
+	      ++jj;
+	      ++kk;
+	    }
+	}
+      
+      //
+      // Check correct frame specification of CDS
+      //
+
+      int cds_pos = 1;
+
+      std::set<Region>::iterator jj = ordered.begin();
+      while ( jj != ordered.end() ) 
+	{
+	  
+	  int f = jj->meta.get1_int( PLINKSeq::TRANSCRIPT_FRAME() );
+	  
+	  // GTF has frame defined as # of bases to the next codon start 
+	  // so         021 021
+	  // instead of 012 012 
+	  
+	  if ( f == 1 ) f = 2; 
+	  else if ( f == 2 ) f = 1;
+
+	  int exp_f = ( cds_pos - 1 ) % 3 ;	      
+
+	  if ( f != exp_f && positive_strand ) plog << ii->first << "\t" 
+						    << "incorrect_frame" << "\t"
+						    << jj->coordinate() << "\t"
+						    << f << " vs " << exp_f << "\n";
+	  
+	  if ( has_seqdb ) sequence += GP->seqdb.lookup( *jj );
+	  
+	  cds_pos += jj->length();
+	  
+	  ++jj;
+	  
+	}
+
+      // Now check for any stop codons
+
+      if ( has_seqdb )
+	{
+	  
+	  if ( has_cds )
+	    {
+	      std::vector<std::string> ref_codon;
+
+	      if ( negative_strand ) sequence = Annotate::getrc( sequence );
+
+	      std::string trans_ref = Annotate::translate( sequence , 0 , ref_codon );
+	      
+
+	      if ( ref_codon.size() < 20 ) plog << ii->first << "\t"
+						<< "small_cds" << "\t"
+						<< ref_codon.size() << " amino acids\n";
+
+	      if ( ref_codon.size() > 0 ) 
+		{
+		  if ( trans_ref.substr(0,1) != "M" )
+		    plog << ii->first << "\t"
+			 << "non_Met_start" << "\t"
+			 << trans_ref.substr(0,1) << "\t"
+			 << Annotate::aa[ trans_ref.substr(0,1) ] << "  "<< trans_ref << "\n";
+		  
+		}
+	      
+	      for (int a=0;a<trans_ref.size(); a++)
+		{
+		  if ( trans_ref[a] == '*' ) plog << ii->first << "\t"
+						  << "stop_in_reference_CDS" << "\t"
+						  << "amino acid position " << a << "\n"; 
+		}
+	    }
+
+	}
+
+      if ( cds_length % 3 ) plog << ii->first << "\t"
+				 << "CDS_not_mod3" << "\t"
+				 << cds_length << " bases\n";
+      
+      // go to next transcript
+      
+      ++ii;
+    }
+  
+}
+

@@ -169,6 +169,8 @@ class LocDBase {
    // Wrapper functions to input a large number of ranges from a file
    //
 
+   bool check_GTF(const std::string & filename , bool use_geneid , bool add_frame );
+
    uint64_t load_GTF(const std::string & name, const std::string & grp, bool use_transcript_id = true);
 
    uint64_t load_GFF(const std::string & name, const std::string & grp, const std::string &  );

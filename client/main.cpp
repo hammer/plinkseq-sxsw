@@ -979,6 +979,18 @@ int main(int argc, char ** argv)
       Pseq::finished();
     }
   
+
+  //
+  // Check format and transcripts in a GTF
+  //
+
+  if ( command == "gtf-check" )
+    {
+      if ( ! args.has( "file" ) ) Helper::halt( "no --file specified" );
+      g.locdb.check_GTF( args.as_string( "file" ) , false , false );
+      Pseq::finished();
+    }
+
   
   //
   // Load/merge GTF files into locus database

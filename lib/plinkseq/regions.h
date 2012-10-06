@@ -177,6 +177,8 @@ class Region {
   std::vector<Subregion> subregion; 
 
   MetaInformation<LocMeta>   meta;
+
+  bool              gene_model;
   
   Region() 
     { 
@@ -244,6 +246,7 @@ class Region {
       altname = an;
       group = grp;
       subregion.clear();
+      gene_model = false;
     }
 
   void addSubRegion(int chr, int bp1, int bp2)

@@ -188,11 +188,12 @@ struct SeqInfo {
 class Annotate {
     
     // Helper functions
-
+ public:
     static std::string getrc(const std::string &);
+   
+    static std::string translate(std::string &, int, std::vector<std::string> &);    
+ private:
 
-    static std::string translate(std::string &, int, std::vector<std::string> &);
-    
     // DNA base --> AA
     static std::map<std::string,std::string> t;
 

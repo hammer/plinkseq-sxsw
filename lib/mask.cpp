@@ -582,12 +582,14 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   if ( m.has_field( "loc.subset" ) ) 
     {
       std::vector<std::string> k = m.get_string( "loc.subset" );
-      for (int i=1; i<k.size(); i++) subset_loc(k[0],k[i]);      
+      if ( k.size() < 2 ) Helper::halt( "expecting loc.subset=group,locus1(,locus2,locus3)");
+      for (int i=1; i<k.size(); i++) subset_loc(k[0],k[i]); 
     }
 
   if ( m.has_field( "loc.skip" ) ) 
     {
       std::vector<std::string> k = m.get_string( "loc.skip" );
+      if ( k.size() < 2 ) Helper::halt( "expecting loc.skip=group,locus1(,locus2,locus3)");
       for (int i=1; i<k.size(); i++) skip_loc(k[0],k[i]);
     }
 
