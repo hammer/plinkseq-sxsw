@@ -21,7 +21,13 @@ open INPUT, $input or die $!;
 my $line;
 while ($line = <INPUT>) {
   chomp($line);
-  next if ($line =~ m/^\#/);
+  if ($line =~ m/^\#/) {
+    if ($line =~ m/^\##([^,]+),.*/) {
+      my $col = $1;
+      $COLUMNS{$col} = $COL_COUNT++ if (!defined($COLUMNS{$col}));
+    }
+    next;
+  }
 
   my @fields = split(/\s+/, $line);
   die("Invalid line: $line\n") if (scalar(@fields) < 2);
