@@ -3256,7 +3256,7 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
   // keep track of transcripts we've seen
 
   int inserted = 0;  
-  std::map<std::string,std::vector<Region> > regions;
+  std::map<NameAndChr,std::vector<Region> > regions;
   
   /////////////////////////////////////////
   //                                     //
@@ -3483,7 +3483,7 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
       // store
       //
 
-      regions[ name ].push_back( r );
+      regions[ NameAndChr(name,r.chromosome()) ].push_back( r );
       
     }
 
@@ -3516,11 +3516,13 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
     plog.warn( "no SEQDB attached, unable to perform certain checks" );
   
   // Q. what about 0-based genomic encoding? 
-  std::map<std::string , std::vector<Region> >::iterator ii = regions.begin();
+  std::map<NameAndChr, std::vector<Region> >::iterator ii = regions.begin();
   
   while ( ii != regions.end() )
     {
-      
+      const std::string transcriptName = ii->first.name;
+      const uint64_t transcriptChr = ii->first.chr;
+
       // get sequence
       std::string sequence = "";
       
@@ -3567,7 +3569,7 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
 	      
 	      if ( ints[i].stop.position() < ints[i].start.position() ) 
 		{
-		  plog << ii->first << "\t" 
+		  plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t"
 		       << "backwards_interval" << "\t"
 		       << ints[i].coordinate() << "\n";
 		}
@@ -3593,8 +3595,8 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
       // allow for non-coding transcripts: if no CDS, start, stop, but only 'exon'
       if ( ordered.size() > 1 )
 	{
-	  if ( start_seg != 3 ) plog << ii->first << "\t" << "bad_start_codon" << "\t" << "size " << start_seg << "\n";
-	  if ( stop_seg  != 3 ) plog << ii->first << "\t" << "bad_stop_codon" << "\t" << "size " << stop_seg << "\n";
+	  if ( start_seg != 3 ) plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t" << "bad_start_codon" << "\t" << "size " << start_seg << "\n";
+	  if ( stop_seg  != 3 ) plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t" << "bad_stop_codon" << "\t" << "size " << stop_seg << "\n";
 	}
 
       //
@@ -3608,7 +3610,7 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
 	{
 	  if ( negative_strand == positive_strand ) 
 	    {
-	      plog << ii->first  << "bad_strand\n";
+	      plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t" << "bad_strand\n";
 	    }
 	}
 	  
@@ -3627,11 +3629,11 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
 	  while ( kk != ordered.end() ) 
 	    {
 	      if ( jj->start.chromosome() == kk->start.chromosome() &&  jj->stop.position() >= kk->start.position()  ) 
-		plog << ii->first << "\toverlapping_CDS_exons\n";
+		plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\toverlapping_CDS_exons\n";
 	      else if ( jj->start.chromosome() != kk->start.chromosome() )
-		plog << ii->first << "\tmapped_to_multiple_chromosomes\t" << Helper::chrCode( jj->start.chromosome() ) << " and " << Helper::chrCode( kk->start.chromosome() ) << "\n";
+		plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\tmapped_to_multiple_chromosomes\t" << Helper::chrCode( jj->start.chromosome() ) << " and " << Helper::chrCode( kk->start.chromosome() ) << "\n";
 	      else if ( kk->start.position() - jj->stop.position() > 2000000 ) 
-		plog << ii->first << "over_2mb_intronic_gap\n";
+		plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "over_2mb_intronic_gap\n";
 	      
 	      ++jj;
 	      ++kk;
@@ -3659,7 +3661,7 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
 
 	  int exp_f = ( cds_pos - 1 ) % 3 ;	      
 
-	  if ( f != exp_f && positive_strand ) plog << ii->first << "\t" 
+	  if ( f != exp_f && positive_strand ) plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t"
 						    << "incorrect_frame" << "\t"
 						    << jj->coordinate() << "\t"
 						    << f << " vs " << exp_f << "\n";
@@ -3686,14 +3688,14 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
 	      std::string trans_ref = Annotate::translate( sequence , 0 , ref_codon );
 	      
 
-	      if ( ref_codon.size() < 20 ) plog << ii->first << "\t"
+	      if ( ref_codon.size() < 20 ) plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t"
 						<< "small_cds" << "\t"
 						<< ref_codon.size() << " amino acids\n";
 
 	      if ( ref_codon.size() > 0 ) 
 		{
 		  if ( trans_ref.substr(0,1) != "M" )
-		    plog << ii->first << "\t"
+		    plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t"
 			 << "non_Met_start" << "\t"
 			 << trans_ref.substr(0,1) << "\t"
 			 << Annotate::aa[ trans_ref.substr(0,1) ] << "  "<< trans_ref << "\n";
@@ -3702,15 +3704,15 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
 	      
 	      for (int a=0;a<trans_ref.size(); a++)
 		{
-		  if ( trans_ref[a] == '*' ) plog << ii->first << "\t"
+		  if ( trans_ref[a] == '*' ) plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t"
 						  << "stop_in_reference_CDS" << "\t"
-						  << "amino acid position " << a << "\n"; 
+						  << "amino acid position " << (a+1) << "\n";
 		}
 	    }
 
 	}
 
-      if ( cds_length % 3 ) plog << ii->first << "\t"
+      if ( cds_length % 3 ) plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t"
 				 << "CDS_not_mod3" << "\t"
 				 << cds_length << " bases\n";
       
