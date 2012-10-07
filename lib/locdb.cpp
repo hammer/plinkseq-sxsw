@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <set>
+#include <utility>
 
 extern GStore * GP;
 
@@ -2169,7 +2170,7 @@ uint64_t LocDBase::merge( const std::string & grp_name, const std::string & name
 
   sql.begin();
 
-  std::map<std::string,Region> merged;
+  std::map<NameAndChr,Region> merged;
   int cnt = 0;
   while ( sql.step( stmt_loc_lookup_group ) )
     {
@@ -2188,8 +2189,8 @@ uint64_t LocDBase::merge( const std::string & grp_name, const std::string & name
 	}
       
       // Have we seen a region of this name before?
-      
-      std::map<std::string,Region>::iterator i = merged.find( name );
+      NameAndChr nameChr(name, r.chromosome());
+      std::map<NameAndChr,Region>::iterator i = merged.find( nameChr );
 
       if ( i != merged.end() )
 	{
@@ -2226,7 +2227,7 @@ uint64_t LocDBase::merge( const std::string & grp_name, const std::string & name
 
 	    par.addSubRegion( r );
 	    
-	    merged.insert( make_pair( name , par ) );
+	    merged.insert( std::make_pair( nameChr , par ) );
 	}
       
     }
@@ -2244,7 +2245,7 @@ uint64_t LocDBase::merge( const std::string & grp_name, const std::string & name
 
   sql.begin();
 
-  std::map<std::string,Region>::iterator i = merged.begin();
+  std::map<NameAndChr,Region>::iterator i = merged.begin();
   
   while ( i != merged.end() )
     {

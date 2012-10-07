@@ -369,6 +369,21 @@ class Region {
 
 };
 
+class NameAndChr {
+public:
+	NameAndChr(const std::string& nameP, uint64_t chrP) : name(nameP), chr(chrP){}
+
+	bool operator<(const NameAndChr& that) const {
+		if (this->name != that.name)
+			return this->name < that.name;
+
+		return this->chr < that.chr;
+	}
+
+	const std::string name;
+	uint64_t chr;
+};
+
 
 namespace RegionHelper {
   
