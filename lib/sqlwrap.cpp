@@ -138,34 +138,34 @@ bool SQL::loadExtension(string libname)
   //   return rc == 0;
 }
 
-void SQL::bind_int( sqlite3_stmt * stmt , const std::string & index , int value )
+void SQL::bind_int( sqlite3_stmt * stmt , const std::string index , int value )
 {
   sqlite3_bind_int( stmt , 
 		     sqlite3_bind_parameter_index( stmt , index.c_str() ) ,
 		     value );
 }
 
-void SQL::bind_null( sqlite3_stmt * stmt , const std::string & index  )
+void SQL::bind_null( sqlite3_stmt * stmt , const std::string index  )
 {
     sqlite3_bind_null( stmt , 
 		       sqlite3_bind_parameter_index( stmt , index.c_str() ) );
 }
 
-void SQL::bind_int64( sqlite3_stmt * stmt , const std::string & index , uint64_t value )
+void SQL::bind_int64( sqlite3_stmt * stmt , const std::string index , uint64_t value )
 {
   sqlite3_bind_int64( stmt , 
 		     sqlite3_bind_parameter_index( stmt , index.c_str() ) ,
 		      value );
 }
 
-void SQL::bind_double( sqlite3_stmt * stmt , const std::string & index , double value )
+void SQL::bind_double( sqlite3_stmt * stmt , const std::string index , double value )
 {
   sqlite3_bind_double( stmt , 
 		     sqlite3_bind_parameter_index( stmt , index.c_str() ) ,
 		     value );
 }
 
-void SQL::bind_text( sqlite3_stmt * stmt , const std::string & index , const std::string & value )
+void SQL::bind_text( sqlite3_stmt * stmt , const std::string index , const std::string & value )
 {
 
   sqlite3_bind_text( stmt , 
@@ -176,7 +176,7 @@ void SQL::bind_text( sqlite3_stmt * stmt , const std::string & index , const std
 }
   
 
-void SQL::bind_blob( sqlite3_stmt * stmt , const std::string & index , blob & value )
+void SQL::bind_blob( sqlite3_stmt * stmt , const std::string index , blob & value )
 {
     rc = sqlite3_bind_blob( stmt , 
 			    sqlite3_bind_parameter_index( stmt , index.c_str() ) ,

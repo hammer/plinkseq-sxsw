@@ -42,12 +42,12 @@ class SQL {
   uint64_t last_insert_rowid()
     { return sqlite3_last_insert_rowid(db); }
   
-  void bind_int( sqlite3_stmt * stmt , const std::string & index , int value );
-  void bind_int64( sqlite3_stmt * stmt , const std::string & index , uint64_t value );
-  void bind_double( sqlite3_stmt * stmt , const std::string & index , double value );
-  void bind_text( sqlite3_stmt * stmt , const std::string & index , const std::string & value );
-  void bind_blob( sqlite3_stmt * stmt , const std::string & index , blob & );
-  void bind_null( sqlite3_stmt * stmt , const std::string & index );
+  void bind_int( sqlite3_stmt * stmt , const std::string index , int value );
+  void bind_int64( sqlite3_stmt * stmt , const std::string index , uint64_t value );
+  void bind_double( sqlite3_stmt * stmt , const std::string index , double value );
+  void bind_text( sqlite3_stmt * stmt , const std::string index , const std::string & value );
+  void bind_blob( sqlite3_stmt * stmt , const std::string index , blob & );
+  void bind_null( sqlite3_stmt * stmt , const std::string index );
 
   int get_int( sqlite3_stmt *, int );
   uint64_t get_int64( sqlite3_stmt *, int );

@@ -989,8 +989,11 @@ void LocDBase::insertMeta( sqlite3_stmt * s , const MetaInformation<LocMeta> & m
   std::stringstream ss;
   ss << meta;
   
+  // NOTE: Need to allocate ssStr here on the stack so that it stays in scope until the step/reset that actually use its contents (since bind_text takes it as a by-reference parameter):
+  std::string ssStr = ss.str();
+
   sql.bind_int(  s , ":reg_id" , id );
-  sql.bind_text( s , ":value"  , ss.str() ); 
+  sql.bind_text( s , ":value"  , ssStr );
   sql.step( s );
   sql.reset( s );	  
     
