@@ -10,8 +10,11 @@ if (!$input) {
 }
 
 my %outTable;
+my %lastRefAlt;
+
 my %COLUMNS;
 my %LOCI;
+my %TRUE_LOCI;
 
 my $COL_COUNT = 0;
 my $LOC_COUNT = 0;
@@ -45,11 +48,34 @@ while ($line = <INPUT>) {
   $COLUMNS{$col} = $COL_COUNT++ if (!defined($COLUMNS{$col}));
   $LOCI{$loc} = $LOC_COUNT++ if (!defined($LOCI{$loc}));
 
-  if (!exists($outTable{$loc}{$col})) {
-    $outTable{$loc}{$col} = $val;
+  # Reset the new alleles:
+  if ($col eq "allele_ref") {
+	delete $lastRefAlt{$loc};
+  }
+
+  my $useLoc = $loc;
+  $useLoc = $lastRefAlt{$loc} if (exists($lastRefAlt{$loc}));
+
+  if (!exists($outTable{$useLoc}{$col})) {
+        $outTable{$useLoc}{$col} = $val;
   }
   else {
-    $outTable{$loc}{$col} .= ",".$val;
+        $outTable{$useLoc}{$col} .= ",".$val;
+  }
+
+  # Transfer the data to ref-alt format, if applicable:
+  if (exists($outTable{$loc}) && exists($outTable{$loc}{"allele_ref"}) && exists($outTable{$loc}{"allele_alt"}) && ($col eq "allele_ref" || $col eq "allele_alt")) {
+	my $locRefAlt = $loc."_".$outTable{$loc}{"allele_ref"}."_".$outTable{$loc}{"allele_alt"};
+
+	$outTable{$locRefAlt} = $outTable{$loc};
+	delete $outTable{$loc};
+
+	$LOCI{$locRefAlt} = $LOCI{$loc};
+	delete $LOCI{$loc};
+
+	$TRUE_LOCI{$locRefAlt} = $loc;
+
+	$lastRefAlt{$loc} = $locRefAlt;
   }
 }
 
@@ -66,7 +92,9 @@ print "\n";
 
 my @LOCI = sort byLocus keys(%outTable);
 foreach my $loc (@LOCI) {
-  print "$loc";
+  my $printLoc = $loc;
+  $printLoc = $TRUE_LOCI{$loc} if (exists($TRUE_LOCI{$loc}));
+  print "$printLoc";
 
   foreach my $col (@COLUMNS) {
     my $val = '.';
