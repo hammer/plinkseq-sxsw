@@ -67,7 +67,8 @@ while ($line = <INPUT>) {
   if (exists($outTable{$loc}) && exists($outTable{$loc}{"allele_ref"}) && exists($outTable{$loc}{"allele_alt"}) && ($col eq "allele_ref" || $col eq "allele_alt")) {
 	my $locRefAlt = $loc."_".$outTable{$loc}{"allele_ref"}."_".$outTable{$loc}{"allele_alt"};
 
-	$outTable{$locRefAlt} = $outTable{$loc};
+	# Don't over-write if there's already data for $locRefAlt:
+	$outTable{$locRefAlt} = $outTable{$loc} if (!exists($outTable{$locRefAlt}));
 	delete $outTable{$loc};
 
 	$LOCI{$locRefAlt} = $LOCI{$loc};
