@@ -3380,8 +3380,9 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
       if ( chromosome == 0 ) 
 	{
 	  plog << name << "\t"
-	       << "unknown_chrcode" << "\t"
-	       << tok[0] << "\n";
+	       << tok[0] << "\t"
+	       << "unknown_chrcode" << "\n";
+	       
 	  ++errs;
 	  continue;
 	}
@@ -3436,6 +3437,7 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
       else
 	{
 	  plog << name << "\t"
+	       << tok[0] << "\t"
 	       << "invalid_strand" << "\t"
 	       << tok[6] << "\n";
 	  ++errs;
@@ -3521,11 +3523,17 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
   // Q. what about 0-based genomic encoding? 
   std::map<NameAndChr, std::vector<Region> >::iterator ii = regions.begin();
   
+  // still flag when transcripts map to multiple chromosomes
+  std::map<std::string,std::set<std::string> > track_chrs_per_transcript;
+  
   while ( ii != regions.end() )
     {
       const std::string transcriptName = ii->first.name;
       const uint64_t transcriptChr = ii->first.chr;
-
+      
+      // track transcript->chromosome mapping
+      track_chrs_per_transcript[ transcriptName ].insert( Helper::chrCode( transcriptChr ) );
+      
       // get sequence
       std::string sequence = "";
       
@@ -3572,7 +3580,8 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
 	      
 	      if ( ints[i].stop.position() < ints[i].start.position() ) 
 		{
-		  plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t"
+		  plog << transcriptName << "\t" 
+		       << Helper::chrCode(transcriptChr) << "\t"
 		       << "backwards_interval" << "\t"
 		       << ints[i].coordinate() << "\n";
 		}
@@ -3635,8 +3644,8 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
 		plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\toverlapping_CDS_exons\n";
 	      else if ( jj->start.chromosome() != kk->start.chromosome() )
 		plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\tmapped_to_multiple_chromosomes\t" << Helper::chrCode( jj->start.chromosome() ) << " and " << Helper::chrCode( kk->start.chromosome() ) << "\n";
-	      else if ( kk->start.position() - jj->stop.position() > 2000000 ) 
-		plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "over_2mb_intronic_gap\n";
+	      else if ( kk->start.position() - jj->stop.position() + 1 > 1000000 ) 
+		plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\tover_1mb_intronic_gap\t" << kk->start.position() - jj->stop.position() + 1 << "\n";
 	      
 	      ++jj;
 	      ++kk;
@@ -3724,5 +3733,22 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
       ++ii;
     }
   
+  std::map<std::string,std::set<std::string> >::iterator jj = track_chrs_per_transcript.begin();
+  while ( jj != track_chrs_per_transcript.end() )
+    {
+      if ( jj->second.size() > 1 ) 
+	{
+	  std::set<std::string>::iterator kk = jj->second.begin();
+	  while ( kk != jj->second.end() )
+	    {
+	      plog << jj->first << "\t"
+		   << *kk << "\t"
+		   << "mapped_to_multiple_chromosomes\n";
+	      ++kk;
+	    }
+	}
+      ++jj;
+    }
+
 }
 

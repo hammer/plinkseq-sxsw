@@ -75,8 +75,7 @@ int main( int argc , char ** argv )
   //      -- and set-weighted gene-based tests.
   
   // 'Set-weighted gene-based tests' 
-  
-  
+    
   std::map<std::string,std::string> gene_annot;
  
   std::ifstream GENES( genes_filename.c_str() , std::ios::in );
@@ -428,10 +427,16 @@ int main( int argc , char ** argv )
 			<< (double)(pv1) / (double)(nrep+1) << "\t" 
 			<< (double)(pv2) / (double)(nrep+1) << "\t" 
 			<< slot2gene[e] << "\t";
-
+	      
 	      std::string ann = gene_annot[ slot2gene[e] ] ;
-	      std::cout << ( ann == "" ? "." : ann ) << "\n";
+	      std::cout << ( ann == "" ? "." : ann ) ;
 
+	      if ( gene2sets[e].size() == 0 ) std::cout << "\t.";	      
+	      else for (int s=0;s<gene2sets[e].size();s++)		
+		     std::cout << ( s > 0 ? "|" : "\t" ) << set_names[ gene2sets[e][s] ] ;
+			  
+	      std::cout << "\n";
+	      
 	      // if the fellow-test is nominally significant, give
 	      // some extra output as to what is driving the signal.
 
@@ -494,7 +499,13 @@ int main( int argc , char ** argv )
 			<< slot2gene[e] << "\t";
 	      
 	      std::string ann = gene_annot[ slot2gene[e] ] ;
-	      std::cout << ( ann == "" ? "." : ann ) << "\n";
+	      std::cout << ( ann == "" ? "." : ann ) ;
+	      
+	      if ( gene2sets[e].size() == 0 ) std::cout << "\t.";
+	      else for (int s=0;s<gene2sets[e].size();s++)		
+		     std::cout << ( s > 0 ? "|" : "\t" ) << set_names[ gene2sets[e][s] ] ;
+			  
+	      std::cout << "\n";
 	      
 	      
 	    }
