@@ -149,7 +149,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     
 	  << "g-view|views|view variants grouped by gene|GRP|ARG:vmeta,transpose,geno,gmeta,rarelist,phenotype,verbose|OUT:groups"
     
-	  << "gs-view|views|view gene variants in sequence|GRP|ARG:ref,gene,protdb,domain,variant"
+	  << "gs-view|views|view gene variants in sequence|GRP|ARG:ref,gene,protdb,domain,variant,plot"
 	
 	  << "i-view|views|individuals in project/file|VCF|ARG:phenotype,from-vardb|OUT:indiv"
 
@@ -470,6 +470,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "group"      , STRING_VECTOR , "generic group label(s)" ); 
     reg( "all"        , NONE          , "generic group label(s)" );
     reg( "domain"     , STRING_VECTOR , "protein domain group from PROTDB" );
+    reg( "plot"       , NONE          , "make R plotting script from gs-view" ); 
     reg( "id"         , INT_VECTOR    , "generic numeric IDs" );
 
     reg( "whitespace", NONE , "allow whitespace delimited input" );

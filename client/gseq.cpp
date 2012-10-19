@@ -10,10 +10,13 @@ extern GStore g;
 
 void g_geneseq( VariantGroup & vars , void * p )
 {
+  std::cout << "in here " << vars.name() << "\n";
 
   Out & pout = Out::stream( "gsview" );
-
+  
   Opt_geneseq * aux = (Opt_geneseq*)p;
+  
+  Out * Rplot = aux->R_plot ? &Out::stream( "gsview.R" ) : NULL ;   
   
   Region region = g.locdb.get_region( PLINKSeq::DEFAULT_LOC_GROUP() , vars.name() ) ;  
 
@@ -150,7 +153,8 @@ void g_geneseq( VariantGroup & vars , void * p )
 	{
 	  if ( all_prot || aux->protdom.find( ii->source_id ) != aux->protdom.end() )
 	    {
-	      for (int aa= ii->pstart; aa<= ii->pstop; aa++)	    
+		  // Subtract 1 to have 0-based aa coordinates:
+	      for (int aa = ii->pstart - 1; aa <= ii->pstop - 1; aa++)
 		{		  
 		  if ( pdm[aa] != "" ) pdm[aa] += " ";
 		  pdm[ aa ] += ii->source_id + "::" + ii->feature_id + ":" + ii->feature_name + " ";
@@ -176,12 +180,13 @@ void g_geneseq( VariantGroup & vars , void * p )
       pmax = t;
     }
   
+
   pmin += positive_strand ? -9 : +9 ;
   pmax += positive_strand ? +9 : -9 ;
   
   int step = positive_strand ? +1 : -1;
   
-
+  
   //
   // codon position, cycle 0,1,2
   // transcript CDS should always start at 0
@@ -419,7 +424,9 @@ void g_geneseq( VariantGroup & vars , void * p )
 	  refannot += ss2.str();
 	}
       
-      if ( cds && printing && aux->protdb && cpos == 0 && pdm.find( apos ) != pdm.end() )
+      // cpos == 2 <==> last base in codon (since still on 0-based base count within exon: 0,1,2), so only annotate once
+      // [Can change to 'cpos == 0' if want to annotate the first part of the 'split codon' instead of the last part]:
+      if ( printing && aux->protdb && cds && cpos == 2 && pdm.find( apos ) != pdm.end() )
 	{
 	  refannot += pdm[ apos ];
 	}

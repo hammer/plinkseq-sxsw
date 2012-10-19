@@ -1657,6 +1657,9 @@ int main(int argc, char ** argv)
 	if ( args.has( "variant" ) )
 	  opt.only_variant_sites = true;
 
+	if ( args.has( "plot" ) )
+	  opt.R_plot = true;
+
 	// add phenotype?
 	opt.pheno = g.phmap.type() == PHE_DICHOT;
 	
@@ -1677,10 +1680,16 @@ int main(int argc, char ** argv)
 	if ( ! g.locdb.attached() ) Helper::halt( "no LOCDB attached" );
 
 	Out output( "gsview" , "variants in sequence context" );
+	
+	Out * outplot = args.has( "plot" )
+	  ? new Out( "gsview.R" , "R script for gs-view plots" )
+	  : NULL;
 
 	IterationReport report = g.vardb.iterate( g_geneseq , &opt , m );
 	
 	if ( opt.protdb ) delete opt.protdb;
+	
+	if ( opt.R_plot ) delete outplot;
 
 	Pseq::finished();
       }
@@ -2525,9 +2534,12 @@ int main(int argc, char ** argv)
 	Out output( "prot" , "protein domain/annotations" );
 	
 	if ( args.has( "group" ) && args.has("name") )
-	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) , args.as_string( "group" ) , &m );
+	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , 
+				args.as_string( "name" ) , 
+				args.as_string( "group" ) , &m );
 	else if ( args.has( "name" ) )
-	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , args.as_string( "name" ) );
+	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) , 
+				args.as_string( "name" ) );
 	else
 	  Pseq::ProtDB::lookup( args.as_string( "protdb" ) );
 	
