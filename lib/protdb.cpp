@@ -29,14 +29,6 @@ std::set<Feature> ProtDBase::fetch( const std::string & transcript )
       f.gstart = sql.get_int( stmt_fetch_given_transcript , 8 ) ;
       f.gstop = sql.get_int( stmt_fetch_given_transcript , 9 ) ;
 
-      // reverse genomic range for negative regions
-      if ( f.gstop < f.gstart ) 
-	{
-	  int t = f.gstart;
-	  f.gstart = f.gstop;
-	  f.gstop = t;
-	}
-
       s.add( transcript , f );
     }
 	  
@@ -77,14 +69,6 @@ ProtFeatureSet ProtDBase::lookup( const Variant & v )
       f.chr = sql.get_text( stmt_fetch_given_genomic_coord , 8 ) ;
       f.gstart = sql.get_int( stmt_fetch_given_genomic_coord , 9 ) ;
       f.gstop = sql.get_int( stmt_fetch_given_genomic_coord , 10 ) ;
-
-      // reverse genomic range for negative regions
-      if ( f.gstop < f.gstart ) 
-	{
-	  int t = f.gstart;
-	  f.gstart = f.gstop;
-	  f.gstop = t;
-	}
 
       s.add( sql.get_text( stmt_fetch_given_genomic_coord , 0 ) , f );
     }
@@ -351,10 +335,8 @@ bool ProtDBase::insert( const ProtFeatureSet & fset , std::map<std::string,Regio
 	{
 
 	  // first, calculate genomic position
-	  
-	  int start = 1 + ( jj->pstart - 1 ) * 3;
-	  int stop  = 1 + ( jj->pstop -  1 ) * 3;
-
+	  int start_on_gene = 1 + ( jj->pstart - 1 ) * 3;
+	  int stop_on_gene  = 1 + ( jj->pstop -  1 ) * 3;
 	  
 	  std::map<std::string,Region>::iterator kk = plmap->find( ii->first );
 	  if ( kk == plmap->end() )
@@ -403,30 +385,30 @@ bool ProtDBase::insert( const ProtFeatureSet & fset , std::map<std::string,Regio
 	      int chr = region.chromosome();
 	      
 	      if ( negative_strand ) 
-		{
-                  for (int e = ns-1; e >= 0 ; e-- )
-                    {
-                      if ( region.subregion[e].CDS() )
-                        {
-                          int sz = region.subregion[e].stop.position() - region.subregion[e].start.position() + 1;
-                          int upr = lwr + sz - 1;
-			  
-			  //std::cout << ii->first << "\t" << start << " " << stop << " " << lwr << " " << upr << "\n";
-			  
-                          if ( start >= lwr && start <= upr ) 
-			    {			      
-			      genomic_start = region.subregion[e].stop.position() - ( start - lwr ) ;
-			      //std::cout << "flagging start = " << genomic_start << "\n";
-			    }
-			  
-                          if ( stop  >= lwr && stop  <= upr ) genomic_stop = region.subregion[e].stop.position() - ( stop - lwr ) ;
-                          
-			  // advance to first position in next                                                                                                   
-			  
-                          lwr += sz ;
-                        }
-                      if ( genomic_stop != 0 ) break;
-                    }
+	      {
+	    	  for (int e = ns-1; e >= 0 ; e-- )
+	    	  {
+	    		  if ( region.subregion[e].CDS() )
+	    		  {
+	    			  int sz = region.subregion[e].stop.position() - region.subregion[e].start.position() + 1;
+	    			  int upr = lwr + sz - 1;
+
+	    			  //std::cout << ii->first << "\t" << start << " " << stop << " " << lwr << " " << upr << "\n";
+
+	    			  if ( start_on_gene >= lwr && start_on_gene <= upr )
+	    			  {
+	    				  genomic_start = region.subregion[e].stop.position() - ( start_on_gene - lwr ) ;
+	    				  //std::cout << "flagging start = " << genomic_start << "\n";
+	    			  }
+
+	    			  if ( stop_on_gene  >= lwr && stop_on_gene  <= upr ) genomic_stop = region.subregion[e].stop.position() - ( stop_on_gene - lwr ) ;
+
+	    			  // advance to first position in next
+
+	    			  lwr += sz ;
+	    		  }
+	    		  if ( genomic_stop != 0 ) break;
+	    	  }
 
 		}
 	      else
@@ -439,8 +421,8 @@ bool ProtDBase::insert( const ProtFeatureSet & fset , std::map<std::string,Regio
 			{
 			  int sz = region.subregion[e].stop.position() - region.subregion[e].start.position() + 1;
 			  int upr = lwr + sz - 1;
-			  if ( start >= lwr && start <= upr ) genomic_start = ( start - lwr ) + region.subregion[e].start.position();
-			  if ( stop  >= lwr && stop  <= upr ) genomic_stop = ( stop - lwr ) + region.subregion[e].start.position();
+			  if ( start_on_gene >= lwr && start_on_gene <= upr ) genomic_start = ( start_on_gene - lwr ) + region.subregion[e].start.position();
+			  if ( stop_on_gene  >= lwr && stop_on_gene  <= upr ) genomic_stop = ( stop_on_gene - lwr ) + region.subregion[e].start.position();
 			  // advance to first position in next                                                                                                                                                          
 			  lwr += sz ;
 			}
@@ -450,14 +432,21 @@ bool ProtDBase::insert( const ProtFeatureSet & fset , std::map<std::string,Regio
 		}
 
 	      if ( negative_strand ) 
-		{
-		  genomic_stop -= 2;
-		}
+	      {
+	    	  genomic_stop -= 2;
+	      }
 	      else
-		{
-		  genomic_stop += 2;
-		}
-	      
+	      {
+	    	  genomic_stop += 2;
+	      }
+
+	      // reverse genomic range for negative-strand regions (so they are ordered as the range [genomic_start, genomic_stop] and thus come up properly in queries):
+	      if ( negative_strand )
+	      {
+	    	  int t = genomic_start;
+	    	  genomic_start = genomic_stop;
+	    	  genomic_stop = t;
+	      }
 
 	      if ( genomic_start == 0 || genomic_stop == 0 )
 		{
@@ -520,14 +509,6 @@ void ProtDBase::dump( Out & pout )
       f.gstart = sql.get_int( stmt_dump , 10 ) ;
       f.gstop = sql.get_int( stmt_dump , 11 ) ;
       int strand = sql.get_int( stmt_dump , 12 ) ;
-
-      // reverse genomic range for negative regions
-      if ( f.gstop < f.gstart ) 
-	{
-	  int t = f.gstart;
-	  f.gstart = f.gstop;
-	  f.gstop = t;
-	}
 
       pout << transcript_id << ( strand == 1 ? "\t+\t" : "\t-\t" ) << f << "\n";
       

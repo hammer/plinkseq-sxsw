@@ -632,76 +632,93 @@ void f_lookup_annotator( Variant & var , void * p )
 	  
 	  Region * region = Annotate::pointer_to_region( ii->first );
 	  if ( region == NULL )
-	    {
-	      aapos = 0;
-	    }
+	  {
+		  aapos = 0;
+	  }
 	  else
-	    {
-	      
-	      // determine the genomic position for the start/stop pairs                                                                                                                                            
-	      int ns = region->subregion.size();
-	      
-	      // transcript on positive or negative strand? 
-	      
-	      for (int e = 0; e < ns ; e++ )
-		{
-		  if ( region->subregion[e].CDS() )
-		    {
-		      aasize += region->subregion[e].stop.position() - region->subregion[e].start.position() + 1;
-		      int s = region->subregion[e].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
-		      if ( s == 0 ) continue;
-		      negative_strand = s < 0 ;
-		      positive_strand = s > 0 ;			  			  
-		    }
-		  
-		}
-	      
-	      bool problem = false;
-	      if ( negative_strand != positive_strand ) 
-		{
-		  unknown_strand = false;
-		  if ( aasize % 3 != 0 ) 
-		    {
-		      std::cerr << "problem, " << aasize << " " << aasize % 3 << "\n";
-		      problem = true;
-		    }
-		}
-	      
+	  {
 
-	      //
-	      // this procedure also implicitly makes sure that the variant is in the CDS
-	      // (i.e. not intronic for variants that span more than one exon
-	      //
-	      
-	      bool set_pos = false;
-	      
-	      for (int e = 0; e < ns ; e++ )
-		{
-		  // only consider actual CDS regions                                                                                                                                                               
-		  if ( region->subregion[e].CDS() )
-		    {
-		      
-		      // is the position in this region? 
-		      if ( bp >= region->subregion[e].start.position() && bp <= region->subregion[e].stop.position() )
-			{
-			  aapos += bp - region->subregion[e].start.position() ;  // 0-based 
-			  set_pos = true;
-			  break;
-			}
-		      aapos += region->subregion[e].stop.position() - region->subregion[e].start.position() + 1;
-		    }
-		}
-	      
-	      
-	      
-	      if ( problem || ! set_pos ) 
-		aapos = 0;
-	      else 
-		{		      
-		  aapos = ( (int)aapos / (int)3 ) + 1; // 1-based AA number
-		  if ( negative_strand ) aapos = aasize - aapos + 1;
-		}
-	    }
+		  // determine the genomic position for the start/stop pairs
+		  int ns = region->subregion.size();
+
+		  // transcript on positive or negative strand?
+
+		  for (int e = 0; e < ns ; e++ )
+		  {
+			  if ( region->subregion[e].CDS() )
+			  {
+				  aasize += region->subregion[e].stop.position() - region->subregion[e].start.position() + 1;
+				  int s = region->subregion[e].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
+				  if ( s == 0 ) continue;
+				  negative_strand = s < 0 ;
+				  positive_strand = s > 0 ;
+			  }
+
+		  }
+
+		  bool problem = false;
+		  if ( negative_strand != positive_strand )
+		  {
+			  unknown_strand = false;
+			  if ( aasize % 3 != 0 )
+			  {
+				  std::cerr << "problem, " << aasize << " " << aasize % 3 << "\n";
+				  problem = true;
+			  }
+		  }
+
+
+		  //
+		  // this procedure also implicitly makes sure that the variant is in the CDS
+		  // (i.e. not intronic for variants that span more than one exon
+		  //
+
+		  bool set_pos = false;
+
+		  if (negative_strand)
+		  {
+			  for (int e = ns-1; e >= 0 ; e-- )
+			  {
+				  // only consider actual CDS regions
+				  if ( region->subregion[e].CDS() )
+				  {
+					  // is the position in this region?
+					  if ( bp >= region->subregion[e].start.position() && bp <= region->subregion[e].stop.position() )
+					  {
+						  aapos += region->subregion[e].stop.position() - bp;  // 0-based
+						  set_pos = true;
+						  break;
+					  }
+					  aapos += region->subregion[e].stop.position() - region->subregion[e].start.position() + 1;
+				  }
+			  }
+		  }
+		  else {
+			  for (int e = 0; e < ns ; e++ )
+			  {
+				  // only consider actual CDS regions
+				  if ( region->subregion[e].CDS() )
+				  {
+					  // is the position in this region?
+					  if ( bp >= region->subregion[e].start.position() && bp <= region->subregion[e].stop.position() )
+					  {
+						  aapos += bp - region->subregion[e].start.position() ;  // 0-based
+						  set_pos = true;
+						  break;
+					  }
+					  aapos += region->subregion[e].stop.position() - region->subregion[e].start.position() + 1;
+				  }
+			  }
+		  }
+
+
+		  if ( problem || ! set_pos )
+			  aapos = 0;
+		  else
+		  {
+			  aapos = ( (int)aapos / (int)3 ) + 1; // 1-based AA number
+		  }
+	  }
 	
       
       // consider all features, if maps to CDS

@@ -1509,7 +1509,6 @@ void VarDBase::build_temporary_db( Mask & mask )
 	      
 	      std::string n = sql.get_text( stmt_tmp_locus_iterate , 3 );
 	      
-	      //	      std::cout << "n = " << n << "\n";
 
 	      //
 	      // Implicit or explicit exclusion of this locus?
