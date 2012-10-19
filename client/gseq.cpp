@@ -10,10 +10,13 @@ extern GStore g;
 
 void g_geneseq( VariantGroup & vars , void * p )
 {
+  std::cout << "in here " << vars.name() << "\n";
 
   Out & pout = Out::stream( "gsview" );
-
+  
   Opt_geneseq * aux = (Opt_geneseq*)p;
+  
+  Out * Rplot = aux->R_plot ? &Out::stream( "gsview.R" ) : NULL ;   
   
   Region region = g.locdb.get_region( PLINKSeq::DEFAULT_LOC_GROUP() , vars.name() ) ;  
 
@@ -176,12 +179,13 @@ void g_geneseq( VariantGroup & vars , void * p )
       pmax = t;
     }
   
+
   pmin += positive_strand ? -9 : +9 ;
   pmax += positive_strand ? +9 : -9 ;
   
   int step = positive_strand ? +1 : -1;
   
-
+  
   //
   // codon position, cycle 0,1,2
   // transcript CDS should always start at 0
