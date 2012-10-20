@@ -36,7 +36,8 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
                    STOPDELETION                =  35 ,    // stop deletion
 		   OOFCODONINSERTION               =  36 ,    // out of frame codon insertion
 		   OOFCODONDELETION               =  37 , // out of frame codon deletion
- 		   SPLICE 	= 24	, // general splice +/- 5bp     
+ 		   SPLICE 	= 24	, // general splice +/- 5bp
+ 		   EXONIC_UNKNOWN = 38, // overlaps an exon, but since the ALT is 'N', cannot know its exact coding impact
  		   
  		   // Special class of splice variants : Faustino and Cooper. Pre-mrna splicing and human disease. AG|G   AG|GTNAG. This is consistent with splicing motif measures.
 		   DONORIN2  =  25 ,    // donor splice-site |[GT]
@@ -71,6 +72,7 @@ struct SeqInfo {
   bool nonsyn() const { return type > 19 ; }   
   bool intergenic() const { return type == 2 ; }
   bool intronic() const { return type == 3 ; }
+  bool exonic_unknown() const { return type == EXONIC_UNKNOWN; }
   bool invalid() const { return type < 2 ; }
   
   static std::map< seq_annot_t , std::string> types;
