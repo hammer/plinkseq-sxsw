@@ -167,10 +167,13 @@ struct Opt_geneseq {
     protdom.clear();
     all_cds = true;
     only_variant_sites = false;
+    R_plot = false;
   }
 
   bool all_cds;  // show *all* CDS codons in output
   bool only_variant_sites;
+
+  bool R_plot;
 
   bool pheno;
   int ref;
