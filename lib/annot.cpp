@@ -991,8 +991,11 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		}
 	      if ( trans_ref[i] != trans_var[i] )
 		{
-	    	  // Single base substitutions
-		  if( reference.size() == a->size() && reference.size() == 1 )
+	    	  // Single base substitutions ("SNP"), or multi-nucleotide polymorphism ("MNP")
+	    	  // Either way, the REF and the ALT are of equal lengths here:
+	    	  if( reference.size() == a->size() )
+	    		  /* Since the REF and ALT are same length, then can correctly use 'i' (i+1, with 1-based offset)
+	    		  as the protein position (and thus properly account for MNPs spanning multiple codons): */
 		    {
 		      if ( i == 0 )
 			{
@@ -1005,9 +1008,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  if ( trans_var[i] != '*' && trans_ref[i] != '*'  )
 			    {
 				  seq_annot_t type = MIS;
-				  if (trans_var[i] == '?') { // an unknown ALT base resulted in an unknown AA
+				  if (trans_var[i] == '?') // an unknown ALT base resulted in an unknown AA
 					  type = EXONIC_UNKNOWN;
-				  }
 
 				  origpepsize = longest;
 				  newpepsize = longest;
@@ -1018,7 +1020,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 						  pos_whole_transcript ,
 						  ref_codon[i] ,
 						  alt_codon[i] ,
-						  (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
+						  i+1 ,
 						  trans_ref.substr(i,1) ,
 						  trans_var.substr(i,1) ,
 						  0 ,
@@ -1026,7 +1028,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 						  newpepsize );
 				  annot.insert( si );
 			    }
-			  if ( trans_var[i] == '*' )
+			  else if ( trans_var[i] == '*' )
 			    {
 			      seq_annot_t type = NON;
 			      origpepsize = trans_ref.size();
@@ -1038,7 +1040,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 						    pos_whole_transcript ,
 						    ref_codon[i] ,
 						    alt_codon[i] ,
-						    (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
+						    i+1 ,
 						    trans_ref.substr(i,1) ,
 						    trans_var.substr(i,1) ,
 						    0 ,
@@ -1061,7 +1063,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 						     pos_whole_transcript ,
 						     ref_codon[i] ,
 						     alt_codon[i] ,
-						     (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
+						     i+1 ,
 						     trans_ref.substr(i,1) ,
 						     trans_var.substr(i,1) ,
 						     0 ,
@@ -1082,9 +1084,9 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		      // regions? Consider them splice in the meantime
 		      
 		      int modtmpr = ( reference.size() - 1 ) % 3;
-		      int modtmpa = ( (*a).size() - 1 ) % 3;
+		      int modtmpa = ( a->size() - 1 ) % 3;
 
-		      if (  ( reference.size() > 1 && modtmpr != 0 ) || ( (*a).size() > 1 && ( modtmpa != 0 ) ) )
+		      if (  ( reference.size() > 1 && modtmpr != 0 ) || ( a->size() > 1 && ( modtmpa != 0 ) ) )
 			{
 			  newpos_stop++;
 			  if(newpos_stop == 1)
@@ -1157,7 +1159,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			      annot.insert( si );
 			    }
 			}
-		      else if ( reference.size() > (*a).size() && modtmpr % 3 == 0)
+		      else if ( reference.size() > a->size() && modtmpr % 3 == 0)
 			{
 			  posinframe_indel++;
 			  if( posinframe_indel == 1)
@@ -1180,7 +1182,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 						     trans_var.substr(i,1)) );
 			    }
 			}
-		      else if ( (*a).size() > reference.size() && modtmpa % 3 == 0){
+		      else if ( a->size() > reference.size() && modtmpa % 3 == 0){
 			posinframe_indel++;
 			if( posinframe_indel == 1 )
 			  {
@@ -1207,7 +1209,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			seq_annot_t type = INDEL;
  		    }
 		}
-	      if ( trans_ref[i] == '*' && trans_var[i] == '*' && ( (*a).size() > 1 || reference.size() > 1 )){
+
+	      if ( trans_ref[i] == '*' && trans_var[i] == '*' && ref_codon[i] != alt_codon[i] && ( (a->size() > 1 || reference.size() > 1) && a->size() != reference.size() )){
 		seq_annot_t type = INDEL;
 		annot.insert( SeqInfo( r->name ,
 				       type ,
@@ -1222,6 +1225,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		
 		i = longest;
 	      }
+
 	    }
 	  ++ii;
 	} // next transcript

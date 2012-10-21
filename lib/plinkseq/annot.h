@@ -124,11 +124,13 @@ struct SeqInfo {
     
   bool operator<( const SeqInfo & rhs ) const
   {
-    if ( transcript < rhs.transcript ) return true;
-    if ( transcript > rhs.transcript ) return false;
-    if ( type < rhs.type ) return true;
-    if ( type > rhs.type ) return false;
-    return genomic_alt < rhs.genomic_alt;
+    if ( transcript != rhs.transcript ) return transcript < rhs.transcript;
+    if ( cpos1 != rhs.cpos1 ) return cpos1 < rhs.cpos1;
+    if ( cpos2 != rhs.cpos2 ) return cpos2 < rhs.cpos2;
+    if ( genomic_alt != rhs.genomic_alt ) return genomic_alt < rhs.genomic_alt;
+    if ( ppos1 != rhs.ppos1 ) return ppos1 < rhs.ppos1;
+    if ( ppos2 != rhs.ppos2 ) return ppos2 < rhs.ppos2;
+    if ( type != rhs.type ) return type < rhs.type;
   }
   
   
