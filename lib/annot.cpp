@@ -1210,7 +1210,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
  		    }
 		}
 
-	      if ( trans_ref[i] == '*' && trans_var[i] == '*' && ref_codon[i] != alt_codon[i] && ( (a->size() > 1 || reference.size() > 1) && a->size() != reference.size() )){
+	      if ( trans_ref[i] == '*' && trans_var[i] == '*' && ( (a->size() > 1 || reference.size() > 1) && a->size() != reference.size() )){
 		seq_annot_t type = INDEL;
 		annot.insert( SeqInfo( r->name ,
 				       type ,
