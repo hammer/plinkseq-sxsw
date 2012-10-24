@@ -1,4 +1,3 @@
-
 #include "util.h"
 #include "plinkseq.h"
 #include "assoc.h"
@@ -439,7 +438,6 @@ void f_lookup_annotator( Variant & var , void * p )
     {
 
       bool exonic = Annotate::annotate( var );
-  
 
       std::string annot = var.meta.get1_string( PLINKSeq::ANNOT() );
 	  
@@ -449,6 +447,10 @@ void f_lookup_annotator( Variant & var , void * p )
 	   << "func" << "\t"
 	   << var.meta.as_string( PLINKSeq::ANNOT_TYPE() , "," ) << "\n";
       
+      pout << var.coordinate() << "\t"
+           << "func_details" << "\t"
+           << var.meta.as_string( PLINKSeq::ANNOT_DETAILS() , "," ) << "\n";
+
       pout << var.coordinate() << "\t"
 	   << "transcript" << "\t"
 	   << var.meta.as_string( PLINKSeq::ANNOT_GENE() , "," ) << "\n";

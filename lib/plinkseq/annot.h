@@ -120,7 +120,9 @@ struct SeqInfo {
     nmd = 0;
     ofptv = 0;
     exin = 0;
-  }
+    iseq = "";
+    eseq = "";
+ }
     
   bool operator<( const SeqInfo & rhs ) const
   {
@@ -144,6 +146,9 @@ struct SeqInfo {
   int exin; // for splice variants -- what exon is closest 
   int cpos1;  // position in DNA
   int cpos2;
+
+  std::string iseq; // intronic splice sequence
+  std::string eseq; // exonic splice sequence
 
   int ppos1;  // position in protein
   int ppos2;
