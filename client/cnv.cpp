@@ -128,9 +128,13 @@ void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
 			continue;
 		const SampleVariant& childSampVariant = *(fileSamples[0]);
 
-		if (!childSampVariant.meta.has_field("NUMT"))
+		int numTargets = -1;
+		if (childSampVariant.meta.has_field("NUMT"))
+			numTargets = childSampVariant.meta.get1_int("NUMT");
+		else if (v.consensus.meta.has_field("NUMT")) // when only a single sample, then info is only in consensus!
+			numTargets = v.consensus.meta.get1_int("NUMT");
+		else
 			continue;
-		const int numTargets = childSampVariant.meta.get1_int("NUMT");
 
 		Inds childsParents;
 		childsParents.insert(patInd);
