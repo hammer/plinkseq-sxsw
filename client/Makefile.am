@@ -1,3 +1,5 @@
+include ../common.am
+
 bin_PROGRAMS = pseq
 
 pseq_SOURCES = \

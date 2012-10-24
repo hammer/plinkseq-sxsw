@@ -1,3 +1,5 @@
+include ../common.am
+
 bin_PROGRAMS = tab2vcf gcol behead smp
 
 tab2vcf_SOURCES = \
