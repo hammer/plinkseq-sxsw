@@ -130,7 +130,7 @@ struct SeqInfo {
     if ( genomic_alt != rhs.genomic_alt ) return genomic_alt < rhs.genomic_alt;
     if ( ppos1 != rhs.ppos1 ) return ppos1 < rhs.ppos1;
     if ( ppos2 != rhs.ppos2 ) return ppos2 < rhs.ppos2;
-    if ( type != rhs.type ) return type < rhs.type;
+    /* if ( type != rhs.type ) */ return type < rhs.type;
   }
   
   
