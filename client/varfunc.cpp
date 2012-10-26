@@ -1714,6 +1714,8 @@ struct Aux_transmission_summary
       ab_kid_max = 1 ;
       ab_par = 1;
       pl_kid = pl_par = 0;
+
+      printTransmission = false;
     } 
   
   aux_transmission_summary * indiv(const int i) { return &res[i]; }
@@ -1729,12 +1731,25 @@ struct Aux_transmission_summary
   double pl_kid;
   double pl_par;
    
+  bool printTransmission;
 };
+
+#define VAR_DATA \
+		v << "\t" \
+		<< c << "\t" \
+		<< c_tot << "\t" \
+		<< v.ind(i)->id() << "\t" \
+		<< v.label( patn , "," ) << "\t" \
+		<< v.label( matn , "," ) << "\t" \
+		<< v.label( i , "," ) << "\t" \
+		<< "[" << v.gmeta_label(patn) << "]" << "\t" \
+		<< "[" << v.gmeta_label(matn) << "]" << "\t" \
+		<< "[" << v.gmeta_label(i) << "]"
 
 void f_denovo_scan( Variant & v , void * p )
 {
 
-  Out & pout = Out::stream( "denovo.vars" );
+  Out & pDeNovos = Out::stream( "denovo.vars" );
   
   Aux_transmission_summary * aux = (Aux_transmission_summary*)p;
   
@@ -1758,11 +1773,10 @@ void f_denovo_scan( Variant & v , void * p )
       Genotype & gp = v(patn);
       Genotype & gm = v(matn);
       
-      bool denovo = false;
-
-      aux_transmission_summary * p = aux->indiv(i);
+      aux_transmission_summary* summary = aux->indiv(i);
+      aux_transmission_summary prevSummary = *summary;
       
-      if ( go.null() || gp.null() || gm.null() ) p->missing++;
+      if ( go.null() || gp.null() || gm.null() ) summary->missing++;
       else
  	{
 	  
@@ -1774,68 +1788,69 @@ void f_denovo_scan( Variant & v , void * p )
  	    {
  	      if ( am == 0 ) 
  		{
- 		  if      ( ao == 0 ) ++p->aa_aa_aa;
- 		  else if ( ao == 1 ) { ++p->aa_aa_ab; denovo = true; }
- 		  else if ( ao == 2 ) ++p->aa_aa_bb;
+ 		  if      ( ao == 0 ) ++summary->aa_aa_aa;
+ 		  else if ( ao == 1 ) { ++summary->aa_aa_ab; }
+ 		  else if ( ao == 2 ) ++summary->aa_aa_bb;
  		}
  	      else if ( am == 1 ) 
  		{
- 		  if      ( ao == 0 ) ++p->aa_ab_aa;
- 		  else if ( ao == 1 ) ++p->aa_ab_ab;
- 		  else if ( ao == 2 ) ++p->aa_ab_bb;
+ 		  if      ( ao == 0 ) ++summary->aa_ab_aa;
+ 		  else if ( ao == 1 ) ++summary->aa_ab_ab;
+ 		  else if ( ao == 2 ) ++summary->aa_ab_bb;
  		}
  	      else // am == 2 
  		{
- 		  if      ( ao == 0 ) ++p->aa_bb_aa;
- 		  else if ( ao == 1 ) ++p->aa_bb_ab;
- 		  else if ( ao == 2 ) ++p->aa_bb_bb;
+ 		  if      ( ao == 0 ) ++summary->aa_bb_aa;
+ 		  else if ( ao == 1 ) ++summary->aa_bb_ab;
+ 		  else if ( ao == 2 ) ++summary->aa_bb_bb;
  		}
  	    }
  	  else if ( ap == 1 ) 
  	    {
  	      if ( am == 0 ) 
  		{
- 		  if      ( ao == 0 ) ++p->ab_aa_aa;
- 		  else if ( ao == 1 ) ++p->ab_aa_ab;
- 		  else if ( ao == 2 ) ++p->ab_aa_bb;
+ 		  if      ( ao == 0 ) ++summary->ab_aa_aa;
+ 		  else if ( ao == 1 ) ++summary->ab_aa_ab;
+ 		  else if ( ao == 2 ) ++summary->ab_aa_bb;
  		}
  	      else if ( am == 1 ) 
  		{
- 		  if      ( ao == 0 ) ++p->ab_ab_aa;
- 		  else if ( ao == 1 ) ++p->ab_ab_ab;
- 		  else if ( ao == 2 ) ++p->ab_ab_bb;
+ 		  if      ( ao == 0 ) ++summary->ab_ab_aa;
+ 		  else if ( ao == 1 ) ++summary->ab_ab_ab;
+ 		  else if ( ao == 2 ) ++summary->ab_ab_bb;
  		}
  	      else // am == 2 
  		{
- 		  if      ( ao == 0 ) ++p->ab_bb_aa;
- 		  else if ( ao == 1 ) ++p->ab_bb_ab;
- 		  else if ( ao == 2 ) ++p->ab_bb_bb;
+ 		  if      ( ao == 0 ) ++summary->ab_bb_aa;
+ 		  else if ( ao == 1 ) ++summary->ab_bb_ab;
+ 		  else if ( ao == 2 ) ++summary->ab_bb_bb;
  		}
  	    }
  	  else
  	    {
  	      if ( am == 0 ) 
  		{
- 		  if      ( ao == 0 ) ++p->bb_aa_aa;
- 		  else if ( ao == 1 ) ++p->bb_aa_ab;
- 		  else if ( ao == 2 ) ++p->bb_aa_bb;
+ 		  if      ( ao == 0 ) ++summary->bb_aa_aa;
+ 		  else if ( ao == 1 ) ++summary->bb_aa_ab;
+ 		  else if ( ao == 2 ) ++summary->bb_aa_bb;
  		}
  	      else if ( am == 1 ) 
  		{
- 		  if      ( ao == 0 ) ++p->bb_ab_aa;
- 		  else if ( ao == 1 ) ++p->bb_ab_ab;
- 		  else if ( ao == 2 ) ++p->bb_ab_bb;
+ 		  if      ( ao == 0 ) ++summary->bb_ab_aa;
+ 		  else if ( ao == 1 ) ++summary->bb_ab_ab;
+ 		  else if ( ao == 2 ) ++summary->bb_ab_bb;
  		}
  	      else // am == 2 
  		{
- 		  if      ( ao == 0 ) ++p->bb_bb_aa;
- 		  else if ( ao == 1 ) ++p->bb_bb_ab;
- 		  else if ( ao == 2 ) ++p->bb_bb_bb;
+ 		  if      ( ao == 0 ) ++summary->bb_bb_aa;
+ 		  else if ( ao == 1 ) ++summary->bb_bb_ab;
+ 		  else if ( ao == 2 ) ++summary->bb_bb_bb;
  		}
  	    }
 	  
  	}
       
+      bool denovo = (summary->potential_denovo() > prevSummary.potential_denovo());
       
       // would this putative de novo pass special denovo filters?
       if ( denovo ) 
@@ -1941,54 +1956,61 @@ void f_denovo_scan( Variant & v , void * p )
 	    }
 	}
       
+      bool trans_ref_from_het = (summary->trans_ref_from_het() > prevSummary.trans_ref_from_het());
+      bool trans_alt_from_het = (summary->trans_alt_from_het() > prevSummary.trans_alt_from_het());
+
+	  // get allele frequencies
+	  int c = 0 , c_tot = 0;
+	  if (denovo || (aux->printTransmission && (trans_ref_from_het || trans_alt_from_het)))
+		  v.n_minor_allele( &c , &c_tot );
       
       // directly output possible de novo events (only REF x REF --> HET)
       // that also passed any above, de-novo specific filters
       
       if ( denovo ) 
-	{
-	  
-	  // track # of actual 'passing' de novo calls
-	  p->dcount++;
-	  
-	  // get allele frequencies
-	  int c = 0 , c_tot = 0;
-	  v.n_minor_allele( &c , &c_tot ); 
-	  
-	  pout << "Variant" << "\t"
-		   << "RefxRef->Het" << "\t"
-	       << v << "\t" 
-	       << c << "\t"
-	       << c_tot << "\t"
-	       << v.ind(i)->id() << "\t"
-	       << v.label( patn , "," ) << "\t"
-	       << v.label( matn , "," ) << "\t"
-	       << v.label( i , "," ) << "\t"
-	       << "[" << v.gmeta_label(patn) << "]" << "\t"
-	       << "[" << v.gmeta_label(matn) << "]" << "\t"
-	       << "[" << v.gmeta_label(i) << "]" << "\n";
+      {
+    	  // track # of actual 'passing' de novo calls
+    	  summary->dcount++;
 
-	}      
+    	  pDeNovos << "Variant" << "\t"
+    			  << "RefxRef->Het" << "\t"
+    			  << VAR_DATA << "\n";
+      }
+
+      if (aux->printTransmission) {
+    	  Out & pTrans = Out::stream( "parent_transmission.vars" );
+
+    	  if (trans_ref_from_het)
+    		  pTrans << "Variant" << "\t"
+    		  << "REF_FROM_HET" << "\t"
+    		  << VAR_DATA << "\n";
+
+    	  if (trans_alt_from_het)
+    		  pTrans << "Variant" << "\t"
+    		  << "ALT_FROM_HET" << "\t"
+    		  << VAR_DATA << "\n";
+      }
     }
 }
 
+#define VAR_HEADER \
+		"#DATA" << "\t" \
+		<< "TRIO_STATUS" << "\t" \
+		<< "LOCUS" << "\t" \
+		<< "AC" << "\t" \
+		<< "AN" << "\t" \
+		<< "CHILD" << "\t" \
+		<< "PAT_GT" << "\t" \
+		<< "MAT_GT" << "\t" \
+		<< "CHILD_GT" << "\t" \
+		<< "PAT_META" << "\t" \
+		<< "MAT_META" << "\t" \
+		<< "CHILD_META"
 
 bool Pseq::VarDB::denovo_scan( Mask & mask )
 {
-	Out & pout = Out::stream( "denovo.vars" );
-
-	pout << "#DATA" << "\t"
-			<< "TRIO_STATUS" << "\t"
-			<< "LOCUS" << "\t"
-			<< "AC" << "\t"
-			<< "AN" << "\t"
-			<< "CHILD" << "\t"
-			<< "PAT_GT" << "\t"
-			<< "MAT_GT" << "\t"
-			<< "CHILD_GT" << "\t"
-			<< "PAT_META" << "\t"
-			<< "MAT_META" << "\t"
-			<< "CHILD_META" << "\n";
+	Out & pDeNovos = Out::stream( "denovo.vars" );
+	pDeNovos << VAR_HEADER << "\n";
 
   // did we have some special values 
   
@@ -2001,8 +2023,8 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
   if ( args.has("param") )
     {
       std::vector<double> p = args.as_float_vector( "param" );
-      if ( p.size() != 7 ) 
-	Helper::halt( "expect --param DP(kid) DP(par) PL(kid) PL(par) AB(kid,lwr) AB(kid,upr) AB(par,upr)" );
+      if ( p.size() < 7 )
+	Helper::halt( "expect --param DP(kid) DP(par) PL(kid) PL(par) AB(kid,lwr) AB(kid,upr) AB(par,upr) [printTransmission?]" );
 
       aux.dp_kid = p[0];
       aux.dp_par = p[1];
@@ -2013,7 +2035,17 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
       aux.ab_kid_max = p[5];
       aux.ab_par = p[6];  
 
+      if (p.size() >= 8)
+    	  aux.printTransmission = static_cast<bool>(p[7]);
     }
+
+  Out* outputTrans = NULL;
+  if (aux.printTransmission) {
+	outputTrans = new Out( "parent_transmission.vars" , "for each parent het, output whether the ref or alt was transmitted (or one from each parent)" );
+
+	Out & pTrans = Out::stream( "parent_transmission.vars" );
+	pTrans << VAR_HEADER << "\n";
+  }
 
   
   // Attach parents
@@ -2029,9 +2061,11 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
     }
   
   g.vardb.iterate( f_denovo_scan , &aux , mask );
+
+  if (aux.printTransmission)
+	  delete outputTrans;
   
   // display summaries
-
   Out & pindiv = Out::stream( "denovo.indiv" );
   pindiv << "#DATA\t"
 		  << "CHILD" << "\t"
