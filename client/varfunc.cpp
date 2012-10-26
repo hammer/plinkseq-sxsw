@@ -1955,13 +1955,14 @@ void f_denovo_scan( Variant & v , void * p )
 	  int c = 0 , c_tot = 0;
 	  v.n_minor_allele( &c , &c_tot ); 
 	  
-	  pout << "Variant\tRefxRef->Het\t" 
+	  pout << "Variant" << "\t"
+		   << "RefxRef->Het" << "\t"
 	       << v << "\t" 
 	       << c << "\t"
 	       << c_tot << "\t"
 	       << v.ind(i)->id() << "\t"
-	       << v.label( patn , "," ) << " x "
-	       << v.label( matn , "," ) << " -> "
+	       << v.label( patn , "," ) << "\t"
+	       << v.label( matn , "," ) << "\t"
 	       << v.label( i , "," ) << "\t"
 	       << "[" << v.gmeta_label(patn) << "]" << "\t"
 	       << "[" << v.gmeta_label(matn) << "]" << "\t"
@@ -1974,7 +1975,21 @@ void f_denovo_scan( Variant & v , void * p )
 
 bool Pseq::VarDB::denovo_scan( Mask & mask )
 {
-  
+	Out & pout = Out::stream( "denovo.vars" );
+
+	pout << "#DATA" << "\t"
+			<< "TRIO_STATUS" << "\t"
+			<< "LOCUS" << "\t"
+			<< "AC" << "\t"
+			<< "AN" << "\t"
+			<< "CHILD" << "\t"
+			<< "PAT_GT" << "\t"
+			<< "MAT_GT" << "\t"
+			<< "CHILD_GT" << "\t"
+			<< "PAT_META" << "\t"
+			<< "MAT_META" << "\t"
+			<< "CHILD_META" << "\n";
+
   // did we have some special values 
   
   const int n = g.indmap.size();
@@ -2018,6 +2033,16 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
   // display summaries
 
   Out & pindiv = Out::stream( "denovo.indiv" );
+  pindiv << "#DATA\t"
+		  << "CHILD" << "\t"
+		  << "COMPLETE_TRANSMISSIONS" << "\t"
+		  << "MISSING" << "\t"
+		  << "TRANS_REF_FROM_HET" << "\t"
+		  << "TRANS_ALT_FROM_HET" << "\t"
+		  << "ALT_TRANS_RATE" << "\t"
+		  << "NON_MENDELIAN" << "\t"
+		  << "POTENTIAL_DENOVO" << "\t"
+		  << "PASSING_DENOVO" << "\n";
   
   for (int i=0;i<n;i++)
     {
