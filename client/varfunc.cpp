@@ -997,9 +997,9 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 	  bool okay = true;
 	  std::vector<std::string> line = F1.tokenizeLine( " \t" );
 	  
-	  if ( line.size() == 0 ) continue;
+	  if ( line.size() == 0 || line[0].substr(0,1) == "#") continue;
 	  
-	  if ( ! ( line.size() == 1 || line.size() == 3 ) ) 
+	  if ( ! ( line.size() == 1 || line.size() >= 3 ) )
 	    {
 	      plog.warn( "not a valid line of input" , line );
 	      continue;
@@ -1008,8 +1008,8 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 	  // Region REF ALT
 	  
 	  Region region( line[0] , okay );     
-	  std::string ref_allele = line.size() == 3 ? line[1] : ".";
-	  std::string alt_allele = line.size() == 3 ? line[2] : ".";
+	  std::string ref_allele = line.size() >= 3 ? line[1] : ".";
+	  std::string alt_allele = line.size() >= 3 ? line[2] : ".";
 	  
 	  if ( okay ) 
 	    {	  
