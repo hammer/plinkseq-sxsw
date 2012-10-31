@@ -667,71 +667,76 @@ int Variant::n_notnull() const
   return n;
 }
 
+void Variant::n_alt_allele( int * m_ , int * n_ , double * aaf_ , const affType & aff ) const {
+	// returns counts of any non-reference allele
+	// optionally, if aff is not UNKNOWN_PHE , split this by case/control
+
+	int m = 0;
+	int n = 0;
+
+	if ( aff == UNKNOWN_PHE )
+	{
+
+		for (int i=0; i< size() ; i++)
+		{
+			const Genotype * g = genotype(i);
+			if ( ! g->null() )
+			{
+				m += g->allele_count();
+				n += g->copy_number();
+			}
+		}
+	}
+	else  // alternate version, in which we look up phenotype
+	{
+		for (int i=0; i< size() ; i++)
+		{
+			if ( ind(i)->affected() == aff )
+			{
+				const Genotype * g = genotype(i);
+				if ( ! g->null() )
+				{
+					m += g->allele_count();
+					n += g->copy_number();
+				}
+			}
+		}
+	}
+
+	// If reference allele is minor allele, swap the minor allele count,
+	// and let the caller know about this
+
+	double aaf = (double)m / (double)n ;
+
+	// Update external values
+	if ( m_ ) *m_ = m;
+	if ( n_ ) *n_ = n;
+	if ( aaf_ ) *aaf_ = aaf;
+}
 
 bool Variant::n_minor_allele( int * m_ , int * n_ , double * maf_ , const affType & aff ) const
 {
-  
-  // returns counts of any non-reference allele
-  // optionally, if aff is not UNKNOWN_PHE , split this by case/control
-  
-  int m = 0;
-  int n = 0;
-  
-  if ( aff == UNKNOWN_PHE )
-    {
+	int m, n;
+	double maf;
+	n_alt_allele( &m , &n , &maf , aff );
 
-      for (int i=0; i< size() ; i++) 
+	bool altmin = true;
+
+	if ( maf > 0.5 )
 	{
-	  const Genotype * g = genotype(i);	  
-	  if ( ! g->null() )
-	    {
-	      m += g->allele_count();
-	      n += g->copy_number();	    
-	    }
+		m = n - m;
+		maf = 1 - maf;
+		altmin = false;
 	}
-    }
-  else  // alternate version, in which we look up phenotype
-    {
-      for (int i=0; i< size() ; i++) 
-	{
-	  if ( ind(i)->affected() == aff ) 
-	    {
-	      const Genotype * g = genotype(i);
-	      if ( ! g->null() )
-		{
-		  m += g->allele_count();
-		  n += g->copy_number();
-		}		      
-	    }
-	}      
-    }
 
+	// Update external values
+	if ( m_ ) *m_ = m;
+	if ( n_ ) *n_ = n;
+	if ( maf_ ) *maf_ = maf;
 
-  // If reference allele is minor allele, swap the minor allele count,
-  // and let the caller know about this
-
-  double maf = (double)m / (double)n ;
-  
-  bool altmin = true;
-  
-  if ( maf > 0.5 ) 
-    {
-      m = n - m;
-      maf = 1 - maf;
-      altmin = false;
-    }
-  
-  // Update external values
-  
-  if ( m_ ) *m_ = m;
-  if ( n_ ) *n_ = n;
-  if ( maf_ ) *maf_ = maf; 
-
-  // Alternate allele is minor allele
-  return altmin;  
+	// Alternate allele is minor allele
+	return altmin;
 }
-
-
 
 std::map<std::string,int> Variant::allele_counts( const affType & aff ) const 
 {

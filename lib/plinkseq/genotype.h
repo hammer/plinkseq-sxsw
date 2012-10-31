@@ -167,7 +167,7 @@ class Genotype {
   bool haploid() const  { return ploidy == 1; } 
   
   void diploid(const bool b)  { ploidy = 2; }
-  bool diploid() const  { return ploidy != 2; }
+  bool diploid() const  { return ploidy == 2; }
   
   void phased(const bool b)  { known_phase = b; }
   bool phased() const  { return known_phase; }
@@ -212,8 +212,20 @@ class Genotype {
   void acode1(uint8_t a ) { allele1=a; } 
 
   int acode2() const { return allele2; } 
-  void acode2(uint8_t a ) { allele2=a; } 
+  void acode2(uint8_t a ) { allele2=a; }
 
+  bool a1IsReference() const
+  {
+    if ( is_null || ploidy == 0 ) return false;
+    return allele1 == 0;
+  }
+
+  bool a2IsReference() const
+  {
+    if ( is_null || ploidy == 0 ) return false;
+    if ( ploidy == 1 ) return false;
+    return allele2 == 0;
+  }
 
   // number of a particular allele, string encoding
   int allele_count( const std::string & , const Variant * ) const;  
@@ -223,7 +235,13 @@ class Genotype {
   {
     return is_null ? false : allele1 != 0 || allele2 != 0 ;
   }
-  
+
+  bool homozygote() const
+  {
+    if ( ploidy != 2 || is_null ) return false;
+    return allele1 == allele2;
+  }
+
   bool heterozygote() const
   {
     if ( ploidy != 2 || is_null ) return false;

@@ -1534,170 +1534,66 @@ bool Pseq::VarDB::proximity_scan( Mask & mask )
 //
 //
 
-struct aux_transmission_summary { 
+struct aux_trio_transmission_summary { 
 
   bool has_parents;
 
-  int missing; // 1 or more missing genotypes in trio
-  // PAT x MAT --> OFF 
+  int _missing; // 1 or more missing (or non-diploid) genotypes in trio
+  int _complete_transmissions;
+  int _nonmendelian;
+  int _trans_ref_from_het;
+  int _trans_alt_from_het;
+  int _potential_denovo;
+  int _dcount;
 
-  int aa_aa_aa;    
-  int aa_aa_ab; // **    
-  int aa_aa_bb; // **
-
-  int aa_ab_aa;    
-  int aa_ab_ab;    
-  int aa_ab_bb; // **  
- 
-  int aa_bb_aa; // **
-  int aa_bb_ab; 
-  int aa_bb_bb; // **
-
-
-  int ab_aa_aa;    
-  int ab_aa_ab; 
-  int ab_aa_bb; // **
-
-  int ab_ab_aa;    
-  int ab_ab_ab; 
-  int ab_ab_bb; 
-  
-  int ab_bb_aa; // **    
-  int ab_bb_ab; 
-  int ab_bb_bb; 
-
-
-  int bb_aa_aa; // **   
-  int bb_aa_ab;     
-  int bb_aa_bb; // **
-
-  int bb_ab_aa; // **     
-  int bb_ab_ab;    
-  int bb_ab_bb; 
- 
-  int bb_bb_aa; // **
-  int bb_bb_ab; // **
-  int bb_bb_bb; 
-  
-  int dcount;
+  int missing() const
+  {
+	return _missing;
+  }
 
   int complete_transmissions() const
   {
-    return aa_aa_aa +
-      aa_aa_ab +
-      aa_aa_bb +
-      aa_ab_aa +
-      aa_ab_ab +
-      aa_ab_bb +
-      aa_bb_aa +
-      aa_bb_ab +
-      aa_bb_bb +
-      ab_aa_aa +
-      ab_aa_ab +
-      ab_aa_bb +
-      ab_ab_aa +
-      ab_ab_ab +
-      ab_ab_bb +
-      ab_bb_aa +   
-      ab_bb_ab +
-      ab_bb_bb +
-      bb_aa_aa +  
-      bb_aa_ab +
-      bb_aa_bb +
-      bb_ab_aa +    
-      bb_ab_ab +
-      bb_ab_bb +
-      bb_bb_aa +
-      bb_bb_ab +
-      bb_bb_bb ;
+    return _complete_transmissions;
   }
 
   int nonmendelian() const
   {
-    return 
-      aa_aa_ab + 
-      aa_aa_bb +
-      aa_ab_bb +
-      aa_bb_aa + 
-      aa_bb_bb +
-      ab_aa_bb +
-      ab_bb_aa +   
-      bb_aa_aa +  
-      bb_aa_bb +
-      bb_ab_aa +    
-      bb_bb_aa +
-      bb_bb_ab ;
+    return _nonmendelian;
   }
 
   int trans_ref_from_het() const
   {
-    return 
-      aa_ab_aa +
-      ab_aa_aa + 
-      ab_ab_aa + 
-      ab_ab_ab + 
-      ab_bb_ab + 
-      bb_ab_ab ;
+    return _trans_ref_from_het;
   }
 
 
   int trans_alt_from_het() const
   {
 
-    return 
-      aa_ab_ab +
-      ab_aa_ab +
-      ab_ab_ab + 
-      ab_ab_bb + 
-      ab_bb_bb + 
-      bb_ab_bb ;
+    return _trans_alt_from_het;
   }
 
   int potential_denovo() const
   {
-    return aa_aa_ab ;
+    return _potential_denovo;
   }
 
   int passing_denovo() const
   {
-    return dcount;
+    return _dcount;
   }
 
-  aux_transmission_summary() 
+  aux_trio_transmission_summary() 
   {
-      aa_aa_aa =
-      aa_aa_ab =
-      aa_aa_bb =
-      aa_ab_aa =
-      aa_ab_ab =
-      aa_ab_bb =
-      aa_bb_aa =
-      aa_bb_ab =
-      aa_bb_bb = 0;
-    
-    ab_aa_aa =
-      ab_aa_ab =
-      ab_aa_bb =
-      ab_ab_aa =
-      ab_ab_ab =
-      ab_ab_bb = 
-      ab_bb_aa =
-      ab_bb_ab =
-      ab_bb_bb = 0;
-    
-    bb_aa_aa =
-      bb_aa_ab =
-      bb_aa_bb =
-      bb_ab_aa = 
-      bb_ab_ab =
-      bb_ab_bb = 
-      bb_bb_aa =
-      bb_bb_ab =
-      bb_bb_bb = 0;
+	  _missing =
+	  _complete_transmissions =
+	  _nonmendelian =
+	  _trans_ref_from_het =
+	  _trans_alt_from_het =
+	  _potential_denovo =
+	  _dcount = 0;
 
     has_parents = false;
-    missing = 0;
-    dcount = 0;
   }
 
 };
@@ -1718,9 +1614,9 @@ struct Aux_transmission_summary
       printTransmission = false;
     } 
   
-  aux_transmission_summary * indiv(const int i) { return &res[i]; }
+  aux_trio_transmission_summary * indiv(const int i) { return &res[i]; }
   
-  std::vector<aux_transmission_summary> res;
+  std::vector<aux_trio_transmission_summary> res;
   
   double dp_kid;
   double dp_par;
@@ -1750,171 +1646,185 @@ void f_denovo_scan( Variant & v , void * p )
 {
 
   Out & pDeNovos = Out::stream( "denovo.vars" );
-  
+
   Aux_transmission_summary * aux = (Aux_transmission_summary*)p;
-  
+
   const int n = v.size();
 
   for (int i=0; i<n; i++)
     {
-      
-      Individual * pat = v.ind(i)->pat();      
+
+      Individual * pat = v.ind(i)->pat();
       Individual * mat = v.ind(i)->mat();
-      
+
       // only consider individuals where both parents are present"
       if ( pat == NULL || mat == NULL ) continue;
 
-      // there will be a better way to get the actual individual slot 
+      // there will be a better way to get the actual individual slot
       // but use for now...
-      
+
       int patn = g.indmap.ind_n( pat->id() );
       int matn = g.indmap.ind_n( mat->id() );
+
+      // PAT x MAT --> OFFSPRING:
       Genotype & go = v(i);
       Genotype & gp = v(patn);
       Genotype & gm = v(matn);
-      
-      aux_transmission_summary* summary = aux->indiv(i);
-      aux_transmission_summary prevSummary = *summary;
-      
-      if ( go.null() || gp.null() || gm.null() ) summary->missing++;
+
+      aux_trio_transmission_summary* summary = aux->indiv(i);
+      aux_trio_transmission_summary prevSummary = *summary;
+
+      if ( go.null() || gp.null() || gm.null() || !go.diploid() || !gp.diploid() || !gm.diploid() ) {
+    	  summary->_missing++;
+      }
       else
  	{
-	  
- 	  int ao = go.reference() ? 0 : go.heterozygote() ? 1 : go.alternate_homozygote() ? 2 : 0 ; 
- 	  int ap = gp.reference() ? 0 : gp.heterozygote() ? 1 : gp.alternate_homozygote() ? 2 : 0 ; 
- 	  int am = gm.reference() ? 0 : gm.heterozygote() ? 1 : gm.alternate_homozygote() ? 2 : 0 ; 
-	  
- 	  if ( ap == 0 ) 
- 	    {
- 	      if ( am == 0 ) 
- 		{
- 		  if      ( ao == 0 ) ++summary->aa_aa_aa;
- 		  else if ( ao == 1 ) { ++summary->aa_aa_ab; }
- 		  else if ( ao == 2 ) ++summary->aa_aa_bb;
- 		}
- 	      else if ( am == 1 ) 
- 		{
- 		  if      ( ao == 0 ) ++summary->aa_ab_aa;
- 		  else if ( ao == 1 ) ++summary->aa_ab_ab;
- 		  else if ( ao == 2 ) ++summary->aa_ab_bb;
- 		}
- 	      else // am == 2 
- 		{
- 		  if      ( ao == 0 ) ++summary->aa_bb_aa;
- 		  else if ( ao == 1 ) ++summary->aa_bb_ab;
- 		  else if ( ao == 2 ) ++summary->aa_bb_bb;
- 		}
- 	    }
- 	  else if ( ap == 1 ) 
- 	    {
- 	      if ( am == 0 ) 
- 		{
- 		  if      ( ao == 0 ) ++summary->ab_aa_aa;
- 		  else if ( ao == 1 ) ++summary->ab_aa_ab;
- 		  else if ( ao == 2 ) ++summary->ab_aa_bb;
- 		}
- 	      else if ( am == 1 ) 
- 		{
- 		  if      ( ao == 0 ) ++summary->ab_ab_aa;
- 		  else if ( ao == 1 ) ++summary->ab_ab_ab;
- 		  else if ( ao == 2 ) ++summary->ab_ab_bb;
- 		}
- 	      else // am == 2 
- 		{
- 		  if      ( ao == 0 ) ++summary->ab_bb_aa;
- 		  else if ( ao == 1 ) ++summary->ab_bb_ab;
- 		  else if ( ao == 2 ) ++summary->ab_bb_bb;
- 		}
- 	    }
- 	  else
- 	    {
- 	      if ( am == 0 ) 
- 		{
- 		  if      ( ao == 0 ) ++summary->bb_aa_aa;
- 		  else if ( ao == 1 ) ++summary->bb_aa_ab;
- 		  else if ( ao == 2 ) ++summary->bb_aa_bb;
- 		}
- 	      else if ( am == 1 ) 
- 		{
- 		  if      ( ao == 0 ) ++summary->bb_ab_aa;
- 		  else if ( ao == 1 ) ++summary->bb_ab_ab;
- 		  else if ( ao == 2 ) ++summary->bb_ab_bb;
- 		}
- 	      else // am == 2 
- 		{
- 		  if      ( ao == 0 ) ++summary->bb_bb_aa;
- 		  else if ( ao == 1 ) ++summary->bb_bb_ab;
- 		  else if ( ao == 2 ) ++summary->bb_bb_bb;
- 		}
- 	    }
-	  
- 	}
-      
+    	  summary->_complete_transmissions++;
+
+    	  int a1 = go.acode1();
+    	  int a2 = go.acode2();
+
+    	  std::set<int> pAll;
+    	  pAll.insert(gp.acode1());
+    	  pAll.insert(gp.acode2());
+
+    	  std::set<int> mAll;
+    	  mAll.insert(gm.acode1());
+    	  mAll.insert(gm.acode2());
+
+    	  bool a1Pat = pAll.find(a1) != pAll.end();
+    	  bool a2Pat = pAll.find(a2) != pAll.end();
+
+    	  bool a1Mat = mAll.find(a1) != mAll.end();
+    	  bool a2Mat = mAll.find(a2) != mAll.end();
+
+    	  bool a1Pat_a2Mat = a1Pat && a2Mat;
+    	  bool a2Pat_a1Mat = a2Pat && a1Mat;
+    	  bool bothAllelesInherited = a1Pat_a2Mat || a2Pat_a1Mat;
+
+    	  if (bothAllelesInherited) {
+    		  // Will count this trio's transmission at most once for Het->Ref and at most once for Het->Alt:
+    		  bool transRefFromHet = false;
+    		  bool transAltFromHet = false;
+
+    		  /*
+    		   * NOTE: Only looking at parents that are HETs with REF/ALT and not ALT1/ALT2, since want to assess transmission
+    		   * for standard case (where genotypes are more "believable"):
+    		   */
+    		  if (gp.heterozygote() && (gp.a1IsReference() || gp.a2IsReference())) { // Father is a reference/non-reference het
+    			  if (a1Pat_a2Mat) {
+    				  if (go.a1IsReference())
+    					  transRefFromHet = true;
+    				  else
+    					  transAltFromHet = true;
+    			  }
+    			  if (a2Pat_a1Mat) {
+    				  if (go.a2IsReference())
+    					  transRefFromHet = true;
+    				  else
+    					  transAltFromHet = true;
+    			  }
+    		  }
+
+    		  if (gm.heterozygote() && (gm.a1IsReference() || gm.a2IsReference())) { // Mother is a reference/non-reference het
+    			  if (a1Pat_a2Mat) {
+    				  if (go.a2IsReference())
+    					  transRefFromHet = true;
+    				  else
+    					  transAltFromHet = true;
+    			  }
+    			  if (a2Pat_a1Mat) {
+    				  if (go.a1IsReference())
+    					  transRefFromHet = true;
+    				  else
+    					  transAltFromHet = true;
+    			  }
+    		  }
+
+    		  if (transRefFromHet)
+    			  summary->_trans_ref_from_het++;
+    		  if (transAltFromHet)
+    			  summary->_trans_alt_from_het++;
+    	  }
+    	  else {
+    		  summary->_nonmendelian++;
+
+    		  /* Both parents are homozygous reference, and one of child alleles is an inherited *reference* allele.
+    		   * So, only 1 of 2 child alleles are de novo, which is the case we want to consider (most "believable"):
+    		   */
+    		  bool bothParentsHomRef = gp.reference() && gm.reference();
+    		  bool inheritedOneRef = ((a1Pat || a1Mat) && go.a1IsReference()) || ((a2Pat || a2Mat) && go.a2IsReference());
+
+    		  if (bothParentsHomRef && inheritedOneRef)
+    			  summary->_potential_denovo++;
+    	  }
+
+
       bool denovo = (summary->potential_denovo() > prevSummary.potential_denovo());
-      
+
       // would this putative de novo pass special denovo filters?
-      if ( denovo ) 
+      if ( denovo )
 	{
 
 	  // Assume individual metrics: DP, PL, AD
 
-	  if ( aux->dp_kid > 0 ) 
+	  if ( aux->dp_kid > 0 )
 	    {
-	      if ( ! go.meta.has_field( "DP" ) ) denovo = false; 
+	      if ( ! go.meta.has_field( "DP" ) ) denovo = false;
 	      else if ( go.meta.get1_int( "DP" ) < aux->dp_kid ) denovo = false;
 	    }
 
-	  if ( aux->dp_par > 0 ) 
+	  if ( aux->dp_par > 0 )
 	    {
-	      if ( ! gp.meta.has_field( "DP" ) ) denovo = false; 
+	      if ( ! gp.meta.has_field( "DP" ) ) denovo = false;
 	      else if ( gp.meta.get1_int( "DP" ) < aux->dp_par ) denovo = false;
-	      
-	      if ( ! gm.meta.has_field( "DP" ) ) denovo = false; 
+
+	      if ( ! gm.meta.has_field( "DP" ) ) denovo = false;
 	      else if ( gm.meta.get1_int( "DP" ) < aux->dp_par ) denovo = false;
 	    }
-	  
-	  
+
+
 	  // PLs
-	  
-	  if ( aux->pl_kid > 0 ) 
+
+	  if ( aux->pl_kid > 0 )
 	    {
-	      if ( ! go.meta.has_field( "PL" ) ) denovo = false; 
-	      else 
+	      if ( ! go.meta.has_field( "PL" ) ) denovo = false;
+	      else
 		{
 		  std::vector<int> pl = go.meta.get_int( "PL" ) ;
 		  if ( pl.size() != 3 ) denovo = false;
 		  else if ( pl[0] < aux->pl_kid || pl[2] < aux->pl_kid ) denovo = false;
 		}
 	    }
-	  
-	  if ( aux->pl_par > 0 ) 
+
+	  if ( aux->pl_par > 0 )
 	    {
-	      
-	      if ( ! gp.meta.has_field( "PL" ) ) denovo = false; 
-	      else 
+
+	      if ( ! gp.meta.has_field( "PL" ) ) denovo = false;
+	      else
 		{
 		  std::vector<int> pl = gp.meta.get_int( "PL" ) ;
 		  if ( pl.size() != 3 ) denovo = false;
 		  else if ( pl[1] < aux->pl_par || pl[2] < aux->pl_par ) denovo = false;
 		}
 
-	      if ( ! gm.meta.has_field( "PL" ) ) denovo = false; 
-	      else 
+	      if ( ! gm.meta.has_field( "PL" ) ) denovo = false;
+	      else
 		{
 		  std::vector<int> pl = gm.meta.get_int( "PL" ) ;
 		  if ( pl.size() != 3 ) denovo = false;
 		  else if ( pl[1] < aux->pl_par || pl[2] < aux->pl_par ) denovo = false;
 		}
-	    
+
 	    }
 
 
 	  // ABs
-	  
-	  if ( aux->ab_kid_min > 0 || aux->ab_kid_max < 1 ) 
+
+	  if ( aux->ab_kid_min > 0 || aux->ab_kid_max < 1 )
 	    {
 	      if ( ! go.meta.has_field( "AD" ) ) denovo = false;
-	      else 
+	      else
 		{
 		  std::vector<int> ad = go.meta.get_int( "AD" );
 		  if ( ad.size() != 2 ) denovo = false;
@@ -1931,7 +1841,7 @@ void f_denovo_scan( Variant & v , void * p )
 	  if ( aux->ab_par < 1 )
 	    {
 	      if ( ! gp.meta.has_field( "AD" ) ) denovo = false;
-	      else 
+	      else
 		{
 		  std::vector<int> ad = gp.meta.get_int( "AD" );
 		  if ( ad.size() != 2 ) denovo = false;
@@ -1943,7 +1853,7 @@ void f_denovo_scan( Variant & v , void * p )
 		}
 
 	      if ( ! gm.meta.has_field( "AD" ) ) denovo = false;
-	      else 
+	      else
 		{
 		  std::vector<int> ad = gm.meta.get_int( "AD" );
 		  if ( ad.size() != 2 ) denovo = false;
@@ -1955,25 +1865,34 @@ void f_denovo_scan( Variant & v , void * p )
 		}
 	    }
 	}
-      
+
       bool trans_ref_from_het = (summary->trans_ref_from_het() > prevSummary.trans_ref_from_het());
       bool trans_alt_from_het = (summary->trans_alt_from_het() > prevSummary.trans_alt_from_het());
 
 	  // get allele frequencies
 	  int c = 0 , c_tot = 0;
 	  if (denovo || (aux->printTransmission && (trans_ref_from_het || trans_alt_from_het)))
-		  v.n_minor_allele( &c , &c_tot );
-      
+		  /* Use instead n_alt_allele() of n_minor_allele(),
+		   * since for de novo status and transmission we're specifically tracking:
+		   *
+		   * a. denovo: If the parents are both hom ref, then does the child have one alt allele
+		   * (and we want to know how many total alt alleles *of any kind* are present at this site)
+		   *
+		   * b. transmission: If a parent is a het (ref+alt), then did the child receive the ref or the alt
+		   * (and we want to know how many total alt alleles *of any kind* are present at this site)
+		   */
+		  v.n_alt_allele( &c , &c_tot );
+
       // directly output possible de novo events (only REF x REF --> HET)
       // that also passed any above, de-novo specific filters
-      
-      if ( denovo ) 
+
+      if ( denovo )
       {
     	  // track # of actual 'passing' de novo calls
-    	  summary->dcount++;
+    	  summary->_dcount++;
 
     	  pDeNovos << "Variant" << "\t"
-    			  << "RefxRef->Het" << "\t"
+    			  << "RefxRef->Het[Ref+Alt]" << "\t"
     			  << VAR_DATA << "\n";
       }
 
@@ -1982,22 +1901,23 @@ void f_denovo_scan( Variant & v , void * p )
 
     	  if (trans_ref_from_het)
     		  pTrans << "Variant" << "\t"
-    		  << "REF_FROM_HET" << "\t"
+    		  << "Het[Ref+Alt]->Ref_allele" << "\t"
     		  << VAR_DATA << "\n";
 
     	  if (trans_alt_from_het)
     		  pTrans << "Variant" << "\t"
-    		  << "ALT_FROM_HET" << "\t"
+    		  << "Het[Ref+Alt]->Alt_allele" << "\t"
     		  << VAR_DATA << "\n";
       }
     }
+}
 }
 
 #define VAR_HEADER \
 		"#DATA" << "\t" \
 		<< "TRIO_STATUS" << "\t" \
 		<< "LOCUS" << "\t" \
-		<< "AC" << "\t" \
+		<< "AAC" << "\t" \
 		<< "AN" << "\t" \
 		<< "CHILD" << "\t" \
 		<< "PAT_GT" << "\t" \
@@ -2006,20 +1926,20 @@ void f_denovo_scan( Variant & v , void * p )
 		<< "PAT_META" << "\t" \
 		<< "MAT_META" << "\t" \
 		<< "CHILD_META"
-
+  
 bool Pseq::VarDB::denovo_scan( Mask & mask )
 {
 	Out & pDeNovos = Out::stream( "denovo.vars" );
 	pDeNovos << VAR_HEADER << "\n";
 
-  // did we have some special values 
-  
+  // did we have some special values
+
   const int n = g.indmap.size();
 
-  // store summary transmission data 
+  // store summary transmission data
   Aux_transmission_summary aux(n);
 
-  
+
   if ( args.has("param") )
     {
       std::vector<double> p = args.as_float_vector( "param" );
@@ -2030,10 +1950,10 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
       aux.dp_par = p[1];
       aux.pl_kid = p[2];
       aux.pl_par = p[3];
-  
+
       aux.ab_kid_min = p[4];
       aux.ab_kid_max = p[5];
-      aux.ab_par = p[6];  
+      aux.ab_par = p[6];
 
       if (p.size() >= 8)
     	  aux.printTransmission = static_cast<bool>(p[7]);
@@ -2047,24 +1967,24 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
 	pTrans << VAR_HEADER << "\n";
   }
 
-  
+
   // Attach parents
   for (int i=0;i<n;i++)
-    {      
+    {
       Individual * person = g.indmap(i);
       g.inddb.fetch( person );
       Individual * p = g.indmap.ind( person->father() );
       Individual * m = g.indmap.ind( person->mother() );
       if ( p ) person->pat( p );
       if ( m ) person->mat( m );
-      if ( p && m ) aux.indiv(i)->has_parents = true;      
+      if ( p && m ) aux.indiv(i)->has_parents = true;
     }
-  
+
   g.vardb.iterate( f_denovo_scan , &aux , mask );
 
   if (aux.printTransmission)
 	  delete outputTrans;
-  
+
   // display summaries
   Out & pindiv = Out::stream( "denovo.indiv" );
   pindiv << "#DATA\t"
@@ -2077,15 +1997,15 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
 		  << "NON_MENDELIAN" << "\t"
 		  << "POTENTIAL_DENOVO" << "\t"
 		  << "PASSING_DENOVO" << "\n";
-  
+
   for (int i=0;i<n;i++)
     {
-      aux_transmission_summary * p = aux.indiv(i);
-      if ( p->has_parents ) 
-	pindiv << "Individual\t" 
-	       << g.indmap(i)->id() << "\t" 
+      aux_trio_transmission_summary * p = aux.indiv(i);
+      if ( p->has_parents )
+	pindiv << "Individual\t"
+	       << g.indmap(i)->id() << "\t"
 	       << p->complete_transmissions() << "\t"
-	       << p->missing << "\t"
+	       << p->missing() << "\t"
 	       << p->trans_ref_from_het() << "\t"
 	       << p->trans_alt_from_het() << "\t"
 	       << p->trans_alt_from_het() / (double)( p->trans_ref_from_het() + p->trans_alt_from_het() ) << "\t"
@@ -2093,7 +2013,7 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
 	       << p->potential_denovo() << "\t"
 	       << p->passing_denovo() << "\n";
     }
-  
+
   return true;
 }
 
