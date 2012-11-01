@@ -1038,10 +1038,13 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 		var.stop( var.position() + ref_allele.size() - 1 );
 	      
 	      var.consensus.reference( ref_allele );
-	      var.consensus.alternate( alt_allele );	  
+	      var.consensus.alternate( alt_allele );
+
+	      // Call make_consensus() so that the alleles vector is parsed out:
+	      IndividualMap a;
+	      var.make_consensus(&a);
 
 	      f_lookup_annotator( var , &aux );
-	      
 	    }
 	  else
 	    plog.warn( "not a valid region" , line[0] );
