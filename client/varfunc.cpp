@@ -385,7 +385,8 @@ struct AuxLookup
   bool append_ref;
   bool append_seq;
   bool vardb;
-  bool append_annot;    
+  bool append_annot;
+  bool append_titv;
 
   ProtDBase protdb;
   std::set<std::string> locs;
@@ -606,7 +607,17 @@ void f_lookup_annotator( Variant & var , void * p )
     }
 
 
-  
+  if (aux->append_titv) {
+	  std::string titv = ".";
+	  if ( var.transition() )
+		  titv = "transition";
+	  else if (var.transversion())
+		  titv = "transversion";
+
+	  pout << s << "\t"
+	       << "titv" << "\t"
+	       << titv << "\n";
+  }
 
   if ( aux->append_prot ) 
     {
@@ -868,6 +879,7 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
   aux.append_seq = g.seqdb.attached();
   aux.vardb = g.vardb.attached();
   aux.append_annot = g.seqdb.attached() && args.has( "annotate" ) ;
+  aux.append_titv = args.has( "titv" );
   
   if ( ! ( aux.vardb || aux.append_loc || aux.append_prot || aux.append_ref || aux.append_seq || aux.append_annot ) ) 
     Helper::halt("no information to append");
@@ -967,6 +979,9 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
       pout << "##seqdb_ref,1,String,\"SEQDB reference sequence\"\n";
     }
 
+  if (aux.append_titv) {
+      pout << "##titv,1,String,\"Transition, Transversion, or neither?\"\n";
+  }
     
   //
   // Annotate variants internally
