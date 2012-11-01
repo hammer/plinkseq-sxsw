@@ -22,6 +22,7 @@ void IndividualMap::reset()
   sample_idvec.clear();
   n_uniq = 0;
   is_flat = false;
+  is_multi_sample = false;
   unflattering = false;
 }
 

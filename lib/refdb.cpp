@@ -934,23 +934,16 @@ int RefDBase::count( const Region & region , const std::string & grp_name  )
 }
 
 
-RefVariant RefDBase::lookup( const Variant & v , const std::string & grp_name , const std::string & alt_match )
+std::set<RefVariant> RefDBase::lookup( const Variant & v , const std::string & grp_name , bool allelic_match )
 {
-    if ( ! attached() ) return RefVariant();
-    return lookup( v, lookup_group_id( grp_name ) , alt_match );
+    if ( ! attached() )
+    	return std::set<RefVariant>();
+
+    return lookup( v, lookup_group_id( grp_name ) , allelic_match );
 }
 
-RefVariant RefDBase::lookup( const Variant & v , int grp_id , const std::string & alt_match )
+std::set<RefVariant> RefDBase::lookup( const Variant & v , int grp_id , bool allelic_match )
 {
-  
-  //
-  // Create variant -- by default, has 'observed'
-  // flag set to false
-  //
-  
-  bool allelic_match = alt_match != ".";
-  
-  RefVariant r;
   
   //
   // Search given chromosome position, and optionally, match on ALT allele
@@ -964,26 +957,35 @@ RefVariant RefDBase::lookup( const Variant & v , int grp_id , const std::string 
 // 	    << grp_id << " " 
 // 	    << v.alternate() << " " << allelic_match << "\n";
 
-  sql.bind_int( s , ":chr" , v.chromosome() );
-  sql.bind_int( s , ":bp1" , v.position() );
-  sql.bind_int( s , ":bp2" , v.stop() );
-  sql.bind_int( s , ":group_id" , grp_id );
-  if ( allelic_match ) 
-    sql.bind_text( s , ":alt" , v.alternate() );
-  
-  //
-  // should allow for more than one match here....
-  //
+  std::set<RefVariant> refSet;
 
-  if ( sql.step( s ) )
-    {
-      r = construct( s );
-    }
- 
-  sql.reset( s );
+  std::set<string> altsToMatch;
+  if (allelic_match) {
+	  altsToMatch.insert(v.alternate()); // try just in case the consensus does not exist
+	  for (int k = 1; k <= v.consensus.nalt(); ++k) // exclude the reference [at k = 0]
+		  altsToMatch.insert(v.consensus.alternate(k));
+  }
+  else
+	  altsToMatch.insert(".");
+
+  for (std::set<string>::const_iterator altIt = altsToMatch.begin(); altIt != altsToMatch.end(); ++altIt) {
+	  sql.bind_int( s , ":chr" , v.chromosome() );
+	  sql.bind_int( s , ":bp1" , v.position() );
+	  sql.bind_int( s , ":bp2" , v.stop() );
+	  sql.bind_int( s , ":group_id" , grp_id );
+	  if ( allelic_match )
+		  sql.bind_text( s , ":alt" , *altIt );
+
+	  while ( sql.step( s ) )
+	  {
+		  RefVariant r = construct( s );
+		  if ( r.observed() )
+			  refSet.insert( r );
+	  }
+	  sql.reset( s );
+  }
   
-  return r;
-  
+  return refSet;
 }
 
 
@@ -1018,52 +1020,58 @@ std::set<RefVariant> RefDBase::lookup( const Region & region , const std::string
 
 
 
-bool RefDBase::annotate( Variant & v , const int grp_id , const std::string & alt_match )
+bool RefDBase::annotate( Variant & v , const int grp_id , bool allelic_match )
 {
-  
-  RefVariant r = lookup( v , grp_id , alt_match );
-  
-  if ( ! r.observed() ) return false;
+	std::set<RefVariant> rSet = lookup( v , grp_id , allelic_match );
+	bool annotated = false;
 
-  // Attach RefVariant 'name' and 'value' fields
-  
-  // the below is likely not terribly efficient
-  // but leave as the entire meta-info class 
-  // needs a revamping
-  
-  const std::string gname = grpmap[ grp_id ];
-  
-  MetaInformation<VarMeta>::field( gname , META_FLAG ); 
-  v.meta.set( gname );
-  
-  if ( r.name() != "" && r.name() != "." ) 
-    v.meta.set( gname + "_ID" , r.name() );
-  
-  // attach meta information stored in 'value', but first
-  // appending the prefix
-  
-  if ( r.value() != "" && r.value() != "." ) 
-    {
-      // value() contains non-prefixed versions (e.g. A=1;U=0)
-      // passing this extra param, means the prefixes get added, 
-      // which is necessary, because we store and append them this
-      // way
-      
-      r.meta.parse( r.value() , ';' , false ,  &gname  );
+	for (std::set<RefVariant>::const_iterator rIt = rSet.begin(); rIt != rSet.end(); ++rIt) {
+		RefVariant r = *rIt;
+		if (!r.observed())
+			continue;
 
-      v.meta.append( r.meta );           // now already done internally      
-      
-    }
-  
-  return true;
+		annotated = true;
+
+		// Attach RefVariant 'name' and 'value' fields
+
+		// the below is likely not terribly efficient
+		// but leave as the entire meta-info class
+		// needs a revamping
+
+		const std::string gname = grpmap[ grp_id ];
+
+		MetaInformation<VarMeta>::field( gname , META_FLAG );
+		v.meta.set( gname );
+
+		if ( r.name() != "" && r.name() != "." )
+			v.meta.set( gname + "_ID" , r.name() );
+
+		// attach meta information stored in 'value', but first
+		// appending the prefix
+
+		if ( r.value() != "" && r.value() != "." )
+		{
+			// value() contains non-prefixed versions (e.g. A=1;U=0)
+			// passing this extra param, means the prefixes get added,
+			// which is necessary, because we store and append them this
+			// way
+
+			r.meta.parse( r.value() , ';' , false ,  &gname  );
+
+			v.meta.append( r.meta );           // now already done internally
+
+		}
+	}
+
+	return annotated;
 }
 
 
-bool RefDBase::annotate( Variant & v , const std::string & name , const std::string & alt_match )
+bool RefDBase::annotate( Variant & v , const std::string & name , bool allelic_match )
 {
   int id = lookup_group_id( name );
   if ( id == 0 ) return false;
-  return annotate(v,id , alt_match );  
+  return annotate(v,id , allelic_match );
 }
 
 RefVariant RefDBase::construct( sqlite3_stmt * s)

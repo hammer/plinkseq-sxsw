@@ -383,6 +383,7 @@ struct AuxLookup
   bool append_prot;
   bool append_aliases;
   bool append_ref;
+  bool append_ref_allelic;
   bool append_seq;
   bool vardb;
   bool append_annot;
@@ -391,6 +392,7 @@ struct AuxLookup
   ProtDBase protdb;
   std::set<std::string> locs;
   std::set<std::string> refs;
+  std::set<std::string> refs_allelic;
   std::set<std::string> aliases;
 
 };
@@ -843,6 +845,34 @@ void f_lookup_annotator( Variant & var , void * p )
 	}
     }
   
+  if (aux->append_ref_allelic) {
+      std::set<std::string>::iterator i = aux->refs_allelic.begin();
+      while ( i != aux->refs_allelic.end() )
+	{
+
+	  std::set<RefVariant> rvars = g.refdb.lookup( var , *i , true );
+
+	  if ( rvars.size() == 0 )
+	    {
+	      pout << s << "\t"
+		   << "ref_allelic_" << *i << "\t"
+		   << "." << "\t"
+		   << "." << "\n";
+	    }
+
+	  std::set<RefVariant>::iterator j = rvars.begin();
+	  while ( j != rvars.end() )
+	    {
+	      pout << s << "\t"
+		   << "ref_allelic_" << *i << "\t"
+		   << *j << "\t"
+		   << j->value() << "\n";
+	      ++j;
+	    }
+	  ++i;
+	}
+  }
+
 }
 
 
@@ -860,6 +890,7 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 
   aux.locs = args.get_set( "loc" );
   aux.refs = args.get_set( "ref" );
+  aux.refs_allelic = args.get_set( "ref_allelic" );
   aux.aliases = args.get_set( "alias" );
 
   aux.append_phe = g.vardb.attached() && g.inddb.attached() && g.phmap.type() == PHE_DICHOT;    
@@ -876,6 +907,7 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
   
   aux.append_aliases = aux.append_loc && aux.aliases.size() > 0;
   aux.append_ref = g.refdb.attached() && aux.refs.size() > 0;
+  aux.append_ref_allelic = g.refdb.attached() && aux.refs_allelic.size() > 0;
   aux.append_seq = g.seqdb.attached();
   aux.vardb = g.vardb.attached();
   aux.append_annot = g.seqdb.attached() && args.has( "annotate" ) ;
@@ -959,7 +991,17 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 	  ++i;
 	}
     }
-  
+
+  if ( aux.append_ref_allelic )
+    {
+      std::set<std::string>::iterator i = aux.refs_allelic.begin();
+      while ( i != aux.refs_allelic.end() )
+	{
+	  pout << "##" << "ref_allelic_" << *i << ",.,String,\"REFDB group\"\n";
+	  ++i;
+	}
+    }
+
   if ( aux.append_annot )
     {
       pout << "##func,.,String,\"Genomic annotation\"\n";
@@ -1040,8 +1082,9 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 	      var.consensus.reference( ref_allele );
 	      var.consensus.alternate( alt_allele );
 
-	      // Call make_consensus() so that the alleles vector is parsed out:
+	      // Call make_consensus() so that the alleles vector is parsed out into individual alleles:
 	      IndividualMap a;
+	      //a.populate(std::vector<std::string>());
 	      var.make_consensus(&a);
 
 	      f_lookup_annotator( var , &aux );

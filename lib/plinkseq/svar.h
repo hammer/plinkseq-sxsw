@@ -87,6 +87,16 @@ class SampleVariant {
   /// Get string of alternate allele(s), as comma-delimited string list
   std::string alternate() const { return alt; }
   
+  /// Return number of alleles (one reference + alternates):
+  int nalleles() const {
+	  return alleles.size();
+  }
+
+  /// Return number of alternate alleles:
+  int nalt() const {
+	  return nalleles() - 1;
+  }
+
   /// Return allele label of k-th allele (0 is reference)
   std::string alternate( const uint k ) const
     {
