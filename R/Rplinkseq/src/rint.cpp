@@ -2378,8 +2378,9 @@ SEXP Rseqdb_lookup( SEXP pos )
 SEXP Rseqdb_annotate_load( SEXP loc_id )
 {
   if ( length( loc_id ) != 1 ) return(R_NilValue);
-  std::string trans_id = CHAR(STRING_ELT(loc_id, 0));  
-  Annotate::load_transcripts( LOCDB, trans_id );
+  std::string trans_id = CHAR(STRING_ELT(loc_id, 0));    
+  Annotate::setDB( LOCDB );
+  if ( ! Annotate::set_transcript_group( trans_id ) ) plog.warn( "trouble attaching 'refseq' group from LOCDB" );    
   return(R_NilValue);
 }
 

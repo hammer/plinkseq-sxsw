@@ -728,6 +728,7 @@ bool Pseq::VarDB::add_to_varset( const std::string & filename  )
   return true;
 }
 
+
 bool Pseq::VarDB::add_superset_from_file( const std::string & filename )
 {
   Helper::checkFileExists( filename );
@@ -742,6 +743,7 @@ bool Pseq::VarDB::add_superset_from_file( const std::string & filename )
   f.close();
   return true;
 }
+
 
 bool Pseq::VarDB::add_superset( const std::string & group , const std::vector<std::string> & members , const std::string & desc )
 {

@@ -677,22 +677,24 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       std::vector<std::string> k = m.get_string( "fail.nfile" );
       if ( k.size() == 2 )
 	{
-	  int i1, i2;
-	  if ( ! ( Helper::str2int( k[0] , i1 ) || Helper::str2int( k[1] , i2 ) ) )
+	  int i1 = -1 , i2 = -1;
+	  if ( ! ( Helper::str2int( k[0] , i1 ) ) )
 	    plog.warn("incorrect arg for nfile");
+	  else if ( ! Helper::str2int( k[1] , i2 ) ) 
+	    plog.warn("incorrect arg for nfile");	    
 	  else
 	    fail_on_sample_variant( i1 , i2 ) ; 
 	}
       else if ( k.size() == 1 ) // cannot fail more than X, need at least one left
 	{
-	  int i1;
+	  int i1 = -1;
 	  if ( ! Helper::str2int( k[0] , i1 ) )
-	    plog.warn("incorrect arg for nfile=n");
+	    plog.warn( "incorrect arg for nfile=n" );
 	  else
 	    fail_on_sample_variant( i1 , 1 ) ; // requires at least 1 file 
 	}
       else
-	plog.warn("incorrect argument for nfile=n{,m}");       
+	plog.warn( "incorrect argument for nfile=n{,m}" );       
     }
 
   if ( m.has_field( "reg" ) ) 
@@ -4609,7 +4611,7 @@ bool Mask::fail_on_sample_variant() const
 
 bool Mask::test_fail_on_sample_variant(int n , int m ) const 
 {
-  if ( n >= fail_on_sample_variant_allow && fail_on_sample_variant_allow != -1 ) return false;
+  if ( n > fail_on_sample_variant_allow && fail_on_sample_variant_allow != -1 ) return false;
   if ( m < fail_on_sample_variant_require ) return false;
   return true;
 }
