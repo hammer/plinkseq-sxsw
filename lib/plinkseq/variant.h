@@ -483,6 +483,13 @@ class Variant {
   std::map<std::string,int> genotype_counts( const affType & aff , bool unphased = true ) const;
 
 
+  /*!
+  Return number of
+       @param m Reference: returns number of alternate alleles
+       @param n Reference: returns total number of non-missing alleles
+   */
+
+  void n_alt_allele( int * m = NULL , int * n = NULL , double * aaf = NULL , const affType & aff = UNKNOWN_PHE ) const;
 
   /*!
     Return number of 

@@ -243,15 +243,18 @@ class RefDBase {
     
     // Core queries
     
-    RefVariant lookup( const Variant & , const int grp_id , const std::string & alt_match = "." );
-    RefVariant lookup( const Variant & , const std::string &  , const std::string & alt_match = "." );
+    std::set<RefVariant> lookup( const Variant & , const int grp_id , bool allelic_match);
+    std::set<RefVariant> lookup( const Variant & , const std::string & , bool allelic_match);
+
+    RefVariant lookup( const Variant & v , int grp_id) { std::set<RefVariant> rSet = lookup(v, grp_id, false); return (!rSet.empty() ? *(rSet.begin()) : RefVariant()); }
+    RefVariant lookup( const Variant & v , const std::string & grp_name) { std::set<RefVariant> rSet = lookup(v, grp_name, false); return (!rSet.empty() ? *(rSet.begin()) : RefVariant()); }
 
     std::set<RefVariant> lookup( const Region & , const int , const int limit = 0 );
     std::set<RefVariant> lookup( const Region & , const std::string & , const int limit = 0 );
 
-    bool annotate( Variant & , const std::string & , const std::string & alt_match = "." );
-    bool annotate( Variant & , const int grp_id , const std::string & alt_match = "." );
-    
+    bool annotate( Variant & , const std::string & , bool allelic_match = false );
+    bool annotate( Variant & , const int grp_id , bool allelic_match = false );
+
     int count( const Region & , const std::string & );
 
     // Data-dumper

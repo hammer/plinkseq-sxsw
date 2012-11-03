@@ -36,7 +36,8 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
                    STOPDELETION                =  35 ,    // stop deletion
 		   OOFCODONINSERTION               =  36 ,    // out of frame codon insertion
 		   OOFCODONDELETION               =  37 , // out of frame codon deletion
- 		   SPLICE 	= 24	, // general splice +/- 5bp     
+ 		   SPLICE 	= 24	, // general splice +/- 5bp
+ 		   EXONIC_UNKNOWN = 38, // overlaps an exon, but since the ALT is 'N', cannot know its exact coding impact
  		   
  		   // Special class of splice variants : Faustino and Cooper. Pre-mrna splicing and human disease. AG|G   AG|GTNAG. This is consistent with splicing motif measures.
 		   DONORIN2  =  25 ,    // donor splice-site |[GT]
@@ -71,6 +72,7 @@ struct SeqInfo {
   bool nonsyn() const { return type > 19 ; }   
   bool intergenic() const { return type == 2 ; }
   bool intronic() const { return type == 3 ; }
+  bool exonic_unknown() const { return type == EXONIC_UNKNOWN; }
   bool invalid() const { return type < 2 ; }
   
   static std::map< seq_annot_t , std::string> types;
@@ -122,11 +124,13 @@ struct SeqInfo {
     
   bool operator<( const SeqInfo & rhs ) const
   {
-    if ( transcript < rhs.transcript ) return true;
-    if ( transcript > rhs.transcript ) return false;
-    if ( type < rhs.type ) return true;
-    if ( type > rhs.type ) return false;
-    return genomic_alt < rhs.genomic_alt;
+    if ( transcript != rhs.transcript ) return transcript < rhs.transcript;
+    if ( cpos1 != rhs.cpos1 ) return cpos1 < rhs.cpos1;
+    if ( cpos2 != rhs.cpos2 ) return cpos2 < rhs.cpos2;
+    if ( genomic_alt != rhs.genomic_alt ) return genomic_alt < rhs.genomic_alt;
+    if ( ppos1 != rhs.ppos1 ) return ppos1 < rhs.ppos1;
+    if ( ppos2 != rhs.ppos2 ) return ppos2 < rhs.ppos2;
+    /* if ( type != rhs.type ) */ return type < rhs.type;
   }
   
   

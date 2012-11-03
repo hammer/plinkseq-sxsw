@@ -128,9 +128,13 @@ void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
 			continue;
 		const SampleVariant& childSampVariant = *(fileSamples[0]);
 
-		if (!childSampVariant.meta.has_field("NUMT"))
+		int numTargets = -1;
+		if (childSampVariant.meta.has_field("NUMT"))
+			numTargets = childSampVariant.meta.get1_int("NUMT");
+		else if (v.consensus.meta.has_field("NUMT")) // when only a single sample, then info is only in consensus!
+			numTargets = v.consensus.meta.get1_int("NUMT");
+		else
 			continue;
-		const int numTargets = childSampVariant.meta.get1_int("NUMT");
 
 		Inds childsParents;
 		childsParents.insert(patInd);
@@ -278,23 +282,23 @@ bool Pseq::VarDB::cnv_denovo_scan(Mask& mask) {
 		Individual* person = g.indmap(i);
 		g.inddb.fetch(person);
 
-		aux->allChildrenInds.insert(i);
-
 		Individual* p = g.indmap.ind(person->father());
 		Individual* m = g.indmap.ind(person->mother());
 
-		if (p) {
+		if (p)
 			person->pat(p);
-			aux->allParentInds.insert(g.indmap.ind_n(p->id()));
-		}
-		if (m) {
+		if (m)
 			person->mat(m);
-			aux->allParentInds.insert(g.indmap.ind_n(m->id()));
-		}
 
-		// Ensure row for each child with both parents:
-		if (p && m)
+		// Add inds for child and for parents ONLY if individual i has both parents (i.e., is a child), and also initialize empty summary row for each such child:
+		if (p && m) {
+			aux->allChildrenInds.insert(i);
+
+			aux->allParentInds.insert(g.indmap.ind_n(p->id()));
+			aux->allParentInds.insert(g.indmap.ind_n(m->id()));
+
 			aux->childrenSummary[person->id()] = ChildTransmissionSummary();
+		}
 	}
 
 	dnCNVout

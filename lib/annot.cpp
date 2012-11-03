@@ -43,6 +43,7 @@ std::map<seq_annot_t,std::string> populate_seqinfo()
   m[ACCEPTORIN2]        = "splice-acceptor-in2";
   m[DONORIN45AG]        = "splice-donor-in45ag";
   m[SPLICE]   		= "splice";
+  m[EXONIC_UNKNOWN] = "exonic-unknown";
   m[FRAMESHIFT]         = "frameshift";
   m[RT]       		= "read-through";
   return m;
@@ -215,6 +216,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
   int is_readthrough 	        = 0;
   int is_intergenic 	        = 0;
   int is_intronic 		= 0;
+  int is_exonic_unknown      = 0;
 
   std::set<SeqInfo>::iterator i = s.begin();
   while ( i != s.end() )
@@ -233,6 +235,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
       if ( i->intergenic() ) ++is_intergenic;
       if ( i->intronic() ) ++is_intronic;
       if ( i->indel() ) ++is_indel;
+      if ( i->exonic_unknown() ) ++is_exonic_unknown;
 
       // add annotations
       var.meta.add( PLINKSeq::ANNOT_TYPE() , i->status() );
@@ -266,6 +269,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
   else if ( is_missense ) aworst = "missense";
   else if ( is_indel ) aworst = "indel";
   else if ( is_splice ) aworst = "splice";
+  else if ( is_exonic_unknown ) aworst = "exonic-unknown";
   else if ( is_silent ) aworst = "silent";
   else if ( is_intronic ) aworst = "intronic";
   else aworst = "intergenic";
@@ -288,6 +292,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
   if ( is_frameshift ) ++acount;
   if ( is_codoninsertion ) ++acount;
   if ( is_codondeletion ) ++acount;
+  if ( is_exonic_unknown ) ++acount;
 
   std::string annot_summary = aworst;
   if ( acount > 1 ) annot_summary = "mixed";
@@ -305,6 +310,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
   annot_summary += ",INDEL="  + Helper::int2str( is_indel );
   annot_summary += ",CODONINSERTION="  + Helper::int2str( is_codoninsertion );
   annot_summary += ",CODONDELETION="  + Helper::int2str( is_codondeletion );
+  annot_summary += ",UNKNOWN="  + Helper::int2str( is_exonic_unknown );
 
   var.meta.set( PLINKSeq::ANNOT_SUMMARY() , annot_summary );
 
@@ -322,7 +328,8 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
     || is_frameshift 
     || is_codondeletion 
     || is_indel 
-    || is_codoninsertion;
+    || is_codoninsertion
+    || is_exonic_unknown;
 
 }
 
@@ -984,8 +991,11 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		}
 	      if ( trans_ref[i] != trans_var[i] )
 		{
-	    	  // Single base substitutions
-		  if( reference.size() == (*a).size() && reference.size() == 1 )
+	    	  // Single base substitutions ("SNP"), or multi-nucleotide polymorphism ("MNP")
+	    	  // Either way, the REF and the ALT are of equal lengths here:
+	    	  if( reference.size() == a->size() )
+	    		  /* Since the REF and ALT are same length, then can correctly use 'i' (i+1, with 1-based offset)
+	    		  as the protein position (and thus properly account for MNPs spanning multiple codons): */
 		    {
 		      if ( i == 0 )
 			{
@@ -997,25 +1007,28 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			{
 			  if ( trans_var[i] != '*' && trans_ref[i] != '*'  )
 			    {
-			      seq_annot_t type = MIS;
-			      origpepsize = longest;
-			      newpepsize = longest;
-			      SeqInfo si = SeqInfo( r->name ,
-						    type ,
-						    reference ,
-						    *a ,
-						    pos_whole_transcript ,
-						    ref_codon[i] ,
-						    alt_codon[i] ,
-						    (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
-						    trans_ref.substr(i,1) ,
-						    trans_var.substr(i,1) ,
-						    0 ,
-						    origpepsize ,
-						    newpepsize );
-			      annot.insert( si );
+				  seq_annot_t type = MIS;
+				  if (trans_var[i] == '?') // an unknown ALT base resulted in an unknown AA
+					  type = EXONIC_UNKNOWN;
+
+				  origpepsize = longest;
+				  newpepsize = longest;
+				  SeqInfo si = SeqInfo( r->name ,
+						  type ,
+						  reference ,
+						  *a ,
+						  pos_whole_transcript ,
+						  ref_codon[i] ,
+						  alt_codon[i] ,
+						  i+1 ,
+						  trans_ref.substr(i,1) ,
+						  trans_var.substr(i,1) ,
+						  0 ,
+						  origpepsize ,
+						  newpepsize );
+				  annot.insert( si );
 			    }
-			  if ( trans_var[i] == '*' )
+			  else if ( trans_var[i] == '*' )
 			    {
 			      seq_annot_t type = NON;
 			      origpepsize = trans_ref.size();
@@ -1027,7 +1040,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 						    pos_whole_transcript ,
 						    ref_codon[i] ,
 						    alt_codon[i] ,
-						    (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
+						    i+1 ,
 						    trans_ref.substr(i,1) ,
 						    trans_var.substr(i,1) ,
 						    0 ,
@@ -1050,7 +1063,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 						     pos_whole_transcript ,
 						     ref_codon[i] ,
 						     alt_codon[i] ,
-						     (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
+						     i+1 ,
 						     trans_ref.substr(i,1) ,
 						     trans_var.substr(i,1) ,
 						     0 ,
@@ -1071,9 +1084,9 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		      // regions? Consider them splice in the meantime
 		      
 		      int modtmpr = ( reference.size() - 1 ) % 3;
-		      int modtmpa = ( (*a).size() - 1 ) % 3;
+		      int modtmpa = ( a->size() - 1 ) % 3;
 
-		      if (  ( reference.size() > 1 && modtmpr != 0 ) || ( (*a).size() > 1 && ( modtmpa != 0 ) ) )
+		      if (  ( reference.size() > 1 && modtmpr != 0 ) || ( a->size() > 1 && ( modtmpa != 0 ) ) )
 			{
 			  newpos_stop++;
 			  if(newpos_stop == 1)
@@ -1146,7 +1159,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			      annot.insert( si );
 			    }
 			}
-		      else if ( reference.size() > (*a).size() && modtmpr % 3 == 0)
+		      else if ( reference.size() > a->size() && modtmpr % 3 == 0)
 			{
 			  posinframe_indel++;
 			  if( posinframe_indel == 1)
@@ -1169,7 +1182,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 						     trans_var.substr(i,1)) );
 			    }
 			}
-		      else if ( (*a).size() > reference.size() && modtmpa % 3 == 0){
+		      else if ( a->size() > reference.size() && modtmpa % 3 == 0){
 			posinframe_indel++;
 			if( posinframe_indel == 1 )
 			  {
@@ -1196,7 +1209,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			seq_annot_t type = INDEL;
  		    }
 		}
-	      if ( trans_ref[i] == '*' && trans_var[i] == '*' && ( (*a).size() > 1 || reference.size() > 1 )){
+
+	      if ( trans_ref[i] == '*' && trans_var[i] == '*' && ( (a->size() > 1 || reference.size() > 1) && a->size() != reference.size() )){
 		seq_annot_t type = INDEL;
 		annot.insert( SeqInfo( r->name ,
 				       type ,
@@ -1211,6 +1225,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		
 		i = longest;
 	      }
+
 	    }
 	  ++ii;
 	} // next transcript

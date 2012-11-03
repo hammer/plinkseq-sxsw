@@ -1,3 +1,5 @@
+include ../common.am
+
 # TODO: should this be a shared library or a convenience library?
 # I tried to make this a "convenience" library with the noinst_ prefix, but it didn't work
 

@@ -91,6 +91,8 @@ AM_PROG_CC_C_O
 
 AC_OUTPUT
 
+AC_SUBST([AM_CXXFLAGS])
+
 # This is just a fun message to tell the user what's up after configure is compete
 
 echo \
