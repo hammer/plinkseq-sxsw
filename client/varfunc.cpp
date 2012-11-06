@@ -913,7 +913,7 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
   aux.append_annot = g.seqdb.attached() && args.has( "annotate" ) ;
   aux.append_titv = args.has( "titv" );
   
-  if ( ! ( aux.vardb || aux.append_loc || aux.append_prot || aux.append_ref || aux.append_seq || aux.append_annot ) ) 
+  if ( ! ( aux.vardb || aux.append_loc || aux.append_prot || aux.append_ref || aux.append_ref_allelic || aux.append_seq || aux.append_annot ) )
     Helper::halt("no information to append");
   
   
