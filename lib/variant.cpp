@@ -595,16 +595,16 @@ std::string Variant::gmeta_label( const int i , const std::string & delim ) cons
 {
 
   std::stringstream ss;
-  ss <<  consensus(i).meta; 
+  ss << consensus(i).meta;
 
   if ( flat() && ! infile_overlap() ) return ss.str();
 
-  std::map<int, const Genotype *> gm = all_genotype(i);	  
+  std::map<int, const Genotype *> gm = all_genotype(i);
   std::map<int, const Genotype *>::iterator j = gm.begin();
   if ( gm.size() > 1 )
     {
       ss << " {";
-      j = gm.begin();	  
+      j = gm.begin();
       while ( j != gm.end() )
 	{
 	  const SampleVariant * svar = psample( j->first );
@@ -616,6 +616,52 @@ std::string Variant::gmeta_label( const int i , const std::string & delim ) cons
   return ss.str();
 }
 
+std::string Variant::alternate_label( const int i , const std::string & delim ) const
+{
+	std::stringstream ss;
+
+	std::map<int, const Genotype *> gm = all_genotype(i);
+	std::map<int, const Genotype *>::iterator j = gm.begin();
+
+	if ( gm.size() > 1 )
+		ss << "{";
+
+	j = gm.begin();
+	while ( j != gm.end() )
+	{
+		const SampleVariant * svar = psample( j->first );
+		if ( svar ) ss << ( j != gm.begin() ? delim : "" ) << svar->alternate();
+		++j;
+	}
+
+	if ( gm.size() > 1 )
+		ss <<  "}";
+
+	return ss.str();
+}
+
+std::string Variant::sample_variant_index( const int i , const std::string & delim ) const
+{
+	std::stringstream ss;
+
+	std::map<int, const Genotype *> gm = all_genotype(i);
+	std::map<int, const Genotype *>::iterator j = gm.begin();
+
+	if ( gm.size() > 1 )
+		ss << "{";
+
+	j = gm.begin();
+	while ( j != gm.end() )
+	{
+		ss << ( j != gm.begin() ? delim : "" ) << j->first;
+		++j;
+	}
+
+	if ( gm.size() > 1 )
+		ss <<  "}";
+
+	return ss.str();
+}
 
 std::string Variant::sample_label( const int i, const std::string & delim ) const
 {
@@ -629,8 +675,6 @@ std::string Variant::sample_label( const int i, const std::string & delim ) cons
     }  
   return s == "" ? "." : s;
 }
-
-
 
 int Variant::n_alleles() const
 {
