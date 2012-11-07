@@ -2057,7 +2057,7 @@ bool Pseq::VarDB::write_BCF( Mask & mask , const std::string & bcffile )
 bool Pseq::IndDB::dump_phenotypes( const std::vector<std::string> & pheno , bool as_matrix )
 {
 
-  Out & pout = Out::stream( "phe" );
+  Out & pout = Out::stream( as_matrix ? "indiv.matrix" : "phe" );
 
   std::vector<bool> m( pheno.size() , true );
   

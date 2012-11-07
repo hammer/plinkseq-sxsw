@@ -40,10 +40,10 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
  		   EXONIC_UNKNOWN = 38, // overlaps an exon, but since the ALT is 'N', cannot know its exact coding impact
  		   
  		   // Special class of splice variants : Faustino and Cooper. Pre-mrna splicing and human disease. AG|G   AG|GTNAG. This is consistent with splicing motif measures.
-		   DONORIN2  =  25 ,    // donor splice-site |[GT]
-		   DONOREX2AG = 26 ,  // donor splice-site ex2ag [AG]|
-		   DONORIN45AG = 27 , // donor splice-site in45ag |GTN[AG]
-		   ACCEPTOREX1G = 28 , // acceptor splice-site ex1g |[G]
+		   DONORIN2  =  25 ,       // donor splice-site |[GT]
+		   DONOREX2AG = 26 ,       // donor splice-site ex2ag [AG]|
+		   DONORIN45AG = 27 ,      // donor splice-site in45ag |GTN[AG]
+		   ACCEPTOREX1G = 28 ,     // acceptor splice-site ex1g |[G]
 		   ACCEPTORIN2  =  29 ,    // 3' splice-site [AG]|
 		   
 		   // Additional LoF annotations 
@@ -64,7 +64,8 @@ struct SeqInfo {
   bool codondeletion() const { return type == 23 || type == 35 || type == 37; }
   bool codoninsertion() const { return type == 22 || type == 34 || type == 36;}
   bool splice() const { return type == 24 ;}
-  bool esplice() const { return type == 25 || type == 26 || type == 27 || type == 28 || type == 29; }
+  bool csplice() const { return type == 26 || type == 27 || type == 28 ; }
+  bool esplice() const { return type == 25 || type == 29; }
 
   bool coding() const { return type > 9 ; } 
   bool synon() const { return type == 10 ; } 
