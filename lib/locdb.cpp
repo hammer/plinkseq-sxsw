@@ -628,7 +628,7 @@ bool LocDBase::index()
 {
   if ( ! attached() ) return false;
   
-  sql.query( "CREATE INDEX IF NOT EXISTS groupPositionIndex ON loci(group_id,chr, bp1); " );  
+  sql.query( "CREATE INDEX IF NOT EXISTS groupPositionIndex ON loci(group_id, chr, bp1, bp2); " );
   sql.query( "CREATE INDEX IF NOT EXISTS nameIndex ON loci(group_id,name);" );
   sql.query( "CREATE INDEX IF NOT EXISTS altNameIndex ON loci(group_id,altname);" );
   
