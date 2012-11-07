@@ -211,6 +211,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
   int is_indel 			= 0;
   int is_splice 		= 0;
   int is_esplice 		= 0;
+  int is_csplice 		= 0;
   int is_nonsense 		= 0;
   int is_startlost		= 0;
   int is_readthrough 	        = 0;
@@ -231,6 +232,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
       if ( i->startlost() ) ++is_startlost;
       if ( i->splice() ) ++is_splice;
       if ( i->esplice() ) ++is_esplice;
+      if ( i->csplice() ) ++is_csplice;
       if ( i->readthrough() ) ++is_readthrough;
       if ( i->intergenic() ) ++is_intergenic;
       if ( i->intronic() ) ++is_intronic;
@@ -263,6 +265,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
   else if ( is_nonsense ) aworst = "nonsense";
   else if ( is_startlost ) aworst = "start-lost";
   else if ( is_esplice ) aworst = "esplice";
+  else if ( is_csplice ) aworst = "csplice";
   else if ( is_readthrough ) aworst = "readthrough";
   else if ( is_codoninsertion ) aworst = "codon-insertion";
   else if ( is_codondeletion ) aworst = "codon-deletion";
@@ -286,6 +289,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
   if ( is_nonsense ) ++acount;
   if ( is_startlost ) ++acount;
   if ( is_esplice ) ++acount;
+  if ( is_csplice ) ++acount;
   if ( is_splice ) ++acount;
   if ( is_readthrough ) ++acount;
   if ( is_intergenic ) ++acount;
@@ -302,6 +306,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
   annot_summary += ",MIS=" + Helper::int2str( is_missense );
   annot_summary += ",SYN=" + Helper::int2str( is_silent );
   annot_summary += ",ESPL=" + Helper::int2str( is_esplice );
+  annot_summary += ",CSPL=" + Helper::int2str( is_csplice );
   annot_summary += ",SPL=" + Helper::int2str( is_splice );
   annot_summary += ",RTH=" + Helper::int2str( is_readthrough );
   annot_summary += ",INT=" + Helper::int2str( is_intronic );
@@ -324,6 +329,7 @@ bool Annotate::annotate(Variant & var , const std::vector<uint64_t> & ids )
     || is_missense 
     || is_splice 
     || is_esplice 
+    || is_csplice 
     || is_readthrough 
     || is_frameshift 
     || is_codondeletion 
@@ -1267,7 +1273,7 @@ std::string SeqInfo::genomic() const
 void SeqInfo::details( Variant & var ) const
 {
   
-  if ( splice() || esplice() )
+  if ( splice() || esplice() || csplice() )
     {
       var.meta.add( PLINKSeq::ANNOT_DETAILS() , "DIST=" + Helper::int2str( splicedist ) );
       var.meta.add( PLINKSeq::ANNOT_DETAILS() , "NMD=" + Helper::int2str( nmd ) );
