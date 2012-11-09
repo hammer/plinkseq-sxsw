@@ -1691,17 +1691,25 @@ struct Aux_transmission_summary
   bool printTransmission;
 };
 
+#define MULTI_ALLELIC_DELIM "#"
+
 #define VAR_DATA \
 		v << "\t" \
+		<< v.label( patn , MULTI_ALLELIC_DELIM ) << "\t" \
+		<< v.label( matn , MULTI_ALLELIC_DELIM ) << "\t" \
+		<< v.label( i , MULTI_ALLELIC_DELIM ) << "\t" \
+		<< v.ind(patn)->id() << "\t" \
+		<< v.ind(matn)->id() << "\t" \
+		<< v.ind(i)->id() << "\t" \
 		<< c << "\t" \
 		<< c_tot << "\t" \
-		<< v.ind(i)->id() << "\t" \
-		<< v.label( patn , "," ) << "\t" \
-		<< v.label( matn , "," ) << "\t" \
-		<< v.label( i , "," ) << "\t" \
-		<< "[" << v.gmeta_label(patn) << "]" << "\t" \
-		<< "[" << v.gmeta_label(matn) << "]" << "\t" \
-		<< "[" << v.gmeta_label(i) << "]"
+		<< "[" << v.gmeta_label(patn, MULTI_ALLELIC_DELIM) << "]" << "\t" \
+		<< "[" << v.gmeta_label(matn, MULTI_ALLELIC_DELIM) << "]" << "\t" \
+		<< "[" << v.gmeta_label(i, MULTI_ALLELIC_DELIM) << "]" << "\t" \
+		<< v.alternate() << "\t" \
+		<< v.alternate_label( patn , MULTI_ALLELIC_DELIM ) << "\t" \
+		<< v.alternate_label( matn , MULTI_ALLELIC_DELIM ) << "\t" \
+		<< v.alternate_label( i , MULTI_ALLELIC_DELIM )
 
 void f_denovo_scan( Variant & v , void * p )
 {
@@ -1978,15 +1986,21 @@ void f_denovo_scan( Variant & v , void * p )
 		"#DATA" << "\t" \
 		<< "TRIO_STATUS" << "\t" \
 		<< "LOCUS" << "\t" \
-		<< "AAC" << "\t" \
-		<< "AN" << "\t" \
-		<< "CHILD" << "\t" \
 		<< "PAT_GT" << "\t" \
 		<< "MAT_GT" << "\t" \
 		<< "CHILD_GT" << "\t" \
+		<< "PAT" << "\t" \
+		<< "MAT" << "\t" \
+		<< "CHILD" << "\t" \
+		<< "AAC" << "\t" \
+		<< "AN" << "\t" \
 		<< "PAT_META" << "\t" \
 		<< "MAT_META" << "\t" \
-		<< "CHILD_META"
+		<< "CHILD_META" << "\t" \
+		<< "CONSENSUS_ALT_ALLELES" << "\t" \
+		<< "PAT_ALT_ALLELES" << "\t" \
+		<< "MAT_ALT_ALLELES" << "\t" \
+		<< "CHILD_ALT_ALLELES"
   
 bool Pseq::VarDB::denovo_scan( Mask & mask )
 {

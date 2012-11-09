@@ -552,6 +552,8 @@ class Variant {
   std::string phased_geno_label( const int, const Genotype & ) const;
   std::string label( const int, const std::string & delim = "," ) const;
   std::string gmeta_label( const int, const std::string & delim = "," ) const;
+  std::string alternate_label( const int, const std::string & delim = "," ) const;
+  std::string sample_variant_index( const int , const std::string & delim = "," ) const;
   std::string allele1_label( const Genotype & ) const;
   std::string allele2_label( const Genotype & ) const;
 

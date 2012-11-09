@@ -1,6 +1,10 @@
 #!/usr/bin/perl -w
 
 use strict;
+use Getopt::Long;
+
+my $requireContinuousRecords = 0;
+GetOptions( "requireContinuousRecords" => \$requireContinuousRecords );
 
 if (scalar(@ARGV) == 0) {
   print "Usage: $0 <pseq_lookup_output_1> <pseq_lookup_output_2> ... \n";
@@ -47,9 +51,16 @@ while (my $input = shift || undef) {
     $COLUMNS{$col} = $COL_COUNT++ if (!defined($COLUMNS{$col}));
     $LOCI{$loc} = $LOC_COUNT++ if (!defined($LOCI{$loc}));
 
-    # Reset the new alleles:
+    # Reset for the new alleles:
     if ($col eq "allele_ref") {
       delete $lastRefAlt{$loc};
+    }
+    # Delete all lastRefAlt records that are not for this $loc:
+    if ($requireContinuousRecords) {
+      my @cachedLoci = keys(%lastRefAlt);
+      foreach my $cachedLoc (@cachedLoci) {
+	delete $lastRefAlt{$cachedLoc} if ($cachedLoc ne $loc);
+      }
     }
 
     my $useLoc = $loc;
@@ -98,7 +109,12 @@ foreach my $loc (@LOCI) {
 
   foreach my $col (@COLUMNS) {
     my $val = '.';
-    $val = $outTable{$loc}{$col} if (defined($outTable{$loc}{$col}));
+    if (defined($outTable{$loc}{$col})) {
+      $val = $outTable{$loc}{$col};
+    }
+    elsif (defined($outTable{$printLoc}{$col})) { # Take any allele-independent information if it exists:
+      $val = $outTable{$printLoc}{$col};
+    }
 
     print "\t$val";
   }
