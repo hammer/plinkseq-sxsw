@@ -278,7 +278,7 @@ bool Variant::make_consensus( IndividualMap * a )
 	  
 	  // Does this individual feature in multiple samples? 
 	  
-	  bool multiple_samples = j.p1 != -1 ? ftosv[ j.p1 ].size() > 1 : true;
+	  bool multiple_samples = j.p1 != -1 ? ftosv.find(j.p1) != ftosv.end() && ftosv[ j.p1 ].size() > 1 : true;
 	  
 	  if ( ! multiple_samples )
 	    { 
@@ -286,7 +286,7 @@ bool Variant::make_consensus( IndividualMap * a )
 	      // not sure this would ever fail, but just in case (perhaps
 	      // also need to check ftosv/j.p1 above for range?)
 	      
-	      if ( ftosv[ j.p1 ].size() == 1 ) 
+	      if ( ftosv.find(j.p1) != ftosv.end() && ftosv[ j.p1 ].size() == 1 )
 		{
 		  SampleVariant * p = psample( ftosv[ j.p1 ][0] );	      
 		  if ( p )  
@@ -326,7 +326,7 @@ bool Variant::make_consensus( IndividualMap * a )
       
       // Does this individual feature in multiple samples? 
       
-      bool multiple_samples = j.p1 != -1 ? ftosv[ j.p1 ].size() > 1 : true;
+      bool multiple_samples = j.p1 != -1 ? ftosv.find(j.p1) != ftosv.end() && ftosv[ j.p1 ].size() > 1 : true;
       
       if ( ! multiple_samples )
 	{ 
@@ -334,7 +334,7 @@ bool Variant::make_consensus( IndividualMap * a )
 	  // not sure this would ever fail, but just in case (perhaps
 	  // also need to check ftosv/j.p1 above for range?)
 
-	  if ( ftosv[ j.p1 ].size() == 1 ) 
+	  if ( ftosv.find(j.p1) != ftosv.end() && ftosv[ j.p1 ].size() == 1 )
 	    {
 
 	      SampleVariant * p = psample( ftosv[ j.p1 ][0] );
@@ -383,13 +383,14 @@ bool Variant::make_consensus( IndividualMap * a )
 	  
 	  if ( j.p1 != -1 )  // single file, but multi obs within that file
 	    {
-
-	      std::vector<int> & xx = ftosv[ j.p1 ];
-	      for (int z=0; z<xx.size(); z++)
-		{
-		  svids.push_back( xx[z] );
-		  svslot.push_back( j.p2 );
-		}
+		  if (ftosv.find(j.p1) != ftosv.end()) {
+			  std::vector<int> & xx = ftosv[ j.p1 ];
+			  for (int z=0; z<xx.size(); z++)
+			  {
+				  svids.push_back( xx[z] );
+				  svslot.push_back( j.p2 );
+			  }
+		  }
 	    }
 	  else
 	    {
@@ -397,13 +398,15 @@ bool Variant::make_consensus( IndividualMap * a )
 	      std::set<int2>::iterator ki = k.begin();
 	      while ( ki != k.end() )
 		{
-		  std::vector<int> & xx = ftosv[ ki->p1 ];
-		  for (int z=0; z<xx.size(); z++)
-		    {
-		      svids.push_back( xx[z] );
-		      svslot.push_back( ki->p2 );
-		    }
-		  ++ki;
+	    	  if (ftosv.find(ki->p1) != ftosv.end()) {
+	    		  std::vector<int> & xx = ftosv[ ki->p1 ];
+	    		  for (int z=0; z<xx.size(); z++)
+	    		  {
+	    			  svids.push_back( xx[z] );
+	    			  svslot.push_back( ki->p2 );
+	    		  }
+	    		  ++ki;
+	    	  }
 		}
 	    }
 	  
@@ -597,6 +600,7 @@ std::string Variant::gmeta_label( const int i , const std::string & delim ) cons
   std::stringstream ss;
   ss << consensus(i).meta;
 
+  // under a flat alignment, we are done now
   if ( flat() && ! infile_overlap() ) return ss.str();
 
   std::map<int, const Genotype *> gm = all_genotype(i);
@@ -1533,10 +1537,14 @@ bool Variant::remove( int s )
 	{	      
 	  if ( *j > s ) --(*j); 
 	  ++j;
-	}      
-       
-      ++i;
-    }      
+	}
+
+      // Remove i from map, if its vector is now empty:
+      if (i->second.empty())
+    	  ftosv.erase(i++);
+      else
+    	  ++i;
+    }
   
   return true;
 }
