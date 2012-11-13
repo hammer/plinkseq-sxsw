@@ -840,6 +840,23 @@ bool VarDBase::drop_index()
   sql.query( "DROP INDEX IF EXISTS bcfDict; ");
 }
 
+bool VarDBase::set_index()
+{
+  sql.query( "CREATE INDEX IF NOT EXISTS set_idx ON set_data( set_id ) ; ");    
+  sql.query( "CREATE INDEX IF NOT EXISTS sset_idx ON superset_data( superset_id ) ; ");    
+  sql.query( "CREATE INDEX IF NOT EXISTS set_name ON sets( name ) ; ");
+  sql.query( "CREATE INDEX IF NOT EXISTS sset_name ON supersets( name ) ; ");  
+}
+
+bool VarDBase::drop_set_index()
+{
+  sql.query( "DROP INDEX IF EXISTS set_idx; ");    
+  sql.query( "DROP INDEX IF EXISTS sset_idx; ");
+  sql.query( "DROP INDEX IF EXISTS set_name; ");
+  sql.query( "DROP INDEX IF EXISTS sset_name; ");
+}
+
+
 int VarDBase::variant_count( uint64_t file_id )
 {
     int n = 0;
@@ -1731,6 +1748,7 @@ std::set<Variant> VarDBase::key_fetch( const Region & region )
     {
       sql.bind_int( stmt_fetch_variant_pos , ":chr" , region.chromosome() );
       sql.bind_int( stmt_fetch_variant_pos , ":bp1" , region.start.position() );
+
       while ( sql.step( stmt_fetch_variant_pos ) )
 	{
 	  Variant v;

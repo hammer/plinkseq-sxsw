@@ -411,7 +411,7 @@ void f_lookup_annotator( Variant & var , void * p )
 
 
   std::string s = var.coordinate();
-
+  
   pout << s << "\t"
        << "allele_ref\t"
        << var.reference() << "\n"
