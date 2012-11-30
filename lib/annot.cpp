@@ -954,7 +954,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  int posinframe_indel = 0;
 	  int firstfs_codon = 0;
 	  int firststop_codon = 0;
-	  int newpos_start = 0;
+      int newpos_start = 0;
 	  int origpepsize = 0;
 	  int newpepsize = 0;
 	  int isnmd = 0;
@@ -962,277 +962,260 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  int pposfs = 0;
 	  
 	  // changed this from trans_var.size() to longest	  
-	  for ( unsigned int i=0; i< longest; i++ )
-	    {
+	  for ( unsigned int i = 0; i < longest; i++ ) {
+		  // for reference -- for substitutions,
+		  // ref allele = ref_cds.substr( pos_extracted_seq-1 , 1 )
+		  // alt allele = var_allele
 
-	      // for reference -- for substitutions,
-	      // ref allele = ref_cds.substr( pos_extracted_seq-1 , 1 )
-	      // alt allele = var_allele
+		  // Found the new start codon:
+		  if ( newpos_start == -1 && trans_var[i] == 'M' )
+			  newpos_start = i+1;
 
-	      if ( newpos_start > 0 )
-		{
-		  newpos_start++;
-		  seq_annot_t type = SL;
-		  newpepsize = transrefsize - newpos_start + 1;
-		  origpepsize = transrefsize;
-		  
-		  if ( trans_var[i] == 'M' )
-		    {
-		      SeqInfo si = SeqInfo( r->name ,
-					    type ,
-					    reference ,
-					    *a ,
-					    pos_whole_transcript ,
-					    ref_codon[0] ,
-					    alt_codon[0] ,
-					    (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
-					    trans_ref.substr(0,1) ,
-					    trans_var.substr(0,1) ,
-					    newpos_start ,
-					    origpepsize ,
-					    newpepsize );
-		      
-		      annot.insert( si );
-		    }
-		}
-	      if ( trans_ref[i] != trans_var[i] )
-		{
-	    	  // Single base substitutions ("SNP"), or multi-nucleotide polymorphism ("MNP")
-	    	  // Either way, the REF and the ALT are of equal lengths here:
-	    	  if( reference.size() == a->size() )
-	    		  /* Since the REF and ALT are same length, then can correctly use 'i' (i+1, with 1-based offset)
+		  if ( trans_ref[i] != trans_var[i] ) {
+			  // Single base substitutions ("SNP"), or multi-nucleotide polymorphism ("MNP")
+			  // Either way, the REF and the ALT are of equal lengths here:
+			  if ( reference.size() == a->size() ) {
+				  /* NOTE: since the REF and ALT are same length, then can correctly use 'i' (i+1, with 1-based offset)
 	    		  as the protein position (and thus properly account for MNPs spanning multiple codons): */
-		    {
-		      if ( i == 0 )
-			{
-			  newpos_start++;
-			  seq_annot_t type = SL;
-			  // Used for debugging to detect start lost sites.
-			}
-		      else
-			{
-			  if ( trans_var[i] != '*' && trans_ref[i] != '*'  )
-			    {
-				  seq_annot_t type = MIS;
-				  if (trans_var[i] == '?') // an unknown ALT base resulted in an unknown AA
-					  type = EXONIC_UNKNOWN;
 
-				  origpepsize = longest;
-				  newpepsize = longest;
-				  SeqInfo si = SeqInfo( r->name ,
-						  type ,
-						  reference ,
-						  *a ,
-						  pos_whole_transcript ,
-						  ref_codon[i] ,
-						  alt_codon[i] ,
-						  i+1 ,
-						  trans_ref.substr(i,1) ,
-						  trans_var.substr(i,1) ,
-						  0 ,
-						  origpepsize ,
-						  newpepsize );
-				  annot.insert( si );
-			    }
-			  else if ( trans_var[i] == '*' )
-			    {
-			      seq_annot_t type = NON;
-			      origpepsize = trans_ref.size();
-			      newpepsize = i+1;
-			      SeqInfo si = SeqInfo( r->name ,
-						    type ,
-						    reference ,
-						    *a ,
-						    pos_whole_transcript ,
-						    ref_codon[i] ,
-						    alt_codon[i] ,
-						    i+1 ,
-						    trans_ref.substr(i,1) ,
-						    trans_var.substr(i,1) ,
-						    0 ,
-						    origpepsize ,
-						    newpepsize );
-			      si.ofptv = 1;
-			      if(newpepsize*3 < sizepenult - 50 )
-				si.nmd = 1;
-			      annot.insert( si );
-			    }
-			  else if ( trans_ref[i] == '*' )
-			    {
-			      seq_annot_t type = RT;
-			      origpepsize = trans_ref.size();
-			      newpepsize = longest;
-			      SeqInfo si =  SeqInfo( r->name ,
-						     type ,
-						     reference ,
-						     *a ,
-						     pos_whole_transcript ,
-						     ref_codon[i] ,
-						     alt_codon[i] ,
-						     i+1 ,
-						     trans_ref.substr(i,1) ,
-						     trans_var.substr(i,1) ,
-						     0 ,
-						     origpepsize ,
-						     newpepsize );
-			      annot.insert( si );
-			    }
-			}
-		    }
-		  else
- 		    {
-		      
-		      // Indel changes
-		      // Frameshift Indels.
-		      // if not modulo 3 consider frameshift -- look
-		      // at assumptions made in beg. We will need to
-		      // change this for indels that start at splicing
-		      // regions? Consider them splice in the meantime
-		      
-		      int modtmpr = ( reference.size() - 1 ) % 3;
-		      int modtmpa = ( a->size() - 1 ) % 3;
+				  if ( i == 0 ) // The first codon has been changed, so the functioning "start" codon will be downstream in the aa sequence:
+					  newpos_start = -1;
 
-		      if (  ( reference.size() > 1 && modtmpr != 0 ) || ( a->size() > 1 && ( modtmpa != 0 ) ) )
-			{
-			  newpos_stop++;
-			  if(newpos_stop == 1)
-			    {
-			      firstfs_codon = i;
-			      pposfs = i+1;
-			    }
+				  if ( trans_var[i] != '*' && trans_ref[i] != '*' ) {
+					  seq_annot_t type = MIS;
+					  if (trans_var[i] == '?') // an unknown ALT base resulted in an unknown AA
+						  type = EXONIC_UNKNOWN;
 
-			  // Stop of new transcript.
-			  if(trans_var[i] == '*' && firststop_codon == 0)
-			    {
-			      firststop_codon++;
-			      seq_annot_t type = FRAMESHIFT;
-			      origpepsize = trans_ref.size();
-			      newpepsize = i+1;
-			      newpos_stop -= 1;
-
-			      // Adding this so we can add ofptv and nmd predictions.
-
-			      SeqInfo si = SeqInfo( r->name ,
-						    type ,
-						    reference ,
-						    *a ,
-						    pos_whole_transcript ,
-						    ref_codon[firstfs_codon] ,
-						    alt_codon[firstfs_codon] ,
-						    pposfs ,
-						    trans_ref.substr(firstfs_codon,1) ,
-						    trans_var.substr(firstfs_codon,1) ,
-						    newpos_stop ,
-						    origpepsize ,
-						    newpepsize );
-			      si.ofptv = 1;
-			      
-			      if(newpepsize*3 < sizepenult - 50 )
-				si.nmd = 1;
-
-			      //uncommented the line below - change back to comment
-			      annot.insert( si );
-			    }
-			  
-			  if (i == longest - 1 && firststop_codon == 0 ) 
-			    {
-			      firststop_codon++;
-			      seq_annot_t type = FRAMESHIFT;
-			      
-			      // uncommented the line below - change back to comment
-			      // have to change this for frameshift indels that make elongated transcripts
-
-			      origpepsize = trans_ref.size();
-			      newpepsize = longest;
-			      newpos_stop -= 1;
-			      
-			      SeqInfo si = SeqInfo( r->name ,
-						    type ,
-						    reference ,
-						    *a ,
-						    pos_whole_transcript ,
-						    ref_codon[firstfs_codon] ,
-						    alt_codon[firstfs_codon] ,
-						    pposfs ,
-						    trans_ref.substr(firstfs_codon,1) ,
-						    trans_var.substr(firstfs_codon,1) ,
-						    newpos_stop ,
-						    origpepsize ,
-						    newpepsize );
-			      si.ofptv = 1;
-
-			      //Here the protein made is too long and would not undergo NMD.
-			      annot.insert( si );
-			    }
-			}
-		      else if ( reference.size() > a->size() && modtmpr % 3 == 0)
-			{
-			  posinframe_indel++;
-			  if( posinframe_indel == 1)
-			    {
-			      seq_annot_t type = CODONDELETION;
-			      if( trans_ref[i] == '*' )
-				type = STOPDELETION;
-			      if( (pos_whole_transcript-1) % 3 != 0 )
-				type = OOFCODONDELETION;
-			      
-			      annot.insert( SeqInfo( r->name ,
-						     type ,
-						     reference ,
-						     *a ,
-						     pos_whole_transcript ,
-						     ref_codon[i] ,
-						     alt_codon[i] ,
-						     (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
-						     trans_ref.substr(i,1) ,
-						     trans_var.substr(i,1)) );
-			    }
-			}
-		      else if ( a->size() > reference.size() && modtmpa % 3 == 0){
-			posinframe_indel++;
-			if( posinframe_indel == 1 )
-			  {
-			    seq_annot_t type = CODONINSERTION;
-			    if( trans_var[i] == '*' )
-			      type = STOPINSERTION;
-			    if( (pos_whole_transcript-1) % 3 != 0 ){
-			      type = OOFCODONINSERTION;
-			    }
-
-			    annot.insert( SeqInfo( r->name ,
-						   type ,
-						   reference ,
-						   *a ,
-						   pos_whole_transcript ,
-						   ref_codon[i] ,
-						   alt_codon[i] ,
-						   (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
-						   trans_ref.substr(i,1) ,
-						   trans_var.substr(i,1) ) );
+					  origpepsize = longest;
+					  newpepsize = longest;
+					  SeqInfo si = SeqInfo( r->name ,
+							  type ,
+							  reference ,
+							  *a ,
+							  pos_whole_transcript ,
+							  ref_codon[i] ,
+							  alt_codon[i] ,
+							  i+1 ,
+							  trans_ref.substr(i,1) ,
+							  trans_var.substr(i,1) ,
+							  0 ,
+							  origpepsize ,
+							  newpepsize );
+					  annot.insert( si );
+				  }
+				  else if ( trans_var[i] == '*' ) {
+					  seq_annot_t type = NON;
+					  origpepsize = trans_ref.size();
+					  newpepsize = i+1;
+					  SeqInfo si = SeqInfo( r->name ,
+							  type ,
+							  reference ,
+							  *a ,
+							  pos_whole_transcript ,
+							  ref_codon[i] ,
+							  alt_codon[i] ,
+							  i+1 ,
+							  trans_ref.substr(i,1) ,
+							  trans_var.substr(i,1) ,
+							  0 ,
+							  origpepsize ,
+							  newpepsize );
+					  si.ofptv = 1;
+					  if(newpepsize*3 < sizepenult - 50 )
+						  si.nmd = 1;
+					  annot.insert( si );
+				  }
+				  else if ( trans_ref[i] == '*' ) {
+					  seq_annot_t type = RT;
+					  origpepsize = trans_ref.size();
+					  newpepsize = longest;
+					  SeqInfo si =  SeqInfo( r->name ,
+							  type ,
+							  reference ,
+							  *a ,
+							  pos_whole_transcript ,
+							  ref_codon[i] ,
+							  alt_codon[i] ,
+							  i+1 ,
+							  trans_ref.substr(i,1) ,
+							  trans_var.substr(i,1) ,
+							  0 ,
+							  origpepsize ,
+							  newpepsize );
+					  annot.insert( si );
+				  }
 			  }
-		      }
-		      else 
-			seq_annot_t type = INDEL;
- 		    }
-		}
+			  else {
+				  // Indel changes
+				  // Frameshift Indels.
+				  // if not modulo 3 consider frameshift -- look
+				  // at assumptions made in beg. We will need to
+				  // change this for indels that start at splicing
+				  // regions? Consider them splice in the meantime
 
-	      if ( trans_ref[i] == '*' && trans_var[i] == '*' && ( (a->size() > 1 || reference.size() > 1) && a->size() != reference.size() )){
-		seq_annot_t type = INDEL;
-		annot.insert( SeqInfo( r->name ,
-				       type ,
-				       reference ,
-				       *a ,
-				       pos_whole_transcript ,
-				       ref_codon[i] ,
-				       alt_codon[i] ,
-				       (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
-				       trans_ref.substr(i,1) ,
-				       trans_var.substr(i,1) ) );
-		
-		i = longest;
-	      }
+				  int modtmpr = ( reference.size() - 1 ) % 3;
+				  int modtmpa = ( a->size() - 1 ) % 3;
 
-	    }
+				  if (  ( reference.size() > 1 && modtmpr != 0 ) || ( a->size() > 1 && ( modtmpa != 0 ) ) ) {
+					  newpos_stop++;
+					  if (newpos_stop == 1) {
+						  firstfs_codon = i;
+						  pposfs = i+1;
+					  }
+
+					  // Stop of new transcript.
+					  if (trans_var[i] == '*' && firststop_codon == 0) {
+						  firststop_codon++;
+						  seq_annot_t type = FRAMESHIFT;
+						  origpepsize = trans_ref.size();
+						  newpepsize = i+1;
+						  newpos_stop -= 1;
+
+						  // Adding this so we can add ofptv and nmd predictions.
+
+						  SeqInfo si = SeqInfo( r->name ,
+								  type ,
+								  reference ,
+								  *a ,
+								  pos_whole_transcript ,
+								  ref_codon[firstfs_codon] ,
+								  alt_codon[firstfs_codon] ,
+								  pposfs ,
+								  trans_ref.substr(firstfs_codon,1) ,
+								  trans_var.substr(firstfs_codon,1) ,
+								  newpos_stop ,
+								  origpepsize ,
+								  newpepsize );
+						  si.ofptv = 1;
+
+						  if(newpepsize*3 < sizepenult - 50 )
+							  si.nmd = 1;
+
+						  //uncommented the line below - change back to comment
+						  annot.insert( si );
+					  }
+
+					  if (i == longest - 1 && firststop_codon == 0 ) {
+						  firststop_codon++;
+						  seq_annot_t type = FRAMESHIFT;
+
+						  // uncommented the line below - change back to comment
+						  // have to change this for frameshift indels that make elongated transcripts
+
+						  origpepsize = trans_ref.size();
+						  newpepsize = longest;
+						  newpos_stop -= 1;
+
+						  SeqInfo si = SeqInfo( r->name ,
+								  type ,
+								  reference ,
+								  *a ,
+								  pos_whole_transcript ,
+								  ref_codon[firstfs_codon] ,
+								  alt_codon[firstfs_codon] ,
+								  pposfs ,
+								  trans_ref.substr(firstfs_codon,1) ,
+								  trans_var.substr(firstfs_codon,1) ,
+								  newpos_stop ,
+								  origpepsize ,
+								  newpepsize );
+						  si.ofptv = 1;
+
+						  //Here the protein made is too long and would not undergo NMD.
+						  annot.insert( si );
+					  }
+				  }
+				  else if ( reference.size() > a->size() && modtmpr % 3 == 0) {
+					  posinframe_indel++;
+					  if( posinframe_indel == 1) {
+						  seq_annot_t type = CODONDELETION;
+						  if( trans_ref[i] == '*' )
+							  type = STOPDELETION;
+						  if( (pos_whole_transcript-1) % 3 != 0 )
+							  type = OOFCODONDELETION;
+
+						  annot.insert( SeqInfo( r->name ,
+								  type ,
+								  reference ,
+								  *a ,
+								  pos_whole_transcript ,
+								  ref_codon[i] ,
+								  alt_codon[i] ,
+								  (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
+								  trans_ref.substr(i,1) ,
+								  trans_var.substr(i,1)) );
+					  }
+				  }
+				  else if ( a->size() > reference.size() && modtmpa % 3 == 0) {
+					  posinframe_indel++;
+					  if ( posinframe_indel == 1 ) {
+						  seq_annot_t type = CODONINSERTION;
+						  if ( trans_var[i] == '*' )
+							  type = STOPINSERTION;
+						  if ( (pos_whole_transcript-1) % 3 != 0 ){
+							  type = OOFCODONINSERTION;
+						  }
+
+						  annot.insert( SeqInfo( r->name ,
+								  type ,
+								  reference ,
+								  *a ,
+								  pos_whole_transcript ,
+								  ref_codon[i] ,
+								  alt_codon[i] ,
+								  (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
+								  trans_ref.substr(i,1) ,
+								  trans_var.substr(i,1) ) );
+					  }
+				  }
+				  else
+					  seq_annot_t type = INDEL;
+			  }
+		  }
+
+		  if ( trans_ref[i] == '*' && trans_var[i] == '*' && ( (a->size() > 1 || reference.size() > 1) && a->size() != reference.size() )){
+			  seq_annot_t type = INDEL;
+			  annot.insert( SeqInfo( r->name ,
+					  type ,
+					  reference ,
+					  *a ,
+					  pos_whole_transcript ,
+					  ref_codon[i] ,
+					  alt_codon[i] ,
+					  (int)floor(((pos_whole_transcript-1)/3.0)+1) ,
+					  trans_ref.substr(i,1) ,
+					  trans_var.substr(i,1) ) );
+
+			  i = longest;
+		  }
+	  }
+
+	  if (newpos_start != 0) {
+		  seq_annot_t type = SL;
+
+		  newpepsize = 0;
+		  if (newpos_start != -1)
+			  newpepsize = transrefsize - newpos_start + 1;
+
+		  origpepsize = transrefsize;
+
+		  SeqInfo si = SeqInfo( r->name ,
+				  type ,
+				  reference ,
+				  *a ,
+				  pos_whole_transcript ,
+				  ref_codon[0] ,
+				  alt_codon[0] ,
+				  1,
+				  trans_ref.substr(0,1) ,
+				  trans_var.substr(0,1) ,
+				  newpos_start ,
+				  origpepsize ,
+				  newpepsize );
+
+		  annot.insert( si );
+	  }
+
 	  ++ii;
 	} // next transcript
       // next alternate allele
