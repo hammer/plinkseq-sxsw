@@ -63,8 +63,8 @@ struct SeqInfo {
   bool frameshift() const { return type == 32 ; }
   bool codondeletion() const { return type == 23 || type == 35 || type == 37; }
   bool codoninsertion() const { return type == 22 || type == 34 || type == 36;}
-  bool splice() const { return type == 24 ;}
-  bool esplice() const { return type == 25 || type == 26 || type == 27 || type == 28 || type == 29; }
+  bool splice() const { return type == 24 || type == 26 || type == 27 || type == 28;}
+  bool esplice() const { return type == 25 || type == 29; }
 
   bool coding() const { return type > 9 ; } 
   bool synon() const { return type == 10 ; } 
@@ -122,7 +122,9 @@ struct SeqInfo {
     exin = 0;
     iseq = "";
     eseq = "";
- }
+    alt = "";
+    splice_type = "";
+  }
     
   bool operator<( const SeqInfo & rhs ) const
   {
@@ -149,6 +151,8 @@ struct SeqInfo {
 
   std::string iseq; // intronic splice sequence
   std::string eseq; // exonic splice sequence
+  std::string splice_type; // splice donor or acceptor
+  std::string alt; // alternate allele coded properly to match ref
 
   int ppos1;  // position in protein
   int ppos2;
@@ -199,7 +203,9 @@ class Annotate {
     // Helper functions
  public:
     static std::string getrc(const std::string &);
-   
+    static std::string getc(const std::string &);
+    static std::string getr(const std::string &);
+
     static std::string translate(std::string &, int, std::vector<std::string> &);    
  private:
 

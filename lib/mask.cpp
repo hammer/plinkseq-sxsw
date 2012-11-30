@@ -4609,7 +4609,7 @@ bool Mask::fail_on_sample_variant() const
 
 bool Mask::test_fail_on_sample_variant(int n , int m ) const 
 {
-  if ( n >= fail_on_sample_variant_allow && fail_on_sample_variant_allow != -1 ) return false;
+  if ( n > fail_on_sample_variant_allow && fail_on_sample_variant_allow != -1 ) return false;
   if ( m < fail_on_sample_variant_require ) return false;
   return true;
 }

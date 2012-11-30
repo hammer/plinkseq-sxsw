@@ -43,7 +43,7 @@ std::map<seq_annot_t,std::string> populate_seqinfo()
   m[ACCEPTORIN2]        = "splice-acceptor-in2";
   m[DONORIN45AG]        = "splice-donor-in45ag";
   m[SPLICE]   		= "splice";
-  m[EXONIC_UNKNOWN] = "exonic-unknown";
+  m[EXONIC_UNKNOWN]     = "exonic-unknown";
   m[FRAMESHIFT]         = "frameshift";
   m[RT]       		= "read-through";
   return m;
@@ -385,7 +385,6 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 				      const std::vector<uint64_t> & pregions )
 {
 
-
   //
   // Store annotations generated in here
   //
@@ -632,12 +631,15 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		      if ( r_exon.subregion[s].start.position()  - bp1 <= 2 && r_exon.subregion[s].start.position() - bp1  > 0 )
 			{
 			  SeqInfo si = SeqInfo( r->name , DONORIN2 );
-			  si.splicedist = r_exon.subregion[s].start.position()  - bp1 ;
+			  si.splicedist = r_exon.subregion[s].start.position()  - bp1;
 			  si.exin = in_exonsp;
 			  si.ofptv = notinframe;
-			  si.iseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1) );
-			  si.eseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4) );
-			  if ( si.splicedist > 0 ) annot.insert(si);
+			  si.iseq = getc( seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1) );
+			  si.eseq = getc( seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4) );
+			  si.splice_type = "donor";
+			  si.alt = getc(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert(si);
 			}
 			 
 		      // Donor Intronic +45AG
@@ -645,12 +647,15 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			       && getrc( seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 4) ) == "AG" )
 			{
 			  SeqInfo si = SeqInfo( r->name , DONORIN45AG );
-			  si.splicedist = r_exon.subregion[s].start.position() - bp1 ;
+			  si.splicedist = r_exon.subregion[s].start.position() - bp1;
 			  si.ofptv = notinframe ;
 			  si.exin = in_exonsp ;
-			  si.iseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1) );
-			  si.eseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4) );
-			  if( si.splicedist > 0 ) annot.insert(si);
+			  si.iseq = getc( seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1) );
+			  si.eseq = getc( seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4) );
+			  si.splice_type = "donor";
+			  si.alt = getc(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert(si);
 			}
 		      
 		      // Donor Exonic AG
@@ -661,10 +666,12 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  si.splicedist = r_exon.subregion[s].start.position() - bp1 ;
 			  si.ofptv = notinframe ;
 			  si.exin = in_exonsp ;
-			  si.iseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1) );
-			  si.eseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4) );
-			  if ( si.splicedist <= 0 ) --si.splicedist;
-			  if ( si.splicedist <= 5 ) annot.insert( si );			  
+			  si.iseq = getc( seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1) );
+			  si.eseq = getc( seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4) );
+			  si.splice_type = "donor";
+			  si.alt = getc(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si );			  
 			}
 		      else
 			{
@@ -673,10 +680,12 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  si.splicedist = r_exon.subregion[s].start.position() - bp1;
 			  si.ofptv = notinframe ;
 			  si.exin = in_exonsp ;
-			  si.iseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1) );
-			  si.eseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4) );
-			  if ( si.splicedist <= 0 ) --si.splicedist ;
-			  if ( si.splicedist >= -5 ) annot.insert( si );
+			  si.iseq = getc( seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1) );
+			  si.eseq = getc( seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4) );
+			  si.splice_type = "donor";
+			  si.alt = getc(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si );
 			}
 		    }
 		  else
@@ -689,19 +698,24 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  si.ofptv = notinframe ;
 			  si.exin = in_exonsp ;
 			  si.iseq = seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1);
-                          si.eseq = seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4);
-			  if ( si.splicedist <= 5 ) annot.insert( si );
+			  si.eseq = seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4);
+			  si.splice_type = "acceptor";
+			  si.alt = *a;
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si );
 			}
 		      else if ( r_exon.subregion[s].start.position() - bp1 == 0 && seqdb->lookup( chr , bp1 , bp1 ) == "G" )
 			{
 			  SeqInfo si = SeqInfo( r->name , ACCEPTOREX1G );
-			  si.splicedist = r_exon.subregion[s].start.position() - bp1 ;
+			  si.splicedist = r_exon.subregion[s].start.position() - bp1;
 			  si.ofptv = notinframe;
 			  si.exin = in_exonsp;
 			  si.iseq = seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1);
                           si.eseq = seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4);
-			  if ( si.splicedist == 0 ) ++si.splicedist;
-			  if ( si.splicedist <= 5 ) annot.insert( si );
+			  si.splice_type = "acceptor";
+			  si.alt = *a;
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si );
 			}
 		      else{
 			SeqInfo si = SeqInfo( r->name , SPLICE );
@@ -710,8 +724,10 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			si.ofptv = notinframe ;
 			si.iseq = seqdb->lookup( chr , r_exon.subregion[s].start.position() - 5 , r_exon.subregion[s].start.position() - 1);
 			si.eseq = seqdb->lookup( chr , r_exon.subregion[s].start.position() , r_exon.subregion[s].start.position() + 4);
-			if ( si.splicedist >= 0 ) ++si.splicedist;
-			if ( si.splicedist <= 5 ) annot.insert( si );
+			si.splice_type = "acceptor";
+			si.alt = *a;
+			if( si.splicedist <= 0 ) si.splicedist--;
+			annot.insert( si );
 		      }
 		    }
 		}
@@ -732,9 +748,12 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  si.splicedist = bp1 - r_exon.subregion[s].stop.position();
 			  si.ofptv = notinframe ;
 			  si.exin = in_exonsp ;
+			  si.splice_type = "acceptor";
 			  si.eseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() ) );
 			  si.iseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5 ));
-			  if ( si.splicedist <= 5 ) annot.insert( si );
+			  si.alt = getrc(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si );
 			}
 		      else if( bp1 - r_exon.subregion[s].stop.position() == 0 
 			       && getrc( seqdb->lookup( chr , r_exon.subregion[s].stop.position() , r_exon.subregion[s].stop.position() ) ) == "G" )
@@ -745,8 +764,10 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  si.exin = in_exonsp ;
 			  si.eseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() ) );
 			  si.iseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5) );
-			  if ( si.splicedist <= 0 ) --si.splicedist;
-			  if ( si.splicedist <= 5 ) annot.insert( si );
+			  si.splice_type = "acceptor";
+			  si.alt = getrc(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si );
 			}
 		      else
 			{
@@ -756,8 +777,10 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  si.exin = in_exonsp ;
 			  si.eseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() ) );
 			  si.iseq = getrc( seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5) );
-			  if ( si.splicedist <= 0 ) --si.splicedist;
-			  if ( si.splicedist <= 5 ) annot.insert( si );
+			  si.splice_type = "acceptor";
+			  si.alt = getrc(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si );
 			}
 		    }
 		  else
@@ -769,9 +792,12 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  si.splicedist = bp1 - r_exon.subregion[s].stop.position() ;
 			  si.ofptv = notinframe ;
 			  si.exin = in_exonsp ;
-			  si.eseq = seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() );
-                          si.iseq = seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5);			  
-			  if ( si.splicedist >= -5 ) annot.insert( si );
+			  si.eseq = getr(seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() ) );
+			  si.iseq = getr(seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5) );			  
+			  si.splice_type = "donor";
+			  si.alt = getr(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si );
 			}
 		      else if ( r_exon.subregion[s].stop.position() - bp1 <= 1 && r_exon.subregion[s].stop.position() - bp1 >= 0 
 				&& seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 1, r_exon.subregion[s].stop.position() ) == "AG" )
@@ -780,10 +806,12 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  si.splicedist = bp1 - r_exon.subregion[s].stop.position() ;
 			  si.ofptv = notinframe ;
 			  si.exin = in_exonsp ;
-			  si.eseq = seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() );
-                          si.iseq = seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5);
-			  if ( si.splicedist <= 0 ) --si.splicedist ;
-			  if ( si.splicedist >= -5 ) annot.insert( si ) ;
+			  si.eseq = getr(seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() ) );
+			  si.iseq = getr( seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5) );
+			  si.splice_type = "donor";
+			  si.alt = getr(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si ) ;
 			}
 		      else if ( ( bp1 - r_exon.subregion[s].stop.position() == 5 || bp1 - r_exon.subregion[s].stop.position() == 4 ) 
 				&& seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 4, r_exon.subregion[s].stop.position() + 5 ) == "AG" )
@@ -792,9 +820,12 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  si.splicedist = bp1 - r_exon.subregion[s].stop.position() ;
 			  si.ofptv = notinframe ;
 			  si.exin = in_exonsp ;
-			  si.eseq = seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() );
-                          si.iseq = seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5);
-			  if ( si.splicedist >= -5 ) annot.insert( si );
+			  si.eseq = getr( seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() ) );
+			  si.iseq = getr( seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5) );
+			  si.splice_type = "donor";
+			  si.alt = getr(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si );
 			}
 		      else
 			{
@@ -802,10 +833,12 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			  si.splicedist = bp1 - r_exon.subregion[s].stop.position();
 			  si.ofptv = notinframe ;
 			  si.exin = in_exonsp ;
-			  si.eseq = seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() );
-                          si.iseq = seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5);
-			  if ( si.splicedist <= 0 ) --si.splicedist;
-			  if ( si.splicedist >= -5 ) annot.insert( si );
+			  si.eseq = getr( seqdb->lookup( chr , r_exon.subregion[s].stop.position() - 4 , r_exon.subregion[s].stop.position() ) );
+			  si.iseq = getr( seqdb->lookup( chr , r_exon.subregion[s].stop.position() + 1 , r_exon.subregion[s].stop.position() + 5) );
+			  si.splice_type = "donor";
+			  si.alt = getr(*a);
+			  if( si.splicedist <= 0 ) si.splicedist--;
+			  annot.insert( si );
 			}
 		    }
 		}	      
@@ -1289,6 +1322,8 @@ void SeqInfo::details( Variant & var ) const
       var.meta.add( PLINKSeq::ANNOT_DETAILS() , "EXIN=" + Helper::int2str( exin ) );
       var.meta.add( PLINKSeq::ANNOT_DETAILS() , "ISEQ=" + iseq );
       var.meta.add( PLINKSeq::ANNOT_DETAILS() , "ESEQ=" + eseq );
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "SPLICE_TYPE=" + splice_type );
+      var.meta.add( PLINKSeq::ANNOT_DETAILS() , "ALT=" + alt );
     }
   
   if ( nonsense() )
@@ -1317,11 +1352,6 @@ void SeqInfo::details( Variant & var ) const
   if ( readthrough() ) 
     {      
       var.meta.add( PLINKSeq::ANNOT_DETAILS() , "PEPSIZE=" + Helper::int2str( origpepsize ) + "->" + Helper::int2str(newpepsize) ) ;
-    }
-  
-  if( !nonsense() && !splice() && !esplice() && !frameshift() && !startlost() && !readthrough() )
-    {
-      var.meta.add( PLINKSeq::ANNOT_DETAILS() , ".") ;
     }
 }
 
@@ -1655,6 +1685,32 @@ std::string Annotate::getrc(const std::string & s)
       else r += "N";
     }
   reverse( r.begin(), r.end() );
+  return r;
+}
+
+std::string Annotate::getr(const std::string & s)
+{
+  std::string r = s;
+  reverse( r.begin(), r.end() );
+  return r;
+}
+
+std::string Annotate::getc(const std::string & s)
+{
+  int sz = s.size();
+  std::string r;
+  for ( int i = 0 ; i < sz ; i++ )
+    {
+      if      ( s[i] == 'a' ) r += "t";
+      else if ( s[i] == 'c' ) r += "g";
+      else if ( s[i] == 'g' ) r += "c";
+      else if ( s[i] == 't' ) r += "a";
+      else if ( s[i] == 'A' ) r += "T";
+      else if ( s[i] == 'C' ) r += "G";
+      else if ( s[i] == 'G' ) r += "C";
+      else if ( s[i] == 'T' ) r += "A";
+      else r += "N";
+    }
   return r;
 }
 

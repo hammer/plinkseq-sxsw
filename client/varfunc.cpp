@@ -447,10 +447,12 @@ void f_lookup_annotator( Variant & var , void * p )
 	   << "func" << "\t"
 	   << var.meta.as_string( PLINKSeq::ANNOT_TYPE() , "," ) << "\n";
       
-      pout << var.coordinate() << "\t"
-           << "func_details" << "\t"
-           << var.meta.as_string( PLINKSeq::ANNOT_DETAILS() , "," ) << "\n";
-
+      if( var.meta.as_string( PLINKSeq::ANNOT_DETAILS() , "," ).length() > 0  ){
+	pout << var.coordinate() << "\t"
+	     << "annot_details" << "\t"
+	     << var.meta.as_string( PLINKSeq::ANNOT_DETAILS() , "," ) << "\n";
+      }
+      
       pout << var.coordinate() << "\t"
 	   << "transcript" << "\t"
 	   << var.meta.as_string( PLINKSeq::ANNOT_GENE() , "," ) << "\n";
