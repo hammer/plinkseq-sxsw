@@ -13,7 +13,7 @@ extern Pseq::Util::Options args;
 //   2. we screen for when self-self interactions listed -- in this context, do not want to add to set
 //   3. option to exclude any variants present in the seed gene from the test statistic
 
-bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , const std::string & grp )
+bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , const std::string & grp , const int steps )
 {
 
   if ( ! g.locdb.attached() ) Helper::halt( "no attacged LOCDB" ); 
@@ -25,7 +25,7 @@ bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , co
   
   // depth=1, threshold=0.0; add-self = T
   std::set<std::string> regs = netdb.connections( gene , 1 , 0 , true );
-
+  
   Out & pout = Out::stream( "partners" );
 
   std::set<std::string>::iterator ii = regs.begin();
@@ -35,6 +35,7 @@ bool Pseq::NetDB::lookup( const std::string & db , const std::string & gene , co
       ++ii;
     }
   return true;
+
 }
 
 

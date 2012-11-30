@@ -1324,29 +1324,8 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   const int n_var = target->calls.size();
 
   
-  // 1) mask 'assume-ref'.  Assume missing genotypes are
-  // obligatorarily homozygous for the reference allele; also populate
-  // PL fields to indicate this.
-  
-  if ( mask && mask->assuming_null_is_reference() )
-    {
-      std::vector<int> t(3);
-      t[0] = 0; t[1] = 255; t[2] = 255;
-      for ( unsigned int i = 0 ; i < n_var ; i++ )
-	{
-	  if ( target->calls.genotype(i).null() ) 
-	    {
-	      target->calls.genotype(i).set_alternate_allele_count(0);
-	      
-	      // also set PL to indicate this, with slight chance of HET
-	      target->calls.genotype(i).meta.set( PLINKSeq::META_GENO_PHRED() , t );
-	    }
-	}
-    }
-  
-  
   //
-  // 2) mask any per-individual segments
+  // 1) mask any per-individual segments
   //
 
   if ( mask && mask->genotype_segmask() ) 
@@ -1369,7 +1348,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   
 
   //
-  // 3). mask 'geno' conditions -- i.e. determineing whether to zero-out specific genotypes
+  // 2). mask 'geno' conditions -- i.e. determineing whether to zero-out specific genotypes
   // because they meet/fail to meet certain criteria, e.g. geno=DP:ge:10
   //
   
@@ -1382,6 +1361,31 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	}
     }
   
+
+  
+  // 3) mask 'assume-ref'.  Assume missing genotypes (or those made
+  // missing by the above GENO filters) are obligatorarily homozygous
+  // for the reference allele; also populate PL fields to indicate
+  // this.
+  
+  if ( mask && mask->assuming_null_is_reference() )
+    {
+      std::vector<int> t(3);
+      t[0] = 0; t[1] = 255; t[2] = 255;
+      for ( unsigned int i = 0 ; i < n_var ; i++ )
+	{
+	  if ( target->calls.genotype(i).null() ) 
+	    {
+	      target->calls.genotype(i).set_alternate_allele_count(0);
+	      
+	      // also set PL to indicate this
+	      target->calls.genotype(i).meta.set( PLINKSeq::META_GENO_PHRED() , t );
+	    }
+	}
+    }
+  
+
+
   return true;
   
 }
