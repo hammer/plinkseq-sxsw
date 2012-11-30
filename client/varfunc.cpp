@@ -1604,6 +1604,7 @@ struct aux_trio_transmission_summary {
   int _nonmendelian;
   int _trans_ref_from_het;
   int _trans_alt_from_het;
+  int _child_hets;
   int _potential_denovo;
   int _dcount;
 
@@ -1634,6 +1635,11 @@ struct aux_trio_transmission_summary {
     return _trans_alt_from_het;
   }
 
+  int child_hets() const
+  {
+	  return _child_hets;
+  }
+
   int potential_denovo() const
   {
     return _potential_denovo;
@@ -1651,6 +1657,7 @@ struct aux_trio_transmission_summary {
 	  _nonmendelian =
 	  _trans_ref_from_het =
 	  _trans_alt_from_het =
+	  _child_hets =
 	  _potential_denovo =
 	  _dcount = 0;
 
@@ -1752,6 +1759,9 @@ void f_denovo_scan( Variant & v , void * p )
 
     	  int a1 = go.acode1();
     	  int a2 = go.acode2();
+
+    	  if (go.heterozygote() && (go.a1IsReference() || go.a2IsReference()))
+    		  summary->_child_hets++;
 
     	  std::set<int> pAll;
     	  pAll.insert(gp.acode1());
@@ -2070,6 +2080,7 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
 		  << "TRANS_ALT_FROM_HET" << "\t"
 		  << "ALT_TRANS_RATE" << "\t"
 		  << "NON_MENDELIAN" << "\t"
+		  << "CHILD_HET" << "\t"
 		  << "POTENTIAL_DENOVO" << "\t"
 		  << "PASSING_DENOVO" << "\n";
 
@@ -2085,6 +2096,7 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
 	       << p->trans_alt_from_het() << "\t"
 	       << p->trans_alt_from_het() / (double)( p->trans_ref_from_het() + p->trans_alt_from_het() ) << "\t"
 	       << p->nonmendelian() << "\t"
+	       << p->child_hets() << "\t"
 	       << p->potential_denovo() << "\t"
 	       << p->passing_denovo() << "\n";
     }
