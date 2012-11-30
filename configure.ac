@@ -9,7 +9,7 @@ AC_PREREQ(2.61)
 AC_INIT([plinkseq], [0.09], [shaun.purcell@mssm.edu])
 
 # foreign allows automake to run without the AUTHORS, COPYING, etc. files
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([foreign])
 
 # Silence no portability error in automake 1.12
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])

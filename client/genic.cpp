@@ -207,10 +207,18 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 			       bool original )
 {
 
-    // for original data, represent the breakdown of variants in a nice manner
-  Out * pdet = original ? &Out::stream( "assoc.det" ) : NULL ;
 
+  // for original data, represent the breakdown of variants in a nice manner
+  Out * pdet = original ? &Out::stream( "assoc.det" ) : NULL ;
+  
   const int n = vars.n_individuals();
+
+  // Given we are evaluating by permutation, just use a Z-test to get
+  // 1-sided case vs. control comparison of (weighted) allele counts
+  
+  // Z = ( mA - mU ) / sqrt( SA^2/NA + SU^2/NU ) 
+
+  std::vector<double> x(n,0);
 
   double cnt_a = 0, cnt_u = 0;      // basic counts
   double all_a = 0, all_u = 0;      // all non-missing allele-counts
@@ -247,12 +255,15 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 	  int j = g.perm.pos( i );	  
 	  affType aff = vars.ind( j )->affected();
 	  
-	  // allele-count
+	  // allele-count (domainant model)
 	  if ( vars.geno(v,i).minor_allele( adir ) )
 	    {	      
 	      
 	      if      ( aff == CASE )    { alta += w; obsa = true; } 
 	      else if ( aff == CONTROL ) { altu += w; obsu = true; }
+
+	      // for Z-test
+	      x[i] += w;
 	      
 	      if      ( aux->mhit ) ghits[i]++;
 	      
@@ -271,13 +282,15 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
       
       // counting sites, not alleles (collapse 1+ --> 1)
       // TODO -- need to fix to make this weighted
+
       if ( aux->site_burden ) 
 	{
 	  Helper::halt("not implemented");
-	  alta = alta ? 1 : 0; 
-	  altu = altu ? 1 : 0;
+	  alta = alta ? w : 0; 
+	  altu = altu ? w : 0;
 	}
 
+      
       // case-burden
       cnt_a += alta;
       cnt_u += altu;
@@ -292,6 +305,7 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 	  unq_u += altu;
 	}
       
+
       if ( pdet ) 
 	*pdet << vars.name() << "\t"
 	      << vars(v) << "\t"
@@ -303,7 +317,38 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
       
     } // next variant
 
+
+  // For Z-test, re-loop to get dominator
+
+  double mA = 0 , mU = 0;
+  int nA = 0 , nU = 0;
   
+  for (int i=0;i<n;i++)
+    {
+      int j = g.perm.pos( i );
+      affType aff = vars.ind( j )->affected();
+      if      ( aff == CASE )    { nA++; mA += x[i]; }
+      else if ( aff == CONTROL ) { nU++; mU += x[i]; }
+    }
+  
+  if ( nA ) mA /= (double) nA;
+  if ( nU ) mU /= (double) nU;
+
+  double xxA = 0 , xxU = 0;
+
+  for (int i=0;i<n;i++)
+    {
+      int j = g.perm.pos( i );
+      affType aff = vars.ind( j )->affected();
+      if      ( aff == CASE )    xxA += ( x[i] - mA ) * ( x[i] - mA );
+      else if ( aff == CONTROL ) xxU += ( x[i] - mU ) * ( x[i] - mU );
+    }
+  
+  if ( nA ) xxA /= (double)(nA-1);
+  if ( nU ) xxU /= (double)(nU-1);
+   
+  //  std::cout << "DET " << vars.name() << " " << nA << " " << nU <<" " << mA << " " << mU << " " << xxA << " " << xxU << " " << ( mA - mU ) / sqrt( xxA/(double)nA + xxU/(double)nU ) << "\n";
+
   // simple multi-hit test
   
   if ( aux->mhit ) 
@@ -320,14 +365,25 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 	}
     }
 
+  //
   // accumulate statistics
+  //
+
   aux->stat_vanilla = chi2;  
 
+
+  // primary BURDEN test (Z-test, 1-sided)
+
+  if ( nA == 0 || nU == 0 || mA < mU || ( xxA + xxU == 0 ) )
+    aux->stat_burden = 0;
+  else
+    aux->stat_burden = ( mA - mU ) / sqrt( xxA/(double)nA + xxU/(double)nU ) ; 
+  
   // use -log10(p) from Fisher's exact test; but 1-sided (so require higher alt-allele freq. in cases
-  if ( all_a == 0 || all_u == 0 || cnt_a / (double)all_a <= cnt_u / (double)all_u ) 
-    aux->stat_burden = 0; 
-  else 
-    aux->stat_burden = Helper::chi2x2( cnt_a , cnt_u , all_a - cnt_a , all_u - cnt_u );
+  // if ( all_a == 0 || all_u == 0 || cnt_a / (double)all_a <= cnt_u / (double)all_u ) 
+  //   aux->stat_burden = 0; 
+  // else 
+  //   aux->stat_burden = Helper::chi2x2( cnt_a , cnt_u , all_a - cnt_a , all_u - cnt_u );
   
   //  std::cout << "stats = " << aux->stat_burden << "\t" << cnt_a << " " << cnt_u << " " << all_a - cnt_a << " " << all_u - cnt_u << "\n";
 
