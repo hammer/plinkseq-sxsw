@@ -109,7 +109,7 @@ void f_vstat( Variant & v , void * p)
       vstat->ti++;
       if ( singleton ) vstat->ti_singleton++;
     }
-  else 
+  else if (v.transversion())
     {
       vstat->tv++;
       if ( singleton ) vstat->tv_singleton++;

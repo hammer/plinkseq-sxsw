@@ -125,7 +125,7 @@ namespace Pseq
 
     bool loader( const std::string & db , const std::string & file );
 
-    bool lookup( const std::string & db , const std::string & gene , const std::string & grp );
+    bool lookup( const std::string & db , const std::string & gene , const std::string & grp , const int steps = 0 );
 
   }
 

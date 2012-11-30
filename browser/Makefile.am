@@ -1,3 +1,5 @@
+include ../common.am
+
 bin_PROGRAMS = pbrowse.cgi mongoose
 bin_SCRIPTS = pbrowse
 

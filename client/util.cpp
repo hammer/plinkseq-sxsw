@@ -259,7 +259,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
       
 	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:format$build$repeat-mode$iupac,file,name,description,"
       
-	  << "lookup|misc,annot|lookup various annotatations for a list of positions|ARG:loc,alias,ref,protdb,annotate|OUT:meta"
+	  << "lookup|misc,annot|lookup various annotatations for a list of positions|ARG:loc,alias,ref,ref_allelic,protdb,annotate,titv|OUT:meta"
       
 	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta,verbose|OUT:refvars"
       
@@ -538,8 +538,10 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "allow", INT , "allow N individuals without variant" );
     
     reg( "annotate" , STRING , "transcript group for annotation" );
+    reg( "titv" , NONE , "annotate locus as being transition, transversion, or neither" );
     reg( "loc" , STRING_VECTOR , "transcript group" );
     reg( "ref" , STRING_VECTOR , "reference-variant group" );
+    reg( "ref_allelic" , STRING_VECTOR , "reference-variant group" );
     reg( "locset" , STRING_VECTOR , "locus-set group" );
     
     // Genotype/phenotype inputs

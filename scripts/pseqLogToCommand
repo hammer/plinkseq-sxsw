@@ -1,0 +1,11 @@
+#!/bin/csh
+
+if ( $#argv < 1 ) then
+    set logFile = "-"
+else
+    set logFile = $1
+endif
+
+
+cat $logFile | \
+awk 'BEGIN{s="pseq"; START=0} {if ($1 == "Project") START=1; if (START) {if (NF==0) exit; else {f=1; if ($2 == ":") f=3; for (i=f; i<=NF; i++) {s=s" "$i} }}} END{print s}'

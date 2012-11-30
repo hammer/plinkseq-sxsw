@@ -1,3 +1,5 @@
+include ../common.am
+
 bin_PROGRAMS = pdas
 
 pdas_SOURCES = \

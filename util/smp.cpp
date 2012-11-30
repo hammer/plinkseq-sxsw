@@ -28,15 +28,16 @@ int main( int argc , char ** argv )
 {
 
   
-  if ( argc != 4 ) 
+  if ( argc != 5 ) 
     {
-      std::cerr << "usage:   ./smp gene.list sets.list data.mat\n";
+      std::cerr << "usage:   ./smp gene.list equiv.list sets.list data.mat\n";
       exit(1);
     }
 
   std::string genes_filename = argv[1];
-  std::string sets_filename  = argv[2];
-  std::string data_filename  = argv[3];
+  std::string equiv_filename = argv[2];
+  std::string sets_filename  = argv[3];
+  std::string data_filename  = argv[4];
 
   
 
@@ -76,9 +77,8 @@ int main( int argc , char ** argv )
   
   // 'Set-weighted gene-based tests' 
   
-  
   std::map<std::string,std::string> gene_annot;
- 
+  
   std::ifstream GENES( genes_filename.c_str() , std::ios::in );
   
   if ( GENES.good() ) 
@@ -90,7 +90,12 @@ int main( int argc , char ** argv )
 	  if ( line == "" ) continue;
 	  int ncol;
 	  char_tok tok( line , &ncol , '\t' );
-	  if ( ncol != 2 ) { std::cerr << "skipping line in " << genes_filename << " that doesn't have 2 tab-delim fields\n"; continue; } 
+	  if ( ncol != 2 ) 
+	    { 
+	      std::cerr << "skipping line in " << genes_filename 
+			<< " that doesn't have 2 tab-delim fields\n"; 
+	      continue; 
+	    } 
 	  gene_annot[ tok(0) ] = tok(1);
 	}      
       std::cerr << "read " << gene_annot.size() << " gene/anotations\n";
@@ -100,6 +105,11 @@ int main( int argc , char ** argv )
 
   GENES.close();
 
+
+ 
+  //
+  // data
+  //
   std::ifstream NMAT( data_filename.c_str() );
   if ( ! NMAT.good() ) 
     {
@@ -187,7 +197,7 @@ int main( int argc , char ** argv )
       
       // track 'slot' for this element 
       gene2slot[ elem ] = nelems;
-      slot2gene.push_back( elem );
+      slot2gene.push_back( elem );      
 
       std::vector< Data::Vector<double> > dt( ntest_types );
       for (int j=0;j<ntest_types;j++)
@@ -219,6 +229,58 @@ int main( int argc , char ** argv )
   std::cerr << "read " << nelems << " elements\n";
 
 
+  //
+  // Given actually observed genes, read and create equivalence map
+  //
+  
+  // we've already populated index 'i' for 'gene' name
+  //gene2slot[ gene ] = i;
+  //slot2gene[ i ] = gene;
+
+
+  //
+  // equivalence sets for genes
+  //
+
+  // for gene 'i', store all equiv. genes in vector 
+  std::map<int,std::vector<int> > eq;
+
+  if ( ! ( equiv_filename == "-" || equiv_filename == "." ) )
+    {
+      int eset = 0, fset = 0;
+      std::ifstream EQ( equiv_filename.c_str() );
+      while ( ! EQ.eof() )
+	{
+	  // each row should be a complete group
+	  std::string line;
+	  std::getline( EQ , line );
+          if ( line == "" ) continue;
+          int ncol;
+          char_tok tok( line , &ncol , '\t' );
+	  if ( ncol > 1 ) 
+	    {
+	      ++fset;
+	      std::vector<int> x;
+	      for (int i=0;i<ncol;i++) 
+		{
+		  std::map<std::string,int>::iterator ii = gene2slot.find( tok(i) );
+		  if ( ii != gene2slot.end() ) x.push_back( ii->second );
+		}
+	      
+	      if ( x.size() > 1 ) 
+		{
+		  for (int i=0;i<x.size();i++)
+		    for (int j=0;j<x.size();j++)
+		      if ( i != j ) eq[x[i]].push_back(x[j]);
+		  ++eset;
+		}
+	    }
+	}
+      std::cerr << "read " << fset << " gene equivalence sets, " << eset << " of which map to observed genes\n";
+      EQ.close();
+    }
+  
+
 
   //
   // read in sets to test
@@ -230,49 +292,158 @@ int main( int argc , char ** argv )
   std::vector<std::string> set_descriptions;
   std::vector<std::vector<int> > sets;      // for set i, all genes
   std::vector<std::vector<int> > gene2sets; // for gene i, all sets
-
+  
 
   read_sets( sets_filename , gene2slot , &elem_cnt , sets , set_names , set_descriptions, gene2sets );
   
   const int ntests = sets.size();
-
-
-
+  
+  
+  //
+  // Note which genes are in equivalence sets
+  //
+  
+  std::set<int> ineq; 
+  std::map<int,std::vector<int> >::iterator ee = eq.begin();
+  while ( ee != eq.end() ) { ineq.insert( ee->first ); ++ee; }
+  
+  
   //
   // Tests set enrichment
   //
 
   for (int i = 0 ; i < sets.size(); i++ ) 
     {
+
+      std::vector<int> & elems = sets[i];
       
+      // make a quick store of the genes in this set
+      std::set<int> inset;
+      for (int e=0;e<elems.size();e++) inset.insert(elems[e]);
+      
+      //
       // for each test type
-      
+      //
+
       for (int j=0;j<ntest_types;j++)
 	{
 	  
 	  std::vector<double> ns( nrep + 1 , 0 );
-	  std::vector<int> & elems = sets[i];
 	  
-	  // Sum over set elements
-	  
+	  //
+	  // Sum over independent set elements
+	  //
+
 	  for (int e=0;e<elems.size();e++)
 	    {
-	      // orig, followed by nulls 
-	      for (int r=0;r<=nrep;r++)
-		ns[r] += E[j](r,elems[e]);
+	     
+	      bool in_equiv_set = ineq.find( elems[e] ) != ineq.end() ;
+	      
+	      if ( ! in_equiv_set )
+		{
+
+		  // for independent elements, just add own value; 
+		  // orig, followed by nulls 
+		  
+		  for (int r=0;r<=nrep;r++)
+		    ns[r] += E[j](r,elems[e]);
+		}
+	      else
+		{
+		  // otherwise, if in an equivalence set, add only the max from the set;
+		  // considering only elements that are actually in the set
+		  
+		  std::vector<int> & t = eq[elems[e]];
+		  std::vector<int> x;
+		  for (int ee=0;ee<t.size();ee++)
+		    {
+		      if ( inset.find( t[ee] ) != inset.end() ) 
+			{
+			  
+			  // std::cerr << "for " << set_names[ i ] << " "			  
+			  // 	    << "dupe " << t[ee] << " " << slot2gene[ t[ee] ]  << "\t";
+
+			  //std::vector<int> & tmp = eq[ t[ee] ];
+			  //for (int y=0;y<tmp.size();y++) std::cerr << slot2gene[ tmp[y] ] << "|";
+			  
+			  x.push_back( t[ee] );
+			}		      
+		      // std::cerr << "\n";
+		    }
+
+
+		  for (int r=0;r<=nrep;r++)
+		    {
+
+		      // Current value; only add this if it is the max.
+		      
+		      double mx = E[j](r,elems[e]);
+		      int    mxi = elems[e];
+		      
+		      // if ( r == 0 ) 
+		      // 	std::cerr << "considering " << set_names[i] << " " << slot2gene[ mxi ] << " " << mx << "\n";
+
+		      // so, see if any other equiv, in-set element scores higher.
+		      // for ties, always take the lower element number; that way
+		      // we will avoid double-counting equivalently-scored equivalent elements
+
+		      bool add_this = true;
+
+		      for (int f=0;f<x.size();f++)
+			{
+			  // is score bigger (or tied, but lower-indexed element)?
+			  if ( E[j](r,x[f]) > mx ) 
+			    { 
+			      add_this = false; 
+			      
+			      // if ( r == 0 ) 
+			      // 	std::cerr << " no, would prefer " << slot2gene[ x[f] ] << " " << E[j](r,x[f]) << "\n";
+			      
+			      break; 
+			    }
+
+			  if ( E[j](r,x[f]) == mx && x[f] < mxi ) 
+			    { 
+			      add_this = false; 
+			      
+			      // if ( r == 0 ) 
+			      // 	std::cerr << " no, would prefer " << slot2gene[ x[f] ] << " " << E[j](r,x[f]) << "\n";
+			      
+			      break; 
+			    }
+			}
+		      
+		      if ( add_this )
+			{
+
+			  // if ( r == 0 ) 
+			  //   std::cerr << "  ADDED!";
+
+			  ns[r] += mx;
+			}
+
+		      // if ( r == 0 ) 
+		      // 	std::cerr << "\n";
+		    }		  
+		  
+		}
 	    }
-	  
-	  
+
+
+	  //
 	  // Calculate empirical p-value
-	  
+	  //
+
 	  int pv = 1;
 	  const double & s = ns[0];
 	  for (int r=1; r <= nrep; r++ ) 
 	    if ( ns[r] >= s ) ++pv;
 	  
 
+	  //
 	  // Output
-	  
+	  //
+
 	  std::cout << "SET\t" 
 		    << test_names[j] << "\t"
 		    << (double)(pv) / (double)(nrep+1) << "\t" 
@@ -284,11 +455,13 @@ int main( int argc , char ** argv )
 	  
 	} // next test
       
-
     } // next set
   
 
+  // for now, just do set tests
   
+  exit(0);
+
 
   //
   // Obtain max(statistic) distribution (per test, per replicate)
@@ -428,10 +601,16 @@ int main( int argc , char ** argv )
 			<< (double)(pv1) / (double)(nrep+1) << "\t" 
 			<< (double)(pv2) / (double)(nrep+1) << "\t" 
 			<< slot2gene[e] << "\t";
-
+	      
 	      std::string ann = gene_annot[ slot2gene[e] ] ;
-	      std::cout << ( ann == "" ? "." : ann ) << "\n";
+	      std::cout << ( ann == "" ? "." : ann ) ;
 
+	      if ( gene2sets[e].size() == 0 ) std::cout << "\t.";	      
+	      else for (int s=0;s<gene2sets[e].size();s++)		
+		     std::cout << ( s > 0 ? "|" : "\t" ) << set_names[ gene2sets[e][s] ] ;
+			  
+	      std::cout << "\n";
+	      
 	      // if the fellow-test is nominally significant, give
 	      // some extra output as to what is driving the signal.
 
@@ -494,7 +673,13 @@ int main( int argc , char ** argv )
 			<< slot2gene[e] << "\t";
 	      
 	      std::string ann = gene_annot[ slot2gene[e] ] ;
-	      std::cout << ( ann == "" ? "." : ann ) << "\n";
+	      std::cout << ( ann == "" ? "." : ann ) ;
+	      
+	      if ( gene2sets[e].size() == 0 ) std::cout << "\t.";
+	      else for (int s=0;s<gene2sets[e].size();s++)		
+		     std::cout << ( s > 0 ? "|" : "\t" ) << set_names[ gene2sets[e][s] ] ;
+			  
+	      std::cout << "\n";
 	      
 	      
 	    }

@@ -636,6 +636,14 @@ bool Pseq::VarDB::add_to_varset( const std::string & filename  )
   InFile f( filename );
 
   bool vardb_exists = g.vardb.attached();
+
+  if ( ! vardb_exists ) 
+    Helper::halt( "no VARDB attached" );
+
+  plog << "dropping index...\n";
+  g.vardb.drop_set_index();
+
+  int nrows = 0;
   
   while ( ! f.eof() )
     {
@@ -699,12 +707,9 @@ bool Pseq::VarDB::add_to_varset( const std::string & filename  )
 	      if ( ! okay ) continue;
 
 	      // if a VARDB attached, only add SNP if it exists in the VARDB
-	      if ( vardb_exists ) 
-		{
-		  std::set<Variant> vs = g.vardb.key_fetch( reg );
-		  if ( vs.size() == 0 ) continue;
-		  v.consensus.index( vs.begin()->consensus.index() );
-		}
+	      std::set<Variant> vs = g.vardb.key_fetch( reg );
+	      if ( vs.size() == 0 ) continue;
+	      v.consensus.index( vs.begin()->consensus.index() );
 	      
 	      v.chromosome( reg.chromosome() );
 	      v.position( reg.start.position() );
@@ -722,11 +727,24 @@ bool Pseq::VarDB::add_to_varset( const std::string & filename  )
 	      
 	    } // end add-region
 	} // end add-snp
+
+
+      if ( ++nrows % 1000 == 0 )
+	plog.counter1("processed " + Helper::int2str( nrows ) + " rows" );
+      
     } // next row
+
+  plog.counter1("\n");
   
   f.close();    
+
+
+  plog << "adding index...\n";
+  g.vardb.set_index();
+
   return true;
 }
+
 
 bool Pseq::VarDB::add_superset_from_file( const std::string & filename )
 {
@@ -742,6 +760,7 @@ bool Pseq::VarDB::add_superset_from_file( const std::string & filename )
   f.close();
   return true;
 }
+
 
 bool Pseq::VarDB::add_superset( const std::string & group , const std::vector<std::string> & members , const std::string & desc )
 {

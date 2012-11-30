@@ -483,6 +483,13 @@ class Variant {
   std::map<std::string,int> genotype_counts( const affType & aff , bool unphased = true ) const;
 
 
+  /*!
+  Return number of
+       @param m Reference: returns number of alternate alleles
+       @param n Reference: returns total number of non-missing alleles
+   */
+
+  void n_alt_allele( int * m = NULL , int * n = NULL , double * aaf = NULL , const affType & aff = UNKNOWN_PHE ) const;
 
   /*!
     Return number of 
@@ -545,6 +552,8 @@ class Variant {
   std::string phased_geno_label( const int, const Genotype & ) const;
   std::string label( const int, const std::string & delim = "," ) const;
   std::string gmeta_label( const int, const std::string & delim = "," ) const;
+  std::string alternate_label( const int, const std::string & delim = "," ) const;
+  std::string sample_variant_index( const int , const std::string & delim = "," ) const;
   std::string allele1_label( const Genotype & ) const;
   std::string allele2_label( const Genotype & ) const;
 

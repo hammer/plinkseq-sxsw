@@ -961,7 +961,8 @@ bool VarDBase::eval_and_call( Mask & mask,
   std::vector<int> svar_rlist; // any SampleVariants that need to be removed
   
   int ngood = 0; // track # of passing sampels
-      
+  int npop  = 0; // track # of populated samples, with at least 1 person in (given mask)
+
   for ( int s = 0 ; s < n ; s++ ) 
     {
       
@@ -995,6 +996,14 @@ bool VarDBase::eval_and_call( Mask & mask,
       if ( align->size( svar.fileset() ) == 0 && ! mask.site_only( svar.fileset() ) ) sample_okay = false;
       
       if ( ! sample_okay ) { svar_rlist.push_back( s - svar_rlist.size() ); continue; } 
+      
+
+      //
+      // Should this file be included as a 'valid' file for the purpose of counting how many
+      // passed, how many failed? Count only site-only files, OR files with at least 1 person in, given any mask
+      //
+      
+      if ( align->size( svar.fileset() ) > 0 || mask.site_only( svar.fileset() ) ) ++npop;
 
 
       //
@@ -1130,7 +1139,7 @@ bool VarDBase::eval_and_call( Mask & mask,
   // samples, and that we have at least 'ngood' good samples)
   //
 
-  if ( ! mask.test_fail_on_sample_variant( var.n_samples() - ngood , ngood  ) ) return false;
+  if ( ! mask.test_fail_on_sample_variant( npop - ngood , ngood  ) ) return false;
 
 
   //
@@ -1509,7 +1518,6 @@ void VarDBase::build_temporary_db( Mask & mask )
 	      
 	      std::string n = sql.get_text( stmt_tmp_locus_iterate , 3 );
 	      
-
 	      //
 	      // Implicit or explicit exclusion of this locus?
 	      //
@@ -1523,8 +1531,6 @@ void VarDBase::build_temporary_db( Mask & mask )
 	      int bp1 = sql.get_int( stmt_tmp_locus_iterate , 1 );
 	      int bp2 = sql.get_int( stmt_tmp_locus_iterate , 2 );
 	      
-	      //std::cout << "adding loc = " << n << " " << chr << " " << bp1 << " " << bp2 << "\n";
-
 	      sql.bind_int( stmt_tmp_insert, ":chr" , chr ); 
 	      sql.bind_int( stmt_tmp_insert, ":bp1" , bp1 ); 
 	      sql.bind_int( stmt_tmp_insert, ":bp2" , bp2 ); 

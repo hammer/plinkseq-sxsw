@@ -278,7 +278,7 @@ bool Variant::make_consensus( IndividualMap * a )
 	  
 	  // Does this individual feature in multiple samples? 
 	  
-	  bool multiple_samples = j.p1 != -1 ? ftosv[ j.p1 ].size() > 1 : true;
+	  bool multiple_samples = j.p1 != -1 ? ftosv.find(j.p1) != ftosv.end() && ftosv[ j.p1 ].size() > 1 : true;
 	  
 	  if ( ! multiple_samples )
 	    { 
@@ -286,7 +286,7 @@ bool Variant::make_consensus( IndividualMap * a )
 	      // not sure this would ever fail, but just in case (perhaps
 	      // also need to check ftosv/j.p1 above for range?)
 	      
-	      if ( ftosv[ j.p1 ].size() == 1 ) 
+	      if ( ftosv.find(j.p1) != ftosv.end() && ftosv[ j.p1 ].size() == 1 )
 		{
 		  SampleVariant * p = psample( ftosv[ j.p1 ][0] );	      
 		  if ( p )  
@@ -326,7 +326,7 @@ bool Variant::make_consensus( IndividualMap * a )
       
       // Does this individual feature in multiple samples? 
       
-      bool multiple_samples = j.p1 != -1 ? ftosv[ j.p1 ].size() > 1 : true;
+      bool multiple_samples = j.p1 != -1 ? ftosv.find(j.p1) != ftosv.end() && ftosv[ j.p1 ].size() > 1 : true;
       
       if ( ! multiple_samples )
 	{ 
@@ -334,7 +334,7 @@ bool Variant::make_consensus( IndividualMap * a )
 	  // not sure this would ever fail, but just in case (perhaps
 	  // also need to check ftosv/j.p1 above for range?)
 
-	  if ( ftosv[ j.p1 ].size() == 1 ) 
+	  if ( ftosv.find(j.p1) != ftosv.end() && ftosv[ j.p1 ].size() == 1 )
 	    {
 
 	      SampleVariant * p = psample( ftosv[ j.p1 ][0] );
@@ -383,13 +383,14 @@ bool Variant::make_consensus( IndividualMap * a )
 	  
 	  if ( j.p1 != -1 )  // single file, but multi obs within that file
 	    {
-
-	      std::vector<int> & xx = ftosv[ j.p1 ];
-	      for (int z=0; z<xx.size(); z++)
-		{
-		  svids.push_back( xx[z] );
-		  svslot.push_back( j.p2 );
-		}
+		  if (ftosv.find(j.p1) != ftosv.end()) {
+			  std::vector<int> & xx = ftosv[ j.p1 ];
+			  for (int z=0; z<xx.size(); z++)
+			  {
+				  svids.push_back( xx[z] );
+				  svslot.push_back( j.p2 );
+			  }
+		  }
 	    }
 	  else
 	    {
@@ -397,13 +398,15 @@ bool Variant::make_consensus( IndividualMap * a )
 	      std::set<int2>::iterator ki = k.begin();
 	      while ( ki != k.end() )
 		{
-		  std::vector<int> & xx = ftosv[ ki->p1 ];
-		  for (int z=0; z<xx.size(); z++)
-		    {
-		      svids.push_back( xx[z] );
-		      svslot.push_back( ki->p2 );
-		    }
-		  ++ki;
+	    	  if (ftosv.find(ki->p1) != ftosv.end()) {
+	    		  std::vector<int> & xx = ftosv[ ki->p1 ];
+	    		  for (int z=0; z<xx.size(); z++)
+	    		  {
+	    			  svids.push_back( xx[z] );
+	    			  svslot.push_back( ki->p2 );
+	    		  }
+	    		  ++ki;
+	    	  }
 		}
 	    }
 	  
@@ -595,16 +598,17 @@ std::string Variant::gmeta_label( const int i , const std::string & delim ) cons
 {
 
   std::stringstream ss;
-  ss <<  consensus(i).meta; 
+  ss << consensus(i).meta;
 
+  // under a flat alignment, we are done now
   if ( flat() && ! infile_overlap() ) return ss.str();
 
-  std::map<int, const Genotype *> gm = all_genotype(i);	  
+  std::map<int, const Genotype *> gm = all_genotype(i);
   std::map<int, const Genotype *>::iterator j = gm.begin();
   if ( gm.size() > 1 )
     {
       ss << " {";
-      j = gm.begin();	  
+      j = gm.begin();
       while ( j != gm.end() )
 	{
 	  const SampleVariant * svar = psample( j->first );
@@ -616,6 +620,52 @@ std::string Variant::gmeta_label( const int i , const std::string & delim ) cons
   return ss.str();
 }
 
+std::string Variant::alternate_label( const int i , const std::string & delim ) const
+{
+	std::stringstream ss;
+
+	std::map<int, const Genotype *> gm = all_genotype(i);
+	std::map<int, const Genotype *>::iterator j = gm.begin();
+
+	if ( gm.size() > 1 )
+		ss << "{";
+
+	j = gm.begin();
+	while ( j != gm.end() )
+	{
+		const SampleVariant * svar = psample( j->first );
+		if ( svar ) ss << ( j != gm.begin() ? delim : "" ) << svar->alternate();
+		++j;
+	}
+
+	if ( gm.size() > 1 )
+		ss <<  "}";
+
+	return ss.str();
+}
+
+std::string Variant::sample_variant_index( const int i , const std::string & delim ) const
+{
+	std::stringstream ss;
+
+	std::map<int, const Genotype *> gm = all_genotype(i);
+	std::map<int, const Genotype *>::iterator j = gm.begin();
+
+	if ( gm.size() > 1 )
+		ss << "{";
+
+	j = gm.begin();
+	while ( j != gm.end() )
+	{
+		ss << ( j != gm.begin() ? delim : "" ) << j->first;
+		++j;
+	}
+
+	if ( gm.size() > 1 )
+		ss <<  "}";
+
+	return ss.str();
+}
 
 std::string Variant::sample_label( const int i, const std::string & delim ) const
 {
@@ -629,8 +679,6 @@ std::string Variant::sample_label( const int i, const std::string & delim ) cons
     }  
   return s == "" ? "." : s;
 }
-
-
 
 int Variant::n_alleles() const
 {
@@ -667,71 +715,76 @@ int Variant::n_notnull() const
   return n;
 }
 
+void Variant::n_alt_allele( int * m_ , int * n_ , double * aaf_ , const affType & aff ) const {
+	// returns counts of any non-reference allele
+	// optionally, if aff is not UNKNOWN_PHE , split this by case/control
+
+	int m = 0;
+	int n = 0;
+
+	if ( aff == UNKNOWN_PHE )
+	{
+
+		for (int i=0; i< size() ; i++)
+		{
+			const Genotype * g = genotype(i);
+			if ( ! g->null() )
+			{
+				m += g->allele_count();
+				n += g->copy_number();
+			}
+		}
+	}
+	else  // alternate version, in which we look up phenotype
+	{
+		for (int i=0; i< size() ; i++)
+		{
+			if ( ind(i)->affected() == aff )
+			{
+				const Genotype * g = genotype(i);
+				if ( ! g->null() )
+				{
+					m += g->allele_count();
+					n += g->copy_number();
+				}
+			}
+		}
+	}
+
+	// If reference allele is minor allele, swap the minor allele count,
+	// and let the caller know about this
+
+	double aaf = (double)m / (double)n ;
+
+	// Update external values
+	if ( m_ ) *m_ = m;
+	if ( n_ ) *n_ = n;
+	if ( aaf_ ) *aaf_ = aaf;
+}
 
 bool Variant::n_minor_allele( int * m_ , int * n_ , double * maf_ , const affType & aff ) const
 {
-  
-  // returns counts of any non-reference allele
-  // optionally, if aff is not UNKNOWN_PHE , split this by case/control
-  
-  int m = 0;
-  int n = 0;
-  
-  if ( aff == UNKNOWN_PHE )
-    {
+	int m, n;
+	double maf;
+	n_alt_allele( &m , &n , &maf , aff );
 
-      for (int i=0; i< size() ; i++) 
+	bool altmin = true;
+
+	if ( maf > 0.5 )
 	{
-	  const Genotype * g = genotype(i);	  
-	  if ( ! g->null() )
-	    {
-	      m += g->allele_count();
-	      n += g->copy_number();	    
-	    }
+		m = n - m;
+		maf = 1 - maf;
+		altmin = false;
 	}
-    }
-  else  // alternate version, in which we look up phenotype
-    {
-      for (int i=0; i< size() ; i++) 
-	{
-	  if ( ind(i)->affected() == aff ) 
-	    {
-	      const Genotype * g = genotype(i);
-	      if ( ! g->null() )
-		{
-		  m += g->allele_count();
-		  n += g->copy_number();
-		}		      
-	    }
-	}      
-    }
 
+	// Update external values
+	if ( m_ ) *m_ = m;
+	if ( n_ ) *n_ = n;
+	if ( maf_ ) *maf_ = maf;
 
-  // If reference allele is minor allele, swap the minor allele count,
-  // and let the caller know about this
-
-  double maf = (double)m / (double)n ;
-  
-  bool altmin = true;
-  
-  if ( maf > 0.5 ) 
-    {
-      m = n - m;
-      maf = 1 - maf;
-      altmin = false;
-    }
-  
-  // Update external values
-  
-  if ( m_ ) *m_ = m;
-  if ( n_ ) *n_ = n;
-  if ( maf_ ) *maf_ = maf; 
-
-  // Alternate allele is minor allele
-  return altmin;  
+	// Alternate allele is minor allele
+	return altmin;
 }
-
-
 
 std::map<std::string,int> Variant::allele_counts( const affType & aff ) const 
 {
@@ -1484,10 +1537,14 @@ bool Variant::remove( int s )
 	{	      
 	  if ( *j > s ) --(*j); 
 	  ++j;
-	}      
-       
-      ++i;
-    }      
+	}
+
+      // Remove i from map, if its vector is now empty:
+      if (i->second.empty())
+    	  ftosv.erase(i++);
+      else
+    	  ++i;
+    }
   
   return true;
 }
