@@ -27,6 +27,8 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
 		   // exonic
 		   SYN      =  10 ,    // synonymous allele 		   		   
 		   INDEL    = 11 , // any indel
+		   npcRNA   = 40 , // variants in noncoding exons that aren't UTRs
+
 		   // non-synon coding
 		   MIS      =  20 ,    // missense allele
  		   PART     =  21 ,    // partial codon  -- not used
@@ -38,14 +40,15 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
 		   OOFCODONDELETION               =  37 , // out of frame codon deletion
  		   SPLICE 	= 24	, // general splice +/- 5bp
  		   EXONIC_UNKNOWN = 38, // overlaps an exon, but since the ALT is 'N', cannot know its exact coding impact
- 		   
+		   
  		   // Special class of splice variants : Faustino and Cooper. Pre-mrna splicing and human disease. AG|G   AG|GTNAG. This is consistent with splicing motif measures.
 		   DONORIN2  =  25 ,       // donor splice-site |[GT]
 		   DONOREX2AG = 26 ,       // donor splice-site ex2ag [AG]|
 		   DONORIN45AG = 27 ,      // donor splice-site in45ag |GTN[AG]
 		   ACCEPTOREX1G = 28 ,     // acceptor splice-site ex1g |[G]
 		   ACCEPTORIN2  =  29 ,    // 3' splice-site [AG]|
-		   
+		   SPLICEDEL = 39, // a deletion that includes both sides of splice junction 
+
 		   // Additional LoF annotations 
 		   SL = 30 ,	  // Start Loss
  		   NON      =  31 ,    // nonsense allele
@@ -57,16 +60,16 @@ struct SeqInfo {
   // note -- these function depend on exact coding of seq_annot_t (see above)
 
   bool missense() const { return type == 20 ; } 
-  bool nonsense() const { return type == 31 ; }
+  bool nonsense() const { return type == 31 || type == 34; }
   bool startlost() const { return type == 30 ; }
-  bool readthrough() const { return type == 33 ; }
+  bool readthrough() const { return type == 33 || type == 35; }
   bool frameshift() const { return type == 32 ; }
-  bool codondeletion() const { return type == 23 || type == 35 || type == 37; }
-  bool codoninsertion() const { return type == 22 || type == 34 || type == 36;}
+  bool codondeletion() const { return type == 23 || type == 37; }
+  bool codoninsertion() const { return type == 22 || type == 36;}
   bool splice() const { return type == 24 ;}
   bool csplice() const { return type == 26 || type == 27 || type == 28 ; }
-  bool esplice() const { return type == 25 || type == 29; }
-
+  bool esplice() const { return type == 25 || type == 29 || type == 39; }
+ 
   bool coding() const { return type > 9 ; } 
   bool synon() const { return type == 10 ; } 
   bool indel() const { return type == 11 ; }
@@ -75,7 +78,10 @@ struct SeqInfo {
   bool intronic() const { return type == 3 ; }
   bool exonic_unknown() const { return type == EXONIC_UNKNOWN; }
   bool invalid() const { return type < 2 ; }
-  
+  bool utr3() const { return type == 4; }
+  bool utr5() const { return type == 5; }
+  bool npcRNA() const { return type == 40; }
+
   static std::map< seq_annot_t , std::string> types;
   
   SeqInfo( seq_annot_t t ) : type(t) 
