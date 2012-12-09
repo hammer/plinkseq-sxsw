@@ -336,8 +336,8 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     // Family-based operations
     //
 
-	  << "*denovo|views|filter for de-novo mutations|VCF|ARG:param|OUT:denovo.vars,denovo.indiv"
-	  << "*cnv-denovo|views|filter for de-novo CNV mutations|VCF|ARG:param|OUT:denovo.cnv,denovo.indiv"
+	  << "denovo|views|filter for de-novo mutations (SNPs and indels)|VCF|ARG:minChildDP,minParDP,minChildPL,minParPL,minChild_AB_alt,minChild_AB_ref,minPar_AB_ref,minMQ,maxAAC,printTransmission|OUT:denovo.vars,denovo.indiv,parent_transmission.vars"
+	  << "cnv-denovo|views|filter for de-novo CNV mutations|VCF|ARG:minSQ,minNQ,allowDeNovoWithoutDiscoveryInChild|OUT:denovo.cnv,denovo.indiv"
 
     //
     // IBD database 
@@ -558,8 +558,23 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "weights" , STRING , "name of variant weights tag");
     reg( "skat-weights" , FLOAT_VECTOR , "Beta(a,b); a=1,b=25 default");
 
+    // De novo scan parameters:
+    reg("minChildDP", INT, "Minimum child depth");
+    reg("minParDP", INT, "Minimum parental depth");
+    reg("minChildPL", FLOAT, "Minimum child PL (genotype likelihood) for non-het genotype");
+    reg("minParPL", FLOAT, "Minimum parental PL (genotype likelihood) for non-homozygous reference genotype");
+    reg("minChild_AB_alt", FLOAT, "Minimum child AB-ALT (% of reads with ALT allele)");
+    reg("minChild_AB_ref", FLOAT, "Minimum child AB-REF (% of reads with REF allele)");
+    reg("minPar_AB_ref", FLOAT, "Minimum parental AB-REF (% of reads with REF allele)");
+    reg("minMQ", FLOAT, "Minimum MQ (read mapping quality)");
+    reg("maxAAC", INT, "Maximum AAC (alternate allele count at this site)");
+    reg("printTransmission", NONE, "Parent variants will be printed with transmission status to the parent_transmission.vars file");
+
+    reg("minSQ", INT, "Minimum SQ score for calling a CNV (e.g., in child)");
+    reg("minNQ", INT, "Minimum NQ score for ruling out a CNV (e.g., in parent)");
+    reg("allowDeNovoWithoutDiscoveryInChild", NONE, "Try to call de novo CNV in child even in cases where that CNV is not marked as having been discovered in that child");
+
     // Input modifiers 
-    
 
     // Output modifiers
     
@@ -661,10 +676,6 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     keyword( "tests" , "skat" , NONE , "SKAT test" );
     keyword( "tests" , "skato" , NONE , "Optimal SKAT test" );
     
-    // de-novo scan
-
-    reg( "param" , FLOAT_VECTOR , "parameter list" );
-
     // loading intervals/GTF 
     
     reg( "use-gene-id" , NONE , "loading GTFs" );
@@ -673,7 +684,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
 
 
     // v-stats command
-    reg( "stats" , KEYWORD , "quantitaties calculated under (v|g|i)-stats" );
+    reg( "stats" , KEYWORD , "quantities calculated under (v|g|i)-stats" );
     keyword( "stats" , "hwe" , FLOAT_RANGE_VECTOR , "HWE test p-values" );
     keyword( "stats" , "ref" , STRING_VECTOR , "REFDB groups" );
     keyword( "stats" , "loc" , STRING_VECTOR , "LOCDB groups" );

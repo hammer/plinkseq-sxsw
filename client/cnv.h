@@ -1,6 +1,7 @@
 #ifndef __CNV_H__
 #define __CNV_H__
 
+#include "util.h"
 #include "plinkseq.h"
 #include "plinkseq/mask.h"
 
@@ -93,11 +94,11 @@ namespace Pseq {
 
 		class AuxCNVdeNovoData {
 		public:
-			AuxCNVdeNovoData(const vector<double>& p);
+			AuxCNVdeNovoData(const Pseq::Util::Options& args);
 
-			const int _MIN_SQ;
-			const int _MIN_NQ;
-			const bool _REQUIRE_DE_NOVO_DISCOVERY_IN_CHILD;
+			int minSQ;
+			int minNQ;
+			bool allowDeNovoWithoutDiscoveryInChild;
 
 			Inds allParentInds;
 			Inds allChildrenInds;

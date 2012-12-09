@@ -95,7 +95,7 @@ void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
 	const Inds& allChildrenInds = aux->allChildrenInds;
 	map<string, ChildTransmissionSummary>& childrenSummary = aux->childrenSummary;
 
-	EventOracle* eventOracle = new SomeQualityEventOracle(v, aux->_MIN_SQ, aux->_MIN_NQ);
+	EventOracle* eventOracle = new SomeQualityEventOracle(v, aux->minSQ, aux->minNQ);
 
 	//string locStr = v.name();
 	string locStr = v.coordinate();
@@ -145,7 +145,7 @@ void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
 
 		ChildTransmissionSummary& childSummary = childrenSummary[child->id()];
 
-		bool lookForDeNovos = !aux->_REQUIRE_DE_NOVO_DISCOVERY_IN_CHILD || eventOracle->discoveredInIndiv(childInd);
+		bool lookForDeNovos = !aux->allowDeNovoWithoutDiscoveryInChild || eventOracle->discoveredInIndiv(childInd);
 		for (int altInd = 0; altInd < eventOracle->getNumAltAlleles(); ++altInd) {
 			// Start from 2nd allele [since we assume the first is always the REF allele]:
 			const int alleleInd = altInd + 1;
@@ -259,20 +259,19 @@ Pseq::VarDB::LookupEventCounts Pseq::VarDB::lookupEventInIndivs(const Inds& look
 	return lookup;
 }
 
-Pseq::VarDB::AuxCNVdeNovoData::AuxCNVdeNovoData(const vector<double>& p)
-: _MIN_SQ(p[0]), _MIN_NQ(p[1]), _REQUIRE_DE_NOVO_DISCOVERY_IN_CHILD(p[2]) {}
+Pseq::VarDB::AuxCNVdeNovoData::AuxCNVdeNovoData(const Pseq::Util::Options& args)
+: minSQ(0), minNQ(0), allowDeNovoWithoutDiscoveryInChild(false) {
+
+	SET_INT(minSQ)
+	SET_INT(minNQ)
+	SET_FLAG(allowDeNovoWithoutDiscoveryInChild)
+}
 
 bool Pseq::VarDB::cnv_denovo_scan(Mask& mask) {
-	if (!args.has("param"))
-		Helper::halt("Missing --param option");
-	const vector<double> p = args.as_float_vector( "param" );
-	if (p.size() != 3)
-		Helper::halt("expect --param MIN_SQ MIN_NQ REQUIRE_DE_NOVO_DISCOVERY_IN_CHILD");
-
 	Out& dnCNVout = Out::stream("denovo.cnv");
 	Out& dnIndivOut = Out::stream("denovo.cnv.indiv");
 
-	AuxCNVdeNovoData* aux = new AuxCNVdeNovoData(p);
+	AuxCNVdeNovoData* aux = new AuxCNVdeNovoData(args);
 
 	cerr << "Starting CNV de novo scan..." << endl;
 	const int n = g.indmap.size();
