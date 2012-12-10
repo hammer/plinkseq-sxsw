@@ -1740,16 +1740,6 @@ AlleleInds getAllAlleleInds(const SampleVariant* svar, const std::set<std::strin
 }
 
 SampleVarGenotypeAlleleInds getSampleDataForAllelesInIndiv(const Variant& v, int indiv, const std::set<std::string>& requireAlleles) {
-	if (v.flat() && !v.infile_overlap()) {
-		AlleleInds alleleToInd = getAllAlleleInds(&(v.consensus), requireAlleles);
-
-		// Managed to map all alleles, so return this valid data:
-		if (alleleToInd.size() == requireAlleles.size())
-			return SampleVarGenotypeAlleleInds(&(v.consensus), &(v.consensus(indiv)), alleleToInd);
-		else
-			return SampleVarGenotypeAlleleInds(NULL, NULL, AlleleInds());
-	}
-
 	std::map<int, const Genotype*> gts = v.all_genotype(indiv);
 
 	for (std::map<int, const Genotype*>::iterator j = gts.begin(); j != gts.end(); ++j) {
@@ -1757,8 +1747,25 @@ SampleVarGenotypeAlleleInds getSampleDataForAllelesInIndiv(const Variant& v, int
 		AlleleInds alleleToInd = getAllAlleleInds(svar, requireAlleles);
 
 		// Managed to map all alleles, so return this first "hit" (even if there might be others):
-		if (alleleToInd.size() == requireAlleles.size())
-			return SampleVarGenotypeAlleleInds(svar, j->second, alleleToInd);
+		if (alleleToInd.size() == requireAlleles.size()) {
+			const Genotype* gt = j->second;
+			/* NOTE: In the case below [ v.flat() && !v.infile_overlap() ],
+			 * the Genotype is stored ONLY in the consensus (to save space), so
+			 * must take the Genotype object from there (since the per-SampleVariant one is not a valid C++ object!).
+			 *
+			 * And, must also give the consensus as the corresponding SampleVariant, so that it can properly "understand" the
+			 * contents of Genotype gt.
+			 *
+			 * The important point is that the reference and alternate allele indices correspond to
+			 * those in the SampleVariant for which the PL and AD vectors were actually defined.
+			 */
+			if (v.flat() && !v.infile_overlap()) {
+				gt = &(v.consensus(indiv));
+				svar = &(v.consensus);
+			}
+
+			return SampleVarGenotypeAlleleInds(svar, gt, alleleToInd);
+		}
 	}
 
 	return SampleVarGenotypeAlleleInds(NULL, NULL, AlleleInds());
