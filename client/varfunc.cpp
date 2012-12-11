@@ -1742,6 +1742,13 @@ AlleleInds getAllAlleleInds(const SampleVariant* svar, const std::set<std::strin
 SampleVarGenotypeAlleleInds getSampleDataForAllelesInIndiv(const Variant& v, int indiv, const std::set<std::string>& requireAlleles) {
 	std::map<int, const Genotype*> gts = v.all_genotype(indiv);
 
+	// In this case, Variant::make_consensus() saves space by parsing only the consensus:
+	if (!v.multi_sample() && v.flat()) {
+		AlleleInds alleleToInd = getAllAlleleInds(&(v.consensus), requireAlleles);
+		if (alleleToInd.size() == requireAlleles.size())
+			return SampleVarGenotypeAlleleInds(&(v.consensus), &(v.consensus(indiv)), alleleToInd);
+	}
+
 	for (std::map<int, const Genotype*>::iterator j = gts.begin(); j != gts.end(); ++j) {
 		const SampleVariant* svar = v.psample(j->first);
 		AlleleInds alleleToInd = getAllAlleleInds(svar, requireAlleles);
