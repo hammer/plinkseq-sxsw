@@ -598,7 +598,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  //                                                                                                                                                                     
 	  // identify UTR mutations                                                                                                                                              
 	  //                                                                                                                                                                     
-
+	  /******
 	  if ( inExon > -1 && inCDS == -1 && r_cds.subregion.size() > 0 )
 	    {
 	      int cds_start = r_cds.subregion[0].start.position();
@@ -607,11 +607,9 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      if ( ( act_bp1 < cds_start && positive_strand ) || ( act_bp2 > cds_end && negative_strand ) )
 		annot.insert( SeqInfo( r->name , UTR5 ) );
 	      if ( ( act_bp1 < cds_start && negative_strand ) || ( act_bp2 > cds_end && positive_strand ) )
-		annot.insert( SeqInfo( r->name , UTR3 ) );
-	      ++ii;
-	      continue;
+		annot.insert( SeqInfo( r->name , UTR3 ) ); 
 	    }
-
+	  ******/
 	  //
 	  // Is this a SPLICE-SITE?	  
 	  //
@@ -950,6 +948,25 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	    }
 
 
+	  //	  
+          // identify UTR mutations
+          //                                                                                                                                                                                                                                                                                                                                        
+
+          if ( inExon > -1 && inCDS == -1 && r_cds.subregion.size() > 0 )
+            {
+              int cds_start = r_cds.subregion[0].start.position();
+              int cds_end = r_cds.subregion[r_cds.subregion.size()-1].stop.position();
+
+	      if ( ( act_bp1 < cds_start && positive_strand ) || ( act_bp2 > cds_end && negative_strand ) )
+                annot.insert( SeqInfo( r->name , UTR5 ) );
+              if ( ( act_bp1 < cds_start && negative_strand ) || ( act_bp2 > cds_end && positive_strand ) )
+		annot.insert( SeqInfo( r->name , UTR3 ) );
+	      
+	      ++ii;
+	      continue;
+            }
+
+
 	  //
 	  // Define Non coding elements as having exons but no coding sequence
 	  // Allow for splice annotation above but call all mutations here
@@ -963,10 +980,17 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	    continue;
 	  }
 
+	  if( inExon == -1 ){
+	    annot.insert( SeqInfo( r->name , INTRON ) );
+	    
+	    ++ii; // next region                                                                                                                                                   
+	    continue;	    
+	  }
+	   
+	  /****
 	  //
 	  // If no exons attached, implies an intronic SNP (or splice site)
 	  //
-
 	  if ( CDS_exons.size() == 0 )
 	    {
 	      // Otherwise
@@ -975,6 +999,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      ++ii; // next region
 	      continue;
 	    }
+	  *****/
 
 	  //
 	  // Get reference sequence
