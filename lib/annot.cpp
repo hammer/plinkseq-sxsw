@@ -538,8 +538,8 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      continue;
 	    }
 
-	  int first_exon = negative_strand ? 0 : r_cds.subregion.size()-1;
-	  int last_exon = negative_strand ? r_cds.subregion.size()-1 : 0;
+	  int first_exon = negative_strand ? 0 : r_exon.subregion.size()-1;
+	  int last_exon = negative_strand ? r_exon.subregion.size()-1 : 0;
 
 	  //
 	  // Does variant fall within an exon, or near an intron/exon
@@ -592,6 +592,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
             {
 	      if ( ( act_bp1 >= r_exon.subregion[s].start.position() && act_bp1 <= r_exon.subregion[s].stop.position() ) || ( act_bp2 >= r_exon.subregion[s].start.position() && act_bp2 <= r_exon.subregion[s].stop.position() ))
 		inExon = s;
+	      
 	    }
 	
 	  //
@@ -609,11 +610,11 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      // identify UTR mutations
 	      //
 
-	      if ( s == inExon && r_cds.subregion.size() > 0 )
+	      if ( s == inExon && inCDS == -1 && r_cds.subregion.size() > 0 )
 		{
-		  if ( s == first_exon )
+		  if ( ( s == 0 && positive_strand ) || ( s == r_exon.subregion.size()-1 && negative_strand ) )
 		    annot.insert( SeqInfo( r->name , UTR5 ) );
-		  if ( s == last_exon )
+		  if ( ( s == 0 && negative_strand ) || ( s == r_exon.subregion.size()-1 && positive_strand ) )
 		    annot.insert( SeqInfo( r->name , UTR3 ) );
 		}
 	      
@@ -1133,7 +1134,6 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		  
 		  if ( act_ref.size() == act_alt.size() ) 
 		    {
-		      //		      std::cout << "WTF: " << act_ref << " " << act_alt << std::endl;
 		      /* NOTE: since the REF and ALT are same length, then can correctly use 'i' (i+1, with 1-based offset)
 			 as the protein position (and thus properly account for MNPs spanning multiple codons): */
 		      
@@ -1218,10 +1218,9 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		      // Is frameshift?
 		      
 		      int dif = act_ref.size() > act_alt.size() ? act_ref.size() - act_alt.size() : act_alt.size() - act_ref.size();
-		      //std::cout << "INDEL: " << dif << std::endl;
+		      
 		      if ( dif % 3 ) 
 			{
-			  // std::cout << "FRAMESHIFT" << std::endl;
 			  newpos_stop++;
 			  
 			  if ( newpos_stop == 1 ) 
@@ -1231,8 +1230,6 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 			    }
 			  
 			  // Stop of new transcript.
-			  //std::cout << "HERE1 " << i << " " << longest << " " << trans_var[i] << " " << firststop_codon << std::endl;
-			  
 			  if (trans_var[i] == '*' && firststop_codon == 0 ) 
 			    {
 

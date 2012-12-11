@@ -78,8 +78,8 @@ struct SeqInfo {
   bool intronic() const { return type == 3 ; }
   bool exonic_unknown() const { return type == EXONIC_UNKNOWN; }
   bool invalid() const { return type < 2 ; }
-  bool utr3() const { return type == 4; }
-  bool utr5() const { return type == 5; }
+  bool utr3() const { return type == 5; }
+  bool utr5() const { return type == 4; }
   bool npcRNA() const { return type == 40; }
 
   static std::map< seq_annot_t , std::string> types;
