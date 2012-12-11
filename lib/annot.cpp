@@ -499,11 +499,12 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	    }
 
 	  //
-	  // Which exon(s) does this mutation impact?  Pull in
-	  // neighbouring exon if needed. Assume all subregions are on
+	  // Which CDS(s) does this mutation impact?  Pull in
+	  // neighboring CDS if needed. Assume all subregions are on
 	  // the same chromosome.
 	  //
-	  std::set<int> CDS_exons;
+
+	  std::set<int> CDS;
 	  int pos = 1;
 	  
 	  //
@@ -519,9 +520,9 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  bool negative_strand = false;
 	  bool positive_strand = false; // to check at least one strand is given, test both
 
-	  for (int ss=0;ss< r_cds.subregion.size(); ss++)
+	  for (int ss=0;ss< r_exon.subregion.size(); ss++)
 	    {
-	      int s = r_cds.subregion[ss].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
+	      int s = r_exon.subregion[ss].meta.get1_int( PLINKSeq::TRANSCRIPT_STRAND() );
 	      if ( s == 0 ) continue;
 	      negative_strand = s < 0 ;
 	      positive_strand = s > 0 ;
@@ -580,7 +581,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		{
 		  inCDS = s;
 		  for( unsigned int stmp = 0 ; stmp < r_cds.subregion.size(); stmp++ )
-		    CDS_exons.insert(stmp);
+		    CDS.insert(stmp);
 		    }
 	    }
 	   
@@ -595,21 +596,6 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      
 	    }
 
-	  //                                                                                                                                                                     
-	  // identify UTR mutations                                                                                                                                              
-	  //                                                                                                                                                                     
-	  /******
-	  if ( inExon > -1 && inCDS == -1 && r_cds.subregion.size() > 0 )
-	    {
-	      int cds_start = r_cds.subregion[0].start.position();
-	      int cds_end = r_cds.subregion[r_cds.subregion.size()-1].stop.position();
-	      
-	      if ( ( act_bp1 < cds_start && positive_strand ) || ( act_bp2 > cds_end && negative_strand ) )
-		annot.insert( SeqInfo( r->name , UTR5 ) );
-	      if ( ( act_bp1 < cds_start && negative_strand ) || ( act_bp2 > cds_end && positive_strand ) )
-		annot.insert( SeqInfo( r->name , UTR3 ) ); 
-	    }
-	  ******/
 	  //
 	  // Is this a SPLICE-SITE?	  
 	  //
@@ -987,27 +973,13 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	    continue;	    
 	  }
 	   
-	  /****
-	  //
-	  // If no exons attached, implies an intronic SNP (or splice site)
-	  //
-	  if ( CDS_exons.size() == 0 )
-	    {
-	      // Otherwise
-	      annot.insert( SeqInfo( r->name , INTRON ) );
-	      
-	      ++ii; // next region
-	      continue;
-	    }
-	  *****/
-
 	  //
 	  // Get reference sequence
 	  //
 
 	  std::string ref_cds;
-	  std::set<int>::iterator i = CDS_exons.begin();
-	  while ( i != CDS_exons.end() )
+	  std::set<int>::iterator i = CDS.begin();
+	  while ( i != CDS.end() )
 	    {
 	      if ( negative_strand )
 		{
@@ -1030,20 +1002,20 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	  // Get position of our transcript relative to start of gene
 	  //
 
-	  int exon = negative_strand ? r_cds.subregion.size()-1 : 0 ;
+	  int cds_index = negative_strand ? r_cds.subregion.size()-1 : 0 ;
 	  int pos_extracted_seq = 0;
 	  int pos_whole_transcript = 0;
 
-	  while ( exon != inCDS )
+	  while ( cds_index != inCDS )
 	    {
 	      // Count all exons
-	      pos_whole_transcript += r_cds.subregion[ exon ].stop.position()
-		- r_cds.subregion[ exon ].start.position() + 1;
+	      pos_whole_transcript += r_cds.subregion[ cds_index ].stop.position()
+		- r_cds.subregion[ cds_index ].start.position() + 1;
 	      
 	      // Count only exons extracted from seqdb
-	      if ( CDS_exons.find( exon ) != CDS_exons.end() )
-		  pos_extracted_seq += r_cds.subregion[ exon ].stop.position() - r_cds.subregion[ exon ].start.position() + 1;
-	      exon += negative_strand ? -1 : +1;
+	      if ( CDS.find( cds_index ) != CDS.end() )
+		  pos_extracted_seq += r_cds.subregion[ cds_index ].stop.position() - r_cds.subregion[ cds_index ].start.position() + 1;
+	      cds_index += negative_strand ? -1 : +1;
 	    }
 
 	  // And also add in the distance into the containing exon
