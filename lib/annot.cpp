@@ -594,7 +594,24 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		inExon = s;
 	      
 	    }
-	
+
+	  //                                                                                                                                                                     
+	  // identify UTR mutations                                                                                                                                              
+	  //                                                                                                                                                                     
+
+	  if ( inExon > -1 && inCDS == -1 && r_cds.subregion.size() > 0 )
+	    {
+	      int cds_start = r_cds.subregion[0].start.position();
+	      int cds_end = r_cds.subregion[r_cds.subregion.size()-1].stop.position();
+	      
+	      if ( ( act_bp1 < cds_start && positive_strand ) || ( act_bp2 > cds_end && negative_strand ) )
+		annot.insert( SeqInfo( r->name , UTR5 ) );
+	      if ( ( act_bp1 < cds_start && negative_strand ) || ( act_bp2 > cds_end && positive_strand ) )
+		annot.insert( SeqInfo( r->name , UTR3 ) );
+	      ++ii;
+	      continue;
+	    }
+
 	  //
 	  // Is this a SPLICE-SITE?	  
 	  //
@@ -605,21 +622,6 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 	      sizeexonint =     r_exon.subregion[s].stop.position() - r_exon.subregion[s].start.position() + 1;
 	      transtruncsize += r_exon.subregion[s].stop.position() - r_exon.subregion[s].start.position() + 1;
 	      pos +=            r_exon.subregion[s].stop.position() - r_exon.subregion[s].start.position() + 1;
-	      
-	      //
-	      // identify UTR mutations
-	      //
-
-	      if ( s == inExon && inCDS == -1 && r_cds.subregion.size() > 0 )
-		{
-		  int cds_start = r_cds.subregion[0].start.position();
-		  int cds_end = r_cds.subregion[r_cds.subregion.size()-1].stop.position();
-
-		  if ( ( act_bp1 < cds_start && positive_strand ) || ( act_bp2 > cds_end && negative_strand ) )
-		    annot.insert( SeqInfo( r->name , UTR5 ) );
-		  if ( ( act_bp1 < cds_start && negative_strand ) || ( act_bp2 > cds_end && positive_strand ) )
-		    annot.insert( SeqInfo( r->name , UTR3 ) );
-		}
 	      
 	      if( s == r_exon.subregion.size() - 2 ) sizepenult = transtruncsize;
 	      	      
@@ -946,6 +948,7 @@ std::set<SeqInfo> Annotate::annotate( int chr,
 		    }
 		}	      
 	    }
+
 
 	  //
 	  // Define Non coding elements as having exons but no coding sequence
