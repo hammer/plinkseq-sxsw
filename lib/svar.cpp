@@ -1531,6 +1531,21 @@ std::string SampleVariant::allele2_label( const Genotype & g ) const
   return alleles[ g.acode2() ].name();
 }
 
+std::map<std::string, int> SampleVariant::getGenotypeAlleles(const Genotype& g) const {
+	std::map<std::string, int> alleleCounts;
+
+	if (!g.null()) {
+		if (g.haploid())
+			alleleCounts[alleles[g.acode1()].name()]++;
+		else if (g.diploid()) {
+			alleleCounts[alleles[g.acode1()].name()]++;
+			alleleCounts[alleles[g.acode2()].name()]++;
+		}
+	}
+
+	return alleleCounts;
+}
+
 std::string SampleVariant::label( const Genotype & g , bool phased ) const
 {
 

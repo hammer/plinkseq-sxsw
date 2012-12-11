@@ -3,6 +3,8 @@
 #include "assoc.h"
 #include "genic.h"
 
+#include <algorithm>
+
 extern GStore g;
 extern Pseq::Util::Options args;
 
@@ -1632,10 +1634,8 @@ struct aux_trio_transmission_summary {
     return _trans_ref_from_het;
   }
 
-
   int trans_alt_from_het() const
   {
-
     return _trans_alt_from_het;
   }
 
@@ -1670,330 +1670,521 @@ struct aux_trio_transmission_summary {
 
 };
 
+struct Aux_transmission_summary {
 
-struct Aux_transmission_summary
-{
+	Aux_transmission_summary(const int n, const Pseq::Util::Options& args) {
+		res.resize(n);
 
-  Aux_transmission_summary(const int n) 
-    { 
-      res.resize(n); 
-      dp_kid = dp_par = 0;
-      ab_kid_min = 0;
-      ab_kid_max = 1 ;
-      ab_par = 1;
-      pl_kid = pl_par = 0;
+		minChildDP = minParDP = -1;
+		minChildPL = minParPL = -1;
+		minChild_AB_alt = minChild_AB_ref = -1;
+		minPar_AB_ref = -1;
+		minMQ = -1;
+		maxAAC = -1;
+		printTransmission = false;
 
-      printTransmission = false;
-    } 
+		SET_INT(minChildDP)
+		SET_INT(minParDP)
+		SET_FLOAT(minChildPL)
+		SET_FLOAT(minParPL)
+		SET_FLOAT(minChild_AB_alt)
+		SET_FLOAT(minChild_AB_ref)
+		SET_FLOAT(minPar_AB_ref)
+		SET_FLOAT(minMQ)
+		SET_INT(maxAAC)
+		SET_FLAG(printTransmission)
+	}
   
-  aux_trio_transmission_summary * indiv(const int i) { return &res[i]; }
+  aux_trio_transmission_summary* indiv(const int i) { return &res[i]; }
   
   std::vector<aux_trio_transmission_summary> res;
   
-  double dp_kid;
-  double dp_par;
+  int minChildDP;
+  int minParDP;
+  double minChildPL;
+  double minParPL;
+  double minChild_AB_alt;
+  double minChild_AB_ref;
+  double minPar_AB_ref;
+  double minMQ;
+  int maxAAC;
   
-  double ab_kid_min, ab_kid_max;
-  double ab_par;
-  
-  double pl_kid;
-  double pl_par;
-   
   bool printTransmission;
 };
+
+typedef std::map<std::string, int> AlleleInds;
+struct SampleVarGenotypeAlleleInds {
+	SampleVarGenotypeAlleleInds(const SampleVariant* sv, const Genotype* gt, AlleleInds alleleToInd) {
+		this->sv = sv;
+		this->gt = gt;
+		this->alleleToInd = alleleToInd;
+	}
+
+	const SampleVariant* sv;
+	const Genotype* gt;
+	AlleleInds alleleToInd;
+};
+
+AlleleInds getAllAlleleInds(const SampleVariant* svar, const std::set<std::string>& requireAlleles) {
+	AlleleInds alleleToInd;
+	for (std::set<std::string>::const_iterator allIt = requireAlleles.begin(); allIt != requireAlleles.end(); ++allIt) {
+		const std::string& allele = *allIt;
+		int ind = svar->alleleIndex(allele);
+		if (ind >= 0)
+			alleleToInd[allele] = ind;
+		else
+			break;
+	}
+
+	return alleleToInd;
+}
+
+SampleVarGenotypeAlleleInds getSampleDataForAllelesInIndiv(const Variant& v, int indiv, const std::set<std::string>& requireAlleles) {
+	std::map<int, const Genotype*> gts = v.all_genotype(indiv);
+
+	// In this case, Variant::make_consensus() saves space by parsing only the consensus:
+	if (!v.multi_sample() && v.flat()) {
+		AlleleInds alleleToInd = getAllAlleleInds(&(v.consensus), requireAlleles);
+		if (alleleToInd.size() == requireAlleles.size())
+			return SampleVarGenotypeAlleleInds(&(v.consensus), &(v.consensus(indiv)), alleleToInd);
+	}
+
+	for (std::map<int, const Genotype*>::iterator j = gts.begin(); j != gts.end(); ++j) {
+		const SampleVariant* svar = v.psample(j->first);
+		AlleleInds alleleToInd = getAllAlleleInds(svar, requireAlleles);
+
+		// Managed to map all alleles, so return this first "hit" (even if there might be others):
+		if (alleleToInd.size() == requireAlleles.size()) {
+			const Genotype* gt = j->second;
+			/* NOTE: In the case below [ v.flat() && !v.infile_overlap() ],
+			 * the Genotype is stored ONLY in the consensus (to save space), so
+			 * must take the Genotype object from there (since the per-SampleVariant one is not a valid C++ object!).
+			 *
+			 * And, must also give the consensus as the corresponding SampleVariant, so that it can properly "understand" the
+			 * contents of Genotype gt.
+			 *
+			 * The important point is that the reference and alternate allele indices correspond to
+			 * those in the SampleVariant for which the PL and AD vectors were actually defined.
+			 */
+			if (v.flat() && !v.infile_overlap()) {
+				gt = &(v.consensus(indiv));
+				svar = &(v.consensus);
+			}
+
+			return SampleVarGenotypeAlleleInds(svar, gt, alleleToInd);
+		}
+	}
+
+	return SampleVarGenotypeAlleleInds(NULL, NULL, AlleleInds());
+}
+
+/* As documented here:
+   http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41
+   The index of genotype j/k [for j <= k] is at:
+   Index(j/k) = (k*(k+1)/2)+j
+ */
+int diploidGenotypeToPLindex(int j, int k) {
+	if (j > k) { // Ensure j <= k
+		int tmp = j;
+		j = k;
+		k = tmp;
+	}
+
+	return (k*(k+1)/2)+j;
+}
 
 #define MULTI_ALLELIC_DELIM "#"
 
 #define VAR_DATA \
 		v << "\t" \
-		<< v.label( patn , MULTI_ALLELIC_DELIM ) << "\t" \
-		<< v.label( matn , MULTI_ALLELIC_DELIM ) << "\t" \
-		<< v.label( i , MULTI_ALLELIC_DELIM ) << "\t" \
-		<< v.ind(patn)->id() << "\t" \
-		<< v.ind(matn)->id() << "\t" \
-		<< v.ind(i)->id() << "\t" \
+		<< v.label( pat , MULTI_ALLELIC_DELIM ) << "\t" \
+		<< v.label( mat , MULTI_ALLELIC_DELIM ) << "\t" \
+		<< v.label( child , MULTI_ALLELIC_DELIM ) << "\t" \
+		<< v.ind(pat)->id() << "\t" \
+		<< v.ind(mat)->id() << "\t" \
+		<< v.ind(child)->id() << "\t" \
 		<< c << "\t" \
 		<< c_tot << "\t" \
-		<< "[" << v.gmeta_label(patn, MULTI_ALLELIC_DELIM) << "]" << "\t" \
-		<< "[" << v.gmeta_label(matn, MULTI_ALLELIC_DELIM) << "]" << "\t" \
-		<< "[" << v.gmeta_label(i, MULTI_ALLELIC_DELIM) << "]" << "\t" \
+		<< "[" << v.gmeta_label(pat, MULTI_ALLELIC_DELIM) << "]" << "\t" \
+		<< "[" << v.gmeta_label(mat, MULTI_ALLELIC_DELIM) << "]" << "\t" \
+		<< "[" << v.gmeta_label(child, MULTI_ALLELIC_DELIM) << "]" << "\t" \
 		<< v.alternate() << "\t" \
-		<< v.alternate_label( patn , MULTI_ALLELIC_DELIM ) << "\t" \
-		<< v.alternate_label( matn , MULTI_ALLELIC_DELIM ) << "\t" \
-		<< v.alternate_label( i , MULTI_ALLELIC_DELIM )
+		<< v.alternate_label( pat , MULTI_ALLELIC_DELIM ) << "\t" \
+		<< v.alternate_label( mat , MULTI_ALLELIC_DELIM ) << "\t" \
+		<< v.alternate_label( child , MULTI_ALLELIC_DELIM )
 
-void f_denovo_scan( Variant & v , void * p )
-{
+void f_denovo_scan( Variant & v , void * p ) {
+	Out & pDeNovos = Out::stream( "denovo.vars" );
 
-  Out & pDeNovos = Out::stream( "denovo.vars" );
+	Aux_transmission_summary * aux = (Aux_transmission_summary*)p;
 
-  Aux_transmission_summary * aux = (Aux_transmission_summary*)p;
+	const int n = v.size();
 
-  const int n = v.size();
+	for (int child = 0; child < n; child++) {
+		Individual* patIndiv = v.ind(child)->pat();
+		Individual* matIndiv = v.ind(child)->mat();
 
-  for (int i=0; i<n; i++)
-    {
+		// only consider individuals where both parents are present"
+		if ( patIndiv == NULL || matIndiv == NULL ) continue;
 
-      Individual * pat = v.ind(i)->pat();
-      Individual * mat = v.ind(i)->mat();
+		// there will be a better way to get the actual individual slot
+		// but use for now...
+		int pat = g.indmap.ind_n( patIndiv->id() );
+		int mat = g.indmap.ind_n( matIndiv->id() );
 
-      // only consider individuals where both parents are present"
-      if ( pat == NULL || mat == NULL ) continue;
+		// PAT x MAT --> OFFSPRING:
+		const Genotype* gc = &(v(child));
+		const Genotype* gp = &(v(pat));
+		const Genotype* gm = &(v(mat));
 
-      // there will be a better way to get the actual individual slot
-      // but use for now...
+		aux_trio_transmission_summary* summary = aux->indiv(child);
+		aux_trio_transmission_summary prevSummary = *summary;
 
-      int patn = g.indmap.ind_n( pat->id() );
-      int matn = g.indmap.ind_n( mat->id() );
-
-      // PAT x MAT --> OFFSPRING:
-      Genotype & go = v(i);
-      Genotype & gp = v(patn);
-      Genotype & gm = v(matn);
-
-      aux_trio_transmission_summary* summary = aux->indiv(i);
-      aux_trio_transmission_summary prevSummary = *summary;
-
-      if ( go.null() || gp.null() || gm.null() || !go.diploid() || !gp.diploid() || !gm.diploid() ) {
-    	  summary->_missing++;
-      }
-      else
- 	{
-    	  summary->_complete_transmissions++;
-
-    	  int a1 = go.acode1();
-    	  int a2 = go.acode2();
-
-    	  if (go.heterozygote() && (go.a1IsReference() || go.a2IsReference()))
-    		  summary->_child_hets++;
-
-    	  std::set<int> pAll;
-    	  pAll.insert(gp.acode1());
-    	  pAll.insert(gp.acode2());
-
-    	  std::set<int> mAll;
-    	  mAll.insert(gm.acode1());
-    	  mAll.insert(gm.acode2());
-
-    	  bool a1Pat = pAll.find(a1) != pAll.end();
-    	  bool a2Pat = pAll.find(a2) != pAll.end();
-
-    	  bool a1Mat = mAll.find(a1) != mAll.end();
-    	  bool a2Mat = mAll.find(a2) != mAll.end();
-
-    	  bool a1Pat_a2Mat = a1Pat && a2Mat;
-    	  bool a2Pat_a1Mat = a2Pat && a1Mat;
-    	  bool bothAllelesInherited = a1Pat_a2Mat || a2Pat_a1Mat;
-
-    	  if (bothAllelesInherited) {
-    		  // Will count this trio's transmission at most once for Het->Ref and at most once for Het->Alt:
-    		  bool transRefFromHet = false;
-    		  bool transAltFromHet = false;
-
-    		  /*
-    		   * NOTE: Only looking at parents that are HETs with REF/ALT and not ALT1/ALT2, since want to assess transmission
-    		   * for standard case (where genotypes are more "believable"):
-    		   */
-    		  if (gp.heterozygote() && (gp.a1IsReference() || gp.a2IsReference())) { // Father is a reference/non-reference het
-    			  if (a1Pat_a2Mat) {
-    				  if (go.a1IsReference())
-    					  transRefFromHet = true;
-    				  else
-    					  transAltFromHet = true;
-    			  }
-    			  if (a2Pat_a1Mat) {
-    				  if (go.a2IsReference())
-    					  transRefFromHet = true;
-    				  else
-    					  transAltFromHet = true;
-    			  }
-    		  }
-
-    		  if (gm.heterozygote() && (gm.a1IsReference() || gm.a2IsReference())) { // Mother is a reference/non-reference het
-    			  if (a1Pat_a2Mat) {
-    				  if (go.a2IsReference())
-    					  transRefFromHet = true;
-    				  else
-    					  transAltFromHet = true;
-    			  }
-    			  if (a2Pat_a1Mat) {
-    				  if (go.a1IsReference())
-    					  transRefFromHet = true;
-    				  else
-    					  transAltFromHet = true;
-    			  }
-    		  }
-
-    		  if (transRefFromHet)
-    			  summary->_trans_ref_from_het++;
-    		  if (transAltFromHet)
-    			  summary->_trans_alt_from_het++;
-    	  }
-    	  else {
-    		  summary->_nonmendelian++;
-
-    		  /* Both parents are homozygous reference, and one of child alleles is an inherited *reference* allele.
-    		   * So, only 1 of 2 child alleles are de novo, which is the case we want to consider (most "believable"):
-    		   */
-    		  bool bothParentsHomRef = gp.reference() && gm.reference();
-    		  bool inheritedOneRef = ((a1Pat || a1Mat) && go.a1IsReference()) || ((a2Pat || a2Mat) && go.a2IsReference());
-
-    		  if (bothParentsHomRef && inheritedOneRef)
-    			  summary->_potential_denovo++;
-    	  }
-
-
-      bool denovo = (summary->potential_denovo() > prevSummary.potential_denovo());
-
-      // would this putative de novo pass special denovo filters?
-      if ( denovo )
-	{
-
-	  // Assume individual metrics: DP, PL, AD
-
-	  if ( aux->dp_kid > 0 )
-	    {
-	      if ( ! go.meta.has_field( "DP" ) ) denovo = false;
-	      else if ( go.meta.get1_int( "DP" ) < aux->dp_kid ) denovo = false;
-	    }
-
-	  if ( aux->dp_par > 0 )
-	    {
-	      if ( ! gp.meta.has_field( "DP" ) ) denovo = false;
-	      else if ( gp.meta.get1_int( "DP" ) < aux->dp_par ) denovo = false;
-
-	      if ( ! gm.meta.has_field( "DP" ) ) denovo = false;
-	      else if ( gm.meta.get1_int( "DP" ) < aux->dp_par ) denovo = false;
-	    }
-
-
-	  // PLs
-
-	  if ( aux->pl_kid > 0 )
-	    {
-	      if ( ! go.meta.has_field( "PL" ) ) denovo = false;
-	      else
-		{
-		  std::vector<int> pl = go.meta.get_int( "PL" ) ;
-		  if ( pl.size() != 3 ) denovo = false;
-		  else if ( pl[0] < aux->pl_kid || pl[2] < aux->pl_kid ) denovo = false;
+		if (gc->null() || gp->null() || gm->null() || !gc->diploid() || !gp->diploid() || !gm->diploid()) {
+			summary->_missing++;
 		}
-	    }
+		else {
+			summary->_complete_transmissions++;
 
-	  if ( aux->pl_par > 0 )
-	    {
+			int a1 = gc->acode1();
+			int a2 = gc->acode2();
 
-	      if ( ! gp.meta.has_field( "PL" ) ) denovo = false;
-	      else
-		{
-		  std::vector<int> pl = gp.meta.get_int( "PL" ) ;
-		  if ( pl.size() != 3 ) denovo = false;
-		  else if ( pl[1] < aux->pl_par || pl[2] < aux->pl_par ) denovo = false;
+			if (gc->heterozygote() && (gc->a1IsReference() || gc->a2IsReference()))
+				summary->_child_hets++;
+
+			std::set<int> pAll;
+			pAll.insert(gp->acode1());
+			pAll.insert(gp->acode2());
+
+			std::set<int> mAll;
+			mAll.insert(gm->acode1());
+			mAll.insert(gm->acode2());
+
+			bool a1Pat = pAll.find(a1) != pAll.end();
+			bool a2Pat = pAll.find(a2) != pAll.end();
+
+			bool a1Mat = mAll.find(a1) != mAll.end();
+			bool a2Mat = mAll.find(a2) != mAll.end();
+
+			bool a1Pat_a2Mat = a1Pat && a2Mat;
+			bool a2Pat_a1Mat = a2Pat && a1Mat;
+			bool bothAllelesInherited = a1Pat_a2Mat || a2Pat_a1Mat;
+
+			std::string childRefAllele = "";
+			std::string childAltAllele = "";
+
+			if (bothAllelesInherited) {
+				// Will count this trio's transmission at most once for Het->Ref and at most once for Het->Alt:
+				bool transRefFromHet = false;
+				bool transAltFromHet = false;
+
+				/*
+				 * NOTE: Only looking at parents that are HETs with REF/ALT and not ALT1/ALT2, since want to assess transmission
+				 * for standard case (where genotypes are more "believable"):
+				 */
+				if (gp->heterozygote() && (gp->a1IsReference() || gp->a2IsReference())) { // Father is a reference/non-reference het
+					if (a1Pat_a2Mat) {
+						if (gc->a1IsReference())
+							transRefFromHet = true;
+						else
+							transAltFromHet = true;
+					}
+					if (a2Pat_a1Mat) {
+						if (gc->a2IsReference())
+							transRefFromHet = true;
+						else
+							transAltFromHet = true;
+					}
+				}
+
+				if (gm->heterozygote() && (gm->a1IsReference() || gm->a2IsReference())) { // Mother is a reference/non-reference het
+					if (a1Pat_a2Mat) {
+						if (gc->a2IsReference())
+							transRefFromHet = true;
+						else
+							transAltFromHet = true;
+					}
+					if (a2Pat_a1Mat) {
+						if (gc->a1IsReference())
+							transRefFromHet = true;
+						else
+							transAltFromHet = true;
+					}
+				}
+
+				if (transRefFromHet)
+					summary->_trans_ref_from_het++;
+				if (transAltFromHet)
+					summary->_trans_alt_from_het++;
+			}
+			else {
+				summary->_nonmendelian++;
+
+				/* Both parents are homozygous reference, and one of child alleles is an inherited *reference* allele.
+				 * So, only 1 of 2 child alleles are de novo, which is the case we want to consider (most "believable"):
+				 */
+				bool bothParentsHomRef = gp->reference() && gm->reference();
+				bool inheritedOneRef = ((a1Pat || a1Mat) && gc->a1IsReference()) || ((a2Pat || a2Mat) && gc->a2IsReference());
+
+				if (bothParentsHomRef && inheritedOneRef) {
+					summary->_potential_denovo++;
+
+					if (gc->a1IsReference()) {
+						childRefAllele = v.allele1_label(*gc);
+						childAltAllele = v.allele2_label(*gc);
+					}
+					else if (gc->a2IsReference()) {
+						childRefAllele = v.allele2_label(*gc);
+						childAltAllele = v.allele1_label(*gc);
+					}
+				}
+			}
+
+			bool denovo = (summary->potential_denovo() > prevSummary.potential_denovo());
+
+			// Would this putative de novo pass special denovo filters?
+			if (denovo) {
+				std::set<std::string> requireAlleles;
+				requireAlleles.insert(childRefAllele);
+				requireAlleles.insert(childAltAllele);
+
+				SampleVarGenotypeAlleleInds childDat = getSampleDataForAllelesInIndiv(v, child, requireAlleles);
+				SampleVarGenotypeAlleleInds patDat =   getSampleDataForAllelesInIndiv(v, pat, requireAlleles);
+				SampleVarGenotypeAlleleInds matDat =   getSampleDataForAllelesInIndiv(v, mat, requireAlleles);
+
+				if (childDat.gt == NULL || patDat.gt == NULL || matDat.gt == NULL ||
+						childDat.sv->getGenotypeAlleles(*(childDat.gt)) != v.consensus.getGenotypeAlleles(*gc) ||
+						patDat.sv->getGenotypeAlleles(*(patDat.gt)) != v.consensus.getGenotypeAlleles(*gp) ||
+						matDat.sv->getGenotypeAlleles(*(matDat.gt)) != v.consensus.getGenotypeAlleles(*gm)) {
+					std::stringstream str;
+					str << "Internal inconsistency in building consensus genotypes for trio " << v.ind(child)->id() << " at " << v << ":";
+
+					if (childDat.gt == NULL)
+						str << " Missing child,";
+					else if (childDat.sv->getGenotypeAlleles(*(childDat.gt)) != v.consensus.getGenotypeAlleles(*gc))
+						str << " Different child gt [" << *(childDat.gt) << " != " << *gc << "],";
+
+					if (patDat.gt == NULL)
+						str << " Missing father,";
+					else if (patDat.sv->getGenotypeAlleles(*(patDat.gt)) != v.consensus.getGenotypeAlleles(*gp))
+						str << " Different father gt [" << *(patDat.gt) << " != " << *gp << "],";
+
+					if (matDat.gt == NULL)
+						str << " Missing mother,";
+					else if (matDat.sv->getGenotypeAlleles(*(matDat.gt)) != v.consensus.getGenotypeAlleles(*gm))
+						str << " Different mother gt [" << *(matDat.gt) << " != " << *gm << "],";
+
+					Helper::halt(str.str());
+				}
+				// Since the genotype calls are equal, use these genotypes with their "uniformly relevant" meta-information:
+				gc = childDat.gt;
+				gp = patDat.gt;
+				gm = matDat.gt;
+
+				// Depths:
+				if (aux->minChildDP > 0) {
+					if (!gc->meta.has_field("DP"))
+						denovo = false;
+					else if (gc->meta.get1_int("DP") < aux->minChildDP)
+						denovo = false;
+				}
+
+				// Depths in parents:
+				if (aux->minParDP > 0) {
+					if (!gp->meta.has_field("DP"))
+						denovo = false;
+					else if (gp->meta.get1_int("DP") < aux->minParDP)
+						denovo = false;
+
+					if (!gm->meta.has_field("DP"))
+						denovo = false;
+					else if (gm->meta.get1_int("DP") < aux->minParDP)
+						denovo = false;
+				}
+
+				// PLs:
+				if (aux->minChildPL > 0) {
+					if (!gc->meta.has_field("PL"))
+						denovo = false;
+					else {
+						std::vector<int> pl = gc->meta.get_int("PL");
+
+						int refInd = childDat.alleleToInd[childRefAllele];
+						int altInd = childDat.alleleToInd[childAltAllele];
+						int ind = diploidGenotypeToPLindex(refInd, altInd);
+						if (ind >= pl.size() || pl[ind] != 0)
+							denovo = false; // the called genotype does not have a PL of 0
+
+						// Is the 2nd-smallest PL too small?
+						std::sort(pl.begin(), pl.end());
+						if (1 >= pl.size() || pl[1] < aux->minChildPL)
+							denovo = false;
+					}
+				}
+
+				// PLs in parents:
+				if (aux->minParPL > 0) {
+					if (!gp->meta.has_field("PL"))
+						denovo = false;
+					else {
+						std::vector<int> pl = gp->meta.get_int("PL");
+
+						int refInd = patDat.alleleToInd[childRefAllele];
+						int ind = diploidGenotypeToPLindex(refInd, refInd);
+						if (ind >= pl.size() || pl[ind] != 0)
+							denovo = false; // the called genotype does not have a PL of 0
+
+						// Is the 2nd-smallest PL too small?
+						std::sort(pl.begin(), pl.end());
+						if (1 >= pl.size() || pl[1] < aux->minParPL)
+							denovo = false;
+					}
+
+					if (!gm->meta.has_field("PL"))
+						denovo = false;
+					else {
+						std::vector<int> pl = gm->meta.get_int("PL");
+
+						int refInd = matDat.alleleToInd[childRefAllele];
+						int ind = diploidGenotypeToPLindex(refInd, refInd);
+						if (ind >= pl.size() || pl[ind] != 0)
+							denovo = false; // the called genotype does not have a PL of 0
+
+						// Is the 2nd-smallest PL too small?
+						std::sort(pl.begin(), pl.end());
+						if (1 >= pl.size() || pl[1] < aux->minParPL)
+							denovo = false;
+					}
+				}
+
+				// AB:
+				if (aux->minChild_AB_alt > 0 || aux->minChild_AB_ref > 0) {
+					if (!gc->meta.has_field("AD"))
+						denovo = false;
+					else {
+						std::vector<int> ad = gc->meta.get_int("AD");
+
+						double AD_DP = 0.0;
+						for (std::vector<int>::const_iterator adIt = ad.begin(); adIt != ad.end(); ++adIt)
+							AD_DP += *adIt;
+
+						int refInd = childDat.alleleToInd[childRefAllele];
+						int altInd = childDat.alleleToInd[childAltAllele];
+
+						if (aux->minChild_AB_alt > 0 && (altInd >= ad.size() || (ad[altInd] / AD_DP) < aux->minChild_AB_alt))
+							denovo = false;
+
+						if (aux->minChild_AB_ref > 0 && (refInd >= ad.size() || (ad[refInd] / AD_DP) < aux->minChild_AB_ref))
+							denovo = false;
+					}
+				}
+
+				// AB in parents:
+				if (aux->minPar_AB_ref > 0) {
+					if (!gp->meta.has_field("AD"))
+						denovo = false;
+					else {
+						std::vector<int> ad = gp->meta.get_int("AD");
+
+						double AD_DP = 0.0;
+						for (std::vector<int>::const_iterator adIt = ad.begin(); adIt != ad.end(); ++adIt)
+							AD_DP += *adIt;
+
+						int refInd = patDat.alleleToInd[childRefAllele];
+
+						if (refInd >= ad.size() || (ad[refInd] / AD_DP) < aux->minPar_AB_ref)
+							denovo = false;
+					}
+
+					if (!gm->meta.has_field("AD"))
+						denovo = false;
+					else {
+						std::vector<int> ad = gm->meta.get_int("AD");
+
+						double AD_DP = 0.0;
+						for (std::vector<int>::const_iterator adIt = ad.begin(); adIt != ad.end(); ++adIt)
+							AD_DP += *adIt;
+
+						int refInd = matDat.alleleToInd[childRefAllele];
+
+						if (refInd >= ad.size() || (ad[refInd] / AD_DP) < aux->minPar_AB_ref)
+							denovo = false;
+					}
+				}
+
+				// Mapping quality:
+				if (aux->minMQ > 0) {
+					double MQ;
+					if (v.consensus.meta.has_field("MQ"))
+						MQ = v.consensus.meta.get1_double("MQ");
+					else {
+						// Take the *MEAN* MQ over all samples:
+						MQ = 0;
+						int nSamps = 0;
+						for (int s = 0; s < v.n_samples(); ++s) {
+							const SampleVariant& sv = v.sample(s);
+							if (sv.meta.has_field("MQ")) {
+								MQ += sv.meta.get1_double("MQ");
+								++nSamps;
+							}
+						}
+
+						MQ = MQ / nSamps;
+					}
+
+					if (MQ < aux->minMQ)
+						denovo = false;
+				}
+			}
+
+			bool trans_ref_from_het = (summary->trans_ref_from_het() > prevSummary.trans_ref_from_het());
+			bool trans_alt_from_het = (summary->trans_alt_from_het() > prevSummary.trans_alt_from_het());
+
+			// get allele frequencies
+			int c = 0, c_tot = 0;
+			if (denovo || (aux->printTransmission && (trans_ref_from_het || trans_alt_from_het)))
+				/* Use instead n_alt_allele() of n_minor_allele(),
+				 * since for de novo status and transmission we're specifically tracking:
+				 *
+				 * a. denovo: If the parents are both hom ref, then does the child have one alt allele
+				 * (and we want to know how many total alt alleles *of any kind* are present at this site)
+				 *
+				 * b. transmission: If a parent is a het (ref+alt), then did the child receive the ref or the alt
+				 * (and we want to know how many total alt alleles *of any kind* are present at this site)
+				 */
+				v.n_alt_allele(&c, &c_tot);
+
+			if (denovo) {
+				if (aux->maxAAC >= 0 && c > aux->maxAAC)
+					denovo = false;
+			}
+
+			// directly output possible de novo events (only REF x REF --> HET)
+			// that also passed any above, de-novo specific filters
+			if (denovo) {
+				// track # of actual 'passing' de novo calls
+				summary->_dcount++;
+
+				pDeNovos << "Variant" << "\t"
+						<< "RefxRef->Het[Ref+Alt]" << "\t"
+						<< VAR_DATA << "\n";
+			}
+
+			if (aux->printTransmission) {
+				Out & pTrans = Out::stream("parent_transmission.vars");
+
+				if (trans_ref_from_het)
+					pTrans << "Variant" << "\t"
+					<< "Het[Ref+Alt]->Ref_allele" << "\t"
+					<< VAR_DATA << "\n";
+
+				if (trans_alt_from_het)
+					pTrans << "Variant" << "\t"
+					<< "Het[Ref+Alt]->Alt_allele" << "\t"
+					<< VAR_DATA << "\n";
+			}
 		}
-
-	      if ( ! gm.meta.has_field( "PL" ) ) denovo = false;
-	      else
-		{
-		  std::vector<int> pl = gm.meta.get_int( "PL" ) ;
-		  if ( pl.size() != 3 ) denovo = false;
-		  else if ( pl[1] < aux->pl_par || pl[2] < aux->pl_par ) denovo = false;
-		}
-
-	    }
-
-
-	  // ABs
-
-	  if ( aux->ab_kid_min > 0 || aux->ab_kid_max < 1 )
-	    {
-	      if ( ! go.meta.has_field( "AD" ) ) denovo = false;
-	      else
-		{
-		  std::vector<int> ad = go.meta.get_int( "AD" );
-		  if ( ad.size() != 2 ) denovo = false;
-		  else
-		    {
-		      // prop. of NR reads
-		      double ab = ad[1] / (double)( ad[0] + ad[1] );
-		      if ( ab < aux->ab_kid_min || ab > aux->ab_kid_max ) denovo = false;
-		    }
-		}
-	    }
-
-	  // AB in parents
-	  if ( aux->ab_par < 1 )
-	    {
-	      if ( ! gp.meta.has_field( "AD" ) ) denovo = false;
-	      else
-		{
-		  std::vector<int> ad = gp.meta.get_int( "AD" );
-		  if ( ad.size() != 2 ) denovo = false;
-		  else
-		    {
-		      double ab = ad[1] / (double)( ad[0] + ad[1] );
-		      if ( ab > aux->ab_par ) denovo = false;
-		    }
-		}
-
-	      if ( ! gm.meta.has_field( "AD" ) ) denovo = false;
-	      else
-		{
-		  std::vector<int> ad = gm.meta.get_int( "AD" );
-		  if ( ad.size() != 2 ) denovo = false;
-		  else
-		    {
-		      double ab = ad[1] / (double)( ad[0] + ad[1] );
-		      if ( ab > aux->ab_par ) denovo = false;
-		    }
-		}
-	    }
 	}
-
-      bool trans_ref_from_het = (summary->trans_ref_from_het() > prevSummary.trans_ref_from_het());
-      bool trans_alt_from_het = (summary->trans_alt_from_het() > prevSummary.trans_alt_from_het());
-
-	  // get allele frequencies
-	  int c = 0 , c_tot = 0;
-	  if (denovo || (aux->printTransmission && (trans_ref_from_het || trans_alt_from_het)))
-		  /* Use instead n_alt_allele() of n_minor_allele(),
-		   * since for de novo status and transmission we're specifically tracking:
-		   *
-		   * a. denovo: If the parents are both hom ref, then does the child have one alt allele
-		   * (and we want to know how many total alt alleles *of any kind* are present at this site)
-		   *
-		   * b. transmission: If a parent is a het (ref+alt), then did the child receive the ref or the alt
-		   * (and we want to know how many total alt alleles *of any kind* are present at this site)
-		   */
-		  v.n_alt_allele( &c , &c_tot );
-
-      // directly output possible de novo events (only REF x REF --> HET)
-      // that also passed any above, de-novo specific filters
-
-      if ( denovo )
-      {
-    	  // track # of actual 'passing' de novo calls
-    	  summary->_dcount++;
-
-    	  pDeNovos << "Variant" << "\t"
-    			  << "RefxRef->Het[Ref+Alt]" << "\t"
-    			  << VAR_DATA << "\n";
-      }
-
-      if (aux->printTransmission) {
-    	  Out & pTrans = Out::stream( "parent_transmission.vars" );
-
-    	  if (trans_ref_from_het)
-    		  pTrans << "Variant" << "\t"
-    		  << "Het[Ref+Alt]->Ref_allele" << "\t"
-    		  << VAR_DATA << "\n";
-
-    	  if (trans_alt_from_het)
-    		  pTrans << "Variant" << "\t"
-    		  << "Het[Ref+Alt]->Alt_allele" << "\t"
-    		  << VAR_DATA << "\n";
-      }
-    }
-}
 }
 
 #define VAR_HEADER \
@@ -2026,27 +2217,7 @@ bool Pseq::VarDB::denovo_scan( Mask & mask )
   const int n = g.indmap.size();
 
   // store summary transmission data
-  Aux_transmission_summary aux(n);
-
-
-  if ( args.has("param") )
-    {
-      std::vector<double> p = args.as_float_vector( "param" );
-      if ( p.size() < 7 )
-	Helper::halt( "expect --param DP(kid) DP(par) PL(kid) PL(par) AB(kid,lwr) AB(kid,upr) AB(par,upr) [printTransmission?]" );
-
-      aux.dp_kid = p[0];
-      aux.dp_par = p[1];
-      aux.pl_kid = p[2];
-      aux.pl_par = p[3];
-
-      aux.ab_kid_min = p[4];
-      aux.ab_kid_max = p[5];
-      aux.ab_par = p[6];
-
-      if (p.size() >= 8)
-    	  aux.printTransmission = static_cast<bool>(p[7]);
-    }
+  Aux_transmission_summary aux(n, args);
 
   Out* outputTrans = NULL;
   if (aux.printTransmission) {

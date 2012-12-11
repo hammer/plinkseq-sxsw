@@ -98,11 +98,18 @@ class SampleVariant {
   }
 
   /// Return allele label of k-th allele (0 is reference)
-  std::string alternate( const uint k ) const
-    {
-      if ( k >= alleles.size() ) return ".";
-      return alleles[k].name();
-    }
+  std::string alternate( const uint k ) const {
+	  if ( k >= alleles.size() ) return ".";
+	  return alleles[k].name();
+  }
+
+  int alleleIndex(const std::string& allele) const {
+	  for (int k = 0; k < alleles.size(); ++k)
+		  if (alleles[k].name() == allele)
+			  return k;
+
+	  return -1;
+  }
   
   /// pretty print versions of the above
   std::string pp_reference() const;
@@ -200,8 +207,8 @@ class SampleVariant {
 
   void store_BLOBs( blob * , blob * , blob * , blob * );
   
- private:
 
+ private:
 
   /// Unique index from VARDB, used in construction
 
@@ -302,11 +309,12 @@ class SampleVariant {
   GenotypeSet      calls;
 
   /// Overload () to access genotype calls for individual i
-  
-  Genotype & operator()(const int i) { return calls.genotype(i); }
+  Genotype& operator()(const int i) { return calls.genotype(i); }
 
-  const Genotype & operator()(const int i) const { return calls.genotype(i); }
-     
+ public:
+  const Genotype& operator()(const int i) const { return calls.genotype(i); }
+
+ private:
   /// Initialise a SV as null
 
   void init()
@@ -350,6 +358,10 @@ class SampleVariant {
   /// Write core variant information to stream (no meta or genotype information)  
   friend std::ostream & operator<<( std::ostream & out, const SampleVariant & v);
 
+ public:
+  std::map<std::string, int> getGenotypeAlleles(const Genotype& g) const;
+
+ private:
   /// ACGT encoding of a genotype (by default, collapse phased/unphased)
   std::string label( const Genotype & g , bool phased = false ) const;
   
