@@ -35,7 +35,7 @@ enum seq_annot_t { UNDEF   =  0 ,     // could not annotate
  		   CODONINSERTION		=  22 ,	   // codon insertion
  		   CODONDELETION		=  23 ,    // codon deletion
 		   STOPINSERTION               =  34 ,    // stop insertion                                                                                                                 
-                   STOPDELETION                =  35 ,    // stop deletion
+           STOPDELETION                =  35 ,    // stop deletion
 		   OOFCODONINSERTION               =  36 ,    // out of frame codon insertion
 		   OOFCODONDELETION               =  37 , // out of frame codon deletion
  		   SPLICE 	= 24	, // general splice +/- 5bp
@@ -213,7 +213,7 @@ class Annotate {
     static std::string getc(const std::string &);
     static std::string getr(const std::string &);
 
-    static std::string translate(std::string &, int, std::vector<std::string> &);    
+    static std::string translate(std::string &, int, std::vector<std::string> &, unsigned int& missingBases);
  private:
 
     // DNA base --> AA
@@ -254,8 +254,11 @@ class Annotate {
     // add regions to the cache, if not already in there
     static void add_transcripts( const std::vector<uint64_t> & id );
 
+    static const std::string DEFAULT_PRIORITIZED_WORST_ANNOTATIONS_ARRAY[];
+    static std::list<std::string> PRIORITIZED_WORST_ANNOTATIONS;
 
  public:
+    static void setWorstAnnotationPriorities(std::string prioritiesFile);
     
     // AA names
     static std::map<std::string,std::string> aa;

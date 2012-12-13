@@ -1933,34 +1933,35 @@ int main(int argc, char ** argv)
     // Lookup DB information for a list of positions
     //
 
-    if ( command == "lookup" )
-      {
-	Out output( "meta" , "output from lookup command" );
-	
-	if ( args.has( "file" ) )
-	  {
-	    std::string filename = Pseq::Util::single_argument<std::string>( args , "file" );
-	    Pseq::VarDB::lookup_list( filename , m );
-	  }
-	if ( args.has( "region" ) ) 
-	  {
-	    std::vector<std::string> regions = Pseq::Util::n_arguments<std::string>( args, "region" );
-	    std::vector<Region> regs;
-	    for (int i=0;i<regions.size(); i++)
-	      {
-		bool okay;
-		Region r( regions[i] , okay );
-		if ( okay ) regs.push_back( r );
-		else plog.warn( "could not parse region: " + regions[i] );
-	      }
-	    Pseq::VarDB::lookup_list( "." , m , &regs );
-	  }
+    if (command == "lookup") {
+    	Out output("meta", "output from lookup command");
 
-	// else directly annotate variants in VARDB
-	if ( ! ( args.has( "file" ) || args.has( "region" ) ) )
-	  Pseq::VarDB::lookup_list( "." , m );
-	Pseq::finished();
-      }
+    	if (args.has("worstAnnotationPriorities"))
+    		Annotate::setWorstAnnotationPriorities(Pseq::Util::single_argument<std::string>(args, "worstAnnotationPriorities"));
+
+    	if (args.has("file")) {
+    		std::string filename = Pseq::Util::single_argument<std::string>(args, "file");
+    		Pseq::VarDB::lookup_list(filename, m);
+    	}
+    	if (args.has("region")) {
+    		std::vector<std::string> regions = Pseq::Util::n_arguments<std::string>(args, "region");
+    		std::vector<Region> regs;
+    		for (int i = 0; i < regions.size(); i++) {
+    			bool okay;
+    			Region r(regions[i], okay);
+    			if (okay)
+    				regs.push_back(r);
+    			else
+    				plog.warn("could not parse region: " + regions[i]);
+    		}
+    		Pseq::VarDB::lookup_list(".", m, &regs);
+    	}
+
+    	// else directly annotate variants in VARDB
+    	if (!(args.has("file") || args.has("region")))
+    		Pseq::VarDB::lookup_list(".", m);
+    	Pseq::finished();
+    }
     
 
     //

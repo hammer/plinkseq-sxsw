@@ -3697,7 +3697,8 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
 
 	      if ( negative_strand ) sequence = Annotate::getrc( sequence );
 
-	      std::string trans_ref = Annotate::translate( sequence , 0 , ref_codon );
+	      unsigned int missing_bases;
+	      std::string trans_ref = Annotate::translate( sequence , 0 , ref_codon , missing_bases );
 	      
 
 	      if ( ref_codon.size() < 20 ) plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\t"
