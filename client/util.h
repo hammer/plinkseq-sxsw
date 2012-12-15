@@ -5,6 +5,9 @@
 
 #include <string>
 
+#define SET_FLOAT(name) if (args.has(#name)) name = args.as_float(#name);
+#define SET_INT(name) if (args.has(#name)) name = args.as_int(#name);
+#define SET_FLAG(name) if (args.has(#name)) name = true;
 
 namespace Pseq 
 {

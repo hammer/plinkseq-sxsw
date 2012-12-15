@@ -1,3 +1,4 @@
+
 #include "genic.h"
 #include <iostream>
 #include <functional>
@@ -96,7 +97,6 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 
   const int n = vars.n_individuals();
   
-  
   for (int i = 0; i < n; i++)
     {
       
@@ -112,7 +112,6 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
         for( int k = 0; k < 3; k++ )
           mat[j][k] = 0;
 
-      
       for (int v = 0; v < vars.size(); v++)
 	{
 	  
@@ -150,8 +149,8 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
               annot.push_back(func[0]);
 	    else{
 	      for( int ti = 0; ti < tok_trans.size(); ti++)
-                if( vars.name().compare(tok_trans[ti]) == 0 )
-                  annot.push_back(tok_func[ti]);      
+		if( vars.name().compare(tok_trans[ti]) == 0 )
+                  annot.push_back(tok_func[ti]);         
 	    }
 	  }
 
@@ -295,18 +294,17 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
       }
 
       // count total number of cases and controls
-      if( ahomi >0 )
+      // if case
+      if( ahomi > 0 || acheti > 0 )
 	ahom++;
-      if( uhomi >0 )
-	uhom++;
-      if( acheti >0 )
-	achet++;
-      if( ucheti >0 )
-	uchet++;
-      if( aheti >0 )
+      if( aheti > 0 )
 	ahet++;
+      
+      //control
+      if( uhomi > 0 || ucheti > 0 )
+        uhom++;
       if( uheti >0 )
-	uhet++; 
+	uhet++;
     }
   
 
@@ -316,8 +314,8 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
 
   double total_hets = ahet + uhet;
   double a = 2 * aux->ncontrols;
-  double arec = ahom + achet;
-  double urec = uhom + uchet;
+  double arec = ahom;
+  double urec = uhom;
   double f = (( 2 * urec ) + uhet) / a;
 
   //double f = (uhet + (2*urec))/(2*aux->ncontrols);
@@ -339,10 +337,10 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
   double this_l1 = 0;
   double x = 0;
   double pAA_nodis = 0;
-  double grrmax = 0;
+  double grrmax = 1.1;
 
 
-  for (double gr = 1.01; gr <= 50; gr += 0.01) {
+  for (double gr = 1.1; gr <= 50; gr += 0.1) {
     
     denom1 = gr * pAA + ( 1 - pAA );
     
@@ -373,8 +371,8 @@ double Pseq::Assoc::stat_two_hit( const VariantGroup & vars,
     {
       (*output)["TWO-HIT"] = "P=" + Helper::dbl2str( pvalue ) 
 	+ ";AF=" + Helper::dbl2str(f) 
-	+ ";CASES=" + Helper::int2str(ahom) + "," + Helper::int2str(achet) + "," + Helper::int2str(ahet) + "," + Helper::int2str(aux->ncases) 
-	+ ";CONTROLS=" + Helper::int2str(uhom) + "," + Helper::int2str(uchet) + "," + Helper::int2str(uhet) + "," + Helper::int2str(aux->ncontrols);
+	+ ";CASES=" + Helper::int2str(arec) + "," + Helper::int2str(ahet) + "," + Helper::int2str(aux->ncases) 
+	+ ";CONTROLS=" + Helper::int2str(urec) + "," + Helper::int2str(uhet) + "," + Helper::int2str(aux->ncontrols);
     }
   return chisqVal;   
 }

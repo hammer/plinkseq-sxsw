@@ -9,6 +9,7 @@
 #include <set>
 #include <map>
 #include <inttypes.h>
+#include <list>
 
 
 // Provide "C" function for use in configure.ac of tools linking against library
@@ -686,6 +687,11 @@ class dbl_range {
   }
 };
 
+
+template<typename T, size_t N>
+std::list<T> arrayToList(const T (&data)[N]) {
+    return std::list<T>(data, data+N);
+}
 
 
 #endif
