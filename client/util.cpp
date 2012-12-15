@@ -321,7 +321,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
       
 	  << "means|views,tests|summary QT means per variant|VCF|ARG:annotate,full-annotate,show-filters,meta,phenotype|OUT:means"
       
-	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$burden$calpha$uniq$vt$fw$sumstat$two-hit$skat$skato,info,fix-null,perm,dump-null-matrix,midpoint|OUT:assoc"
+	  << "assoc|tests|gene-based association tests|GRP|ARG:phenotype,tests$burden$calpha$uniq$vt$fw$sumstat$two-hit$skat$skato,info,fix-null,perm,dump-null-matrix,carriers,midpoint|OUT:assoc"
     
 	  << "v-assoc|tests|single-variant association|VCF|ARG:phenotype,info,fix-null,perm,separate-chr-bp,vmeta|OUT:vassoc"
 	
@@ -541,7 +541,8 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "titv" , NONE , "annotate locus as being transition, transversion, or neither" );
     reg( "loc" , STRING_VECTOR , "transcript group" );
     reg( "ref" , STRING_VECTOR , "reference-variant group" );
-    reg( "ref_allelic" , STRING_VECTOR , "reference-variant group" );
+    reg( "ref-allelic" , STRING_VECTOR , "reference-variant group" );
+    reg( "var-allelic" , NONE , "allele matching for var.req (ONLY)" );
     reg( "locset" , STRING_VECTOR , "locus-set group" );
     
     // Genotype/phenotype inputs
@@ -635,6 +636,7 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     reg( "yates" , NONE , "use Yates' test for single-site association" );
     
     reg( "dump-null-matrix" , NONE , "output (null) gene-based statistics in matrix form" );
+    reg( "carriers" , NONE , "output who carriers of ALT alleles are in .assoc.det" );
     reg( "perm" , INT, "number of permutations");
     reg( "aperm" , INT_VECTOR , "adaptive perm min, max");
     reg( "seed" , FLOAT , "seed for RNG" ); 

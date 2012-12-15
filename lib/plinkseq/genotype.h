@@ -77,8 +77,8 @@ class Genotype {
   static std::string soft_call_label;
   
   MetaInformation<GenMeta> meta;
-
   
+ 
   Genotype( ) 
     { 
       set_null();

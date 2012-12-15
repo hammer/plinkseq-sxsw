@@ -1361,9 +1361,57 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
 	}
     }
   
+  
+  //
+  // 3) variant-set allele-specific filtering
+  //
+  
+  if ( mask && mask->apply_vset_allelemap() )
+    {
+
+      bool change = false;      
+      std::vector<std::string> ptr = mask->fetch_vset_allelemap( index() , &change );
+      
+      if ( change && ptr.size() > 0 )
+	{
+	  // need to go through each genotype and set to missing
+	  // only retain the following ALTERNATE alleles
+	  
+	  // likely a slow implementation here...
+	  
+	  // TODO: check this hasn't already been done
+	  parse_alleles();
+	  
+	  std::set<int> as;
+	  for (int i=0;i<ptr.size();i++) 
+	    {
+
+	      // only check ALT alleles, so 1+
+	      for (int a=1; a<alleles.size(); a++) 
+		if ( alleles[a].name() == ptr[i] ) 
+		  {
+		    //std::cout << "watching out for " << alleles[a].name() << " " << a << "\n"; 
+		    as.insert( a ); 
+		  }
+	    }
+		 
+		 for ( unsigned int i = 0 ; i < n_var ; i++ )
+	    {
+	      
+	      // TODO: HARD-CODED : change to reference (i.e. not missing currently)
+	      uint8_t a1 = target->calls.genotype(i).acode1();
+	      uint8_t a2 = target->calls.genotype(i).acode2();
+	      
+	      // nonrefernce, but not on list: set to reference
+	      if ( a1 != 0 && as.find( a1 ) == as.end() ) { target->calls.genotype(i).acode1(0); }
+	      if ( a2 != 0 && as.find( a2 ) == as.end() ) { target->calls.genotype(i).acode2(0); }
+
+	    }
+	}
+    }
 
   
-  // 3) mask 'assume-ref'.  Assume missing genotypes (or those made
+  // 4) mask 'assume-ref'.  Assume missing genotypes (or those made
   // missing by the above GENO filters) are obligatorarily homozygous
   // for the reference allele; also populate PL fields to indicate
   // this.

@@ -245,13 +245,13 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
   //
   
   // INCLUDES
-  //       var, loc, seg, locset, segset, reg
+  //       var, loc, seg, locset, segset, reg, ereg
 
   // REQUIRES
-  //       var, loc, set, reg, file
+  //       var, loc, set, reg, ereg, file
   
   // EXCLUDES
-  //       var, loc, reg, file
+  //       var, loc, reg, ereg, file
 
   // APPENDS 
   //       var, loc, ref
@@ -429,7 +429,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
         
     if ( mask.reg() ) 
       {
-
+	
 	if ( multiple_queries ) 
 	  query += " UNION ALL ";
 	
@@ -439,15 +439,40 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
 	
 	query += " FROM variants AS v ";
 	
-	if ( mask.reg() )
-	  {      
-	    query += 
-	      " INNER JOIN tmp.regin AS x "
-	      "     ON v.chr == x.chr "
-	      "    AND v.bp1 BETWEEN x.bp1 AND x.bp2 ";
-	  }
-		
+	query += 
+	  " INNER JOIN tmp.regin AS x "
+	  "     ON v.chr == x.chr "
+	  "    AND v.bp1 BETWEEN x.bp1 AND x.bp2 ";
 
+	// Requires/excludes performed here
+	
+	add_requires_excludes( query , mask );
+
+      }
+
+
+    //
+    // Specific exact-matcg regions
+    //
+
+    if ( mask.ereg() ) 
+      {
+	
+	if ( multiple_queries ) 
+	  query += " UNION ALL ";
+	
+	multiple_queries = true; 
+	
+	query += "SELECT v.var_id, v.file_id, v.name, v.chr, v.bp1 , v.bp2, v.offset , 0 , NULL , NULL  "; 
+	
+	query += " FROM variants AS v ";
+	
+	query += 
+	  " INNER JOIN tmp.eregin AS x "
+	  "     ON v.chr == x.chr "
+	  "    AND v.bp1 == x.bp1 "
+	  "    AND v.bp2 == x.bp2 ";
+      		
 	// Requires/excludes performed here
 	
 	add_requires_excludes( query , mask );
@@ -487,7 +512,7 @@ IterationReport VarDBase::generic_iterate( void (*f)(Variant&, void *) ,
     // If no includes, implies all variants 
     //
 
-    if ( ! ( mask.var() || mask.reg() || mask.loc() || mask.id() || mask.loc_set() || mask.var_set() ) ) 
+    if ( ! ( mask.var() || mask.reg() || mask.ereg() || mask.loc() || mask.id() || mask.loc_set() || mask.var_set() ) ) 
       {
 	
 	query += "SELECT v.var_id, v.file_id, v.name, v.chr, v.bp1 , v.bp2, v.offset, 0 , NULL , NULL "; 
@@ -1561,11 +1586,11 @@ void VarDBase::build_temporary_db( Mask & mask )
     }
   
       
+
   //
   // Any user-specified regions? 
   //
   
-      
   // Either inclusion (implicit exclusion)...
       
   if ( mask.reg() )
@@ -1658,6 +1683,106 @@ void VarDBase::build_temporary_db( Mask & mask )
       
     }
   
+
+
+  //
+  // Any user-specified exact-match regions? (ereg)
+  //
+  
+  // Either inclusion (implicit exclusion)...
+      
+  if ( mask.ereg() )
+    {
+      
+      //
+      // Region-includes
+      //
+      
+      sql.query(" CREATE TABLE tmp.eregin "
+		" ( chr INTEGER, bp1 INTEGER, bp2 INTEGER ); " );
+      
+      stmt_tmp_insert = 
+	sql.prepare( "INSERT INTO tmp.eregin(chr,bp1,bp2) "
+		     " values ( :chr, :bp1, :bp2 ) ; " );
+      
+      const std::set<Region> & rset = mask.included_ereg();
+      std::set<Region>::iterator r = rset.begin();
+      while ( r != rset.end() )
+	{
+	  sql.bind_int( stmt_tmp_insert , ":chr" , r->start.chromosome() );
+	  sql.bind_int( stmt_tmp_insert , ":bp1", r->start.position() );
+	  sql.bind_int( stmt_tmp_insert , ":bp2" , r->stop.position() );
+	  sql.step( stmt_tmp_insert );
+	  sql.reset( stmt_tmp_insert );
+	  ++r;
+	}
+      
+      sql.finalise( stmt_tmp_insert );
+	  
+    }
+  
+
+  //
+  // Region-requires
+  //
+  
+  if ( mask.rereg() )
+    {
+      
+      sql.query(" CREATE TABLE tmp.eregreq "
+		" ( chr INTEGER, bp1 INTEGER, bp2 INTEGER ); " );
+      
+      stmt_tmp_insert = 
+	sql.prepare( "INSERT INTO tmp.eregreq(chr,bp1,bp2) "
+		     " values ( :chr, :bp1, :bp2 ) ; " );
+      
+      const std::set<Region> & rset = mask.required_ereg();
+      std::set<Region>::iterator r = rset.begin();
+      while ( r != rset.end() )
+	{
+	  sql.bind_int( stmt_tmp_insert , ":chr" , r->start.chromosome() );
+	  sql.bind_int( stmt_tmp_insert , ":bp1", r->start.position() );
+	  sql.bind_int( stmt_tmp_insert , ":bp2" , r->stop.position() );
+	  sql.step( stmt_tmp_insert );
+	  sql.reset( stmt_tmp_insert );
+	  ++r;
+	}
+      sql.finalise( stmt_tmp_insert );
+      
+    }
+  
+  
+  //
+  // Region-excludes
+  //
+  
+  if ( mask.xereg() )
+    {
+      
+      sql.query(" CREATE TABLE tmp.eregex "
+		" ( chr INTEGER, bp1 INTEGER, bp2 INTEGER ); " );
+      
+      stmt_tmp_insert = 
+	sql.prepare( "INSERT INTO tmp.eregex(chr,bp1,bp2) "
+		     " values ( :chr, :bp1, :bp2 ) ; " );
+      
+      const std::set<Region> & rset = mask.excluded_ereg();
+      std::set<Region>::iterator r = rset.begin();
+      while ( r != rset.end() )
+	{
+	  sql.bind_int( stmt_tmp_insert , ":chr" , r->start.chromosome() );
+	  sql.bind_int( stmt_tmp_insert , ":bp1", r->start.position() );
+	  sql.bind_int( stmt_tmp_insert , ":bp2" , r->stop.position() );
+	  sql.step( stmt_tmp_insert );
+	  sql.reset( stmt_tmp_insert );
+	  ++r;
+	}
+      sql.finalise( stmt_tmp_insert );
+      
+    }
+  
+
+
 
   //
   // Variant ID based includes/requires/excludes
@@ -1824,6 +1949,7 @@ void VarDBase::build_temporary_db( Mask & mask )
       sql.query("CREATE TABLE tmp.require_var  ( var_id INTEGER PRIMARY KEY );");
       sql.query("CREATE TABLE tmp.require_file ( var_id INTEGER PRIMARY KEY );");
       sql.query("CREATE TABLE tmp.require_reg  ( var_id INTEGER PRIMARY KEY );");
+      sql.query("CREATE TABLE tmp.require_ereg ( var_id INTEGER PRIMARY KEY );");
       sql.query("CREATE TABLE tmp.require_id   ( var_id INTEGER PRIMARY KEY );");
       
       int combines = 0;
@@ -1870,13 +1996,26 @@ void VarDBase::build_temporary_db( Mask & mask )
 	  
 	}
       
+      if ( mask.rereg() )
+	{
+	  
+	  sql.query( " INSERT OR IGNORE INTO tmp.require_ereg (var_id) "
+		     "  SELECT v.var_id FROM variants AS v INNER JOIN tmp.eregreq AS zreg "
+		     "     ON v.chr == zreg.chr "
+		     "    AND v.bp1 == zreg.bp1 "
+		     "    AND v.bp2 == zreg.bp2 ;");		
+	  
+	  ++combines;
+	  if ( combines == 1 ) first = 4;
+	  
+	}
       
       if ( mask.rid() )
 	{	  
 	  sql.query( " INSERT OR IGNORE INTO tmp.require_id (var_id) "
 		     "  SELECT v.var_id FROM variants AS v INNER JOIN tmp.vidreq AS z ON v.name == z.name ;" );	  
 	  ++combines;
-	  if ( combines == 1 ) first = 4;
+	  if ( combines == 1 ) first = 5;
 	  
 	}
 
@@ -1885,7 +2024,7 @@ void VarDBase::build_temporary_db( Mask & mask )
       // can be done more efficiently in the main SELECT (i.e. and
       // then remove all file-specific filters from this part).  Have
       // a feeling it needs to stay here but can't recall why right
-      // now.
+      // now....
       
       // TODO: remind oneself how tmp_reg() is meant to work
       
@@ -1896,7 +2035,7 @@ void VarDBase::build_temporary_db( Mask & mask )
 		     " WHERE v.file_id IN ( " + mask.files_include_string() + " ) ; ") ;
 	  
 	  ++combines;
-	  if ( combines == 1 ) first = 5;
+	  if ( combines == 1 ) first = 6;
 	  
 	}
       
@@ -1917,8 +2056,11 @@ void VarDBase::build_temporary_db( Mask & mask )
 		       " SELECT var_id FROM tmp.require_reg; " );
 	  else if ( first == 4 ) 
 	    sql.query( " INSERT OR IGNORE INTO tmp.require (var_id) "
-		       " SELECT var_id FROM tmp.require_id; " );	  
+		       " SELECT var_id FROM tmp.require_ereg; " );
 	  else if ( first == 5 ) 
+	    sql.query( " INSERT OR IGNORE INTO tmp.require (var_id) "
+		       " SELECT var_id FROM tmp.require_id; " );	  
+	  else if ( first == 6 ) 
 	    sql.query( " INSERT OR IGNORE INTO tmp.require (var_id) "
 		       " SELECT var_id FROM tmp.require_file; " );
 	}
@@ -1928,13 +2070,15 @@ void VarDBase::build_temporary_db( Mask & mask )
 	  if ( first == 1 )      q+= " SELECT f.var_id FROM tmp.require_loc   AS f ";
 	  else if ( first == 2 ) q+= " SELECT f.var_id FROM tmp.require_var   AS f ";
 	  else if ( first == 3 ) q+= " SELECT f.var_id FROM tmp.require_reg   AS f ";
-	  else if ( first == 4 ) q+= " SELECT f.var_id FROM tmp.require_id    AS f ";
-	  else if ( first == 5 ) q+= " SELECT f.var_id FROM tmp.require_file  AS f ";
+	  else if ( first == 4 ) q+= " SELECT f.var_id FROM tmp.require_ereg  AS f ";
+	  else if ( first == 5 ) q+= " SELECT f.var_id FROM tmp.require_id    AS f ";
+	  else if ( first == 6 ) q+= " SELECT f.var_id FROM tmp.require_file  AS f ";
 	  
 	  if ( mask.rvar() && first < 2 ) q += " INNER JOIN tmp.require_var ";
 	  if ( mask.rreg() && first < 3 ) q += " INNER JOIN tmp.require_reg ";
-	  if ( mask.rid() && first < 4 )  q += " INNER JOIN tmp.require_id ";
-	  if ( mask.files() && first < 5 ) q += " INNER JOIN tmp.require_file ";
+	  if ( mask.rereg() && first < 4 ) q += " INNER JOIN tmp.require_ereg ";
+	  if ( mask.rid() && first < 5 )  q += " INNER JOIN tmp.require_id ";
+	  if ( mask.files() && first < 6 ) q += " INNER JOIN tmp.require_file ";
 	  
 	  q += " USING ( var_id ) ; ";
 	  
@@ -1979,6 +2123,14 @@ void VarDBase::build_temporary_db( Mask & mask )
 		     "    AND v.bp1 BETWEEN zreg.bp1 AND zreg.bp2 ;");		
 	}
       
+      if ( mask.xereg() )
+	{
+	  sql.query( " INSERT OR IGNORE INTO tmp.exclude (var_id) "
+		     "  SELECT v.var_id FROM variants AS v INNER JOIN tmp.eregex AS zreg "
+		     "     ON v.chr == zreg.chr "
+		     "    AND v.bp1 == zreg.bp1 "
+		     "    AND v.bp2 == zreg.bp2 ;");		
+	}
       
       if ( mask.xfiles() ) 
 	{

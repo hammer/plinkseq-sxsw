@@ -722,8 +722,8 @@ bool Pseq::VarDB::add_to_varset( const std::string & filename  )
 	      // if a VARDB is attached, only add this variant to the
 	      // set if it actually exists in 1 or more files
 	      
-	      // add SNP (group-name, variant)
-	      g.vardb.add_var_to_set( h[1] , v );
+	      // add SNP (group-name, variant, T means add allele too)
+	      g.vardb.add_var_to_set( h[1] , v , true );
 	      
 	    } // end add-region
 	} // end add-snp

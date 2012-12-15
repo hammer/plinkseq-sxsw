@@ -24,20 +24,57 @@ void read_sets( const std::string & sets_filename ,
 		std::vector<std::vector<int> > & ); 
 
 
+struct elem_t 
+{
+  elem_t( double x , const std::string & n ) : name(n) , statistic(x) { } 
+  std::string name;
+  double statistic;
+  bool operator< ( const elem_t & rhs ) const
+  {
+    // sort in reverse order
+    if ( statistic > rhs.statistic ) return true;
+    if ( statistic < rhs.statistic ) return false;
+    return name < rhs.name;
+  }
+};
+
+struct anon_elem_t 
+{
+  // sorted, but kept unique too
+  anon_elem_t( double x , int p ) : pos(p) , statistic(x) { } 
+  int pos;
+  double statistic;
+  bool operator< ( const anon_elem_t & rhs ) const
+  {
+    // sort in reverse order
+    if ( statistic > rhs.statistic ) return true;
+    if ( statistic < rhs.statistic ) return false;
+    return pos < rhs.pos;
+  }
+};
+
+
 int main( int argc , char ** argv )
 {
 
   
-  if ( argc != 5 ) 
+  if ( argc != 5 && argc != 6 ) 
     {
-      std::cerr << "usage:   ./smp gene.list equiv.list sets.list data.mat\n";
+      std::cerr << "usage:   ./smp {-m} gene.list equiv.list sets.list data.mat\n";
       exit(1);
     }
 
-  std::string genes_filename = argv[1];
-  std::string equiv_filename = argv[2];
-  std::string sets_filename  = argv[3];
-  std::string data_filename  = argv[4];
+  int off = argc == 6 ? 1 : 0;
+  bool calc_max = false;
+  if ( off ) 
+    {
+      std::string t = argv[1];
+      if ( t == "-m" ) calc_max = true;
+    }
+  std::string genes_filename = argv[1+off];
+  std::string equiv_filename = argv[2+off];
+  std::string sets_filename  = argv[3+off];
+  std::string data_filename  = argv[4+off];
 
   
 
@@ -55,7 +92,9 @@ int main( int argc , char ** argv )
   
   // read first row of (n+1)T original tests (where n is # of test types (i.e. BURDEN, UNIQ, etc)
 
-  
+  // Also: for each set, get the ranked ordering and get p-value cut-offs therein per gene
+
+
   //  Notation: 
   
   //    E_i  is element (i.e. typically genic score element i)
@@ -110,6 +149,7 @@ int main( int argc , char ** argv )
   //
   // data
   //
+
   std::ifstream NMAT( data_filename.c_str() );
   if ( ! NMAT.good() ) 
     {
@@ -171,9 +211,14 @@ int main( int argc , char ** argv )
       std::string elem;
 
       NMAT >> elem;
-
+      
       if ( elem == "" ) continue;
- 
+      
+      // altA, altU, nA, nU
+      // (ignore for now)
+      std::string alta, altu, na, nu;
+      NMAT >> alta >> altu >> na >> nu;
+
       // do we want this gene?
       if ( gene_annot.size() > 0 ) 
 	{
@@ -327,51 +372,62 @@ int main( int argc , char ** argv )
 
       for (int j=0;j<ntest_types;j++)
 	{
-	  
+
+	  // basic statistic;
 	  std::vector<double> ns( nrep + 1 , 0 );
+
+	  // count number of actual independent elements that will be added:
+	  
+	  std::set<elem_t> indep_elem;
+	  std::vector<std::set<anon_elem_t> > ordered ( nrep );
 	  
 	  //
 	  // Sum over independent set elements
 	  //
-
+	  
 	  for (int e=0;e<elems.size();e++)
 	    {
 	     
 	      bool in_equiv_set = ineq.find( elems[e] ) != ineq.end() ;
-	      
+
 	      if ( ! in_equiv_set )
 		{
-
+		  
 		  // for independent elements, just add own value; 
 		  // orig, followed by nulls 
 		  
 		  for (int r=0;r<=nrep;r++)
 		    ns[r] += E[j](r,elems[e]);
-		}
+
+		  if ( calc_max )
+		    {
+		      // track original statistics for this set, this will order by original statistic also
+		      indep_elem.insert( elem_t( E[j](0,elems[e]) , slot2gene[elems[e]] ) );
+		      
+		      // track
+		      for (int r=1;r<=nrep;r++)
+			{
+			  int pos = ordered[r-1].size();
+			  ordered[r-1].insert( anon_elem_t( E[j](r,elems[e]) , pos ) );
+			}		  
+		    }
+		}	      
 	      else
 		{
 		  // otherwise, if in an equivalence set, add only the max from the set;
 		  // considering only elements that are actually in the set
 		  
-		  std::vector<int> & t = eq[elems[e]];
+		  std::vector<int> & t = eq[ elems[e] ];
 		  std::vector<int> x;
 		  for (int ee=0;ee<t.size();ee++)
 		    {
 		      if ( inset.find( t[ee] ) != inset.end() ) 
 			{
-			  
-			  // std::cerr << "for " << set_names[ i ] << " "			  
-			  // 	    << "dupe " << t[ee] << " " << slot2gene[ t[ee] ]  << "\t";
-
-			  //std::vector<int> & tmp = eq[ t[ee] ];
-			  //for (int y=0;y<tmp.size();y++) std::cerr << slot2gene[ tmp[y] ] << "|";
-			  
 			  x.push_back( t[ee] );
 			}		      
-		      // std::cerr << "\n";
 		    }
 
-
+		  
 		  for (int r=0;r<=nrep;r++)
 		    {
 
@@ -382,7 +438,7 @@ int main( int argc , char ** argv )
 		      
 		      // if ( r == 0 ) 
 		      // 	std::cerr << "considering " << set_names[i] << " " << slot2gene[ mxi ] << " " << mx << "\n";
-
+		      
 		      // so, see if any other equiv, in-set element scores higher.
 		      // for ties, always take the lower element number; that way
 		      // we will avoid double-counting equivalently-scored equivalent elements
@@ -391,55 +447,54 @@ int main( int argc , char ** argv )
 
 		      for (int f=0;f<x.size();f++)
 			{
+			  
 			  // is score bigger (or tied, but lower-indexed element)?
+			  
 			  if ( E[j](r,x[f]) > mx ) 
 			    { 
 			      add_this = false; 
-			      
-			      // if ( r == 0 ) 
-			      // 	std::cerr << " no, would prefer " << slot2gene[ x[f] ] << " " << E[j](r,x[f]) << "\n";
-			      
 			      break; 
 			    }
 
 			  if ( E[j](r,x[f]) == mx && x[f] < mxi ) 
 			    { 
 			      add_this = false; 
-			      
-			      // if ( r == 0 ) 
-			      // 	std::cerr << " no, would prefer " << slot2gene[ x[f] ] << " " << E[j](r,x[f]) << "\n";
-			      
 			      break; 
 			    }
 			}
 		      
 		      if ( add_this )
 			{
+			  ns[ r ] += mx;
 
-			  // if ( r == 0 ) 
-			  //   std::cerr << "  ADDED!";
-
-			  ns[r] += mx;
+			  // track null replicates only here
+			  if ( calc_max )
+			    {
+			      if ( r ) 
+				{
+				  int pos = ordered[r-1].size();
+				  ordered[r-1].insert( anon_elem_t( mx , pos ) );
+				}
+			      else indep_elem.insert( elem_t( mx , slot2gene[ mxi ] ) );  // and originals w/ labels
+			    }
 			}
-
-		      // if ( r == 0 ) 
-		      // 	std::cerr << "\n";
-		    }		  
+		      
+		    }	  
 		  
 		}
 	    }
 
-
+	  
 	  //
 	  // Calculate empirical p-value
 	  //
-
+	  
 	  int pv = 1;
 	  const double & s = ns[0];
 	  for (int r=1; r <= nrep; r++ ) 
 	    if ( ns[r] >= s ) ++pv;
 	  
-
+	  
 	  //
 	  // Output
 	  //
@@ -452,6 +507,67 @@ int main( int argc , char ** argv )
 		    << "\n";
 	  
 	  
+	  
+	  //
+	  // Set-test version 2: ordered ranked cumulative sums
+	  //
+	  
+	  if ( calc_max )
+	    {
+
+	      // For original, determine order of results (Num Indep Elements)
+	      
+	      int nie = indep_elem.size();
+	      std::vector<double> origmx( nie , 0 );
+	      std::set<elem_t>::iterator ii = indep_elem.begin();
+	      int ix = 0;
+	      while ( ii != indep_elem.end() ) 
+		{
+		  // make cumulative sum
+		  if ( ix ) origmx[ ix ] = origmx[ ix-1] + ii->statistic ;
+		  else origmx[ ix ] = ii->statistic ;
+		  ++ix;
+		  ++ii;
+		}
+	      
+	      
+	      // make ordered[] sets cumulative
+	      std::vector<int> pvalmx( nie , 0 );
+	      for (int r=1;r<nrep;r++)
+		{
+		  double s = 0;
+		  int ix = 0;
+		  std::set<anon_elem_t>::iterator ii = ordered[r-1].begin();
+		  while ( ii != ordered[r-1].end() )
+		    {
+		      s += ii->statistic;
+		      //std::cout << " ix pvcal = " << r << "\t" << ix << "\t" << ordered[r-1].size() << " " << indep_elem.size() << "\t" << origmx[ix] << "\t" << s << "\n";
+		  if ( s >= origmx[ ix ] ) pvalmx[ ix ]++;
+		  ++ix;
+		  ++ii;
+		    }
+		}
+	      
+	      
+	      // print output
+	      ii = indep_elem.begin();	  
+	      for (int m=1;m<=nie;m++)
+		{
+		  //std::cout << "origmx = " << origmx[m-1] << " " << ns[0] << "\n";
+		  
+		  std::cout << "MX\t" 
+			    << test_names[j] << "\t"
+			    << (double)(pvalmx[m-1]+1) / (double)(nrep+1) << "\t" 
+			    << m << "\t"
+			    << (double)origmx[m-1] / (double)ns[0]  << "\t"
+			    << ii->name << "\t"
+			    << set_names[ i ] 		
+			    << "\n";
+		  ++ii;
+		}
+	    }
+
+
 	  
 	} // next test
       
@@ -678,7 +794,7 @@ int main( int argc , char ** argv )
 	      if ( gene2sets[e].size() == 0 ) std::cout << "\t.";
 	      else for (int s=0;s<gene2sets[e].size();s++)		
 		     std::cout << ( s > 0 ? "|" : "\t" ) << set_names[ gene2sets[e][s] ] ;
-			  
+	      
 	      std::cout << "\n";
 	      
 	      

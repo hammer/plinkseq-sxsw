@@ -157,6 +157,7 @@ class Mask {
   const std::set<int> & included_var() { return in_varset; }
   const std::set<int> & included_varset() { return in_varset_set; }
   const std::set<Region> & included_reg() const { return in_regions; }
+  const std::set<Region> & included_ereg() const { return in_eregions; }
   const std::set<std::string> & included_id() const { return in_ids; }
   const std::set<int> & included_ref() const { return in_refset; }
 
@@ -166,6 +167,7 @@ class Mask {
   const std::set<int> & required_var() const { return req_varset; }
   const std::set<int> & required_varset() const { return req_varset_set; }
   const std::set<Region> & required_reg() const { return req_regions; }
+  const std::set<Region> & required_ereg() const { return req_eregions; }
   const std::set<std::string> & required_id() const { return req_ids; }
   const std::set<int> & required_ref() const { return req_refset; }
 
@@ -174,6 +176,7 @@ class Mask {
   const std::set<int> & excluded_var() const { return ex_varset; }
   const std::set<int> & excluded_varset() const { return ex_varset_set; }
   const std::set<Region> & excluded_reg() const { return ex_regions; }
+  const std::set<Region> & excluded_ereg() const { return ex_eregions; }
   const std::set<std::string> & excluded_id() const { return ex_ids; }
   const std::set<int> & excluded_ref() const { return ex_refset; }
   
@@ -184,8 +187,26 @@ class Mask {
   const std::set<int> appended_loc_set() const { return app_locset_set; }
   
   
-  // Sets within locdb, or segdb
+  //
+  // Allele-specific variant-set masks
+  //
   
+  bool apply_vset_allelemap() { return using_allelemap; } 
+  
+  bool attach_vset_allelemap();
+  
+  std::vector<std::string> fetch_vset_allelemap( const uint64_t & idx , bool * okay )
+    {
+      std::map<uint64_t,std::vector<std::string> >::iterator ii = allelemap.find( idx );
+      if ( ii == allelemap.end() ) { *okay = false; std::vector<std::string> dummy; return dummy; }
+      *okay = true; return ii->second;
+    }
+
+  
+  //
+  // Sets within locdb, or segdb
+  //
+
   int include_loc_set( int x );
   int include_loc_set( std::string n , std::string p );
   std::set<int> & included_loc_set() { return in_locset_set; }
@@ -244,6 +265,16 @@ class Mask {
   void include_reg( const std::vector<std::string> & r );
   void require_reg( const Region & r ) {  req_regions.insert(r); }
   void exclude_reg( const Region & r ) {  ex_regions.insert(r); }
+
+  //
+  // Simular, but exact match (not overlap) regions (eregions)
+  //
+
+  void include_ereg( const Region & r ) {  in_eregions.insert(r); }
+  void include_ereg( const std::vector<std::string> & r );
+  void require_ereg( const Region & r ) {  req_eregions.insert(r); }
+  void exclude_ereg( const Region & r ) {  ex_eregions.insert(r); }
+
 
   //
   // Variant IDs
@@ -490,7 +521,7 @@ class Mask {
       
       if ( group_loc() ) 
 	{
-	  if ( in_varset.size() || in_regions.size() || in_locset_set.size() || in_varset_set.size() ) 
+	  if ( in_varset.size() || in_eregions.size() || in_regions.size() || in_locset_set.size() || in_varset_set.size() ) 
 	    Helper::halt( "you cannot specify other includes in the mask with loc.group" );
 
 	  in_locset.clear();
@@ -498,7 +529,7 @@ class Mask {
 	}
       else if ( group_var() ) 
 	{
-	  if ( in_locset.size() || in_regions.size() || in_locset_set.size() || in_varset_set.size() ) 
+	  if ( in_locset.size() || in_eregions.size() || in_regions.size() || in_locset_set.size() || in_varset_set.size() ) 
 	    Helper::halt( "you cannot specify other includes in the mask with var.group" );
 
 	    in_varset.clear();
@@ -506,12 +537,12 @@ class Mask {
 	}
       else if ( group_reg() )
 	{
-	  if ( in_locset.size() || in_varset.size() || in_locset_set.size() || in_varset_set.size() ) 
+	  if ( in_locset.size() || in_eregions.size() || in_varset.size() || in_locset_set.size() || in_varset_set.size() ) 
 	    Helper::halt( "you cannot specify other includes in the mask with reg.group" );
 	}
       else if ( group_loc_set() )
 	{
-	  if ( in_locset.size() || in_varset.size() || in_regions.size() || in_varset_set.size() ) 
+	  if ( in_locset.size() || in_varset.size() || in_eregions.size() || in_regions.size() || in_varset_set.size() ) 
 	    Helper::halt( "you cannot specify other includes in the mask with locset.group" );
 
 	  in_locset_set.clear();
@@ -520,7 +551,7 @@ class Mask {
       else if ( group_var_set() )
 	{
 
-	  if ( in_locset.size() || in_varset.size() || in_regions.size() || in_locset_set.size() ) 
+	  if ( in_locset.size() || in_varset.size() || in_eregions.size() || in_regions.size() || in_locset_set.size() ) 
 	    Helper::halt( "you cannot specify other includes in the mask with varset.group" );
 
 	  in_varset_set.clear();
@@ -1215,6 +1246,12 @@ class Mask {
       req_regions.clear();
       ex_regions.clear();
 
+      // User-specified exact-match regions
+
+      in_eregions.clear();
+      req_eregions.clear();
+      ex_eregions.clear();
+
       // Variant IDs
 
       in_ids.clear();
@@ -1275,6 +1312,7 @@ class Mask {
   bool seg() const { return in_segset.size() > 0 ; } 
   bool var() const { return in_varset.size() > 0 ; }
   bool reg() const { return in_regions.size() > 0 ; }  
+  bool ereg() const { return in_eregions.size() > 0 ; }  
   bool id() const  { return in_ids.size() > 0; }
   bool ref() const { return in_refset.size() > 0; }
 
@@ -1285,6 +1323,7 @@ class Mask {
   bool rseg() const { return req_segset.size() > 0; }
   bool rvar() const { return req_varset.size() > 0; }
   bool rreg() const { return req_regions.size() > 0; }
+  bool rereg() const { return req_eregions.size() > 0; }
   bool rid() const  { return req_ids.size() > 0; }
   bool rref() const { return req_refset.size() > 0; }
   
@@ -1292,6 +1331,7 @@ class Mask {
   bool xseg() const { return ex_segset.size() > 0; }
   bool xvar() const { return ex_varset.size() > 0; }
   bool xreg() const { return ex_regions.size() > 0; }
+  bool xereg() const { return ex_eregions.size() > 0; }
   bool xid() const { return ex_ids.size() > 0 ; } 
   bool xref() const { return ex_refset.size() > 0; }
   
@@ -1299,6 +1339,7 @@ class Mask {
     return req_locset.size() > 0
       || req_varset.size() > 0
       || req_regions.size() > 0
+      || req_eregions.size() > 0
       || req_ids.size() > 0;
   }
   
@@ -1306,6 +1347,7 @@ class Mask {
     return ex_locset.size() > 0 
       || ex_varset.size() > 0 
       || ex_regions.size() > 0 
+      || ex_eregions.size() > 0 
       || ex_ids.size() > 0;  
   }
   
@@ -1348,9 +1390,13 @@ class Mask {
 	|| loc_set_append() 
 	|| requires() 
 	|| excludes() 
-	|| reg() 
+	|| reg()
+	|| rreg()
+	|| ereg()
+	|| rereg()
 	|| id()
 	|| xreg() 
+	|| xereg() 
 	|| files() 
 	|| xfiles();
     }
@@ -1378,7 +1424,9 @@ class Mask {
   bool var_any() const { return var() || var_append() || rvar() || xvar() || var_set(); }
   bool ref_any() const { return ref_append(); }
   bool reg_any() const { return reg() || rreg() || xreg(); } 
+  bool ereg_any() const { return ereg() || rereg() || xereg(); } 
 
+  // 'force' masks not yet implemented
   bool reg_force() const { return using_force_vlist; } 
   void reg_force(const Region & r ) { using_force_vlist = true; force_vlist.insert(r); } 
   bool forced( int,int,int,int,int,int,Region * ) const ;
@@ -1386,7 +1434,6 @@ class Mask {
   bool loc_set_any() const { return loc_set(); }
   bool var_set_any() const { return var_set(); }
   
-
   std::set<std::string> subset_loc(int j) const
     {       
       std::map<int, std::set<std::string> >::const_iterator i = subset_locset.find(j);
@@ -1605,6 +1652,7 @@ class Mask {
 	req_segs.clear();
 	ex_segs.clear();
 	assume_missing_is_ref = false;
+	using_allelemap = false;
 	ref_allelic_match = false;
 	soft_ref = false;
 	genotype_model = GENOTYPE_MODEL_ALLELIC;
@@ -1822,6 +1870,15 @@ class Mask {
     std::set<Region> ex_regions;
 
     //
+    // Regions: exact matches
+    //
+
+    std::set<Region> in_eregions;
+    std::set<Region> req_eregions;
+    std::set<Region> ex_eregions;
+
+
+    //
     // Force variants to be output
     //
     
@@ -1906,6 +1963,15 @@ class Mask {
     
     bool ref_allelic_match;
     
+
+    //
+    // VARSET allele matching
+    //
+
+    std::map<uint64_t,std::vector<std::string> > allelemap;
+    bool using_allelemap;    
+    
+
     //
     // Bialleic SNP status
     //

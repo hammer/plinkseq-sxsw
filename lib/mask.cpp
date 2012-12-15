@@ -96,6 +96,9 @@ std::set<mask_command_t> populate_known_commands()
   mask_add( s , g , c++ , gl , "reg.ex" , "str-list" , "require regions(s)" ); 
   mask_add( s , g , c++ , gl , "reg.req" , "str-list" , "exclude regions(s)" ); 
   mask_add( s , g , c++ , gl , "reg.group" , "str-list" , "group variants by list of regions (not implemented)" ); 
+  mask_add( s , g , c++ , gl , "ereg" , "str-list" , "include exact region(s)" ); 
+  mask_add( s , g , c++ , gl , "ereg.ex" , "str-list" , "require exact regions(s)" ); 
+  mask_add( s , g , c++ , gl , "ereg.req" , "str-list" , "exclude exact regions(s)" ); 
   //  mask_add( s , g , c++ , gl , "reg.force" , "str-list" , "force output on variants, whether present or not" ); 
 
 
@@ -437,24 +440,14 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
   std::vector<std::string> keys = m.keys();
   
   for( int i=0; i<keys.size(); i++)
-  {	
-
+    {	
       if ( keys[i] != "" && known_commands.find( mask_command_t( keys[i] ) ) == known_commands.end() )
-      {
-	
-	// always bail here, i.e. for reg=chr1 syntax rather than --mask chr1
-	Helper::halt("Mask option '" + keys[i] + "' not recognised.");
-	
-	// If we can interpret this as a region, do so
-
-// 	bool okay = false;
-// 	Region r( keys[i] , okay );	  
-// 	if ( !okay ) Helper::halt("Mask option '" + keys[i] + "' not recognised.");
-// 	else keys[i] = "reg=" + keys[i];
-
-      }
-  }
-
+	{	
+	  // always bail here, i.e. for reg=chr1 syntax rather than --mask chr1
+	  Helper::halt("Mask option '" + keys[i] + "' not recognised.");	
+	}
+    }
+  
   
   if ( m.has_field( "v-include" ) )
     { 
@@ -502,19 +495,14 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
     }
   
 
+  // As a TEMPORARY measure: apply allele-specific var.req matching (i.e. currently
+  // ONLY for var.req, i.e. this is 'quick-fix' mode addition
+  if ( m.has_field( "var.req" ) ) attach_vset_allelemap();
 
-//   if ( m.has_field( "var.subset" ) ) 
-//     {
-//       std::vector<std::string> k = m.get_string( "var.subset" );
-//       for (int i=1; i<k.size(); i++) subset_var(k[0],k[i]);
-//     }
   
-//   if ( m.has_field( "var.skip" ) ) 
-//     {
-//       std::vector<std::string> k = m.get_string( "var.skip" );
-//       for (int i=1; i<k.size(); i++) skip_var(k[0],k[i]);
-//     }
-  
+  //
+  // LOCDB masks
+  //
   
   if ( m.has_field( "loc" ) ) 
     {
@@ -697,6 +685,8 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 	plog.warn( "incorrect argument for nfile=n{,m}" );       
     }
 
+  // regions
+  
   if ( m.has_field( "reg" ) ) 
     {
       std::vector<std::string> k = m.get_string( "reg" );
@@ -725,7 +715,39 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
 	}
     }
 
+
+  // exact-match regions
   
+  if ( m.has_field( "ereg" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "ereg" );
+      include_ereg( k );
+    }
+  
+  if ( m.has_field( "ereg.ex" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "ereg.ex" );
+      for (int i=0; i<k.size(); i++) 
+	{
+	  bool okay = false;
+	  Region r( k[i] , okay );
+	  if ( okay ) exclude_ereg( r );
+	}
+    }
+  
+  if ( m.has_field( "ereg.req" ) ) 
+    {
+      std::vector<std::string> k = m.get_string( "ereg.req" );
+      for (int i=0; i<k.size(); i++) 
+	{
+	  bool okay = false;
+	  Region r( k[i] , okay );
+	  if ( okay ) require_ereg( r );
+	}
+    }
+
+
+
   // Variant IDs
 
   if ( m.has_field( "id" ) ) 
@@ -1722,6 +1744,18 @@ void Mask::include_reg( const std::vector<std::string> & k )
       if ( okay ) include_reg( r );
       else 
 	Helper::halt( "problem with reg specification in mask" );
+    }
+}
+
+void Mask::include_ereg( const std::vector<std::string> & k )
+{
+  for (int i=0; i<k.size(); i++) 
+    {
+      bool okay = false;
+      Region r( k[i] , okay );
+      if ( okay ) include_ereg( r );
+      else 
+	Helper::halt( "problem with ereg specification in mask" );
     }
 }
 
@@ -5099,4 +5133,20 @@ void Mask::revise_hard_call( Genotype & g )
 
 }
      
- 
+
+//
+// Variant-sets (partially incorporated, we might want to revisit this particular implementation)
+//
+
+bool Mask::attach_vset_allelemap()
+{  
+  // currently just do this for var.req 
+  if ( ! vardb ) Helper::halt( "no VARDB attached to Mask" );
+  
+  allelemap = vardb->fetch_vset_allelemap( req_varset );  
+  
+  if ( allelemap.size() > 0 ) 
+    using_allelemap = true;
+
+  return using_allelemap;
+}

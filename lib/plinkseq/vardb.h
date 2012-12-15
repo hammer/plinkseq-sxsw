@@ -155,6 +155,8 @@ class VarDBase {
   void add_superset_description( const std::string & name , const std::string & desc );
   std::string get_set_description( const std::string & name );
   std::string get_superset_description( const std::string & name );
+
+  std::map<uint64_t,std::vector<std::string> > fetch_vset_allelemap( const std::set<int> & );
   
   //
   // Add/remove meta-information on variants (independent of VCF load)

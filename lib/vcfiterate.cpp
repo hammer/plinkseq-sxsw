@@ -112,8 +112,8 @@ IterationReport VarDBase::vcf_iterate( void (*f)(Variant&, void *) , void * data
   // We might not want to load the entire VCF into memory; & thus allow
   // the includes/excludes and filters to bring regions/tags into view
 
-  // Respect 'reg' and 'loc' from command line.
-  // But not loc.subset; loc.req, loc.ex, etc
+  // Respect 'reg', and 'loc' from command line.
+  // But not loc.subset; ereg, loc.req, loc.ex, etc
   
   std::set<Region> filter;
   std::string locinc = mask.loc_include_string();

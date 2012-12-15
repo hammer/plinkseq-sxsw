@@ -87,6 +87,7 @@ namespace Pseq
 	weight_tag = "";
 	fix_null_genotypes = true;
 	dump_stats_matrix = false;
+	dump_carriers = false;
 	show_info = false; 
 	show_midbp = false;
 	vanilla = true;
@@ -128,6 +129,7 @@ namespace Pseq
       bool show_info;
       bool show_midbp;
       bool dump_stats_matrix;
+      bool dump_carriers;
       bool weights;
       std::string weight_tag;
 
@@ -174,6 +176,8 @@ namespace Pseq
       
       std::map<int,std::set<int> > carriers; 
       
+      AuxGenic * paux; 
+
     };
     
 
@@ -185,8 +189,10 @@ namespace Pseq
 		  bool mhit , 
 		  bool site_burden  )
 	: vanilla(vanilla) , burden(burden) , 
-	  uniq(uniq) , mhit(mhit) , site_burden(false) 
+	uniq(uniq) , mhit(mhit) , site_burden(false) 
       { 
+	alta = altu = 0;
+	na = nu = 0;
       } 
       
       bool vanilla;
@@ -200,6 +206,11 @@ namespace Pseq
       double stat_uniq;
       double stat_mhit;
 
+      double alta;
+      double altu;
+      double na;
+      double nu;
+      
     };
 
 

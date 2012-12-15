@@ -1736,7 +1736,6 @@ int main(int argc, char ** argv)
     // Dump individual segments from a SEGDB
     //
 
-
     if ( command == "seg-view" )
       {
 
@@ -2333,8 +2332,10 @@ int main(int argc, char ** argv)
 	Out outputd( "assoc.det", "site-specific breakdown of included variants per gene" );
 	
 	Out * output2 = NULL;       
-	if( args.has( "tests", "two-hit") )
+	if ( args.has( "tests", "two-hit") )
 	  output2 = new Out( "twohit.vars" , "variants from two-hit test" );
+	
+	Out * outcarriers = args.has( "carriers" ) ? new Out( "assoc.carriers" , "ALT carriers for tests" ) : NULL ;
 	
 	Out * outmatrix = args.has( "dump-null-matrix" ) 
 	  ? new Out( "matrix" , "permuted null statistic matrix" ) 
@@ -2342,12 +2343,11 @@ int main(int argc, char ** argv)
 	
 	// if no perms specified, use adaptive permutation mode
 	Pseq::Assoc::set_assoc_test( m , args );
-
-	if( output2 != NULL )
-	  delete output2;
 	
+	if ( output2 ) delete output2;	
 	if ( outmatrix ) delete outmatrix;
-
+	if ( outcarriers ) delete outcarriers;
+	
 	Pseq::finished();
 	
       }
