@@ -374,9 +374,11 @@ bool LocDBase::init()
       sql.prepare("INSERT OR REPLACE INTO subloci ( loc_id, name, chr, bp1, bp2, strand, frame ) "
 		  " values ( :loc_id, :name, :chr, :bp1, :bp2 , :strand , :frame ) ; " );
     
-    
+    /* Makes sure the subloci come back in start-sorted order so that we can build
+     * up the transcripts assuming they are already ordered (as in annot.cpp):
+     */
     stmt_loc_subregion_lookup = 
-      sql.prepare("SELECT * FROM subloci WHERE loc_id == :loc_id ; ");
+      sql.prepare("SELECT * FROM subloci WHERE loc_id == :loc_id order by bp1 asc; ");
     
     stmt_loc_lookup_group_with_overlap = 
       sql.prepare("SELECT * FROM loci a , loci b, overlaps o  "
@@ -2391,6 +2393,10 @@ uint64_t LocDBase::alias_id( const std::string & g )
   return alias_group_table[ g ];
 }
 
+std::string LocDBase::alias_name( const uint64_t group_alias_id ) {
+	return alias_group_reverse_table[ group_alias_id ];
+}
+
 std::string LocDBase::alias( const std::string & query , uint64_t query_grp_id , uint64_t alias_grp_id )
 {
   return Helper::stringize( targetted_lookup_alias( query , query_grp_id , alias_grp_id ) );
@@ -3641,7 +3647,7 @@ bool LocDBase::check_GTF(const std::string & filename , bool use_geneid , bool a
 	  while ( kk != ordered.end() ) 
 	    {
 	      if ( jj->start.chromosome() == kk->start.chromosome() &&  jj->stop.position() >= kk->start.position()  ) 
-		plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\toverlapping_CDS_exons\n";
+		plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\toverlapping_CDS\n";
 	      else if ( jj->start.chromosome() != kk->start.chromosome() )
 		plog << transcriptName << "\t" << Helper::chrCode(transcriptChr) << "\tmapped_to_multiple_chromosomes\t" << Helper::chrCode( jj->start.chromosome() ) << " and " << Helper::chrCode( kk->start.chromosome() ) << "\n";
 	      else if ( kk->start.position() - jj->stop.position() + 1 > 1000000 ) 

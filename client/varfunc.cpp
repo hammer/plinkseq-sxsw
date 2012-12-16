@@ -4,6 +4,7 @@
 #include "genic.h"
 
 #include <algorithm>
+#include <sstream>
 
 extern GStore g;
 extern Pseq::Util::Options args;
@@ -388,6 +389,7 @@ struct AuxLookup
   bool append_seq;
   bool vardb;
   bool append_annot;
+  bool append_annot_worst_by_aliases;
   bool append_titv;
 
   ProtDBase protdb;
@@ -395,7 +397,7 @@ struct AuxLookup
   std::set<std::string> refs;
   std::set<std::string> refs_allelic;
   std::set<std::string> aliases;
-
+  std::set<std::string> worstByAliases;
 };
 
 
@@ -441,57 +443,59 @@ void f_lookup_annotator( Variant & var , void * p )
   
   if ( aux->append_annot ) 
     {
-
       bool exonic = Annotate::annotate( var );
-
-      std::string annot = var.meta.get1_string( PLINKSeq::ANNOT() );
 	  
       // detailed annotation vector, primary annotation
-  
       pout << var.coordinate() << "\t"
-	   << "func" << "\t"
-	   << var.meta.as_string( PLINKSeq::ANNOT_TYPE() , "," ) << "\n";
-      
+    		  << "func" << "\t"
+    		  << var.meta.as_string( PLINKSeq::ANNOT_TYPE() , "," ) << "\n";
+
       if( var.meta.as_string( PLINKSeq::ANNOT_DETAILS() , "," ).length() > 0  ){
-	pout << var.coordinate() << "\t"
-	     << "annot_details" << "\t"
-	     << var.meta.as_string( PLINKSeq::ANNOT_DETAILS() , "," ) << "\n";
+    	  pout << var.coordinate() << "\t"
+    			  << "annot_details" << "\t"
+    			  << var.meta.as_string( PLINKSeq::ANNOT_DETAILS() , "," ) << "\n";
       }
-      
+
       pout << var.coordinate() << "\t"
-	   << "transcript" << "\t"
-	   << var.meta.as_string( PLINKSeq::ANNOT_GENE() , "," ) << "\n";
-      
+    		  << "transcript" << "\t"
+    		  << var.meta.as_string( PLINKSeq::ANNOT_GENE() , "," ) << "\n";
+
       pout << var.coordinate() << "\t"
-	   << "genomic" << "\t"
-	   << var.meta.as_string( PLINKSeq::ANNOT_CHANGE() , "," ) << "\n";
-      
+    		  << "genomic" << "\t"
+    		  << var.meta.as_string( PLINKSeq::ANNOT_CHANGE() , "," ) << "\n";
+
       pout << var.coordinate() << "\t"
-	   << "codon" << "\t"
-	   << var.meta.as_string( PLINKSeq::ANNOT_CODON() , "," ) << "\n";
-      
+    		  << "codon" << "\t"
+    		  << var.meta.as_string( PLINKSeq::ANNOT_CODON() , "," ) << "\n";
+
       pout << var.coordinate() << "\t"
-	   << "protein" << "\t"
-	   << var.meta.as_string( PLINKSeq::ANNOT_PROTEIN() , "," ) << "\n";
-      
+    		  << "protein" << "\t"
+    		  << var.meta.as_string( PLINKSeq::ANNOT_PROTEIN() , "," ) << "\n";
+
       // worst-case consensus annotation
-      
       pout << var.coordinate() << "\t"
-	   << "worst" << "\t"
-	   << annot << "\n";
-      
+    		  << "worst" << "\t"
+    		  << var.meta.get1_string( PLINKSeq::ANNOT() ) << "\n";
+
+      if (aux->append_annot_worst_by_aliases) {
+    	  // Broken down by transcript alias:
+    	  pout << var.coordinate() << "\t"
+    			  << "worst_by_alias" << "\t"
+    			  << (var.meta.has_field(PLINKSeq::ANNOT_ALIAS_GROUP_WORST()) ? var.meta.as_string( PLINKSeq::ANNOT_ALIAS_GROUP_WORST() , "," ) : ".") << "\n";
+
+    	  pout << var.coordinate() << "\t"
+    			  << "alias" << "\t"
+    			  << (var.meta.has_field(PLINKSeq::ANNOT_ALIAS_GROUPS()) ? var.meta.as_string( PLINKSeq::ANNOT_ALIAS_GROUPS() , "," ) : ".") << "\n";
+      }
+
       // summary annotation
-      
       pout << var.coordinate() << "\t"
-	   << "class" << "\t"
-	   << var.meta.get1_string( PLINKSeq::ANNOT_SUMMARY()) << "\n";
-      
+    		  << "class" << "\t"
+    		  << var.meta.get1_string( PLINKSeq::ANNOT_SUMMARY()) << "\n";
     }
 
 
-  
   // Fetch from VARDB 
-  
   std::set<Variant> vars = g.vardb.fetch( region );
   
   if ( vars.size() == 0  )
@@ -898,19 +902,12 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
   aux.refs = args.get_set( "ref" );
   aux.refs_allelic = args.get_set( "ref_allelic" );
   aux.aliases = args.get_set( "alias" );
+  aux.worstByAliases = args.get_set( "worstByAlias" );
 
   aux.append_phe = g.vardb.attached() && g.inddb.attached() && g.phmap.type() == PHE_DICHOT;    
   aux.append_loc = g.locdb.attached() && aux.locs.size() > 0;
   aux.append_prot = args.has( "protdb" );
 
-  if ( aux.append_prot && g.locdb.attached() && ! aux.append_annot )
-    {      
-      // NOTE: assumes 'refseq' is named group in both PROTDB and LOCDB for now      
-      plog << "assuming group 'refseq' exists in PROTDB and LOCDB\n";
-      Annotate::setDB( LOCDB );
-      if ( ! Annotate::set_transcript_group( PLINKSeq::DEFAULT_LOC_GROUP() ) ) Helper::halt( "trouble attaching 'refseq' group from LOCDB" );    
-    }
-  
   aux.append_aliases = aux.append_loc && aux.aliases.size() > 0;
   aux.append_ref = g.refdb.attached() && aux.refs.size() > 0;
   aux.append_ref_allelic = g.refdb.attached() && aux.refs_allelic.size() > 0;
@@ -921,16 +918,34 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
   
   if ( ! ( aux.vardb || aux.append_loc || aux.append_prot || aux.append_ref || aux.append_ref_allelic || aux.append_seq || aux.append_annot ) )
     Helper::halt("no information to append");
-  
-  
-  if ( aux.append_annot ) 
-    {
-      std::string annot_transcripts = PLINKSeq::DEFAULT_LOC_GROUP() ;      
-      if ( args.has( "annotate" ) ) annot_transcripts = args.as_string( "annotate" );      
-      Annotate::setDB( LOCDB );
-      Annotate::set_transcript_group( annot_transcripts );
-    }
-  
+
+  if (!aux.append_annot && aux.append_prot) {
+	  if (!g.locdb.attached())
+		  Helper::halt("Unable to annotate protein information without LOCDB");
+
+	  std::string annot_proteins = PLINKSeq::DEFAULT_LOC_GROUP() ;
+	  plog << "Assuming group '" << annot_proteins << "' exists in PROTDB and LOCDB\n";
+	  Annotate::setDB( LOCDB );
+	  if ( ! Annotate::set_transcript_group( annot_proteins ) ) {
+		  std::stringstream s;
+		  s << "Trouble attaching '" << annot_proteins << "' group from LOCDB";
+		  Helper::halt(s.str());
+	  }
+  }
+
+  if (aux.append_annot) {
+	  std::string annot_transcripts = PLINKSeq::DEFAULT_LOC_GROUP() ;
+	  if ( args.has( "annotate" ) ) annot_transcripts = args.as_string( "annotate" );
+	  Annotate::setDB( LOCDB );
+	  Annotate::set_transcript_group( annot_transcripts );
+
+	  aux.append_annot_worst_by_aliases = aux.worstByAliases.size() > 0;
+	  if (aux.append_annot_worst_by_aliases)
+		  Annotate::set_alias_groups(aux.worstByAliases);
+
+	  if (aux.append_prot)
+		  plog << "Using annotate group '" << annot_transcripts << "' from PROTDB...\n";
+  }
 
   // Headers
   
@@ -1017,6 +1032,11 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
       pout << "##protein,.,String,\"Any nonsynon amino acid change\"\n";
       pout << "##worst,1,String,\"Worst annotation\"\n";
       pout << "##class,.,String,\"Summary of all annotations\"\n";
+
+      if (aux.append_annot_worst_by_aliases) {
+          pout << "##worst_by_alias,.,String,\"Worst annotation for each alias grouping\"\n";
+          pout << "##alias,.,String,\"Aliases of transcripts used to group their annotations into worst_by_alias\"\n";
+      }
     }
   
   pout << "##allele_ref,1,String,\"VCF reference sequence\"\n"

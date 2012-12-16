@@ -215,6 +215,7 @@ class LocDBase {
 						 const uint64_t alias_group );
 
    uint64_t alias_id( const std::string & group );
+   std::string alias_name( const uint64_t group_alias_id );
 
    std::string alias( const std::string & , bool show_key = false );
    

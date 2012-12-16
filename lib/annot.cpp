@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <sstream>
 
 extern GStore * GP;
 
@@ -15,38 +16,41 @@ using namespace Helper;
 
 std::map<uint64_t, Region> Annotate::rmap;
 uint64_t Annotate::transcript_group_id = 0;
+std::set<uint64_t> Annotate::alias_group_ids;
 
 std::map<seq_annot_t, std::string> populate_seqinfo() {
 	std::map<seq_annot_t, std::string> m;
+
 	m[UNDEF] = ".";
 	m[MONO] = "monomorphic";
 	m[IGR] = "intergenic-region";
 	m[INTRON] = "intronic";
 	m[UTR5] = "5-UTR";
 	m[UTR3] = "3-UTR";
+	m[NPC_RNA] = "npcRNA";
 	m[SYN] = "silent";
-	m[MIS] = "missense";
 	m[INDEL] = "indel";
+	m[MIS] = "missense";
+	m[PART] = "partial-codon";
+	m[CODONINSERTION] = "codon-insertion";
 	m[CODONDELETION] = "codon-deletion";
+	m[STOPINSERTION] = "stop-insertion";
 	m[STOPDELETION] = "stop-deletion";
 	m[OOFCODONINSERTION] = "out-of-frame-codon-insertion";
-	m[STOPINSERTION] = "stop-insertion";
-	m[CODONINSERTION] = "codon-insertion";
 	m[OOFCODONDELETION] = "out-of-frame-codon-deletion";
-	m[NON] = "nonsense";
-	m[SL] = "start-lost";
-	m[PART] = "partial-codon";
-	m[DONORIN2] = "splice-donor-in2";
-	m[DONOREX2AG] = "splice-donor-ex2ag";
-	m[ACCEPTOREX1G] = "splice-acceptor-ex1g";
-	m[ACCEPTORIN2] = "splice-acceptor-in2";
-	m[DONORIN45AG] = "splice-donor-in45ag";
 	m[SPLICE] = "splice";
 	m[EXONIC_UNKNOWN] = "exonic-unknown";
+	m[DONORIN2] = "splice-donor-in2";
+	m[DONOREX2AG] = "splice-donor-ex2ag";
+	m[DONORIN45AG] = "splice-donor-in45ag";
+	m[ACCEPTOREX1G] = "splice-acceptor-ex1g";
+	m[ACCEPTORIN2] = "splice-acceptor-in2";
+	m[SPLICEDEL] = "splice-deletion";
+	m[SL] = "start-lost";
+	m[NON] = "nonsense";
 	m[FRAMESHIFT] = "frameshift";
 	m[RT] = "read-through";
-	m[SPLICEDEL] = "splice-deletion";
-	m[npcRNA] = "npcRNA";
+
 	return m;
 }
 
@@ -179,6 +183,16 @@ bool Annotate::set_transcript_group(const std::string & grp) {
 	return true;
 }
 
+bool Annotate::set_alias_groups( const std::set<std::string>& addAliases ) {
+	if ((!db) || (!db->attached()))
+		return false;
+
+	for (std::set<std::string>::const_iterator aliasIt = addAliases.begin(); aliasIt != addAliases.end(); ++aliasIt)
+		alias_group_ids.insert( db->alias_id(*aliasIt) );
+
+	return true;
+}
+
 Region * Annotate::pointer_to_region(const std::string & name) {
 	if (!db)
 		return NULL;
@@ -211,8 +225,20 @@ void Annotate::add_transcripts(const std::vector<uint64_t> & id) {
 		if ((!db) || (!db->attached()) || id[i] == 0)
 			Helper::halt("no LOCDB attached, or group not found in LOCDB, so cannot annotate");
 
-		// add actual region to cache
-		rmap[id[i]] = db->get_region(id[i]);
+		Region r = db->get_region(id[i]);
+
+		// Ensure (only) the desired aliases are present:
+		if (!alias_group_ids.empty()) {
+			r.aliases.clear();
+			for (std::set<uint64_t>::iterator aliasIt = alias_group_ids.begin(); aliasIt != alias_group_ids.end(); ++aliasIt) {
+				uint64_t alias_id_for_group = db->alias_id(db->lookup_group_id(r.group));
+				std::set<std::string> aliases = db->targetted_lookup_alias(r.name, alias_id_for_group, *aliasIt);
+				r.aliases.insert(aliases.begin(), aliases.end());
+			}
+		}
+
+		// add actual region to cache:
+		rmap[id[i]] = r;
 	}
 }
 
@@ -245,7 +271,7 @@ bool Annotate::annotate(Variant & var) {
 	return annotate(var, ids);
 }
 
-const std::string Annotate::DEFAULT_PRIORITIZED_WORST_ANNOTATIONS_ARRAY[] = {
+const std::string Annotate::DEFAULT_PRIORITIZED_WORST_ANNOTATIONS[] = {
 		"frameshift",
 		"nonsense",
 		"start-lost",
@@ -265,7 +291,7 @@ const std::string Annotate::DEFAULT_PRIORITIZED_WORST_ANNOTATIONS_ARRAY[] = {
 		"intronic",
 		"intergenic"
 };
-std::list<std::string> Annotate::PRIORITIZED_WORST_ANNOTATIONS = arrayToList(Annotate::DEFAULT_PRIORITIZED_WORST_ANNOTATIONS_ARRAY);
+std::list<std::string> Annotate::PRIORITIZED_WORST_ANNOTATIONS = arrayToList(Annotate::DEFAULT_PRIORITIZED_WORST_ANNOTATIONS);
 
 void Annotate::setWorstAnnotationPriorities(std::string prioritiesFile) {
 	PRIORITIZED_WORST_ANNOTATIONS = std::list<std::string>();
@@ -281,85 +307,86 @@ void Annotate::setWorstAnnotationPriorities(std::string prioritiesFile) {
 	}
 }
 
+const std::string COUNT_IN_ANNOT_CLASS_ARRAY[] = {
+		"silent",
+		"missense",
+		"nonsense",
+		"startlost",
+		"esplice",
+		"csplice",
+		"splice",
+		"readthrough",
+		"intergenic",
+		"frameshift",
+		"codoninsertion",
+		"codondeletion",
+		"exonic_unknown",
+		"splicedel",
+		"utr3",
+		"utr5",
+		"npcRNA"
+};
+std::list<std::string> COUNT_IN_ANNOT_CLASS = arrayToList(COUNT_IN_ANNOT_CLASS_ARRAY);
+
 bool Annotate::annotate(Variant & var, const std::vector<uint64_t> & ids) {
 
-	std::set<SeqInfo> s;
+	// do the actual annotation, for all transcripts indicated in 'ids':
+	std::set<SeqInfo> s = annotate(var.chromosome(), var.position(), var.alternate(), var.reference(), ids);
 
-	// do the actual annotation, for all transcripts indicated in 'ids')
-	s = annotate(var.chromosome(), var.position(), var.alternate(), var.reference(), ids);
-
-	bool annot = false;
-
-	// summary of 'worst' annotation (int, syn, nonsyn)
-	int is_silent = 0;
-	int is_missense = 0;
-	int is_codondeletion = 0;
-	int is_codoninsertion = 0;
-	int is_frameshift = 0;
-	int is_indel = 0;
-	int is_splice = 0;
-	int is_esplice = 0;
-	int is_csplice = 0;
-	int is_nonsense = 0;
-	int is_startlost = 0;
-	int is_readthrough = 0;
-	int is_intergenic = 0;
-	int is_intronic = 0;
-	int is_exonic_unknown = 0;
-	int is_splicedel = 0;
-	int is_utr3 = 0;
-	int is_utr5 = 0;
-	int is_npcRNA = 0;
+	std::map<std::string, AnnotToCount> aliasToAnnots;
+	AnnotToCount potentialWorstAnnotations;
 
 	std::set<SeqInfo>::iterator i = s.begin();
 	while (i != s.end()) {
-		// track whether this is coding, for a 'single' return code
+		AnnotToCount seqInfoCounts;
+
 		if (i->synon())
-			++is_silent;
-		if (i->frameshift()) {
-			++is_frameshift;
-			++is_indel;
-		}
-		if (i->codondeletion()) {
-			++is_codondeletion;
-			++is_indel;
-		}
-		if (i->codoninsertion()) {
-			++is_codoninsertion;
-			++is_indel;
-		}
+			seqInfoCounts["silent"]++;
+		if (i->frameshift())
+			seqInfoCounts["frameshift"]++;
+		if (i->codondeletion())
+			seqInfoCounts["codon-deletion"]++;
+		if (i->codoninsertion())
+			seqInfoCounts["codon-insertion"]++;
 		if (i->missense())
-			++is_missense;
+			seqInfoCounts["missense"]++;
 		if (i->nonsense())
-			++is_nonsense;
+			seqInfoCounts["nonsense"]++;
 		if (i->startlost())
-			++is_startlost;
+			seqInfoCounts["start-lost"]++;
 		if (i->splice())
-			++is_splice;
+			seqInfoCounts["splice"]++;
 		if (i->esplice())
-			++is_esplice;
+			seqInfoCounts["esplice"]++;
 		if (i->csplice())
-			++is_csplice;
+			seqInfoCounts["csplice"]++;
 		if (i->readthrough())
-			++is_readthrough;
+			seqInfoCounts["readthrough"]++;
 		if (i->intergenic())
-			++is_intergenic;
+			seqInfoCounts["intergenic"]++;
 		if (i->intronic())
-			++is_intronic;
+			seqInfoCounts["intronic"]++;
 		if (i->indel())
-			++is_indel;
+			seqInfoCounts["indel"]++;
 		if (i->exonic_unknown())
-			++is_exonic_unknown;
-		if (i->npcRNA())
-			++is_npcRNA;
-		if (i->utr3())
-			++is_utr3;
+			seqInfoCounts["exonic-unknown"]++;
 		if (i->utr5())
-			++is_utr5;
+			seqInfoCounts["UTR5"]++;
+		if (i->utr3())
+			seqInfoCounts["UTR3"]++;
+		if (i->npcRNA())
+			seqInfoCounts["npcRNA"]++;
+
+		for (AnnotToCount::const_iterator annotIt = seqInfoCounts.begin(); annotIt != seqInfoCounts.end(); ++annotIt) {
+			potentialWorstAnnotations[annotIt->first] += annotIt->second;
+
+			for (std::set<std::string>::const_iterator aliasIt = i->aliases.begin(); aliasIt != i->aliases.end(); ++aliasIt)
+				aliasToAnnots[*aliasIt][annotIt->first] += annotIt->second;
+		}
 
 		// add annotations
 		var.meta.add(PLINKSeq::ANNOT_TYPE(), i->status());
-		var.meta.add(PLINKSeq::ANNOT_GENE(), i->gene_name());
+		var.meta.add(PLINKSeq::ANNOT_GENE(), i->transcript_name());
 		var.meta.add(PLINKSeq::ANNOT_CODING(), (int) i->coding());
 
 		// var.meta.add( PLINKSeq::ANNOT_EXONIC() , i->exonic() );
@@ -377,127 +404,76 @@ bool Annotate::annotate(Variant & var, const std::vector<uint64_t> & ids) {
 	//
 	// what is the 'worst' annotation?
 	//
-	std::set<std::string> potentialWorstAnnotations;
+	std::string worst = Annotate::getWorstAnnotation(potentialWorstAnnotations);
+	var.meta.set(PLINKSeq::ANNOT(), worst);
 
-	if (is_frameshift)
-		potentialWorstAnnotations.insert("frameshift");
-	if (is_nonsense)
-		potentialWorstAnnotations.insert("nonsense");
-	if (is_startlost)
-		potentialWorstAnnotations.insert("start-lost");
-	if (is_esplice)
-		potentialWorstAnnotations.insert("esplice");
-	if (is_splicedel)
-		potentialWorstAnnotations.insert("esplice");
-	if (is_csplice)
-		potentialWorstAnnotations.insert("csplice");
-	if (is_readthrough)
-		potentialWorstAnnotations.insert("readthrough");
-	if (is_codoninsertion)
-		potentialWorstAnnotations.insert("codon-insertion");
-	if (is_codondeletion)
-		potentialWorstAnnotations.insert("codon-deletion");
-	if (is_missense)
-		potentialWorstAnnotations.insert("missense");
-	if (is_indel)
-		potentialWorstAnnotations.insert("indel");
-	if (is_splice)
-		potentialWorstAnnotations.insert("splice");
-	if (is_exonic_unknown)
-		potentialWorstAnnotations.insert("exonic-unknown");
-	if (is_silent)
-		potentialWorstAnnotations.insert("silent");
-	if (is_utr5)
-		potentialWorstAnnotations.insert("UTR5");
-	if (is_utr3)
-		potentialWorstAnnotations.insert("UTR3");
-	if (is_npcRNA)
-		potentialWorstAnnotations.insert("npcRNA");
-	if (is_intronic)
-		potentialWorstAnnotations.insert("intronic");
+	// Make a 'worst' summary for each alias for this variant's annotations:
+	for (std::map<std::string, AnnotToCount>::const_iterator nameIt = aliasToAnnots.begin(); nameIt != aliasToAnnots.end(); ++nameIt) {
+		const std::string& alias = nameIt->first;
+		const AnnotToCount& aliasAnnots = nameIt->second;
+		std::string aliasWorst = Annotate::getWorstAnnotation(aliasAnnots);
 
-	potentialWorstAnnotations.insert("intergenic");
+		var.meta.add(PLINKSeq::ANNOT_ALIAS_GROUPS(), alias);
+		var.meta.add(PLINKSeq::ANNOT_ALIAS_GROUP_WORST(), aliasWorst);
 
-	// Take the first "worst" annotation from the prioritized list of potential worsts:
-	std::string aworst = "?";
-	for (std::list<std::string>::const_iterator i = PRIORITIZED_WORST_ANNOTATIONS.begin(); i != PRIORITIZED_WORST_ANNOTATIONS.end(); ++i) {
-		const std::string& candidateWorst = *i;
-		if (potentialWorstAnnotations.find(candidateWorst) != potentialWorstAnnotations.end()) {
-			aworst = candidateWorst;
-			break;
-		}
+		for (AnnotToCount::const_iterator annotIt = aliasAnnots.begin(); annotIt != aliasAnnots.end(); ++annotIt)
+			potentialWorstAnnotations[annotIt->first] += annotIt->second;
 	}
-
-	var.meta.set(PLINKSeq::ANNOT(), aworst);
 
 	//
 	// what is the 'summary/consensus' annotation?
 	//
 	int acount = 0;
-	if (is_silent)
-		++acount;
-	if (is_missense)
-		++acount;
-	if (is_nonsense)
-		++acount;
-	if (is_startlost)
-		++acount;
-	if (is_esplice)
-		++acount;
-	if (is_csplice)
-		++acount;
-	if (is_splice)
-		++acount;
-	if (is_readthrough)
-		++acount;
-	if (is_intergenic)
-		++acount;
-	if (is_frameshift)
-		++acount;
-	if (is_codoninsertion)
-		++acount;
-	if (is_codondeletion)
-		++acount;
-	if (is_exonic_unknown)
-		++acount;
-	if (is_splicedel)
-		++acount;
-	if (is_utr3)
-		++acount;
-	if (is_utr5)
-		++acount;
-	if (is_npcRNA)
-		++acount;
+	for (std::list<std::string>::const_iterator i = COUNT_IN_ANNOT_CLASS.begin(); i != COUNT_IN_ANNOT_CLASS.end(); ++i)
+		acount += (potentialWorstAnnotations[*i] > 0 ? 1 : 0);
 
-	std::string annot_summary = aworst;
+	std::stringstream annot_summary;
 	if (acount > 1)
-		annot_summary = "mixed";
+		annot_summary << "mixed";
+	else
+		annot_summary << worst;
 
-	annot_summary += ",NON=" + Helper::int2str(is_nonsense);
-	annot_summary += ",SL=" + Helper::int2str(is_startlost);
-	annot_summary += ",MIS=" + Helper::int2str(is_missense);
-	annot_summary += ",SYN=" + Helper::int2str(is_silent);
-	annot_summary += ",ESPL=" + Helper::int2str(is_esplice);
-	annot_summary += ",CSPL=" + Helper::int2str(is_csplice);
-	annot_summary += ",SPL=" + Helper::int2str(is_splice);
-	annot_summary += ",RTH=" + Helper::int2str(is_readthrough);
-	annot_summary += ",INT=" + Helper::int2str(is_intronic);
-	annot_summary += ",IGR=" + Helper::int2str(is_intergenic);
-	annot_summary += ",FRAMESHIFT=" + Helper::int2str(is_frameshift);
-	annot_summary += ",INDEL=" + Helper::int2str(is_indel);
-	annot_summary += ",CODONINSERTION=" + Helper::int2str(is_codoninsertion);
-	annot_summary += ",CODONDELETION=" + Helper::int2str(is_codondeletion);
-	annot_summary += ",UNKNOWN=" + Helper::int2str(is_exonic_unknown);
-	annot_summary += ",SPLICEDEL=" + Helper::int2str(is_splicedel);
-	annot_summary += ",npcRNA=" + Helper::int2str(is_npcRNA);
-	annot_summary += ",UTR3=" + Helper::int2str(is_utr3);
-	annot_summary += ",UTR5=" + Helper::int2str(is_utr5);
-	var.meta.set(PLINKSeq::ANNOT_SUMMARY(), annot_summary);
+	annot_summary << ",NON=" << potentialWorstAnnotations["nonsense"];
+	annot_summary << ",SL=" << potentialWorstAnnotations["start-lost"];
+	annot_summary << ",MIS=" << potentialWorstAnnotations["missense"];
+	annot_summary << ",SYN=" << potentialWorstAnnotations["silent"];
+	annot_summary << ",ESPL=" << potentialWorstAnnotations["esplice"];
+	annot_summary << ",CSPL=" << potentialWorstAnnotations["csplice"];
+	annot_summary << ",SPL=" << potentialWorstAnnotations["splice"];
+	annot_summary << ",RTH=" << potentialWorstAnnotations["readthrough"];
+	annot_summary << ",INT=" << potentialWorstAnnotations["intronic"];
+	annot_summary << ",IGR=" << potentialWorstAnnotations["intergenic"];
+	annot_summary << ",FRAMESHIFT=" << potentialWorstAnnotations["frameshift"];
+	annot_summary << ",INDEL=" << potentialWorstAnnotations["indel"];
+	annot_summary << ",CODONINSERTION=" << potentialWorstAnnotations["codon-insertion"];
+	annot_summary << ",CODONDELETION=" << potentialWorstAnnotations["codon-deletion"];
+	annot_summary << ",UNKNOWN=" << potentialWorstAnnotations["exonic-unknown"];
+	annot_summary << ",UTR5=" << potentialWorstAnnotations["UTR5"];
+	annot_summary << ",UTR3=" << potentialWorstAnnotations["UTR3"];
+	annot_summary << ",npcRNA=" << potentialWorstAnnotations["npcRNA"];
+
+	var.meta.set(PLINKSeq::ANNOT_SUMMARY(), annot_summary.str());
 
 	//
 	// did we receive any annotation?
 	//
-	return is_silent || is_startlost || is_nonsense || is_missense || is_splice || is_esplice || is_csplice || is_readthrough || is_frameshift || is_codondeletion || is_indel || is_codoninsertion || is_exonic_unknown || is_splicedel || is_utr3 || is_utr5 || is_npcRNA;
+	return acount > 0;
+}
+
+std::string Annotate::getWorstAnnotation(const AnnotToCount& potentialWorstAnnotations) {
+	// Take the first "worst" annotation from the prioritized list of potential worsts:
+	std::string aworst = "?";
+
+	for (std::list<std::string>::const_iterator i = PRIORITIZED_WORST_ANNOTATIONS.begin(); i != PRIORITIZED_WORST_ANNOTATIONS.end(); ++i) {
+		const std::string& candidateWorst = *i;
+
+		AnnotToCount::const_iterator findCandidate = potentialWorstAnnotations.find(candidateWorst);
+		if (findCandidate != potentialWorstAnnotations.end() && findCandidate->second > 0) { // Observed this candidate at least once:
+			aworst = candidateWorst;
+			break;
+		}
+	}
+	return aworst;
 }
 
 std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
@@ -584,7 +560,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 		}
 
 		//
-		// Consider each transcript supplied, that should overlap this position
+		// Consider each transcript supplied (that should overlap this position):
 		//
 		std::vector<uint64_t>::const_iterator ii = pregions.begin();
 		while (ii != pregions.end()) {
@@ -742,7 +718,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 				bool deleteSpliceBoundaryAtStart = s != FIRST_POSITIVE_STRAND_EXON_IND && bp1DistFromSpliceBoundaryAtStart > 0 && bp2DistFromSpliceBoundaryAtStart >= 0;
 				bool deleteSpliceBoundaryAtStop = s != LAST_POSITIVE_STRAND_EXON_IND && bp1DistFromSpliceBoundaryAtStop >= 0 && bp2DistFromSpliceBoundaryAtStop > 0;
 				if (isDeletion && (deleteSpliceBoundaryAtStart || deleteSpliceBoundaryAtStop)) {
-					SeqInfo si = SeqInfo(r->name, SPLICEDEL);
+					SeqInfo si = SeqInfo(r->name, r->aliases, SPLICEDEL);
 					if (positive_strand)
 						si.alt = *a;
 					else
@@ -792,7 +768,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 
 							// Donor essential conserved GT
 							if ((var_iseq.at(var_iseq.length() - 2) != 'T' || var_iseq.at(var_iseq.length() - 1) != 'G') && iseq.at(iseq.length() - 2) == 'T' && iseq.at(iseq.length() - 1) == 'G') {
-								SeqInfo si = SeqInfo(r->name, DONORIN2);
+								SeqInfo si = SeqInfo(r->name, r->aliases, DONORIN2);
 								si.splicedist = bp1DistFromSpliceBoundaryAtStart;
 								si.exin = in_exonsp;
 								si.ofptv = notinframe;
@@ -804,7 +780,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 							}
 							// Donor Intronic +45AG
 							else if ((var_iseq.at(var_iseq.length() - 5) != 'G' || var_iseq.at(var_iseq.length() - 4) != 'A') && iseq.at(iseq.length() - 5) == 'G' && iseq.at(iseq.length() - 4) == 'A') {
-								SeqInfo si = SeqInfo(r->name, DONORIN45AG);
+								SeqInfo si = SeqInfo(r->name, r->aliases, DONORIN45AG);
 								si.splicedist = bp1DistFromSpliceBoundaryAtStart;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -816,7 +792,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 							}
 							// Donor Exonic AG
 							else if ((var_eseq.at(0) != 'G' || var_eseq.at(1) != 'A') && eseq.at(0) == 'G' && eseq.at(1) == 'A') {
-								SeqInfo si = SeqInfo(r->name, DONOREX2AG);
+								SeqInfo si = SeqInfo(r->name, r->aliases, DONOREX2AG);
 								si.splicedist = bp1DistFromSpliceBoundaryAtStart;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -828,7 +804,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 							}
 							else {
 								// consider it splice generic
-								SeqInfo si = SeqInfo(r->name, SPLICE);
+								SeqInfo si = SeqInfo(r->name, r->aliases, SPLICE);
 								si.splicedist = bp1DistFromSpliceBoundaryAtStart;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -854,7 +830,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								var_eseq.replace(abs(bp1DistFromSpliceBoundaryAtStart), act_ref.size(), act_alt);
 
 							if ((var_iseq.at(var_iseq.length() - 2) != 'A' || var_iseq.at(var_iseq.length() - 1) != 'G') && iseq.at(iseq.length() - 2) == 'A' && iseq.at(iseq.length() - 1) == 'G') {
-								SeqInfo si = SeqInfo(r->name, ACCEPTORIN2);
+								SeqInfo si = SeqInfo(r->name, r->aliases, ACCEPTORIN2);
 								si.splicedist = - bp1DistFromSpliceBoundaryAtStart;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -865,7 +841,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								annot.insert(si);
 							}
 							else if (var_eseq.at(0) != 'G' && eseq.at(0) == 'G') {
-								SeqInfo si = SeqInfo(r->name, ACCEPTOREX1G);
+								SeqInfo si = SeqInfo(r->name, r->aliases, ACCEPTOREX1G);
 								si.splicedist = - bp1DistFromSpliceBoundaryAtStart;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -876,7 +852,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								annot.insert(si);
 							}
 							else {
-								SeqInfo si = SeqInfo(r->name, SPLICE);
+								SeqInfo si = SeqInfo(r->name, r->aliases, SPLICE);
 								si.splicedist = - bp1DistFromSpliceBoundaryAtStart;
 								si.exin = in_exonsp;
 								si.ofptv = notinframe;
@@ -917,7 +893,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 							var_eseq = getc(var_eseq);
 
 							if ((var_iseq.at(0) != 'G' || var_iseq.at(1) != 'A') && iseq.at(0) == 'G' && iseq.at(1) == 'A') {
-								SeqInfo si = SeqInfo(r->name, ACCEPTORIN2);
+								SeqInfo si = SeqInfo(r->name, r->aliases, ACCEPTORIN2);
 								si.splicedist = bp1DistFromSpliceBoundaryAtStop;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -928,7 +904,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								annot.insert(si);
 							}
 							else if (var_eseq.at(var_eseq.length() - 1) != 'G' && eseq.at(eseq.length() - 1) == 'G') {
-								SeqInfo si = SeqInfo(r->name, ACCEPTOREX1G);
+								SeqInfo si = SeqInfo(r->name, r->aliases, ACCEPTOREX1G);
 								si.splicedist = - bp1DistFromSpliceBoundaryAtStop;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -939,7 +915,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								annot.insert(si);
 							}
 							else {
-								SeqInfo si = SeqInfo(r->name, SPLICE);
+								SeqInfo si = SeqInfo(r->name, r->aliases, SPLICE);
 								si.splicedist = - bp1DistFromSpliceBoundaryAtStop;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -967,7 +943,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								var_iseq.replace(- bp1DistFromSpliceBoundaryAtStop - 1, act_ref.size(), act_alt);
 
 							if ((var_iseq.at(0) != 'G' || var_iseq.at(1) != 'T') && iseq.at(0) == 'G' && iseq.at(1) == 'T') {
-								SeqInfo si = SeqInfo(r->name, DONORIN2);
+								SeqInfo si = SeqInfo(r->name, r->aliases, DONORIN2);
 								si.splicedist = - bp1DistFromSpliceBoundaryAtStop;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -978,7 +954,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								annot.insert(si);
 							}
 							else if ((var_eseq.at(var_eseq.length() - 1) != 'G' || var_eseq.at(var_eseq.length() - 2) != 'A') && eseq.at(eseq.length() - 1) == 'G' && eseq.at(eseq.length() - 2) == 'A') {
-								SeqInfo si = SeqInfo(r->name, DONOREX2AG);
+								SeqInfo si = SeqInfo(r->name, r->aliases, DONOREX2AG);
 								si.splicedist = - bp1DistFromSpliceBoundaryAtStop;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -989,7 +965,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								annot.insert(si);
 							}
 							else if ((var_iseq.at(3) != 'A' || var_iseq.at(4) != 'G') && iseq.at(3) == 'A' && iseq.at(4) == 'G') {
-								SeqInfo si = SeqInfo(r->name, DONORIN45AG);
+								SeqInfo si = SeqInfo(r->name, r->aliases, DONORIN45AG);
 								si.splicedist = - bp1DistFromSpliceBoundaryAtStop;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -1000,7 +976,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								annot.insert(si);
 							}
 							else {
-								SeqInfo si = SeqInfo(r->name, SPLICE);
+								SeqInfo si = SeqInfo(r->name, r->aliases, SPLICE);
 								si.splicedist = - bp1DistFromSpliceBoundaryAtStop;
 								si.ofptv = notinframe;
 								si.exin = in_exonsp;
@@ -1024,9 +1000,9 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 				int cds_end = r_cds.subregion[r_cds.subregion.size() - 1].stop.position();
 
 				if ((act_bp1 < cds_start && positive_strand) || (act_bp2 > cds_end && negative_strand))
-					annot.insert(SeqInfo(r->name, UTR5));
+					annot.insert(SeqInfo(r->name, r->aliases, UTR5));
 				if ((act_bp1 < cds_start && negative_strand) || (act_bp2 > cds_end && positive_strand))
-					annot.insert(SeqInfo(r->name, UTR3));
+					annot.insert(SeqInfo(r->name, r->aliases, UTR3));
 
 				++ii;
 				continue;
@@ -1036,14 +1012,14 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			// Define Non-coding elements as having exons but no coding sequence:
 			//
 			if (inExon > -1 && r_cds.subregion.size() == 0) {
-				annot.insert(SeqInfo(r->name, npcRNA));
+				annot.insert(SeqInfo(r->name, r->aliases, NPC_RNA));
 
 				++ii;
 				continue;
 			}
 
 			if (inExon == -1) {
-				annot.insert(SeqInfo(r->name, INTRON));
+				annot.insert(SeqInfo(r->name, r->aliases, INTRON));
 
 				++ii; // next region
 				continue;
@@ -1190,7 +1166,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			// Synonymous change?
 			//
 			if (trans_ref == trans_var) {
-				annot.insert(SeqInfo(r->name, SYN));
+				annot.insert(SeqInfo(r->name, r->aliases, SYN));
 				++ii; // next region
 				continue;
 			}
@@ -1255,14 +1231,14 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 
 							origpepsize = longest;
 							newpepsize = longest;
-							SeqInfo si = SeqInfo(r->name, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], i + 1, trans_ref.substr(i, 1), trans_var.substr(i, 1), 0, origpepsize, newpepsize);
+							SeqInfo si = SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], i + 1, trans_ref.substr(i, 1), trans_var.substr(i, 1), 0, origpepsize, newpepsize);
 							annot.insert(si);
 						}
 						else if (trans_var[i] == '*') { // NONSENSE
 							seq_annot_t type = NON;
 							origpepsize = trans_ref.size();
 							newpepsize = i + 1;
-							SeqInfo si = SeqInfo(r->name, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], i + 1, trans_ref.substr(i, 1), trans_var.substr(i, 1), 0, origpepsize, newpepsize);
+							SeqInfo si = SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], i + 1, trans_ref.substr(i, 1), trans_var.substr(i, 1), 0, origpepsize, newpepsize);
 							si.ofptv = 1;
 							if (newpepsize * 3 < sizepenult - 50)
 								si.nmd = 1;
@@ -1272,7 +1248,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 							seq_annot_t type = RT;
 							origpepsize = trans_ref.size();
 							newpepsize = longest;
-							SeqInfo si = SeqInfo(r->name, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], i + 1, trans_ref.substr(i, 1), trans_var.substr(i, 1), 0, origpepsize, newpepsize);
+							SeqInfo si = SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], i + 1, trans_ref.substr(i, 1), trans_var.substr(i, 1), 0, origpepsize, newpepsize);
 							annot.insert(si);
 						}
 					}
@@ -1302,7 +1278,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								newpos_stop -= 1;
 
 								// Adding this so we can add ofptv and nmd predictions.
-								SeqInfo si = SeqInfo(r->name, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[firstfs_codon], alt_codon[firstfs_codon], pposfs, trans_ref.substr(firstfs_codon, 1), trans_var.substr(firstfs_codon, 1), newpos_stop, origpepsize, newpepsize);
+								SeqInfo si = SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[firstfs_codon], alt_codon[firstfs_codon], pposfs, trans_ref.substr(firstfs_codon, 1), trans_var.substr(firstfs_codon, 1), newpos_stop, origpepsize, newpepsize);
 								si.ofptv = 1;
 
 								if (newpepsize * 3 < sizepenult - 50)
@@ -1319,7 +1295,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								newpepsize = longest;
 								newpos_stop -= 1;
 
-								SeqInfo si = SeqInfo(r->name, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[firstfs_codon], alt_codon[firstfs_codon], pposfs, trans_ref.substr(firstfs_codon, 1), trans_var.substr(firstfs_codon, 1), newpos_stop, origpepsize, newpepsize);
+								SeqInfo si = SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[firstfs_codon], alt_codon[firstfs_codon], pposfs, trans_ref.substr(firstfs_codon, 1), trans_var.substr(firstfs_codon, 1), newpos_stop, origpepsize, newpepsize);
 								si.ofptv = 1;
 
 								// Here the protein made is too long and would not undergo NMD.
@@ -1327,7 +1303,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 
 								if (trans_ref[i] == '*') { // Also a READ-THROUGH, since never saw a stop in the variant transcript, though the reference transcript has a stop here
 									seq_annot_t type = RT;
-									SeqInfo si = SeqInfo(r->name, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], i + 1, trans_ref.substr(i, 1), trans_var.substr(i, 1), 0, origpepsize, newpepsize);
+									SeqInfo si = SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], i + 1, trans_ref.substr(i, 1), trans_var.substr(i, 1), 0, origpepsize, newpepsize);
 									annot.insert(si);
 								}
 							}
@@ -1345,7 +1321,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								if ((ONE_BASED_pos_in_whole_transcript_CDS - 1) % 3 != 0)
 									type = OOFCODONDELETION;
 
-								annot.insert(SeqInfo(r->name, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], (int) floor(((ONE_BASED_pos_in_whole_transcript_CDS - 1) / 3.0) + 1), trans_ref.substr(i, 1), trans_var.substr(i, 1)));
+								annot.insert(SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], (int) floor(((ONE_BASED_pos_in_whole_transcript_CDS - 1) / 3.0) + 1), trans_ref.substr(i, 1), trans_var.substr(i, 1)));
 							}
 						}
 						//
@@ -1362,7 +1338,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 									type = OOFCODONINSERTION;
 								}
 
-								annot.insert(SeqInfo(r->name, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], (int) floor(((ONE_BASED_pos_in_whole_transcript_CDS - 1) / 3.0) + 1), trans_ref.substr(i, 1), trans_var.substr(i, 1)));
+								annot.insert(SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], (int) floor(((ONE_BASED_pos_in_whole_transcript_CDS - 1) / 3.0) + 1), trans_ref.substr(i, 1), trans_var.substr(i, 1)));
 							}
 						}
 					}
@@ -1374,7 +1350,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 				//
 				if (trans_ref[i] == '*' && trans_var[i] == '*' && (act_ref.size() != act_alt.size())) {
 					seq_annot_t type = INDEL;
-					annot.insert(SeqInfo(r->name, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], (int) floor(((ONE_BASED_pos_in_whole_transcript_CDS - 1) / 3.0) + 1), trans_ref.substr(i, 1), trans_var.substr(i, 1)));
+					annot.insert(SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], (int) floor(((ONE_BASED_pos_in_whole_transcript_CDS - 1) / 3.0) + 1), trans_ref.substr(i, 1), trans_var.substr(i, 1)));
 					i = longest;
 				}
 			}
@@ -1390,7 +1366,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 					newpepsize = transrefsize - newpos_start + 1;
 
 				origpepsize = transrefsize;
-				SeqInfo si = SeqInfo(r->name, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[0], alt_codon[0], 1, trans_ref.substr(0, 1), trans_var.substr(0, 1), newpos_start, origpepsize, newpepsize);
+				SeqInfo si = SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[0], alt_codon[0], 1, trans_ref.substr(0, 1), trans_var.substr(0, 1), newpos_start, origpepsize, newpepsize);
 				annot.insert(si);
 			}
 

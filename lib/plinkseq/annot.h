@@ -14,73 +14,74 @@ class SeqDBase;
 class RefDBase;
 
 
-enum seq_annot_t { UNDEF   =  0 ,     // could not annotate 
-                   MONO    =  1 ,     // monomorphic site 
+enum seq_annot_t { UNDEF,     // could not annotate
+                   MONO,     // monomorphic site
 
-		   IGR     =  2 ,     // intergenic region
+		   IGR,     // intergenic region
 
 		   // near gene?
-		   INTRON  =  3 ,     // intronic		   
-		   UTR5    =  4 ,     // 5' UTR allele -- not used
-		   UTR3    =  5 ,     // 3' UTR allele -- not used		   
-		   
-		   // exonic
-		   SYN      =  10 ,    // synonymous allele 		   		   
-		   INDEL    = 11 , // any indel
-		   npcRNA   = 40 , // variants in noncoding exons that aren't UTRs
+		   INTRON,     // intronic
+
+		   // non-protein-coding:
+		   UTR5,     // 5' UTR
+		   UTR3,     // 3' UTR
+		   NPC_RNA, // variants in non-protein-coding exons
+
+		   // protein-coding:
+		   SYN,    // synonymous allele
+		   INDEL, // any indel
 
 		   // non-synon coding
-		   MIS      =  20 ,    // missense allele
- 		   PART     =  21 ,    // partial codon  -- not used
- 		   CODONINSERTION		=  22 ,	   // codon insertion
- 		   CODONDELETION		=  23 ,    // codon deletion
-		   STOPINSERTION               =  34 ,    // stop insertion                                                                                                                 
-           STOPDELETION                =  35 ,    // stop deletion
-		   OOFCODONINSERTION               =  36 ,    // out of frame codon insertion
-		   OOFCODONDELETION               =  37 , // out of frame codon deletion
- 		   SPLICE 	= 24	, // general splice +/- 5bp
- 		   EXONIC_UNKNOWN = 38, // overlaps an exon, but since the ALT is 'N', cannot know its exact coding impact
+		   MIS,    // missense allele
+ 		   PART,    // partial codon  -- not used
+ 		   CODONINSERTION,	   // codon insertion
+ 		   CODONDELETION,    // codon deletion
+		   STOPINSERTION,    // stop insertion
+           STOPDELETION,    // stop deletion
+		   OOFCODONINSERTION,    // out of frame codon insertion
+		   OOFCODONDELETION, // out of frame codon deletion
+ 		   SPLICE, // general splice +/- 5bp
+ 		   EXONIC_UNKNOWN, // overlaps an exon, but since the ALT is 'N', cannot know its exact coding impact
 		   
  		   // Special class of splice variants : Faustino and Cooper. Pre-mrna splicing and human disease. AG|G   AG|GTNAG. This is consistent with splicing motif measures.
-		   DONORIN2  =  25 ,       // donor splice-site |[GT]
-		   DONOREX2AG = 26 ,       // donor splice-site ex2ag [AG]|
-		   DONORIN45AG = 27 ,      // donor splice-site in45ag |GTN[AG]
-		   ACCEPTOREX1G = 28 ,     // acceptor splice-site ex1g |[G]
-		   ACCEPTORIN2  =  29 ,    // 3' splice-site [AG]|
-		   SPLICEDEL = 39, // a deletion that includes both sides of splice junction 
+		   DONORIN2,       // donor splice-site |[GT]
+		   DONOREX2AG,       // donor splice-site ex2ag [AG]|
+		   DONORIN45AG,      // donor splice-site in45ag |GTN[AG]
+		   ACCEPTOREX1G,     // acceptor splice-site ex1g |[G]
+		   ACCEPTORIN2,    // 3' splice-site [AG]|
+		   SPLICEDEL, // a deletion that includes both sides of splice junction
 
 		   // Additional LoF annotations 
-		   SL = 30 ,	  // Start Loss
- 		   NON      =  31 ,    // nonsense allele
- 		   FRAMESHIFT       =  32 ,    // frameshift
-		   RT       =  33 };   // readthrough
+		   SL,	  // Start Loss
+ 		   NON,    // nonsense allele
+ 		   FRAMESHIFT,    // frameshift
+		   RT // readthrough
+};
 
 struct SeqInfo { 
-  
-  // note -- these function depend on exact coding of seq_annot_t (see above)
-
-  bool missense() const { return type == 20 ; } 
-  bool nonsense() const { return type == 31 || type == 34; }
-  bool startlost() const { return type == 30 ; }
-  bool readthrough() const { return type == 33 || type == 35; }
-  bool frameshift() const { return type == 32 ; }
-  bool codondeletion() const { return type == 23 || type == 37; }
-  bool codoninsertion() const { return type == 22 || type == 36;}
-  bool splice() const { return type == 24 ;}
-  bool csplice() const { return type == 26 || type == 27 || type == 28 ; }
-  bool esplice() const { return type == 25 || type == 29 || type == 39; }
- 
-  bool coding() const { return type > 9 ; } 
-  bool synon() const { return type == 10 ; } 
-  bool indel() const { return type == 11 ; }
-  bool nonsyn() const { return type > 19 ; }   
-  bool intergenic() const { return type == 2 ; }
-  bool intronic() const { return type == 3 ; }
+  bool missense() const { return type == MIS ; }
+  bool nonsense() const { return type == NON || type == STOPINSERTION; }
+  bool startlost() const { return type == SL ; }
+  bool readthrough() const { return type == RT || type == STOPDELETION; }
+  bool frameshift() const { return type == FRAMESHIFT ; }
+  bool codondeletion() const { return type == CODONDELETION || type == OOFCODONDELETION; }
+  bool codoninsertion() const { return type == CODONINSERTION || type == OOFCODONINSERTION;}
+  bool splice() const { return type == SPLICE;}
+  bool csplice() const { return type == DONOREX2AG || type == DONORIN45AG || type == ACCEPTOREX1G ; }
+  bool esplice() const { return type == DONORIN2 || type == ACCEPTORIN2 || type == SPLICEDEL; }
   bool exonic_unknown() const { return type == EXONIC_UNKNOWN; }
-  bool invalid() const { return type < 2 ; }
-  bool utr3() const { return type == 5; }
-  bool utr5() const { return type == 4; }
-  bool npcRNA() const { return type == 40; }
+
+  bool coding() const { return type != UNDEF && type != MONO && type != IGR && type != INTRON && type != UTR5 && type != UTR3 ; }
+  bool nonsyn() const { return type == PART || missense() || nonsense() || startlost() || readthrough() || frameshift() || codondeletion() || codoninsertion() || splice() || csplice() || esplice(); }
+  bool synon() const { return type == SYN ; }
+  bool indel() const { return type == INDEL || frameshift() || codondeletion() || codoninsertion(); }
+  bool intergenic() const { return type == IGR ; }
+  bool intronic() const { return type == INTRON; }
+  bool utr3() const { return type == UTR3; }
+  bool utr5() const { return type == UTR5; }
+  bool npcRNA() const { return type == NPC_RNA; }
+
+  bool invalid() const { return type == UNDEF || type == MONO; }
 
   static std::map< seq_annot_t , std::string> types;
   
@@ -99,6 +100,7 @@ struct SeqInfo {
   } 
   
   SeqInfo( const std::string & transcript, 
+	   const std::set<std::string> & aliases,
 	   const seq_annot_t & type , 
 	   const std::string & genomic_ref = "", 
 	   const std::string & genomic_alt = "" ,
@@ -112,7 +114,7 @@ struct SeqInfo {
 	   const int origpepsize = 0,
 	   const int newpepsize = 0, 
 	   const int exon = 0 )
-    : transcript(transcript), type(type), 
+    : transcript(transcript), aliases(aliases), type(type),
       genomic_ref(genomic_ref) , genomic_alt(genomic_alt),
       ref_seq(ref_seq), ref_aa(ref_aa), 
       alt_seq(alt_seq), alt_aa(alt_aa),
@@ -148,6 +150,7 @@ struct SeqInfo {
   seq_annot_t type;
   
   std::string transcript;
+  std::set<std::string> aliases;
 
   int splicedist; // for splice-sites only
   int ofptv; // for splice-sites only at the moment. If out of frame protein truncating variant. 
@@ -199,8 +202,7 @@ struct SeqInfo {
     return transcript + ":" + status() + ":" + codon() + ":" + protein(); 
   }
   
-  std::string gene_name() const { return transcript == "" ? "." : transcript ; }
-  
+  std::string transcript_name() const { return transcript == "" ? "." : transcript ; }
 };
 
 
@@ -214,6 +216,7 @@ class Annotate {
     static std::string getr(const std::string &);
 
     static std::string translate(std::string &, int, std::vector<std::string> &, unsigned int& missingBases);
+
  private:
 
     // DNA base --> AA
@@ -232,6 +235,7 @@ class Annotate {
     
     static uint64_t transcript_group_id;
 
+    static std::set<uint64_t> alias_group_ids;
 
     /* static bool load_transcripts( uint64_t id ); */
 
@@ -248,13 +252,16 @@ class Annotate {
 
     static bool annotate(Variant & var , const std::vector<uint64_t> & );
 
+    typedef std::map<std::string, int> AnnotToCount;
+    static std::string getWorstAnnotation(const AnnotToCount& potentialWorstAnnotations);
+
     // pull a region from the cache
     static Region * from_cache( uint64_t id );
     
     // add regions to the cache, if not already in there
     static void add_transcripts( const std::vector<uint64_t> & id );
 
-    static const std::string DEFAULT_PRIORITIZED_WORST_ANNOTATIONS_ARRAY[];
+    static const std::string DEFAULT_PRIORITIZED_WORST_ANNOTATIONS[];
     static std::list<std::string> PRIORITIZED_WORST_ANNOTATIONS;
 
  public:
@@ -278,6 +285,9 @@ class Annotate {
     // Tell Annotate which group to look at for transcripts
     static bool set_transcript_group( const std::string & );
     
+    // Tell Annotate which alias group to add in for transcripts
+    static bool set_alias_groups( const std::set<std::string>& addAliases );
+
     // 3 main entry points to the Annotate::annotate() command; these all call
     // the same underlying code -- the private annotate(...) -- and return true 
     // if any 'interesting' annotation was added

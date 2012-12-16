@@ -174,6 +174,8 @@ class Region {
 
   int               group;
   
+  std::set<std::string> aliases;
+
   std::vector<Subregion> subregion; 
 
   MetaInformation<LocMeta>   meta;

@@ -64,6 +64,8 @@ struct PLINKSeq {
   static std::string & ANNOT();
   static std::string & ANNOT_TYPE();
   static std::string & ANNOT_GENE();
+  static std::string & ANNOT_ALIAS_GROUPS();
+  static std::string & ANNOT_ALIAS_GROUP_WORST();
   static std::string & ANNOT_CODING();
   static std::string & ANNOT_EXONIC();
   static std::string & ANNOT_CHANGE();
