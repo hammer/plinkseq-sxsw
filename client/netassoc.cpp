@@ -403,6 +403,9 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
   //
   
   double stat0 =  stat_adder( seed, param , inset , gscore );
+
+  // above function returns -1 if 0:0 -- treat as X=0 here
+  if ( stat0 < 0 ) stat0 = 0;
     
   //
   // initially, populate with 1st degree connections
@@ -437,11 +440,14 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
       while ( i != next_node.end() )
 	{
 	  
+	  std::cout << "considering ... " << stat0 << "\t";
+
 	  // skip genes we've already seen and made the score worse
 	  if ( ! i->retain )
 	    {
 	      ++i;
 	      ++cnt;
+	      std::cout << "  skip\n";
 	      continue;
 	    }
 
@@ -455,10 +461,19 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
 	    {
 	      best = (next_node_t*)&(*i);
 	      stat0 = stat1;	      
+	      std::cout << " new best\n";
+	    }
+	  else if ( stat1 == stat0 ) 
+	    {
+	      // otherwise consider including a 0:0 node
+	      best = (next_node_t*)&(*i);
+	      std::cout << " allow 1\n";
 	    }
 	  else 
-	    const_cast<bool&>(i->retain) = false;
-
+	    {
+	      const_cast<bool&>(i->retain) = false;
+	      std::cout << " no good\n";
+	    }
 	  ++i;
 	  ++cnt;
 	}
@@ -473,6 +488,8 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
       
       inset.insert( best->extension );
       
+      std::cout << "\n\n\n\n ------------------------------------------------ best->depth = " << best->depth << "\n";
+
       if ( best->depth < 2 )
 	{
 	  std::map<int,Aux_netdet>::const_iterator k = gscore.find( best->extension );
@@ -635,14 +652,15 @@ double Pseq::Assoc::NetDB::stat_adder( const int seed ,
   
   double odds = 0;
   
+  // allow 0/0 counts to be included as 'not worse'
+  if ( ca == 0 && cu == 0 ) return -1;
+
   if ( zero_count ) 
     odds = ( ( ca + 0.5 ) * ( du + 0.5 ) ) / ( ( cu + 0.5 ) * ( da + 0.5 ) ) ;   
   else
     odds = (double)( ca * du ) / (double)( cu * da );
 
-  // 1-sided test -- looking only for increase in risk
-  if ( odds <= 1 ) return 0;
-  
+
   // return chi-sq are test statistic
   return Helper::chi2x2( ca , cu , da , du ) ; 
 	  

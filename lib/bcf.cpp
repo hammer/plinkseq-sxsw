@@ -208,7 +208,7 @@ bool BCF::open()
   // does this file have correct EOF marker?
   
   if ( file == NULL || ( readmode && bgzf_check_EOF( file ) != 1 ) )
-    Helper::halt( "problem opening BCF -- is this a BGZF BCF file?" );
+     Helper::halt( "problem opening BCF -- is this a BGZF BCF file?" );
   
   return file == NULL;
 }

@@ -134,18 +134,22 @@ class GStore {
     { 
       plog.print_warnings();
       cleanUp();
+
     };
   
 
   void cleanUp() 
   {
-      fIndex.reset();
 
+      fIndex.reset();
+      
       if ( bcf ) 
 	{
 	  delete bcf;
 	  bcf = NULL;
 	}
+      
+      
 
   }
   

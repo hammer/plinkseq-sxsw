@@ -948,7 +948,12 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
 
   a.dump_stats_matrix = args.has( "dump-null-matrix" );
 
+  
+  //
+  // Output carrier individual genotypes per test?
+  //
 
+  a.dump_carriers = args.has( "carriers" );
 
   //
   // Which tests to apply?
@@ -1041,8 +1046,7 @@ bool Pseq::Assoc::set_assoc_test( Mask & m , const Pseq::Util::Options & args )
   //
 
   Out & pout = Out::stream( "assoc" );
-  Out & pdet = Out::stream( "assoc.det" );
-
+  
 
   //
   // Write header for 'assoc' file
@@ -1230,6 +1234,8 @@ void g_set_association( VariantGroup & vars , void * p )
       *pmat << vars.name() ;
     }
   
+  
+
   //
   // Apply tests to original dataset
   //
@@ -1259,14 +1265,19 @@ void g_set_association( VariantGroup & vars , void * p )
 	{ 
 	  test_name.push_back("BURDEN");
 	  test_statistic.push_back( aux_burden.stat_burden );
-	  if ( data->dump_stats_matrix ) *pmat << "\t" << aux_burden.stat_burden ;
+	  if ( data->dump_stats_matrix ) 
+	    *pmat << "\t" << aux_burden.alta 
+		  << "\t" << aux_burden.altu 
+		  << "\t" << aux_burden.na
+		  << "\t" << aux_burden.nu
+		  << "\t" << aux_burden.stat_burden;
 	}
       
       if ( data->uniq ) 
 	{ 
 	  test_name.push_back("UNIQ");
 	  test_statistic.push_back( aux_burden.stat_uniq );	  
-	  if ( data->dump_stats_matrix ) *pmat << "\t" << aux_burden.stat_uniq ;
+	  if ( data->dump_stats_matrix ) *pmat << "\t.\t.\t.\t." << "\t" << aux_burden.stat_uniq ;
 	}
       
       if ( data->mhit )
@@ -1371,7 +1382,7 @@ void g_set_association( VariantGroup & vars , void * p )
       aux_skat.set_optimal_mode( false );
       double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , &test_text , true ); 
       test_statistic.push_back( statistic );
-      if ( data->dump_stats_matrix ) *pmat << "\t" << -log10( statistic );
+      if ( data->dump_stats_matrix ) *pmat << "\t.\t.\t.\t." << "\t" << -log10( statistic )  ;
     }
 
 
@@ -1381,7 +1392,7 @@ void g_set_association( VariantGroup & vars , void * p )
       aux_skat.set_optimal_mode( true );
       double statistic = Pseq::Assoc::stat_skat( vars , &aux_prelim , &aux_skat , &test_text , true ); 
       test_statistic.push_back( statistic );
-      if ( data->dump_stats_matrix ) *pmat << "\t" << -log10( statistic );
+      if ( data->dump_stats_matrix ) *pmat  << "\t.\t.\t.\t." << "\t" << -log10( statistic ) ;
     }
 
 

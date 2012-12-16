@@ -1259,17 +1259,20 @@ bool VarDBase::add_var_to_set( const std::string & group , const Variant & v , b
 {
   
   // Var group ID
-  uint64_t grp_id = add_set( group ); 
 
+  uint64_t grp_id = add_set( group ); 
+  
   // Add for each attached variant
   
   const int ns = v.n_samples();
-
+  
   sql.bind_int64( stmt_insert_set_variant , ":set_id" , grp_id );
-
+  
   if ( ns == 0 ) 
     {
+      
       const SampleVariant & sample = v.consensus;
+
       uint64_t vidx = sample.index();
 
       sql.bind_int64( stmt_insert_set_variant , ":var_id" , vidx );
@@ -1291,7 +1294,7 @@ bool VarDBase::add_var_to_set( const std::string & group , const Variant & v , b
 
     }
   else
-  for (int s = 0 ; s < ns; s++ )
+    for (int s = 0 ; s < ns; s++ )
     {      
 
       const SampleVariant & sample = v.sample(s);
@@ -1498,9 +1501,25 @@ std::string VarDBase::get_superset_description( const std::string & name )
 }
 
 
- //
- // Individuals
- //
+std::map<uint64_t,std::vector<std::string> > VarDBase::fetch_vset_allelemap( const std::set<int> & grps )
+{
+  std::map<uint64_t,std::vector<std::string> > a;
+  std::set<int>::iterator ii = grps.begin();
+  {
+    sql.bind_int( stmt_fetch_set_variants , ":set_id" , *ii );
+    while ( sql.step( stmt_fetch_set_variants ) )
+      {
+	a[ sql.get_int64( stmt_fetch_set_variants , 0 ) ].push_back( sql.get_text( stmt_fetch_set_variants , 1 ) );
+	//	std::cout << *ii << " added " << sql.get_int64( stmt_fetch_set_variants , 0 ) << " " << sql.get_text( stmt_fetch_set_variants , 1 ) << "\n";
+      }
+    ++ii;
+  }
+  return a;
+}
+
+//
+// Individuals
+//
 
 
 std::vector<std::string> VarDBase::fetch_individuals(uint64_t file_id)

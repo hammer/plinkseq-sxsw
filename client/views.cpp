@@ -974,7 +974,7 @@ void f_simple_counts( Variant & var , void * p )
   
   // Output
 
-  pout << Helper::chrCode( var.chromosome() ) << ":" << var.position() ;
+  pout << var ;
 
   
 

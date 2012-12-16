@@ -13,6 +13,9 @@ extern Pseq::Util::Options args;
 
 void   Pseq::Assoc::prelim( const VariantGroup & vars , Aux_prelim * aux , AuxGenic * data )  
 {
+  
+  // track AuxGenic here too
+  aux->paux = data;
 
   // Track observed min/max minor allele counts
   
@@ -211,6 +214,9 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
   // for original data, represent the breakdown of variants in a nice manner
   Out * pdet = original ? &Out::stream( "assoc.det" ) : NULL ;
   
+  // for original data, optionally output actual carriers
+  Out * pcar = original &&  pre->paux->dump_carriers ? &Out::stream( "assoc.carriers" ) : NULL ;
+
   const int n = vars.n_individuals();
 
   // Given we are evaluating by permutation, just use a Z-test to get
@@ -306,6 +312,8 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 	}
       
 
+      // optional output, for real data
+
       if ( pdet ) 
 	*pdet << vars.name() << "\t"
 	      << vars(v) << "\t"
@@ -313,9 +321,42 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
 	      << "W="<< w << "\t"
 	      << alta << ":" << altu << "\n";
       
-	
       
     } // next variant
+  
+  
+      // carriers of ALT alleles; cycle through again
+  if ( pcar )
+    {
+      
+      for (int v=0; v < vars.size(); v++ ) 
+	{
+	  double w = pre->use_wgt ? pre->wgt[v] : 1;      
+	  bool adir = pre->refmin.find(v) == pre->refmin.end();
+	  
+	  for (int i = 0; i < n; i++)
+	    {
+	      if ( vars.geno(v,i).null() ) continue;		  
+	      affType aff = vars.ind( i )->affected();	  
+	      
+	      int ac = vars.geno(v,i).minor_allele( adir );
+	      if ( vars.geno(v,i).minor_allele( adir ) )
+		{	      
+		  *pcar << vars.name() << "\t"
+			<< vars(v) << "\t"
+			<< vars.ind(i)->id() << "\t"
+			<< w << "\t";
+		  
+		  if      ( aff == CASE )    *pcar << "CASE\t";
+		  else if ( aff == CONTROL ) *pcar << "CONTROL\t";
+		  else *pcar << ".\t";
+		  
+		  *pcar << ac << "\n";
+		}
+	    }
+	}
+    }
+
 
 
   // For Z-test, re-loop to get dominator
@@ -378,6 +419,10 @@ void Pseq::Assoc::stat_burden( const VariantGroup & vars ,
     aux->stat_burden = 0;
   else
     aux->stat_burden = ( mA - mU ) / sqrt( xxA/(double)nA + xxU/(double)nU ) ; 
+  
+  // track just case/control counts (dom. geno model)
+  aux->alta = mA; aux->altu = mU; 
+  aux->na = nA; aux->nu = nU;
   
   // use -log10(p) from Fisher's exact test; but 1-sided (so require higher alt-allele freq. in cases
   // if ( all_a == 0 || all_u == 0 || cnt_a / (double)all_a <= cnt_u / (double)all_u ) 
