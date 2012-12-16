@@ -900,7 +900,7 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
 
   aux.locs = args.get_set( "loc" );
   aux.refs = args.get_set( "ref" );
-  aux.refs_allelic = args.get_set( "ref_allelic" );
+  aux.refs_allelic = args.get_set( "ref-allelic" );
   aux.aliases = args.get_set( "alias" );
   aux.worstByAliases = args.get_set( "worstByAlias" );
 
