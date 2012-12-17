@@ -16,7 +16,7 @@
 #include "locdb.h"
 #include "refdb.h"
 #include "seqdb.h"
-
+#include "protdb.h"
 
 // In memory stores / interfaces
 
@@ -52,6 +52,8 @@ class GStore {
   
   LocDBase         locdb;
 
+  // Protein database
+  ProtDBase        protdb;
 
   // Segment database (project-specific)
 
@@ -269,6 +271,11 @@ class GStore {
 			       const std::string & alias , 
 			       const std::string & listmode );
   
+  // Protein database functions
+  void protdb_attach(std::string);
+  void protdb_summary();
+  void protdb_init();
+  ProtFeatureSet protdb_lookup(Variant &);
 
   //
   // Reference database functions
