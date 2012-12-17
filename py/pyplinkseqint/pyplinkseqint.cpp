@@ -1,6 +1,9 @@
 #include "pyplinkseqint.h"
-
+#include "plinkseq.h"
+#include "boost/lexical_cast.hpp"
+#include <string>
 #include <map>
+#include <vector>
 
 GStore *g;
 
@@ -8,6 +11,7 @@ void Py_init_Pyplinkseq() {
   g = new GStore;
   return;
 }
+
 
 std::string Py_gstore_version() {
   std::map<std::string, std::string> g_version = g->version();
@@ -32,6 +36,7 @@ void Py_set_project(std::string project) {
 std::string Py_summary() {
   return g->summary(false);
 }
+
 
 void accumulate_func(Variant &v, void *p) {
   // Variant
@@ -71,6 +76,8 @@ void accumulate_func(Variant &v, void *p) {
   d->push_back(var);
 }
 
+
+
 std::vector<Py_variant> Py_iterate(std::string mask, int limit) {
   Mask m(mask, "", true, false);
   g->register_mask(m);
@@ -80,16 +87,261 @@ std::vector<Py_variant> Py_iterate(std::string mask, int limit) {
   return vars;
 }
 
-Py_individual_map Py_ind_list(std::string mask) {
+Py_individual_map Py_ind_list(std::string mask , std::string pheno ) {
+
   Mask m(mask, "", true, false);
   g->register_mask(m);
   g->indmap.populate(g->vardb, g->phmap, m);
   const int n = g->indmap.size();
+
+  
+  // Labels 
   std::vector<std::string> ids;
   for (int i = 0; i < n; i++) {
     ids.push_back(g->indmap.ind(i)->id());
   }
   Py_individual_map ind_map;
+
   ind_map.ID = ids;
+
+  // Phenotypes MR
+  std::vector<std::string>  phe1;
+  std::string pname = pheno;
+
+  // Try to load
+  //  if( g->phmap.set_phenotype(pname) == 0) break ; 
+      
+  // Determine Type
+  mType mt = MetaInformation<IndivMeta>::type( pname );
+
+  //  if( mt == META_UNDEFINED ) break ; 
+      
+  if( mt == META_BOOL ){
+    //	std::vector<std::string> phe1;
+    for( int i=0; i < n; i++)
+      {
+	if( ! g->indmap.ind(i)->meta.has_field( pname ) )
+	  phe1.push_back("-9");
+	else
+	  phe1.push_back( boost::lexical_cast<std::string>(g->indmap.ind(i)->meta.get1_bool( pname )));
+      }
+
+
+  }
+  else if ( mt == META_INT )
+    {
+      // std::vector<std::string> phe1;
+      for( int i=0; i < n; i++)
+	{
+	  if( ! g->indmap.ind(i)->meta.has_field( pname ) )
+	    phe1.push_back("-9");
+	  else
+	    phe1.push_back(boost::lexical_cast<std::string>(g->indmap.ind(i)->meta.get1_int( pname )));
+	}
+
+      
+    }
+  else if (mt == META_FLOAT )
+    {
+      //  std::vector<std::string> phe1;
+      for( int i=0; i < n; i++)
+	{
+	  if( ! g->indmap.ind(i)->meta.has_field( pname ) )
+	    phe1.push_back("-9");
+	  else
+	    phe1.push_back(boost::lexical_cast<std::string>(g->indmap.ind(i)->meta.get1_double( pname )));
+	}	  
+    }
+  else if ( mt == META_TEXT )
+    {
+      //	  std::vector<std::string> phe1;
+      for( int i=0; i < n; i++)
+	{
+	  if( ! g->indmap.ind(i)->meta.has_field( pname ) )
+	    phe1.push_back("-9");
+	  else
+	    phe1.push_back(boost::lexical_cast<std::string>(g->indmap.ind(i)->meta.get1_string( pname ).c_str()));
+	}
+    }
+  Py_Phenotype phendata;
+  phendata.PHENOTYPE = phe1;
+  phendata.LABELS = pname; 
+  ind_map.PHENO = phendata; 
   return ind_map;
+}
+
+
+
+void Py_seqdbattach(std::string filename)
+{
+  g->seqdb.attach(filename);
+  Annotate::init();
+
+}
+
+void Py_locdbattach(std::string filename)
+{
+  g->locdb.attach(filename);
+  
+}
+
+
+void Py_annotate_load(std::string loc_id)
+{
+  Annotate::setDB( LOCDB );
+  Annotate::set_transcript_group( loc_id );
+   
+}
+
+void Py_locdb_load_gtf(std::string filename , std::string name )
+{
+  g->locdb.load_GTF(filename , name );
+  g->locdb.index();
+  
+}
+
+void Py_locdb_collapse_subregions(std::string id , std::string name )
+{
+  g->locdb.merge( id , name );
+  g->locdb.index();
+  
+}
+
+
+
+void Py_protdbattach( std::string name ){
+
+  g->protdb.attach( name );
+
+
+}
+
+
+
+std::string Py_protdb_summary()
+{
+  return g->protdb.summary();
+}
+std::string Py_locdb_summary() 
+{
+  return g->locdb.summary(false);
+}
+
+std::string Py_seqdb_summary() 
+{
+  return g->seqdb.summary(false);
+}
+
+std::string Py_refdb_summary() 
+{
+  return g->refdb.summary(false);
+}
+
+
+
+std::set<Py_Feature> Py_protdb_fetch( std::string db , std::string transcript ){
+  Py_ProtFeatureSet pys;
+
+  g->protdb.attach( db );
+  std::set<Feature> f  = g->protdb.fetch( transcript );
+  std::set<Feature>::iterator ii = f.begin();
+  while(ii != f.end() ){
+    Py_Feature fs;
+    fs.SOURCE_ID = ii->source_id ; 
+    fs.FEATURE_ID = ii->feature_id;
+    fs.FEATURE_NAME = ii->feature_name;
+    fs.PROTEIN_ID = ii->protein_id;
+    fs.PSTART = ii->pstart;
+    fs.PSTOP = ii->pstop;
+    fs.MSTR = ii->mstr;
+    fs.CHR = ii->chr;
+    fs.GSTART = ii->gstart;
+    fs.GSTOP = ii->gstop;
+    pys.add( transcript , fs );
+    ++ii;
+  };
+  return pys.get( transcript );
+}
+
+
+/*
+Py_ProtFeatureSet Py_protdb_lookup( int chr, int bp, std::string ref, std::string alt, std::string info){
+  Variant v("Var", chr, bp);
+  v.consensus.reference( ref );
+  v.consensus.alternate( alt );
+  std::set<Py_ProtFeatureSet> s;
+  //  std::set<Py_Feature> f;
+  ProtFeatureSet pfs =  g->protdb.lookup( v );
+  std::map<std::string, std::set<Feature> >::iterator ii = pfs.feat.begin();
+  while(ii != pfs.feat.end() )
+    {
+      std::set<Feature>::iterator jj = ii->second.begin();
+      while(jj != ii->second.end() ){
+      Py_Feature f;
+      f.SOURCE_ID = jj->source_id ; 
+      f.FEATURE_ID = jj->feature_id;
+      f.FEATURE_NAME = jj->feature_name;
+      f.PROTEIN_ID = jj->protein_id;
+      f.PSTART = jj->pstart;
+      f.PSTOP = jj->pstop;
+      f.MSTR = jj->mstr;
+      f.CHR = jj->chr;
+      f.GSTART = jj->gstart;
+      f.GSTOP = jj->gstop;
+
+      s.add( f );
+      ++jj;
+      }
+      ++ii;
+    }
+  return s;
+}
+
+
+*/
+std::string Py_seqdb_annotate( int chr , int bp , std::string ref , std::string alt , std::string info )
+{
+
+  Variant v("Var" , chr, bp);
+  v.consensus.reference( ref );
+  v.consensus.alternate( alt );
+  Annotate::annotate( v );
+  if( info == "annot" ){
+    return v.meta.get1_string( PLINKSeq::ANNOT() );
+  }
+  else if( info == "func" ){
+    return v.meta.as_string( PLINKSeq::ANNOT_TYPE() , ",");
+    
+  }
+  else if( info == "genomic" ){
+    return v.meta.as_string( PLINKSeq::ANNOT_CHANGE() , ",");
+    
+  }
+  else if( info == "codon" ){
+    return v.meta.as_string( PLINKSeq::ANNOT_CODON() , ",");
+    
+  }
+
+  else if( info == "transcript" ){
+    return v.meta.as_string( PLINKSeq::ANNOT_GENE() , ",");
+    
+  }
+  else if( info == "summary" ){
+    return v.meta.as_string( PLINKSeq::ANNOT_SUMMARY() , ",");
+    
+  }
+
+  else if( info == "protein" ){
+    return v.meta.as_string( PLINKSeq::ANNOT_PROTEIN() , ",");
+
+  }
+  else if( info == "details"){
+    return v.meta.as_string( PLINKSeq::ANNOT_DETAILS() , ",");
+
+  }
+  else{
+    return v.meta.as_string( PLINKSeq::META_ANNOT(), ",");
+    
+  }
+  
 }
