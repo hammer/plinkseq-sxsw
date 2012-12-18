@@ -415,9 +415,6 @@ bool Annotate::annotate(Variant & var, const std::vector<uint64_t> & ids) {
 
 		var.meta.add(PLINKSeq::ANNOT_ALIAS_GROUPS(), alias);
 		var.meta.add(PLINKSeq::ANNOT_ALIAS_GROUP_WORST(), aliasWorst);
-
-		for (AnnotToCount::const_iterator annotIt = aliasAnnots.begin(); annotIt != aliasAnnots.end(); ++annotIt)
-			potentialWorstAnnotations[annotIt->first] += annotIt->second;
 	}
 
 	//
@@ -509,9 +506,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 	while (a != alt.end()) {
 		std::string act_ref = reference;
 		std::string act_alt = *a;
-		int act_bp1 = bp1;
-		int act_bp2 = act_alt.size() > act_ref.size() ? act_bp1 + act_alt.size() - 1 : act_bp1 + act_ref.size() - 1;
-		int bp2 = act_bp2;
+		int ref_range_start = bp1;
 
 		//
 		// Trim actual REF/ALT range to only reflect variant bases
@@ -540,14 +535,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 
 		// need to trim?
 		if (o1 || o2) {
-			act_bp1 += o1;
-			act_bp2 -= o2;
-
-			if (act_bp1 > act_bp2) {
-				++a;
-				plog.warn("found invalid allele");
-				continue;
-			}
+			ref_range_start += o1;
 
 			if (o1 > act_ref.size())
 				act_ref = "";
@@ -558,6 +546,15 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			else
 				act_alt = act_alt.substr(o1, act_alt.size() - o2 - o1);
 		}
+
+		bool isInsertion = (act_ref.size() == 0);
+
+		int ref_range_end;
+		if (!isInsertion) // If not an insertion, then make the ref_range end where it should (at one position back):
+			ref_range_end = ref_range_start + act_ref.size() - 1;
+		else
+			// Whereas for an insertion, we want an interval of length 1 (to not have an empty interval):
+			ref_range_end = ref_range_start;
 
 		//
 		// Consider each transcript supplied (that should overlap this position):
@@ -642,7 +639,11 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 
 			int inCDS = -1;
 			for (unsigned int s = 0; s < r_cds.subregion.size(); s++) {
-				if (act_bp1 <= r_cds.subregion[s].stop.position() && r_cds.subregion[s].start.position() <= act_bp2) {
+				int effectiveCDSstop = r_cds.subregion[s].stop.position();
+				if (isInsertion)
+					++effectiveCDSstop;
+
+				if (ref_range_start <= effectiveCDSstop && r_cds.subregion[s].start.position() <= ref_range_end) {
 					inCDS = s;
 
 					//
@@ -660,7 +661,11 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			//
 			int inExon = -1;
 			for (unsigned int s = 0; s < r_exon.subregion.size(); s++) {
-				if (act_bp1 <= r_exon.subregion[s].stop.position() && r_exon.subregion[s].start.position() <= act_bp2)
+				int effectiveExonStop = r_exon.subregion[s].stop.position();
+				if (isInsertion)
+					++effectiveExonStop;
+
+				if (ref_range_start <= effectiveExonStop && r_exon.subregion[s].start.position() <= ref_range_end)
 					inExon = s;
 			}
 
@@ -709,11 +714,11 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 				// Changed to + if splice variant is DONOR  EXON 1 | INTRON | EXON2
 				//                                            -  321     321
 				//                                            +     123     123
-				int bp1DistFromSpliceBoundaryAtStart = r_exon.subregion[s].start.position() - act_bp1;
-				int bp1DistFromSpliceBoundaryAtStop = r_exon.subregion[s].stop.position() - act_bp1;
+				int bp1DistFromSpliceBoundaryAtStart = r_exon.subregion[s].start.position() - ref_range_start;
+				int bp1DistFromSpliceBoundaryAtStop = r_exon.subregion[s].stop.position() - ref_range_start;
 
-				int bp2DistFromSpliceBoundaryAtStart = act_bp2 - r_exon.subregion[s].start.position();
-				int bp2DistFromSpliceBoundaryAtStop = act_bp2 - r_exon.subregion[s].stop.position();
+				int bp2DistFromSpliceBoundaryAtStart = ref_range_end - r_exon.subregion[s].start.position();
+				int bp2DistFromSpliceBoundaryAtStop = ref_range_end - r_exon.subregion[s].stop.position();
 
 				bool deleteSpliceBoundaryAtStart = s != FIRST_POSITIVE_STRAND_EXON_IND && bp1DistFromSpliceBoundaryAtStart > 0 && bp2DistFromSpliceBoundaryAtStart >= 0;
 				bool deleteSpliceBoundaryAtStop = s != LAST_POSITIVE_STRAND_EXON_IND && bp1DistFromSpliceBoundaryAtStop >= 0 && bp2DistFromSpliceBoundaryAtStop > 0;
@@ -995,17 +1000,14 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			//
 			// identify UTR mutations
 			//
-			if (inExon > -1 && inCDS == -1 && r_cds.subregion.size() > 0) {
+			if (inExon > -1 && r_cds.subregion.size() > 0) {
 				int cds_start = r_cds.subregion[0].start.position();
 				int cds_end = r_cds.subregion[r_cds.subregion.size() - 1].stop.position();
 
-				if ((act_bp1 < cds_start && positive_strand) || (act_bp2 > cds_end && negative_strand))
+				if ((ref_range_start < cds_start && positive_strand) || (ref_range_end > cds_end && negative_strand))
 					annot.insert(SeqInfo(r->name, r->aliases, UTR5));
-				if ((act_bp1 < cds_start && negative_strand) || (act_bp2 > cds_end && positive_strand))
+				if ((ref_range_start < cds_start && negative_strand) || (ref_range_end > cds_end && positive_strand))
 					annot.insert(SeqInfo(r->name, r->aliases, UTR3));
-
-				++ii;
-				continue;
 			}
 
 			//
@@ -1024,7 +1026,11 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 				++ii; // next region
 				continue;
 			}
-			// NOTE: inCDS > -1  [by the logic of continue statements above]
+
+			if (inCDS == -1) {
+				++ii;
+				continue;
+			}
 
 			//
 			// Get reference sequence
@@ -1062,34 +1068,38 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			// Calculate the distance into the containing CDStoUse:
 			int ZERO_BASED_start_pos_in_CDS = 0;
 
-			int trimFromRefBeforeCDS = 0; // how many bases after act_bp1 does the ref allele actually overlap the CDS
+			int trimFromRefBeforeCDS = 0; // how many bases after ref_range_start does the ref allele actually overlap the CDS
 			int trimFromRefAfterCDS = 0; // how much further after the CDStoUse does the ref allele end (at act_bp2)
 
+			int effectiveCDSstop = r_cds.subregion[inCDS].stop.position();
+			if (isInsertion && ref_range_start == effectiveCDSstop + 1) // insertion at base after CDS
+				++effectiveCDSstop; // extending CDS to include this position
+
 			if (positive_strand) {
-				if (act_bp1 >= r_cds.subregion[inCDS].start.position()) {
-					ZERO_BASED_start_pos_in_CDS = act_bp1 - r_cds.subregion[inCDS].start.position();
+				if (ref_range_start >= r_cds.subregion[inCDS].start.position()) {
+					ZERO_BASED_start_pos_in_CDS = ref_range_start - r_cds.subregion[inCDS].start.position();
 				}
-				else { // act_bp1 < r_cds.subregion[inCDS].start.position()
+				else { // ref_range_start < r_cds.subregion[inCDS].start.position()
 					ZERO_BASED_start_pos_in_CDS = 0;
-					trimFromRefBeforeCDS = r_cds.subregion[inCDS].start.position() - act_bp1;
+					trimFromRefBeforeCDS = r_cds.subregion[inCDS].start.position() - ref_range_start;
 				}
 
-				if (act_bp2 > r_cds.subregion[inCDS].stop.position())
-					trimFromRefAfterCDS = act_bp2 - r_cds.subregion[inCDS].stop.position();
+				if (ref_range_end > effectiveCDSstop)
+					trimFromRefAfterCDS = ref_range_end - effectiveCDSstop;
 			}
 			else { // negative_strand:
-				// NOTE: from inCDS definition, always holds that: act_bp1 <= r_cds.subregion[inCDS].stop.position()
-				if (act_bp1 >= r_cds.subregion[inCDS].start.position()) {
-					ZERO_BASED_start_pos_in_CDS = r_cds.subregion[inCDS].stop.position() - act_bp1;
+				// NOTE: from inCDS definition, always holds that: ref_range_start <= effectiveCDSstop
+				if (ref_range_start >= r_cds.subregion[inCDS].start.position()) {
+					ZERO_BASED_start_pos_in_CDS = effectiveCDSstop - ref_range_start;
 				}
-				else { // act_bp1 < r_cds.subregion[inCDS].start.position()
-					ZERO_BASED_start_pos_in_CDS = r_cds.subregion[inCDS].stop.position() - r_cds.subregion[inCDS].start.position();
-					trimFromRefAfterCDS = r_cds.subregion[inCDS].start.position() - act_bp1;
+				else { // ref_range_start < r_cds.subregion[inCDS].start.position()
+					ZERO_BASED_start_pos_in_CDS = effectiveCDSstop - r_cds.subregion[inCDS].start.position();
+					trimFromRefAfterCDS = r_cds.subregion[inCDS].start.position() - ref_range_start;
 				}
 
-				if (act_bp2 > r_cds.subregion[inCDS].stop.position())
+				if (ref_range_end > effectiveCDSstop)
 					// since negative strand, will trim these bases BEFORE the CDStoUse (on the reverse complement sequence):
-					trimFromRefBeforeCDS = act_bp2 - r_cds.subregion[inCDS].stop.position();
+					trimFromRefBeforeCDS = ref_range_end - effectiveCDSstop;
 			}
 
 			ZERO_BASED_pos_in_extracted_seq_CDS += ZERO_BASED_start_pos_in_CDS;
@@ -1129,7 +1139,9 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			}
 			std::string varAlleleToUse = var_allele.substr(varAlleleStart, varAlleleLengthToUse);
 
-			unsigned int numRefBasesToReplace = act_ref.size() - trimFromRefBeforeCDS - trimFromRefAfterCDS;
+			int numRefBasesToReplace = static_cast<int>(act_ref.size()) - trimFromRefBeforeCDS - trimFromRefAfterCDS;
+			if (numRefBasesToReplace < 0)
+				Helper::halt("INTERNAL ERROR: numRefBasesToReplace < 0");
 			/*
 			std::cout << "Replacing " << numRefBasesToReplace << " bases of reference CDS, starting from " << ZERO_BASED_pos_in_extracted_seq_CDS << ", with '" << varAlleleToUse << "'" << std::endl;
 			*/
