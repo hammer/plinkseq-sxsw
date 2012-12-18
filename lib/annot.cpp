@@ -639,11 +639,21 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 
 			int inCDS = -1;
 			for (unsigned int s = 0; s < r_cds.subregion.size(); s++) {
+				/* The following makes sure that an insertion does not count as CDS
+				if it is 1 base past the CDS end (on positive strand; or 1 base before CDS's beginning, if on negative strand):
+				 */
 				int effectiveCDSstop = r_cds.subregion[s].stop.position();
-				if (isInsertion)
+				if (isInsertion && s < r_cds.subregion.size() - 1)
 					++effectiveCDSstop;
 
-				if (ref_range_start <= effectiveCDSstop && r_cds.subregion[s].start.position() <= ref_range_end) {
+				/* The following makes sure that an insertion does not count as CDS
+				if it is at the first base of the CDS (on positive strand; or 1 base after CDS's end, if on negative strand):
+				 */
+				int effectiveCDSstart = r_cds.subregion[s].start.position();
+				if (isInsertion && s == 0)
+					++effectiveCDSstart;
+
+				if (ref_range_start <= effectiveCDSstop && effectiveCDSstart <= ref_range_end) {
 					inCDS = s;
 
 					//
@@ -1004,10 +1014,20 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 				int cds_start = r_cds.subregion[0].start.position();
 				int cds_end = r_cds.subregion[r_cds.subregion.size() - 1].stop.position();
 
-				if ((ref_range_start < cds_start && positive_strand) || (ref_range_end > cds_end && negative_strand))
+				/* As above, the following makes sure that an insertion does not count as CDS
+				if it is at the first base of the CDS (on positive strand; or 1 base after CDS's end, if on negative strand).
+				Instead, we consider this (here) as the insertion of new UTR sequnence:
+				 */
+				int effective_cds_start = cds_start;
+				if (isInsertion)
+					++effective_cds_start;
+
+				if ((ref_range_start < effective_cds_start && positive_strand) || (ref_range_end > cds_end && negative_strand))
 					annot.insert(SeqInfo(r->name, r->aliases, UTR5));
-				if ((ref_range_start < cds_start && negative_strand) || (ref_range_end > cds_end && positive_strand))
+				else if ((ref_range_start < effective_cds_start && negative_strand) || (ref_range_end > cds_end && positive_strand))
 					annot.insert(SeqInfo(r->name, r->aliases, UTR3));
+				else if (inCDS == -1)
+					Helper::halt("Invalid transcript with non-CDS region that lies between CDS regions");
 			}
 
 			//
