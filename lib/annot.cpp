@@ -1442,12 +1442,15 @@ void SeqInfo::details(Variant & var) const {
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "ESEQ=" + eseq);
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "SPLICE_TYPE=" + splice_type);
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "ALT=" + alt);
+		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=c.IVS" + Helper::int2str(exin) + "+" +  Helper::int2str(splicedist) + genomic_ref + ">" + genomic_alt );
+
 	}
 
 	if (nonsense()) {
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "NMD=" + Helper::int2str(nmd));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "OFPTV=" + Helper::int2str(ofptv));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "PEPSIZE=" + Helper::int2str(origpepsize) + "->" + Helper::int2str(newpepsize));
+		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=" + ref_aa + Helper::int2str( ppos1 ) + alt_aa );
 	}
 
 	if (frameshift()) {
@@ -1455,6 +1458,7 @@ void SeqInfo::details(Variant & var) const {
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "OFPTV=" + Helper::int2str(ofptv));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "FSX=" + Helper::int2str(fs_stop));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "PEPSIZE=" + Helper::int2str(origpepsize) + "->" + Helper::int2str(newpepsize));
+		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=" + ref_aa + Helper::int2str( ppos1 ) + alt_aa + "fsX" + Helper::int2str( fs_stop ) + "X" );
 	}
 
 	if (startlost()) {
@@ -1462,10 +1466,12 @@ void SeqInfo::details(Variant & var) const {
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "PEPSIZE=" + Helper::int2str(origpepsize) + "->" + Helper::int2str(newpepsize));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "OFPTV=" + Helper::int2str(ofptv));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "NMD=" + Helper::int2str(nmd));
+
 	}
 
 	if (readthrough()) {
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "PEPSIZE=" + Helper::int2str(origpepsize) + "->" + Helper::int2str(newpepsize));
+
 	}
 }
 
