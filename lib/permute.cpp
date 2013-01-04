@@ -10,6 +10,8 @@
 using namespace std;
 using namespace Helper;
 
+const double PERM_EPS = 1e-8;
+
 void Permute::initiate(int n, int s)
 {
 
@@ -274,9 +276,8 @@ bool Permute::score( const std::vector<double> & v )
 	      if ( valid ) 
 		{
 		  
-
-		  if ( v[s] > original_score[s] ) ++r[s];
-		  else if ( v[s] == original_score[s] ) 
+		  if ( ( v[s] + PERM_EPS ) > original_score[s] ) ++r[s];    // f.p. greater than
+		  else if ( fabs( v[s] - original_score[s] ) < PERM_EPS )   // f.p. equals 
 		    {
 		      
 		      // break exact ties; use whatever the last RND
@@ -304,8 +305,6 @@ bool Permute::score( const std::vector<double> & v )
 		      max_score[s][ performed - 1 ] = v[s];
 		    }
 		  
-		  //		  std::cout << "perm = " << v[s] << "\t" << mintie[s] << "\t" << best_perm_score[s] << "\n";
-
 		  // track minimum p-value within site
 		  if ( performed == 1 || v[s] > best_perm_score[s] )
 		    {

@@ -884,7 +884,7 @@ void f_istat( Variant & v , void * p)
 	  if ( altgen ) istat->nalt[ id ]++;	      
 	  if ( mingen ) istat->nmin[ id ]++;
 	  if ( genotype.heterozygote() ) istat->nhet[id]++;
-	  if ( altgen && vstat->n_singleton ) s.n_singleton++;
+	  if ( mingen && vstat->n_singleton ) s.n_singleton++;
 	  
 
 	  // 1) For all variant-level statistics, calculate per individual, only 
