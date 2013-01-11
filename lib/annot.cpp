@@ -1450,7 +1450,7 @@ void SeqInfo::details(Variant & var) const {
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "NMD=" + Helper::int2str(nmd));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "OFPTV=" + Helper::int2str(ofptv));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "PEPSIZE=" + Helper::int2str(origpepsize) + "->" + Helper::int2str(newpepsize));
-		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=" + ref_aa + Helper::int2str( ppos1 ) + alt_aa );
+		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa );
 	}
 
 	if (frameshift()) {
@@ -1458,7 +1458,7 @@ void SeqInfo::details(Variant & var) const {
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "OFPTV=" + Helper::int2str(ofptv));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "FSX=" + Helper::int2str(fs_stop));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "PEPSIZE=" + Helper::int2str(origpepsize) + "->" + Helper::int2str(newpepsize));
-		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=" + ref_aa + Helper::int2str( ppos1 ) + alt_aa + "fsX" + Helper::int2str( fs_stop ) + "X" );
+		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa + "fsX" + Helper::int2str( fs_stop ) + "X" );
 	}
 
 	if (startlost()) {
