@@ -1701,6 +1701,7 @@ struct Aux_transmission_summary {
 		minPar_AB_ref = -1;
 		minMQ = -1;
 		maxAAC = -1;
+		allowDoubleAltDeNovos = false;
 		printTransmission = false;
 
 		SET_INT(minChildDP)
@@ -1712,6 +1713,7 @@ struct Aux_transmission_summary {
 		SET_FLOAT(minPar_AB_ref)
 		SET_FLOAT(minMQ)
 		SET_INT(maxAAC)
+		SET_FLAG(allowDoubleAltDeNovos)
 		SET_FLAG(printTransmission)
 	}
   
@@ -1729,6 +1731,8 @@ struct Aux_transmission_summary {
   double minMQ;
   int maxAAC;
   
+  bool allowDoubleAltDeNovos;
+
   bool printTransmission;
 };
 
@@ -1890,8 +1894,11 @@ void f_denovo_scan( Variant & v , void * p ) {
 			bool a2Pat_a1Mat = a2Pat && a1Mat;
 			bool bothAllelesInherited = a1Pat_a2Mat || a2Pat_a1Mat;
 
-			std::string childRefAllele = "";
-			std::string childAltAllele = "";
+			std::string refAllele = v.reference();
+			std::string childAllele1 = v.allele1_label(*gc);
+			std::string childAllele2 = v.allele2_label(*gc);
+
+			std::string deNovoDescription = "";
 
 			if (bothAllelesInherited) {
 				// Will count this trio's transmission at most once for Het->Ref and at most once for Het->Alt:
@@ -1940,23 +1947,23 @@ void f_denovo_scan( Variant & v , void * p ) {
 			else {
 				summary->_nonmendelian++;
 
-				/* Both parents are homozygous reference, and one of child alleles is an inherited *reference* allele.
-				 * So, only 1 of 2 child alleles are de novo, which is the case we want to consider (most "believable"):
+				/* Check that both parents are homozygous reference.
+				 *
+				 * If inheritedOneRef, one of child alleles is still an inherited *reference* allele.
+				 * So, only 1 of 2 child alleles are de novo, which is the case we consider most "believable".
+				 *
+				 * Or, allow the less believable scenario of 2 new ALTs in the kid if --allowHomAltDeNovos flag given:
 				 */
 				bool bothParentsHomRef = gp->reference() && gm->reference();
 				bool inheritedOneRef = ((a1Pat || a1Mat) && gc->a1IsReference()) || ((a2Pat || a2Mat) && gc->a2IsReference());
 
-				if (bothParentsHomRef && inheritedOneRef) {
+				if (bothParentsHomRef && (inheritedOneRef || aux->allowDoubleAltDeNovos)) {
 					summary->_potential_denovo++;
 
-					if (gc->a1IsReference()) {
-						childRefAllele = v.allele1_label(*gc);
-						childAltAllele = v.allele2_label(*gc);
-					}
-					else if (gc->a2IsReference()) {
-						childRefAllele = v.allele2_label(*gc);
-						childAltAllele = v.allele1_label(*gc);
-					}
+					if (inheritedOneRef)
+						deNovoDescription = "RefxRef->Het[Ref+Alt]";
+					else
+						deNovoDescription = "RefxRef->Alt+Alt";
 				}
 			}
 
@@ -1964,9 +1971,11 @@ void f_denovo_scan( Variant & v , void * p ) {
 
 			// Would this putative de novo pass special denovo filters?
 			if (denovo) {
+				// Make sure that child, pat, and mat have meta-info (e.g., AD and PL) regarding the ref allele and all child alleles:
 				std::set<std::string> requireAlleles;
-				requireAlleles.insert(childRefAllele);
-				requireAlleles.insert(childAltAllele);
+				requireAlleles.insert(refAllele);
+				requireAlleles.insert(childAllele1);
+				requireAlleles.insert(childAllele2);
 
 				SampleVarGenotypeAlleleInds childDat = getSampleDataForAllelesInIndiv(v, child, requireAlleles);
 				SampleVarGenotypeAlleleInds patDat =   getSampleDataForAllelesInIndiv(v, pat, requireAlleles);
@@ -2001,6 +2010,9 @@ void f_denovo_scan( Variant & v , void * p ) {
 				gp = patDat.gt;
 				gm = matDat.gt;
 
+				int all1IndChild = childDat.alleleToInd[childAllele1];
+				int all2IndChild = childDat.alleleToInd[childAllele2];
+
 				// Depths:
 				if (aux->minChildDP > 0) {
 					if (!gc->meta.has_field("DP"))
@@ -2029,9 +2041,7 @@ void f_denovo_scan( Variant & v , void * p ) {
 					else {
 						std::vector<int> pl = gc->meta.get_int("PL");
 
-						int refInd = childDat.alleleToInd[childRefAllele];
-						int altInd = childDat.alleleToInd[childAltAllele];
-						int ind = diploidGenotypeToPLindex(refInd, altInd);
+						int ind = diploidGenotypeToPLindex(all1IndChild, all2IndChild);
 						if (ind >= pl.size() || pl[ind] != 0)
 							denovo = false; // the called genotype does not have a PL of 0
 
@@ -2049,7 +2059,7 @@ void f_denovo_scan( Variant & v , void * p ) {
 					else {
 						std::vector<int> pl = gp->meta.get_int("PL");
 
-						int refInd = patDat.alleleToInd[childRefAllele];
+						int refInd = patDat.alleleToInd[refAllele];
 						int ind = diploidGenotypeToPLindex(refInd, refInd);
 						if (ind >= pl.size() || pl[ind] != 0)
 							denovo = false; // the called genotype does not have a PL of 0
@@ -2065,7 +2075,7 @@ void f_denovo_scan( Variant & v , void * p ) {
 					else {
 						std::vector<int> pl = gm->meta.get_int("PL");
 
-						int refInd = matDat.alleleToInd[childRefAllele];
+						int refInd = matDat.alleleToInd[refAllele];
 						int ind = diploidGenotypeToPLindex(refInd, refInd);
 						if (ind >= pl.size() || pl[ind] != 0)
 							denovo = false; // the called genotype does not have a PL of 0
@@ -2088,14 +2098,20 @@ void f_denovo_scan( Variant & v , void * p ) {
 						for (std::vector<int>::const_iterator adIt = ad.begin(); adIt != ad.end(); ++adIt)
 							AD_DP += *adIt;
 
-						int refInd = childDat.alleleToInd[childRefAllele];
-						int altInd = childDat.alleleToInd[childAltAllele];
-
-						if (aux->minChild_AB_alt > 0 && (altInd >= ad.size() || (ad[altInd] / AD_DP) < aux->minChild_AB_alt))
-							denovo = false;
-
+						int refInd = childDat.alleleToInd[refAllele];
 						if (aux->minChild_AB_ref > 0 && (refInd >= ad.size() || (ad[refInd] / AD_DP) < aux->minChild_AB_ref))
 							denovo = false;
+
+						std::list<int> checkPossibleAltInds;
+						checkPossibleAltInds.push_back(all1IndChild);
+						checkPossibleAltInds.push_back(all2IndChild);
+						for (std::list<int>::const_iterator it = checkPossibleAltInds.begin(); it != checkPossibleAltInds.end(); ++it) {
+							int altInd = *it;
+							if (altInd != refInd) { // Exclude the REF allele:
+								if (aux->minChild_AB_alt > 0 && (altInd >= ad.size() || (ad[altInd] / AD_DP) < aux->minChild_AB_alt))
+									denovo = false;
+							}
+						}
 					}
 				}
 
@@ -2110,7 +2126,7 @@ void f_denovo_scan( Variant & v , void * p ) {
 						for (std::vector<int>::const_iterator adIt = ad.begin(); adIt != ad.end(); ++adIt)
 							AD_DP += *adIt;
 
-						int refInd = patDat.alleleToInd[childRefAllele];
+						int refInd = patDat.alleleToInd[refAllele];
 
 						if (refInd >= ad.size() || (ad[refInd] / AD_DP) < aux->minPar_AB_ref)
 							denovo = false;
@@ -2125,7 +2141,7 @@ void f_denovo_scan( Variant & v , void * p ) {
 						for (std::vector<int>::const_iterator adIt = ad.begin(); adIt != ad.end(); ++adIt)
 							AD_DP += *adIt;
 
-						int refInd = matDat.alleleToInd[childRefAllele];
+						int refInd = matDat.alleleToInd[refAllele];
 
 						if (refInd >= ad.size() || (ad[refInd] / AD_DP) < aux->minPar_AB_ref)
 							denovo = false;
@@ -2179,14 +2195,13 @@ void f_denovo_scan( Variant & v , void * p ) {
 					denovo = false;
 			}
 
-			// directly output possible de novo events (only REF x REF --> HET)
-			// that also passed any above, de-novo specific filters
+			// Output possible de novo events that also passed any de-novo specific filters:
 			if (denovo) {
 				// track # of actual 'passing' de novo calls
 				summary->_dcount++;
 
 				pDeNovos << "Variant" << "\t"
-						<< "RefxRef->Het[Ref+Alt]" << "\t"
+						<< deNovoDescription << "\t"
 						<< VAR_DATA << "\n";
 			}
 
