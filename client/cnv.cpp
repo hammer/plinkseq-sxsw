@@ -145,7 +145,7 @@ void Pseq::VarDB::f_cnv_denovo_scan(Variant& v, void* p) {
 
 		ChildTransmissionSummary& childSummary = childrenSummary[child->id()];
 
-		bool lookForDeNovos = !aux->allowDeNovoWithoutDiscoveryInChild || eventOracle->discoveredInIndiv(childInd);
+		bool lookForDeNovos = aux->allowDeNovoWithoutDiscoveryInChild || eventOracle->discoveredInIndiv(childInd);
 		for (int altInd = 0; altInd < eventOracle->getNumAltAlleles(); ++altInd) {
 			// Start from 2nd allele [since we assume the first is always the REF allele]:
 			const int alleleInd = altInd + 1;

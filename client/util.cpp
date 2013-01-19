@@ -336,7 +336,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
     // Family-based operations
     //
 
-	  << "denovo|views|filter for de-novo mutations (SNPs and indels)|VCF|ARG:minChildDP,minParDP,minChildPL,minParPL,minChild_AB_alt,minChild_AB_ref,minPar_AB_ref,minMQ,maxAAC,printTransmission|OUT:denovo.vars,denovo.indiv,parent_transmission.vars"
+	  << "denovo|views|filter for de-novo mutations (SNPs and indels)|VCF|ARG:minChildDP,minParDP,minChildPL,minParPL,minChild_AB_alt,minChild_AB_ref,minPar_AB_ref,minMQ,maxAAC,allowDoubleAltDeNovos,printTransmission|OUT:denovo.vars,denovo.indiv,parent_transmission.vars"
 	  << "cnv-denovo|views|filter for de-novo CNV mutations|VCF|ARG:minSQ,minNQ,allowDeNovoWithoutDiscoveryInChild|OUT:denovo.cnv,denovo.indiv"
 
     //
@@ -564,13 +564,14 @@ std::string Pseq::Util::Options::load( int n , char ** argv )
     // De novo scan parameters:
     reg("minChildDP", INT, "Minimum child depth");
     reg("minParDP", INT, "Minimum parental depth");
-    reg("minChildPL", FLOAT, "Minimum child PL (genotype likelihood) for non-het genotype");
+    reg("minChildPL", FLOAT, "Minimum child PL (genotype likelihood) for non-called genotype");
     reg("minParPL", FLOAT, "Minimum parental PL (genotype likelihood) for non-homozygous reference genotype");
     reg("minChild_AB_alt", FLOAT, "Minimum child AB-ALT (% of reads with ALT allele)");
     reg("minChild_AB_ref", FLOAT, "Minimum child AB-REF (% of reads with REF allele)");
     reg("minPar_AB_ref", FLOAT, "Minimum parental AB-REF (% of reads with REF allele)");
     reg("minMQ", FLOAT, "Minimum MQ (read mapping quality)");
     reg("maxAAC", INT, "Maximum AAC (alternate allele count at this site)");
+    reg("allowDoubleAltDeNovos", NONE, "Include de novos that consist of two alternate alleles in child");
     reg("printTransmission", NONE, "Parent variants will be printed with transmission status to the parent_transmission.vars file");
 
     reg("minSQ", INT, "Minimum SQ score for calling a CNV (e.g., in child)");
