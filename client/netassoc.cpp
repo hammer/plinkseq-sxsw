@@ -405,7 +405,7 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
   double stat0 =  stat_adder( seed, param , inset , gscore );
 
   // above function returns -1 if 0:0 -- treat as X=0 here
-  if ( stat0 < 0 ) stat0 = 0;
+  //  if ( stat0 < 0 ) stat0 = 0;
     
   //
   // initially, populate with 1st degree connections
@@ -440,14 +440,14 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
       while ( i != next_node.end() )
 	{
 	  
-	  std::cout << "considering ... " << stat0 << "\t";
+	  //	  std::cout << "considering ... " << stat0 << "\t";
 
 	  // skip genes we've already seen and made the score worse
 	  if ( ! i->retain )
 	    {
 	      ++i;
 	      ++cnt;
-	      std::cout << "  skip\n";
+	      //std::cout << "  skip\n";
 	      continue;
 	    }
 
@@ -461,18 +461,18 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
 	    {
 	      best = (next_node_t*)&(*i);
 	      stat0 = stat1;	      
-	      std::cout << " new best\n";
+	      //std::cout << " new best\n";
 	    }
-	  else if ( stat1 == stat0 ) 
-	    {
-	      // otherwise consider including a 0:0 node
-	      best = (next_node_t*)&(*i);
-	      std::cout << " allow 1\n";
-	    }
+	  // else if ( stat1 == stat0 ) 
+	  //   {
+	  //     // otherwise consider including a 0:0 node
+	  //     best = (next_node_t*)&(*i);
+	  //     //std::cout << " allow 1\n";
+	  //   }
 	  else 
 	    {
 	      const_cast<bool&>(i->retain) = false;
-	      std::cout << " no good\n";
+	      //std::cout << " no good\n";
 	    }
 	  ++i;
 	  ++cnt;
@@ -488,7 +488,7 @@ double Pseq::Assoc::NetDB::net_statistic( const int seed,
       
       inset.insert( best->extension );
       
-      std::cout << "\n\n\n\n ------------------------------------------------ best->depth = " << best->depth << "\n";
+      // std::cout << "\n\n\n\n ------------------------------------------------ best->depth = " << best->depth << "\n";
 
       if ( best->depth < 2 )
 	{

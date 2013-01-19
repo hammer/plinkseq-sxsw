@@ -66,11 +66,15 @@ int main( int argc , char ** argv )
 
   int off = argc == 6 ? 1 : 0;
   bool calc_max = false;
+  bool calc_gene = false;
   if ( off ) 
     {
       std::string t = argv[1];
       if ( t == "-m" ) calc_max = true;
+      if ( t == "-g" ) calc_gene = true;
+      if ( t == "-mg" || t == "-gm" ) calc_max = calc_gene = true;
     }
+
   std::string genes_filename = argv[1+off];
   std::string equiv_filename = argv[2+off];
   std::string sets_filename  = argv[3+off];
@@ -190,6 +194,10 @@ int main( int argc , char ** argv )
   std::map<std::string,int> gene2slot;         // map gene-name to column in E matrix
   std::vector<std::string> slot2gene; 
 
+  std::map<std::string,std::string> gene2result; 
+  std::map<int,int> agenecnt;
+  std::map<int,int> ugenecnt;
+
   std::vector< Data::Matrix<double> > E( ntest_types );  // For each test type, E is rep X gene matrix
   
   //    ---->  Genes 
@@ -216,9 +224,14 @@ int main( int argc , char ** argv )
       
       // altA, altU, nA, nU
       // (ignore for now)
-      std::string alta, altu, na, nu;
+
+      double alta, altu;
+      double na, nu;
+
       NMAT >> alta >> altu >> na >> nu;
 
+      gene2result[ elem ] = Helper::int2str( int( alta * na + 0.5 ) ) + "/" + Helper::int2str( int (altu * nu + 0.5 ) );      
+            
       // do we want this gene?
       if ( gene_annot.size() > 0 ) 
 	{
@@ -243,6 +256,11 @@ int main( int argc , char ** argv )
       // track 'slot' for this element 
       gene2slot[ elem ] = nelems;
       slot2gene.push_back( elem );      
+
+      // track cnts
+      agenecnt[ nelems ] = int( alta * na + 0.5 );
+      ugenecnt[ nelems ] = int( altu * nu + 0.5 );
+
 
       std::vector< Data::Vector<double> > dt( ntest_types );
       for (int j=0;j<ntest_types;j++)
@@ -385,6 +403,8 @@ int main( int argc , char ** argv )
 	  // Sum over independent set elements
 	  //
 	  
+	  int acnt = 0 , ucnt = 0;
+
 	  for (int e=0;e<elems.size();e++)
 	    {
 	     
@@ -398,7 +418,11 @@ int main( int argc , char ** argv )
 		  
 		  for (int r=0;r<=nrep;r++)
 		    ns[r] += E[j](r,elems[e]);
-
+		  
+		  // store original 
+		  acnt += agenecnt[ elems[e] ];
+		  ucnt += ugenecnt[ elems[e] ]; 
+		    
 		  if ( calc_max )
 		    {
 		      // track original statistics for this set, this will order by original statistic also
@@ -411,10 +435,12 @@ int main( int argc , char ** argv )
 			  ordered[r-1].insert( anon_elem_t( E[j](r,elems[e]) , pos ) );
 			}		  
 		    }
+	
 		}	      
 	      else
 		{
-		  // otherwise, if in an equivalence set, add only the max from the set;
+	
+	  // otherwise, if in an equivalence set, add only the max from the set;
 		  // considering only elements that are actually in the set
 		  
 		  std::vector<int> & t = eq[ elems[e] ];
@@ -442,7 +468,7 @@ int main( int argc , char ** argv )
 		      // so, see if any other equiv, in-set element scores higher.
 		      // for ties, always take the lower element number; that way
 		      // we will avoid double-counting equivalently-scored equivalent elements
-
+		      
 		      bool add_this = true;
 
 		      for (int f=0;f<x.size();f++)
@@ -466,7 +492,14 @@ int main( int argc , char ** argv )
 		      if ( add_this )
 			{
 			  ns[ r ] += mx;
-
+			  
+			  // store original 
+			  if ( r== 0 )
+			    {
+			      acnt += agenecnt[ mxi ];
+			      ucnt += ugenecnt[ mxi ]; 
+			    }
+			  
 			  // track null replicates only here
 			  if ( calc_max )
 			    {
@@ -490,9 +523,9 @@ int main( int argc , char ** argv )
 	  //
 	  
 	  int pv = 1;
-	  const double & s = ns[0];
+	  const double & setstat = ns[0];
 	  for (int r=1; r <= nrep; r++ ) 
-	    if ( ns[r] >= s ) ++pv;
+	    if ( ns[r] >= setstat ) ++pv;
 	  
 	  
 	  //
@@ -503,7 +536,14 @@ int main( int argc , char ** argv )
 		    << test_names[j] << "\t"
 		    << (double)(pv) / (double)(nrep+1) << "\t" 
 		    << elems.size() << "\t"
-		    << set_names[ i ] 
+		    << acnt << "/" << ucnt << "\t";
+
+	  if ( ucnt > 0 ) 
+	    std::cout << (double)acnt / (double)ucnt << "\t";
+	  else 
+	    std::cout << ".\t";
+	  
+	  std::cout << set_names[ i ] 
 		    << "\n";
 	  
 	  
@@ -519,32 +559,50 @@ int main( int argc , char ** argv )
 	      
 	      int nie = indep_elem.size();
 	      std::vector<double> origmx( nie , 0 );
+	      std::vector<double> origmxr( nie , 0 ); // reverse stat
 	      std::set<elem_t>::iterator ii = indep_elem.begin();
+	      std::set<elem_t>::reverse_iterator rr = indep_elem.rbegin();
 	      int ix = 0;
 	      while ( ii != indep_elem.end() ) 
 		{
 		  // make cumulative sum
-		  if ( ix ) origmx[ ix ] = origmx[ ix-1] + ii->statistic ;
+		  if ( ix ) origmx[ ix ] = origmx[ ix-1 ] + ii->statistic ;
 		  else origmx[ ix ] = ii->statistic ;
+		  
+		  // reverse statistic
+		  if ( ix ) origmxr[ ix ] = origmxr[ ix-1 ] + rr->statistic ;
+		  else origmxr[ ix ] = rr->statistic ;
+
 		  ++ix;
 		  ++ii;
+		  ++rr;
 		}
 	      
 	      
 	      // make ordered[] sets cumulative
-	      std::vector<int> pvalmx( nie , 0 );
+	      std::vector<int> pvalmx( nie , 0 );  // for best subset
+	      std::vector<int> pvalmx2( nie , 0 ); // pvalue for remainder
 	      for (int r=1;r<nrep;r++)
 		{
-		  double s = 0;
+		  double s = 0;  // best N
+		  double rs = 0; // reverse statistic (taking worst N)
+
 		  int ix = 0;
 		  std::set<anon_elem_t>::iterator ii = ordered[r-1].begin();
+		  std::set<anon_elem_t>::reverse_iterator rr = ordered[r-1].rbegin();
 		  while ( ii != ordered[r-1].end() )
 		    {
+		      // 0..k  statistic
 		      s += ii->statistic;
-		      //std::cout << " ix pvcal = " << r << "\t" << ix << "\t" << ordered[r-1].size() << " " << indep_elem.size() << "\t" << origmx[ix] << "\t" << s << "\n";
-		  if ( s >= origmx[ ix ] ) pvalmx[ ix ]++;
-		  ++ix;
-		  ++ii;
+		      if ( s >= origmx[ ix ] ) pvalmx[ ix ]++;
+		      
+		      // k+1..n statistic (i.e. any signal in the remainder?)
+		      rs += rr->statistic;
+		      if ( rs >= origmxr[ ix ] ) pvalmx2[ ix ]++;
+
+		      ++ix;
+		      ++ii;
+		      ++rr;
 		    }
 		}
 	      
@@ -553,14 +611,17 @@ int main( int argc , char ** argv )
 	      ii = indep_elem.begin();	  
 	      for (int m=1;m<=nie;m++)
 		{
+                  
 		  //std::cout << "origmx = " << origmx[m-1] << " " << ns[0] << "\n";
 		  
 		  std::cout << "MX\t" 
 			    << test_names[j] << "\t"
 			    << (double)(pvalmx[m-1]+1) / (double)(nrep+1) << "\t" 
+			    << (double)(pvalmx2[nie-m]+1) / (double)(nrep+1) << "\t" 
 			    << m << "\t"
-			    << (double)origmx[m-1] / (double)ns[0]  << "\t"
+			    << ( ns[0] > 0 ? (double)origmx[m-1] / (double)ns[0] : 1.0 ) << "\t"
 			    << ii->name << "\t"
+			    << gene2result[ ii->name ] << "\t"
 			    << set_names[ i ] 		
 			    << "\n";
 		  ++ii;
@@ -574,9 +635,11 @@ int main( int argc , char ** argv )
     } // next set
   
 
-  // for now, just do set tests
-  
-  exit(0);
+  //
+  // unless explicitly requested, just do SET level tests
+  //
+
+  if ( ! calc_gene ) exit(0);
 
 
   //
@@ -610,7 +673,10 @@ int main( int argc , char ** argv )
   
    for (int e = 0 ; e < nelems ; e++ ) 
      {
-       	 
+
+       std::cerr << "testing " << e << " of " << nelems << "        \r";
+
+
        for (int j=0;j<ntest_types;j++)
  	{
 
@@ -628,39 +694,54 @@ int main( int argc , char ** argv )
 	  
 	  // For now, simply sum all Sets  (only adjust for correl between index element 
 	  // and other genes in a fellow set, so we can have just a single accumulator)
-	  // outside the set loo
+	  // outside the set loop
 	  
-	  // Weight by inverse of smallest set size of set for the index and the fellow
-	  //  then again, does it not mean more for a set w/ >1 gene to be significant too?
-	  //  i.e. you might not want set size == 2 to contibute a lot, if it is only a single 
-	  //       other gene contributing...
-
+	  // Weight each fellow inversely by its size of the smallest shared set
+	  // (up tp N=1000 genes -- after this point, being in the same set does not count)
+	  // Might want to explore other possibilites here, this is somewhat arbitrary...
+	  
 	  std::set<int> fellows;
 	  std::map<int,double> wgt;
 	  std::map<int,int> minset;
-
+	  
+	  // for each SET 's' that index ELEM 'e' belongs to
 	  for (int s=0;s<gene2sets[e].size(); s++ ) 
 	    {	      
-	      std::vector<int> & inset = sets[ gene2sets[e][s] ];	      
-	      for (int f = 0 ; f < inset.size(); f++ ) 
-		{
-		  if ( inset[f] == e ) continue; // skip if same gene
-		  fellows.insert( inset[f] );
+	      
+	      // consider all other ELEM 'f' in these SETS ('friends')
 
-		  // minimum set-size weight
-		  if ( wgt[ inset[f] ] < 1.0/(double)inset.size() && inset.size() < 500 ) 
+	      std::vector<int> & inset = sets[ gene2sets[e][s] ];	      
+
+	      if ( inset.size() < 1000 ) 
+		{
+		  double w = 1.0/(double)inset.size();
+		  
+		  for (int f = 0 ; f < inset.size(); f++ ) 
 		    {
-		      wgt[ inset[f] ] = 1.0/(double)inset.size() ;
-		      minset[ inset[f] ] =  gene2sets[e][s];
+		      
+		      if ( inset[f] == e ) continue; // skip if same gene
+		      
+		      fellows.insert( inset[f] );
+		      
+		      // minimum set-size weight
+		      
+		      if ( wgt[ inset[f] ] < w )
+			{
+			  wgt[ inset[f] ] = w;
+			  minset[ inset[f] ] =  gene2sets[e][s];
+			}
 		    }
 		}
 	    }
+
 	  
+	  //
 	  // figure out which fellows are contributing significantly to 
 	  // this set-weighted test
-
+	  //
+	  
 	  std::vector<std::vector<double> > fellow_tests( nrep+1 ) ;
-
+	  
 	  std::vector<double> accum( nrep+1 , 0 );
 	  
 	  std::set<int>::iterator fi = fellows.begin();
@@ -669,16 +750,19 @@ int main( int argc , char ** argv )
 	      Data::Vector<double> resid = residualise( E[j].col( *fi ) , evec , vare , meane ) ;
 	      for (int r=0;r<=nrep;r++) 
 		{
-		  accum[r] += wgt[ *fi ] * resid[r];
-		  fellow_tests[r].push_back( wgt[ *fi ] * resid[r] );
+		  accum[r] += wgt[ *fi ] * resid[ r ];
+		  fellow_tests[r].push_back( wgt[ *fi ] * resid[ r ] );
 		}
 	      
 	      ++fi;
 	    }
 	  
+
+	  //
 	  // and then standardize fellow contributions to be a
 	  // proportion of the total sum (which means the weighting
 	  // should be implicitly counted now
+	  //
 
 	  for (int r=0;r<=nrep;r++) 
 	    for (int f=0;f<fellows.size();f++)
@@ -692,8 +776,7 @@ int main( int argc , char ** argv )
 	  int pvm = 1;  // EMP2 for gene
 	  int pv1 = 1;  // orig * fellow-score 
 	  int pv2 = 1;  // fellow-score
-	  
-	  
+	  	  
 	  
 	  // has at least one fellow?
 	  if ( fellows.size() > 0 ) 
@@ -706,17 +789,19 @@ int main( int argc , char ** argv )
 		  if ( accum[r] >= accum[0] ) ++pv2;	      
 		}
 	      
+
 	      // Output
 	      
 	      std::cout << "GENE\t" 
 			<< test_names[j] << "\t"
-			<< gene2sets[e].size() << "\t"
-			<< fellows.size() << "\t"			
 			<< (double)(pv0) / (double)(nrep+1) << "\t" 
 			<< (double)(pvm) / (double)(nrep+1) << "\t" 
-			<< (double)(pv1) / (double)(nrep+1) << "\t" 
 			<< (double)(pv2) / (double)(nrep+1) << "\t" 
-			<< slot2gene[e] << "\t";
+			<< (double)(pv1) / (double)(nrep+1) << "\t" 			
+			<< gene2sets[e].size() << "\t"
+			<< fellows.size() << "\t"			
+			<< slot2gene[e] << "\t"
+			<< gene2result[ slot2gene[e] ] << "\t";
 	      
 	      std::string ann = gene_annot[ slot2gene[e] ] ;
 	      std::cout << ( ann == "" ? "." : ann ) ;
@@ -780,14 +865,15 @@ int main( int argc , char ** argv )
 	      
 	      std::cout << "GENE\t" 
 			<< test_names[j] << "\t"
-			<< gene2sets[e].size() << "\t"
-			<< fellows.size() << "\t"			
 			<< (double)(pv0) / (double)(nrep+1) << "\t" 
 			<< (double)(pvm) / (double)(nrep+1) << "\t" 
 			<< "NA" << "\t"
-			<< "NA" << "\t"
-			<< slot2gene[e] << "\t";
-	      
+			<< (double)(pv0) / (double)(nrep+1) << "\t" 
+			<< gene2sets[e].size() << "\t"
+			<< fellows.size() << "\t"			
+			<< slot2gene[e] << "\t"
+			<< gene2result[ slot2gene[e] ] << "\t";
+				      
 	      std::string ann = gene_annot[ slot2gene[e] ] ;
 	      std::cout << ( ann == "" ? "." : ann ) ;
 	      
