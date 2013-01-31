@@ -2110,7 +2110,7 @@ bool Pseq::IndDB::dump_phenotypes( const std::vector<std::string> & pheno , bool
 	      {
 		pType ptype = g.phmap.type( pheno[p] );
 		if      ( as_matrix && ( ptype == PHE_DICHOT || ptype == PHE_QT ) ) pout << "\tNA";
-		pout << "\t.";
+		else pout << "\t.";
 	      }
 	  }
       pout << "\n";

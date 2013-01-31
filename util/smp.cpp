@@ -62,13 +62,14 @@ int main( int argc , char ** argv )
 {
 
   
-  if ( argc != 5 && argc != 6 && argc != 7 ) 
+  if ( argc < 5 )
     {
-      std::cerr << "usage:   ./smp {-mgn} gene.list equiv.list (sets.list|locdb netdb) data.mat  \n";
+      std::cerr << "usage:   ./smp {-mgnr} gene.list equiv.list (sets.list|locdb netdb) data.mat  \n";
       exit(1);
     }
-  
-  int off = argc > 5 ? 1 : 0;
+
+  std::string arg1 = argv[1];  
+  int off = arg1[0] == '-'; 
   
   bool calc_max = false;
   bool calc_gene = false;
@@ -391,6 +392,7 @@ int main( int argc , char ** argv )
   std::map<int,std::vector<int> >::iterator ee = eq.begin();
   while ( ee != eq.end() ) { ineq.insert( ee->first ); ++ee; }
   
+
   
   //
   // Tests set enrichment (if in gene-set, not netdb, mode only)
@@ -398,6 +400,60 @@ int main( int argc , char ** argv )
 
   if ( ! using_netdb ) 
     {
+
+      //
+      // First calculate baseline statistic for 'all genes'
+      //
+
+      std::vector<std::vector<double> > allstat( ntests );
+      for (int j=0;j<ntest_types;j++)
+	{
+
+	  allstat[j].resize( nrep+1 , 0 );
+	  
+	  for (int e = 0 ; e < nelems ; e++ ) 
+	    {
+	      
+	      // still need to take of equivalence sets
+	      bool in_equiv_set = ineq.find( e ) != ineq.end() ;
+	      
+	      if ( ! in_equiv_set ) 
+		for (int r = 0 ; r <= nrep ; r++) allstat[j][r] += E[j](r,e);
+	      else
+		{		  
+		  std::vector<int> & t = eq[ e ];
+		  
+		  for (int r = 0 ; r <= nrep; r++ )
+		    {
+		      // this will be one of f[], but we don't know which
+		      double mx  = E[j](r,e);
+		      int    mxi = e;
+		      
+		      // get max, or of tying elements, take one with lowest index	  
+		      for (int f=0;f<t.size();f++)
+			{		      
+			  if ( E[j](r,t[f]) > mx || ( E[j](r,t[f]) == mx && t[f] < mxi ) ) 
+			    { 
+			      mxi = t[f];
+			      mx  = E[j](r,t[f]);
+			    }		      
+			}
+		      
+		      allstat[j][r] += mx;
+		    }
+		}
+	    }
+	  
+	  // make allstat = 1/allstat 
+	  for (int r=0; r<=nrep; r++)
+	    allstat[j][r] = 1.0 / allstat[j][r];
+	  
+	}
+    
+
+      //
+      // Now consider each specified SET independently, for a SET test
+      //
 
       for (int i = 0 ; i < sets.size(); i++ ) 
 	{
@@ -543,15 +599,26 @@ int main( int argc , char ** argv )
 	      
 	      
 	      //
-	      // Calculate empirical p-value
+	      // Calculate empirical p-value, for absolute and relative to baseline tests
 	      //
 	      
-	      int pv = 1;
+	      int pv     = 1;
 	      const double & setstat = ns[0];
+
+	      int pv_rel = 1; // relative to baseline (allstats = 1/allstat, so multiplication here)
+	      const double & setstat_rel = setstat * allstat[j][0];
+
+	      int pv_baseline = 1; // for the baseline itself
+	      const double & setstat_baseline = allstat[j][0];
+	      
 	      for (int r=1; r <= nrep; r++ ) 
-		if ( ( ns[r] + EPS ) >= setstat ) ++pv;
+		{
+		  if ( (   ns[r]                   + EPS ) >= setstat          ) ++pv;
+		  if ( ( ( ns[r] * allstat[j][r] ) + EPS ) >= setstat_rel      ) ++pv_rel;       // allstat = 1/allstat
+		  if ( (  allstat[j][r]            + EPS ) <= setstat_baseline ) ++pv_baseline;  // as S = 1/allstat, so use less-than to count		  
+		}
 	      
-	      
+
 	      //
 	      // Output
 	      //
@@ -559,14 +626,20 @@ int main( int argc , char ** argv )
 	      std::cout << "SET\t" 
 			<< test_names[j] << "\t"
 			<< (double)(pv) / (double)(nrep+1) << "\t" 
+			<< (double)(pv_rel) / (double)(nrep+1) << "\t" 
+			<< (double)(pv_baseline) / (double)(nrep+1) << "\t" 
 			<< elems.size() << "\t"
 			<< acnt << "/" << ucnt << "\t";
 	      
+	      // note:: cannot give proper odds ratio, as we do not know the denominators really
+	      // rather, just give relative rate of A:U counts, 
+	      double na_nu = (double)na / (double)nu;
+	      
 	      // odds ratio (dom. model)
 	      if ( ucnt > 0 ) 
-		std::cout << ((double)acnt*(nu-ucnt)) / ((double)ucnt*(na-acnt)) << "\t";
+		std::cout << ( (double)acnt/(double)ucnt ) / na_nu << "\t";
 	      else 
-		std::cout << ( ( acnt+0.5) * ( 0.5 + (nu-ucnt) ) ) / ( (0.5 + ucnt)*(0.5+(na-acnt)))  << "\t";
+		std::cout << ( (acnt+0.5) / (0.5 + ucnt) ) / na_nu << "\t";
 	      
 	      std::cout << set_names[ i ] 
 			<< "\n";
@@ -584,20 +657,32 @@ int main( int argc , char ** argv )
 		  
 		  int nie = indep_elem.size();
 		  std::vector<double> origmx( nie , 0 );
+		  std::vector<double> origmx_rel( nie , 0 ); //relative to exome
+		  
+		  // reverse stat
 		  std::vector<double> origmxr( nie , 0 );
+		  std::vector<double> origmxr_rel( nie , 0 ); //relative to exome
+
 		  std::set<elem_t>::iterator ii = indep_elem.begin();
 		  std::set<elem_t>::reverse_iterator rr = indep_elem.rbegin();
 		  int ix = 0;
 		  while ( ii != indep_elem.end() ) 
 		    {
+
 		      // make cumulative sum
 		      if ( ix ) origmx[ ix ] = origmx[ ix-1 ] + ii->statistic ;
 		      else origmx[ ix ] = ii->statistic ;
+		      
+		      if ( ix ) origmx_rel[ ix ] = origmx_rel[ ix-1 ] + ( ii->statistic * allstat[j][0] ) ;
+		      else origmx_rel[ ix ] = ii->statistic * allstat[j][0] ;
 		      
 		      // reverse statistic
 		      if ( ix ) origmxr[ ix ] = origmxr[ ix-1 ] + rr->statistic ;
 		      else origmxr[ ix ] = rr->statistic ;
 		      
+		      if ( ix ) origmxr_rel[ ix ] = origmxr_rel[ ix-1 ] + ( rr->statistic * allstat[j][0] ) ;
+		      else origmxr_rel[ ix ] = rr->statistic * allstat[j][0] ;
+
 		      ++ix;
 		      ++ii;
 		      ++rr;
@@ -608,10 +693,15 @@ int main( int argc , char ** argv )
 		  // make ordered[] sets cumulative
 		  std::vector<int> pvalmx( nie , 0 );  // for best subset
 		  std::vector<int> pvalmx2( nie , 0 ); // pvalue for remainder, but based on actual variants (not the permuted worst)
+
+		  std::vector<int> pvalmx_rel( nie , 0 );  // for best subset
+		  std::vector<int> pvalmx2_rel( nie , 0 ); // pvalue for remainder, but based on actual variants (not the permuted worst)
+
 		  for (int r=1;r<=nrep;r++)
 		    {
 		      double s = 0;  // best N		  
-		      
+		      double srel = 0; // relative enrichment stat
+
 		      int ix = 0;
 		      std::set<anon_elem_t>::iterator ii = ordered[r-1].begin();		  
 		      while ( ii != ordered[r-1].end() )
@@ -619,19 +709,29 @@ int main( int argc , char ** argv )
 			  // 0..k  statistic
 			  s += ii->statistic;
 			  if ( ( s + EPS ) >= origmx[ ix ] ) pvalmx[ ix ]++;
+
+			  // same, but using exome-relative statistic
+			  srel += ii->statistic * allstat[j][r];
+			  if ( ( srel + EPS ) >= origmx_rel[ ix ] ) pvalmx_rel[ ix ]++;
+			  
 			  ++ix;
 			  ++ii;
 			}
 		      
 		      // 'worst' sets (but take fixed elements from original)
 		      s = 0;
+		      srel = 0;
+
 		      ix = 0;
 		      std::set<elem_t>::reverse_iterator rr = indep_elem.rbegin();
 		      while ( rr != indep_elem.rend() )
 			{		      
 			  //std::cout << "considering " << rr->pos << " " << rr->name << " at " << ix << "\n";
 			  s += E[j](r,rr->pos);
-			  if ( ( s + EPS ) >= origmxr[ ix ] ) pvalmx2[ ix ]++;
+			  srel += E[j](r,rr->pos) * allstat[j][r];
+			  
+			  if ( ( s + EPS )    >= origmxr[ ix ] )     pvalmx2[ ix ]++;
+			  if ( ( srel + EPS ) >= origmxr_rel[ ix ] ) pvalmx2_rel[ ix ]++;
 			  ++rr;
 			  ++ix;
 			}
@@ -639,7 +739,7 @@ int main( int argc , char ** argv )
 		      
 		    }
 	      
-
+		  
 		  //
 		  // print output for MX line
 		  //
@@ -653,9 +753,10 @@ int main( int argc , char ** argv )
 		      std::cout << "MX\t" 
 				<< test_names[j] << "\t"
 				<< (double)(pvalmx[m-1]+1) / (double)(nrep+1) << "\t" 
+				<< (double)(pvalmx_rel[m-1]+1) / (double)(nrep+1) << "\t" 				
 				<< (double)(pvalmx2[nie-m]+1) / (double)(nrep+1) << "\t" 
+				<< (double)(pvalmx2_rel[nie-m]+1) / (double)(nrep+1) << "\t" 
 				<< m << "\t"
-			//			    << ( ns[0] > 0 ? (double)origmx[m-1] / (double)ns[0] : 1.0 ) << "\t"
 				<< ii->name << "\t"
 				<< gene2result[ ii->name ] << "\t"
 				<< set_names[ i ] 		
