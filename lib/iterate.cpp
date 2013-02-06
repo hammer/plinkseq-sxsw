@@ -2074,10 +2074,10 @@ void VarDBase::build_temporary_db( Mask & mask )
 	  else if ( first == 5 ) q+= " SELECT f.var_id FROM tmp.require_id    AS f ";
 	  else if ( first == 6 ) q+= " SELECT f.var_id FROM tmp.require_file  AS f ";
 	  
-	  if ( mask.rvar() && first < 2 ) q += " INNER JOIN tmp.require_var ";
-	  if ( mask.rreg() && first < 3 ) q += " INNER JOIN tmp.require_reg ";
+	  if ( mask.rvar()  && first < 2 ) q += " INNER JOIN tmp.require_var ";
+	  if ( mask.rreg()  && first < 3 ) q += " INNER JOIN tmp.require_reg ";
 	  if ( mask.rereg() && first < 4 ) q += " INNER JOIN tmp.require_ereg ";
-	  if ( mask.rid() && first < 5 )  q += " INNER JOIN tmp.require_id ";
+	  if ( mask.rid()   && first < 5 )  q += " INNER JOIN tmp.require_id ";
 	  if ( mask.files() && first < 6 ) q += " INNER JOIN tmp.require_file ";
 	  
 	  q += " USING ( var_id ) ; ";
@@ -2110,8 +2110,13 @@ void VarDBase::build_temporary_db( Mask & mask )
       
       if ( mask.xvar() ) 
 	{
+	  // only add non allele-specific excludes here
+	  // for var.ex that are allele-specific; the to-be-null'ed allele
+	  // will already be stored in Mask:allele_map_excludes; we may or may
+	  // not come to that variant, but if we do, it will be nulled;  but 
+	  // do not want to remove it upfront here
 	  sql.query( " INSERT OR IGNORE INTO tmp.exclude (var_id) "
-		     " SELECT var_id FROM set_data WHERE set_id IN ( "
+		     " SELECT var_id FROM set_data WHERE allele IS NULL AND set_id IN ( "
 		     + mask.var_exclude_string() + " ); ");
 	}
       

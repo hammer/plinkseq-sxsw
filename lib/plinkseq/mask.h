@@ -192,8 +192,12 @@ class Mask {
   //
   
   bool apply_vset_allelemap() { return using_allelemap; } 
+
+  bool apply_vset_allelemap_excludes() { return using_allelemap_excludes; } 
   
   bool attach_vset_allelemap();
+
+  bool attach_vset_allelemap_excludes();
   
   std::vector<std::string> fetch_vset_allelemap( const uint64_t & idx , bool * okay )
     {
@@ -201,8 +205,19 @@ class Mask {
       if ( ii == allelemap.end() ) { *okay = false; std::vector<std::string> dummy; return dummy; }
       *okay = true; return ii->second;
     }
-
   
+  std::vector<std::string> fetch_vset_allelemap_excludes( const uint64_t & idx , bool * okay )
+    {
+      std::map<uint64_t,std::vector<std::string> >::iterator ii = allelemap_excludes.find( idx );
+      if ( ii == allelemap_excludes.end() ) { *okay = false; std::vector<std::string> dummy; return dummy; }
+      *okay = true; return ii->second;
+    }
+  
+  bool vset_allelemap_any_excludes( const uint64_t & idx )
+  {
+    return allelemap_excludes.find( idx ) != allelemap_excludes.end() ;
+  }
+
   //
   // Sets within locdb, or segdb
   //
@@ -1653,6 +1668,7 @@ class Mask {
 	ex_segs.clear();
 	assume_missing_is_ref = false;
 	using_allelemap = false;
+	using_allelemap_excludes = false;
 	ref_allelic_match = false;
 	soft_ref = false;
 	genotype_model = GENOTYPE_MODEL_ALLELIC;
@@ -1969,7 +1985,9 @@ class Mask {
     //
 
     std::map<uint64_t,std::vector<std::string> > allelemap;
+    std::map<uint64_t,std::vector<std::string> > allelemap_excludes;
     bool using_allelemap;    
+    bool using_allelemap_excludes;    
     
 
     //

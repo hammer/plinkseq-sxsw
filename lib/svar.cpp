@@ -698,6 +698,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
       return true;
     }
 
+
   
   // Sample A : 1 2 3
   // Sample B : 4 5 6
@@ -1314,7 +1315,7 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
     }
 
 
-  
+
 
   //
   // Now that we've extracted all the genotypic information and 
@@ -1366,50 +1367,80 @@ bool SampleVariant::decode_BLOB_genotype( IndividualMap * align ,
   // 3) variant-set allele-specific filtering
   //
   
-  if ( mask && mask->apply_vset_allelemap() )
+  if ( mask && ( mask->apply_vset_allelemap() || mask->apply_vset_allelemap_excludes() ) )
     {
-
-      bool change = false;      
-      std::vector<std::string> ptr = mask->fetch_vset_allelemap( index() , &change );
       
-      if ( change && ptr.size() > 0 )
+      //
+      // 1) only retain the following non-reference alleles...
+      //
+      
+      bool change1 = false;      
+      std::vector<std::string> ptr  = mask->fetch_vset_allelemap( index() , &change1 );
+      
+      bool change2 = false;
+      std::vector<std::string> ptrx = mask->fetch_vset_allelemap_excludes( index() , &change2 );
+      
+      if ( ( change1 && ptr.size() > 0 ) || ( change2 && ptrx.size() > 0 ) ) 
 	{
+	  
 	  // need to go through each genotype and set to missing
 	  // only retain the following ALTERNATE alleles
 	  
-	  // likely a slow implementation here...
-	  
+	  // likely a slow implementation here...	  
 	  // TODO: check this hasn't already been done
+	  
 	  parse_alleles();
 	  
+	  // Include only alleles.... (here treat VAR and VARREQ the same) 
+	  
 	  std::set<int> as;
-	  for (int i=0;i<ptr.size();i++) 
-	    {
+	  
+	  if ( change1 ) 
+	    for (int i=0;i<ptr.size();i++) 
+	      {
+		// only check ALT alleles, so 1+
+		for (int a=1; a<alleles.size(); a++) 
+		  if ( alleles[a].name() == ptr[i] ) as.insert( a ); 
+	      }
+	  
+	  // allele-specfic excludes
+	  std::set<int> as_excludes;
 
-	      // only check ALT alleles, so 1+
-	      for (int a=1; a<alleles.size(); a++) 
-		if ( alleles[a].name() == ptr[i] ) 
-		  {
-		    //std::cout << "watching out for " << alleles[a].name() << " " << a << "\n"; 
-		    as.insert( a ); 
-		  }
-	    }
-		 
-		 for ( unsigned int i = 0 ; i < n_var ; i++ )
+	  if ( change2 ) 
+	    for (int i=0;i<ptrx.size();i++) 
+	      {
+		// only check ALT alleles, so 1+
+		for (int a=1; a<alleles.size(); a++) 
+		  if ( alleles[a].name() == ptrx[i] ) as_excludes.insert( a ); 
+	      }
+	  
+	  // go through individual genotypes now.
+	  for ( unsigned int i = 0 ; i < n_var ; i++ )
 	    {
 	      
-	      // TODO: HARD-CODED : change to reference (i.e. not missing currently)
 	      uint8_t a1 = target->calls.genotype(i).acode1();
 	      uint8_t a2 = target->calls.genotype(i).acode2();
 	      
-	      // nonrefernce, but not on list: set to reference
-	      if ( a1 != 0 && as.find( a1 ) == as.end() ) { target->calls.genotype(i).acode1(0); }
-	      if ( a2 != 0 && as.find( a2 ) == as.end() ) { target->calls.genotype(i).acode2(0); }
+	      int i1 = a1;
+	      int i2 = a2;
+	      
+	      // make missing  (i.e. versus make reference, e.g. acode1(0); 
+	      if ( change1 ) 
+		{
+		  if ( a1 != 0 && as.find( a1 ) == as.end() ) target->calls.genotype(i).null(true);
+		  if ( a2 != 0 && as.find( a2 ) == as.end() ) target->calls.genotype(i).null(true);  
+		}
 
+	      // currently makes whole genotype imssing based on 1 allele match
+	      if ( change2 )
+		{
+		  if ( as_excludes.find( a1 ) != as_excludes.end() ) target->calls.genotype(i).null(true);
+		  if ( as_excludes.find( a2 ) != as_excludes.end() ) target->calls.genotype(i).null(true);
+		}
 	    }
 	}
     }
-
+  
   
   // 4) mask 'assume-ref'.  Assume missing genotypes (or those made
   // missing by the above GENO filters) are obligatorarily homozygous

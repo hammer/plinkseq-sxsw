@@ -640,7 +640,8 @@ bool Pseq::VarDB::add_to_varset( const std::string & filename  )
   if ( ! vardb_exists ) 
     Helper::halt( "no VARDB attached" );
 
-  plog << "dropping index...\n";
+  //  plog << "dropping index...\n";
+
   g.vardb.drop_set_index();
 
   int nrows = 0;
@@ -739,7 +740,7 @@ bool Pseq::VarDB::add_to_varset( const std::string & filename  )
   f.close();    
 
 
-  plog << "adding index...\n";
+  //plog << "adding index...\n";
   g.vardb.set_index();
 
   return true;

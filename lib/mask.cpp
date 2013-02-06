@@ -494,11 +494,14 @@ Mask::Mask( const std::string & d , const std::string & expr , const bool filter
       for (int i=0; i<k.size(); i++) require_varset(k[i]);
     }
   
-
-  // As a TEMPORARY measure: apply allele-specific var.req matching (i.e. currently
-  // ONLY for var.req, i.e. this is 'quick-fix' mode addition
-  if ( m.has_field( "var.req" ) ) attach_vset_allelemap();
-
+  
+  // add and any possible allele-specific variant information
+  // NOTE: this loads the entire table into memory, for any specified varset...
+  
+  if ( m.has_field( "var" ) || m.has_field( "var.req" ) || m.has_field( "var.ex" ) ||
+       m.has_field( "varset" ) || m.has_field( "varset.req" ) || m.has_field( "varset.ex" ) )
+    attach_vset_allelemap();
+  
   
   //
   // LOCDB masks
@@ -5140,13 +5143,27 @@ void Mask::revise_hard_call( Genotype & g )
 
 bool Mask::attach_vset_allelemap()
 {  
-  // currently just do this for var.req 
+
+  // Note -- this does not handle append for allele-specific VARSETs;
+  // or perhaps that isn't defined/needed
+
   if ( ! vardb ) Helper::halt( "no VARDB attached to Mask" );
   
-  allelemap = vardb->fetch_vset_allelemap( req_varset );  
+  // includes, requires "var" and "var.req"
+  std::set<int> grps = req_varset;  
+  std::set<int>::iterator ii = in_varset.begin();
+  while ( ii != in_varset.end() )
+    {
+      grps.insert( *ii );
+      ++ii;
+    }
   
-  if ( allelemap.size() > 0 ) 
-    using_allelemap = true;
+  allelemap = vardb->fetch_vset_allelemap( grps );    
+  using_allelemap = allelemap.size() > 0;
 
-  return using_allelemap;
+  // excludes ("var.ex")
+  allelemap_excludes  = vardb->fetch_vset_allelemap( ex_varset );  
+  using_allelemap_excludes = allelemap_excludes.size() > 0 ;
+  
+  return using_allelemap || using_allelemap_excludes;
 }

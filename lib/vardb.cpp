@@ -1286,8 +1286,10 @@ bool VarDBase::add_var_to_set( const std::string & group , const Variant & v , b
       for (int a=0;a<alts.size();a++)
 	{
 	  if ( allelic ) 
-	    sql.bind_text( stmt_insert_set_variant , ":allele" , alts[a] );
-
+	    sql.bind_text( stmt_insert_set_variant , ":allele" , alts[a] );	  
+	  else
+	    sql.bind_null( stmt_insert_set_variant , ":allele" );
+	  
 	  sql.step( stmt_insert_set_variant );
 	  sql.reset(stmt_insert_set_variant );
 	}
@@ -1312,6 +1314,8 @@ bool VarDBase::add_var_to_set( const std::string & group , const Variant & v , b
 	{
 	  if ( allelic ) 
 	    sql.bind_text( stmt_insert_set_variant , ":allele" , alts[a] );
+	  else
+	    sql.bind_null( stmt_insert_set_variant , ":allele" );
 
 	  sql.step( stmt_insert_set_variant );
 	  sql.reset(stmt_insert_set_variant );
@@ -1505,12 +1509,18 @@ std::map<uint64_t,std::vector<std::string> > VarDBase::fetch_vset_allelemap( con
 {
   std::map<uint64_t,std::vector<std::string> > a;
   std::set<int>::iterator ii = grps.begin();
+  while ( ii != grps.end() )
   {
     sql.bind_int( stmt_fetch_set_variants , ":set_id" , *ii );
     while ( sql.step( stmt_fetch_set_variants ) )
       {
-	a[ sql.get_int64( stmt_fetch_set_variants , 0 ) ].push_back( sql.get_text( stmt_fetch_set_variants , 1 ) );
-	//	std::cout << *ii << " added " << sql.get_int64( stmt_fetch_set_variants , 0 ) << " " << sql.get_text( stmt_fetch_set_variants , 1 ) << "\n";
+	std::string r = sql.get_text( stmt_fetch_set_variants , 1 );
+	if ( r != "" ) 
+	  {
+	    a[ sql.get_int64( stmt_fetch_set_variants , 0 ) ].push_back( r );
+	    std::cout << *ii << " added " << sql.get_int64( stmt_fetch_set_variants , 0 ) << " " << sql.get_text( stmt_fetch_set_variants , 1 ) << "\n";
+	  }
+	
       }
     ++ii;
   }

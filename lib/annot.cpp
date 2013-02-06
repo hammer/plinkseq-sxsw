@@ -1733,25 +1733,20 @@ std::string Annotate::translate(std::string& seq, int frame, std::vector<std::st
 std::string Annotate::getrc(const std::string & s) {
 	int sz = s.size();
 	std::string r;
-	for (int i = 0; i < sz; i++) {
-		if (s[i] == 'a')
-			r += "t";
-		else if (s[i] == 'c')
-			r += "g";
-		else if (s[i] == 'g')
-			r += "c";
-		else if (s[i] == 't')
-			r += "a";
-		else if (s[i] == 'A')
-			r += "T";
-		else if (s[i] == 'C')
-			r += "G";
-		else if (s[i] == 'G')
-			r += "C";
-		else if (s[i] == 'T')
-			r += "A";
-		else
-			r += "N";
+	for (int i = 0; i < sz; i++) 
+	  {
+	    if      (s[i] == 'A') r += "T";
+	    else if (s[i] == 'C') r += "G";
+	    else if (s[i] == 'G') r += "C";
+	    else if (s[i] == 'T') r += "A";
+
+	    else if (s[i] == 'a') r += "t";
+	    else if (s[i] == 'c') r += "g";
+	    else if (s[i] == 'g') r += "c";
+	    else if (s[i] == 't') r += "a";
+
+	    else r += "N";
+
 	}
 	reverse(r.begin(), r.end());
 	return r;

@@ -428,6 +428,7 @@ void f_lookup_annotator( Variant & var , void * p )
 
   if ( aux->append_seq ) 
     {
+
       if ( region.length() <= 10 )
 	pout << s << "\t" 
 	     << "seqdb_ref" << "\t"
@@ -437,9 +438,35 @@ void f_lookup_annotator( Variant & var , void * p )
 	     << "seqdb_ref" << "\t"
 	     << "." << "\n";	        
 
+      // also append, for SNPs only, the trinucleotide context of REF/ALT
+      
+      if ( var.simple_snp() ) 
+	{
+
+	  std::string fref = g.seqdb.lookup( var.chromosome() , var.position() - 1 , var.position() + 1 );
+
+	  std::string falt = g.seqdb.lookup( var.chromosome() , var.position() - 1 , var.position() - 1 ) 
+	    + var.alternate() 
+	    + g.seqdb.lookup( var.chromosome() , var.position() + 1 , var.position() + 1 ) ;
+	  
+	  pout << s << "\t"
+	       << "snp_fw_seq3" << "\t"
+	       << fref 
+	       << "/"
+	       << falt 
+	       << "\n";
+
+	  pout << s << "\t"
+	       << "snp_rv_seq3" << "\t"
+	       << Annotate::getrc( fref ) 
+	       << "/"
+	       << Annotate::getrc( falt )
+	       << "\n";
+	  
+	}
+
     }
-
-
+  
   
   if ( aux->append_annot ) 
     {
