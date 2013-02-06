@@ -559,12 +559,11 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 		//
 		// Consider each transcript supplied (that should overlap this position):
 		//
-		std::vector<uint64_t>::const_iterator ii = pregions.begin();
-		while (ii != pregions.end()) {
+		for (std::vector<uint64_t>::const_iterator regIt = pregions.begin(); regIt != pregions.end(); ++regIt) {
 			//
 			// Get actual region, from rmap
 			//
-			Region* r = Annotate::from_cache(*ii);
+			Region* r = Annotate::from_cache(*regIt);
 
 			//
 			// We assume the encoding of CDS/exons/start/stop following the LOCDB convention; this
@@ -572,10 +571,8 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			// effectively a requirement to use annotation functions (i.e. that the LOCDB was populated
 			// with GTFs)
 			//
-			if (r->subregion.size() == 0) {
-				++ii;
+			if (r->subregion.size() == 0)
 				continue;
-			}
 
 			//
 			// Distinguish here between CDS and non-CDS exons
@@ -583,13 +580,18 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			Region r_exon; // contains all exons (i.e., will include 3UTR , 5UTR, but not 'stop')
 			Region r_cds; // only contains CDS (and extra stop-codon)
 
+			bool hasRealCDS = false; // keep track of whether transcript has a CDS region (beyond just a stop codon region)
 			for (int ss = 0; ss < r->subregion.size(); ss++) {
-				if (r->subregion[ss].CDS() || r->subregion[ss].stop_codon())
+				if (r->subregion[ss].CDS() || r->subregion[ss].stop_codon()) {
 					r_cds.subregion.push_back(r->subregion[ss]);
 
+					if (r->subregion[ss].CDS()) hasRealCDS = true;
+				}
 				else if (r->subregion[ss].exon())
 					r_exon.subregion.push_back(r->subregion[ss]);
 			}
+			if (!hasRealCDS && !r_cds.subregion.empty()) // the stop codon(s) are the only CDS, i.e., a "rogue" transcript
+				continue;
 
 			//
 			// Which CDS(s) does this mutation impact?  Pull in
@@ -623,7 +625,6 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			// skip if both strands are represented (or no exons present):
 			//
 			if (negative_strand == positive_strand) {
-				++ii;
 				continue;
 			}
 
@@ -1035,20 +1036,15 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			//
 			if (inExon > -1 && r_cds.subregion.size() == 0) {
 				annot.insert(SeqInfo(r->name, r->aliases, NPC_RNA));
-
-				++ii;
 				continue;
 			}
 
 			if (inExon == -1) {
 				annot.insert(SeqInfo(r->name, r->aliases, INTRON));
-
-				++ii; // next region
 				continue;
 			}
 
 			if (inCDS == -1) {
-				++ii;
 				continue;
 			}
 
@@ -1130,7 +1126,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 
 			// Look up the reading frame for the full sequence:
 			if (!r_cds.subregion[FIRST_CDS_INDEX_USED].meta.has_field(PLINKSeq::TRANSCRIPT_FRAME()))
-				Helper::halt("Unable to find coding frame");
+				Helper::halt("Unable to find coding frame for transcript " + r->name);
 			int frame = r_cds.subregion[FIRST_CDS_INDEX_USED].meta.get1_int(PLINKSeq::TRANSCRIPT_FRAME());
 
 			// Build variant sequence
@@ -1173,7 +1169,6 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			if (ref_cds == var_cds) {
 				annot.insert(SeqInfo(MONO));
 				// Next region
-				++ii;
 				continue;
 			}
 
@@ -1199,7 +1194,6 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 			//
 			if (trans_ref == trans_var) {
 				annot.insert(SeqInfo(r->name, r->aliases, SYN));
-				++ii; // next region
 				continue;
 			}
 
@@ -1402,7 +1396,6 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 				annot.insert(si);
 			}
 
-			++ii;
 		} // next transcript
 		  // next alternate allele
 		++a;
