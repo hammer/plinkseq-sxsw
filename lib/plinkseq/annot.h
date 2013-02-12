@@ -132,6 +132,7 @@ struct SeqInfo {
     iseq = "";
     eseq = "";
     alt = "";
+    ref = "";
     splice_type = "";
   }
     
@@ -163,6 +164,7 @@ struct SeqInfo {
   std::string eseq; // exonic splice sequence
   std::string splice_type; // splice donor or acceptor
   std::string alt; // alternate allele coded properly to match ref
+  std::string ref; // alternate allele coded properly to match ref
 
   int ppos1;  // position in protein
   int ppos2;

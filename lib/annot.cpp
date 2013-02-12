@@ -735,9 +735,15 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 				if (isDeletion && (deleteSpliceBoundaryAtStart || deleteSpliceBoundaryAtStop)) {
 					SeqInfo si = SeqInfo(r->name, r->aliases, SPLICEDEL);
 					if (positive_strand)
+					{
 						si.alt = *a;
+						si.ref = reference;
+					}
 					else
+					{
 						si.alt = getrc(*a);
+					    si.ref = getrc(reference);
+					}
 					annot.insert(si);
 				}
 				else { // SNP, MNP, or insertion:
@@ -791,6 +797,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.eseq = eseq;
 								si.splice_type = "donor";
 								si.alt = getrc(*a);
+								si.ref = getrc(reference);
 								annot.insert(si);
 							}
 							// Donor Intronic +45AG
@@ -803,6 +810,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.eseq = eseq;
 								si.splice_type = "donor";
 								si.alt = getrc(*a);
+								si.ref = getrc(reference);
 								annot.insert(si);
 							}
 							// Donor Exonic AG
@@ -815,6 +823,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.eseq = eseq;
 								si.splice_type = "donor";
 								si.alt = getrc(*a);
+								si.ref = getrc(reference);
 								annot.insert(si);
 							}
 							else {
@@ -827,6 +836,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.eseq = eseq;
 								si.splice_type = "donor";
 								si.alt = getrc(*a);
+								si.ref = getrc(reference);
 								annot.insert(si);
 							}
 						}
@@ -853,6 +863,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.eseq = eseq;
 								si.splice_type = "acceptor";
 								si.alt = *a;
+								si.ref = reference;
 								annot.insert(si);
 							}
 							else if (var_eseq.at(0) != 'G' && eseq.at(0) == 'G') {
@@ -864,6 +875,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.eseq = eseq;
 								si.splice_type = "acceptor";
 								si.alt = *a;
+								si.ref = reference;
 								annot.insert(si);
 							}
 							else {
@@ -875,6 +887,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.eseq = eseq;
 								si.splice_type = "acceptor";
 								si.alt = *a;
+								si.ref = reference;
 								annot.insert(si);
 							}
 						}
@@ -916,6 +929,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.eseq = eseq;
 								si.iseq = iseq;
 								si.alt = getrc(*a);
+								si.ref = getrc(reference);
 								annot.insert(si);
 							}
 							else if (var_eseq.at(var_eseq.length() - 1) != 'G' && eseq.at(eseq.length() - 1) == 'G') {
@@ -927,6 +941,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.iseq = iseq;
 								si.splice_type = "acceptor";
 								si.alt = getrc(*a);
+								si.ref = getrc(reference);
 								annot.insert(si);
 							}
 							else {
@@ -938,6 +953,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.iseq = iseq;
 								si.splice_type = "acceptor";
 								si.alt = getrc(*a);
+								si.ref = getrc(reference);
 								annot.insert(si);
 							}
 						}
@@ -966,6 +982,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.iseq = iseq;
 								si.splice_type = "donor";
 								si.alt = *a;
+								si.ref = reference;
 								annot.insert(si);
 							}
 							else if ((var_eseq.at(var_eseq.length() - 1) != 'G' || var_eseq.at(var_eseq.length() - 2) != 'A') && eseq.at(eseq.length() - 1) == 'G' && eseq.at(eseq.length() - 2) == 'A') {
@@ -977,6 +994,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.iseq = iseq;
 								si.splice_type = "donor";
 								si.alt = *a;
+								si.ref = reference;
 								annot.insert(si);
 							}
 							else if ((var_iseq.at(3) != 'A' || var_iseq.at(4) != 'G') && iseq.at(3) == 'A' && iseq.at(4) == 'G') {
@@ -988,6 +1006,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.iseq = iseq;
 								si.splice_type = "donor";
 								si.alt = *a;
+								si.ref = reference;
 								annot.insert(si);
 							}
 							else {
@@ -999,6 +1018,7 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								si.iseq = iseq;
 								si.splice_type = "donor";
 								si.alt = *a;
+								si.ref = reference;
 								annot.insert(si);
 							}
 						}
@@ -1352,8 +1372,9 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 									type = STOPDELETION;
 								if ((ONE_BASED_pos_in_whole_transcript_CDS - 1) % 3 != 0)
 									type = OOFCODONDELETION;
-
-								annot.insert(SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], (int) floor(((ONE_BASED_pos_in_whole_transcript_CDS - 1) / 3.0) + 1), trans_ref.substr(i, 1), trans_var.substr(i, 1)));
+								origpepsize = trans_ref.size();
+								newpepsize = trans_var.size();
+								annot.insert(SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], (int) floor(((ONE_BASED_pos_in_whole_transcript_CDS - 1) / 3.0) + 1), trans_ref.substr(i, 1), trans_var.substr(i, 1) , 0 , origpepsize, newpepsize));
 							}
 						}
 						//
@@ -1369,8 +1390,9 @@ std::set<SeqInfo> Annotate::annotate(int chr, int bp1,
 								if ((ONE_BASED_pos_in_whole_transcript_CDS - 1) % 3 != 0) {
 									type = OOFCODONINSERTION;
 								}
-
-								annot.insert(SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], (int) floor(((ONE_BASED_pos_in_whole_transcript_CDS - 1) / 3.0) + 1), trans_ref.substr(i, 1), trans_var.substr(i, 1)));
+								origpepsize = trans_ref.size();
+								newpepsize = trans_var.size();
+								annot.insert(SeqInfo(r->name, r->aliases, type, reference, *a, ONE_BASED_pos_in_whole_transcript_CDS, ref_codon[i], alt_codon[i], (int) floor(((ONE_BASED_pos_in_whole_transcript_CDS - 1) / 3.0) + 1), trans_ref.substr(i, 1), trans_var.substr(i, 1) , 0 , origpepsize, newpepsize));
 							}
 						}
 					}
@@ -1442,7 +1464,7 @@ void SeqInfo::details(Variant & var) const {
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "ESEQ=" + eseq);
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "SPLICE_TYPE=" + splice_type);
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "ALT=" + alt);
-		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=c.IVS" + Helper::int2str(exin) + "+" +  Helper::int2str(splicedist) + genomic_ref + ">" + genomic_alt );
+		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=c.IVS" + Helper::int2str(exin) + "+" +  Helper::int2str(splicedist) + ref + ">" + alt );
 
 	}
 
@@ -1458,7 +1480,12 @@ void SeqInfo::details(Variant & var) const {
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "OFPTV=" + Helper::int2str(ofptv));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "FSX=" + Helper::int2str(fs_stop));
 		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "PEPSIZE=" + Helper::int2str(origpepsize) + "->" + Helper::int2str(newpepsize));
-		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa + "fsX" + Helper::int2str( fs_stop ) + "X" );
+		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa + "fsX" + Helper::int2str( fs_stop ));
+	}
+	if (codondeletion() | codoninsertion()){
+		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "PEPSIZE=" + Helper::int2str(origpepsize) + "->" + Helper::int2str(newpepsize));
+		var.meta.add(PLINKSeq::ANNOT_DETAILS(), "HGVS=p." + ref_aa + Helper::int2str( ppos1 ) + alt_aa );
+
 	}
 
 	if (startlost()) {
