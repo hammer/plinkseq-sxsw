@@ -37,6 +37,71 @@ std::string Py_summary() {
   return g->summary(false);
 }
 
+/*Want to access P-value, I statistic, and name of test.
+ *
+ * void gene_accumulate_assoc( VariantGroup & vars , void *p ){
+	Py_geneassocGroup geneassocgroup;
+
+	std::vector<Py_test> tests;
+	for( int i = 0; i < )
+
+
+}*/
+void group_accumulate_func( VariantGroup &v, void *p ){
+  //Variant Group
+	Py_variantGroup vargroup;
+	vargroup.NV = v.n_variants();
+	vargroup.SIZE = v.size();
+	vargroup.COORD = v.coordinate();
+	vargroup.SPAN = v.span();
+	vargroup.MIDPOS = v.midposition();
+	vargroup.NAME = v.name();
+	vargroup.NIND = v.n_individuals();
+	std::vector<Py_variant> vars;
+	for(int i = 0; i < v.n_variants(); i++){
+		// Add new variant to the vector of variant groups.
+		Variant vn = v.var(i);
+		Py_variant var;
+		var.CHR = vn.chromosome();
+		var.BP1 = vn.position();
+		var.BP2 = vn.stop();
+		var.ID = vn.name();
+		var.NS = vn.n_samples();
+
+		// Sample variant
+		SampleVariant &sv = vn.sample(-1);
+		Py_sample_variant svar;
+		svar.FSET = sv.fileset();
+		svar.REF = sv.reference();
+		svar.ALT = sv.alternate();
+		svar.QUAL = sv.quality();
+
+		// Genotype
+		Py_genotype py_geno;
+		std::vector<int> gt;
+		int nind = vn.size(-1);
+		for (int i = 0; i < nind; i++) {
+			Genotype* geno = vn.genotype(-1, i);
+		    if (geno->more() || geno->null()) {
+		    	gt.push_back(-1); // Code NA as -1
+		    } else {
+		    	gt.push_back(geno->allele_count());
+		    }
+		  }
+		 py_geno.GT = gt;
+		 svar.GENO = py_geno;
+		 var.CON = svar;
+
+		vars.push_back(var);
+
+	}
+	vargroup.VARS = vars;
+	std::vector<Py_variantGroup>* d = (std::vector<Py_variantGroup>*)p;
+	d->push_back(vargroup);
+}
+
+
+
 
 void accumulate_func(Variant &v, void *p) {
   // Variant
@@ -77,6 +142,31 @@ void accumulate_func(Variant &v, void *p) {
 }
 
 
+std::vector<Py_variantGroup> Py_iterateGroup(std::string mask){
+	Mask m(mask, "", true, false);
+	g->register_mask(m);
+	std::vector<Py_variantGroup> varGroups;
+	g->vardb.iterate(group_accumulate_func, &varGroups, m);
+	return varGroups;
+
+}
+
+std::vector<Py_locGroup> Py_locview(std::string group){
+	Py_locGroup pyloc;
+	LocDBase * db = g->resolve_locgroup( group );
+	std::vector<Py_locGroup> pylocvec;
+    int gid = db->lookup_group_id( group );
+	std::set<Region> loc = db->get_regions( gid );
+	std::set<Region>::iterator i = loc.begin();
+  while ( i != loc.end() ){
+	  pyloc.NAME = i->name;
+	  pyloc.COORD = i->coordinate();
+	  pyloc.ALIAS = i->altname;
+
+	  pylocvec.push_back(pyloc);
+	  }
+  return pylocvec;
+}
 
 std::vector<Py_variant> Py_iterate(std::string mask, int limit) {
   Mask m(mask, "", true, false);
@@ -171,6 +261,10 @@ Py_individual_map Py_ind_list(std::string mask , std::string pheno ) {
 }
 
 
+void Py_refdbattach(std::string filename)
+{
+	g->refdb.attach(filename);
+}
 
 void Py_seqdbattach(std::string filename)
 {
@@ -299,7 +393,7 @@ Py_ProtFeatureSet Py_protdb_lookup( int chr, int bp, std::string ref, std::strin
 
 
 */
-std::string Py_seqdb_annotate( int chr , int bp , std::string ref , std::string alt , std::string info )
+std::string Py_seqdb_annotate( int chr , int bp , std::string ref , std::string alt , std::string info , std::string transcript )
 {
 
   Variant v("Var" , chr, bp);
@@ -325,6 +419,10 @@ std::string Py_seqdb_annotate( int chr , int bp , std::string ref , std::string 
   else if( info == "transcript" ){
     return v.meta.as_string( PLINKSeq::ANNOT_GENE() , ",");
     
+  }
+  else if( info == "alias"){
+ /* allow alias to be scanned */
+     return  g->locdb.alias( transcript , false ) ;
   }
   else if( info == "summary" ){
     return v.meta.as_string( PLINKSeq::ANNOT_SUMMARY() , ",");
