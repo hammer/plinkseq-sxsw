@@ -14,6 +14,7 @@ cdef extern from "pyplinkseqint.h":
   cdef void Py_locdb_load_gtf( string , string )
   cdef void Py_locdbattach( string )
   cdef void Py_seqdbattach( string )
+  cdef void Py_refdbattach( string )
   cdef void Py_protdbattach( string )
   struct Py_Phenotype:
     string LABELS
@@ -55,22 +56,30 @@ cdef extern from "pyplinkseqint.h":
     Py_sample_variant CON
    
   struct Py_variantGroup:
-   int CHR
-   int BP1
-   int BP2
-   string ID
-   int NS
-   Py_sample_variant CON
-   
+    int NV
+    int SIZE
+    string COORD
+    int SPAN
+    int MIDPOS
+    string NAME
+    int NIND
+    vector[Py_variant] VARS
+
+  struct Py_locGroup:
+    string NAME
+    string COORD
+    string ALIAS
+      
   cdef void Py_init_Pyplinkseq()
   cdef string Py_gstore_version()
   cdef void Py_set_project(string)
   cdef string Py_summary()
   cdef cpp_set[Py_Feature] Py_protdb_fetch(string,string)
   cdef vector[Py_variant] Py_iterate(string, int)
-  cdef vector[Py_variantGroup] Py_iterateGroup(string, int)
+  cdef vector[Py_variantGroup] Py_iterateGroup(string)
+  cdef vector[Py_locGroup] Py_locview(string)
   cdef Py_individual_map Py_ind_list(string, string)
-  cdef string Py_seqdb_annotate(int, int, string, string, string)
+  cdef string Py_seqdb_annotate(int, int, string, string, string, string)
 
 class ProtFeature:
   def __init__(self, SOURCE_ID, FEATURE_ID, FEATURE_NAME, PROTEIN_ID, PSTART, PSTOP, MSTR, CHR, GSTART, GSTOP):
@@ -116,6 +125,36 @@ class Variant:
     self.NS = NS
     self.CON = CON
 
+class VariantGroup:
+  def __init__(self, NV, SIZE, COORD, SPAN, MIDPOS, NAME, NIND, CON):
+    self.NV = NV
+    self.SIZE = SIZE
+    self.COORD = COORD
+    self.SPAN = SPAN
+    self.MIDPOS = MIDPOS
+    self.NAME = NAME
+    self.NIND = NIND
+    self.CON = CON
+
+class GeneData:
+  def __init__(self, NAME, COORD, DET, CON):
+    self.NAME = NAME
+    self.COORD = COORD
+    self.DET = DET
+    self.CON = CON
+
+class GeneTest:
+  def __init__(self, NAMETEST, PVAL, I):
+    self.NAMETEST = NAMETEST
+    self.PVAL = PVAL
+    self.I = I
+  
+class LocGroup:
+  def __init__(self, NAME, COORD, ALIAS):
+    self.NAME = NAME
+    self.COORD = COORD
+    self.ALIAS = ALIAS 
+    
 def init_Pyplinkseq():
   Py_init_Pyplinkseq()
 
@@ -124,6 +163,9 @@ def gstore_version():
 
 def set_project(char* project):
   Py_set_project(string(project))
+
+def refdbattach(char* refdb):
+  Py_refdbattach(string(refdb))
 
 def seqdbattach(char* seqdb):
   Py_seqdbattach(string(seqdb))
@@ -155,7 +197,7 @@ def refdb_summary():
 def annotate_load(char* name):
   Py_annotate_load(string(name))
 
-def annotate(int chr, int bp, char* ref, char* alt , char* info):
+def annotate(int chr, int bp, char* ref, char* alt , char* info , char* transcript):
    refallele = string(ref)
    altallele = string(alt)   
    if len(info) > 0:
@@ -163,10 +205,87 @@ def annotate(int chr, int bp, char* ref, char* alt , char* info):
 
    else:
       infodat = "annotfull"    
-   return Py_seqdb_annotate( chr , bp , refallele , altallele , infodat)
+   trnsc = string(transcript)
+   return Py_seqdb_annotate( chr , bp , refallele , altallele , infodat, trnsc)
 
 def summary():
   return Py_summary().c_str()
+
+def loc_view(char* group):
+  loc_list = []
+  #Unpack vector of locus
+  cdef Py_locGroup loc
+  cdef vector[Py_locGroup] loc_vec = Py_locview(string(group))
+  cdef vector[Py_locGroup].iterator it = loc_vec.begin()
+  while it != loc_vec.end():
+    loc = deref(it)
+    name = loc.NAME
+    coord = loc.COORD
+    alias = loc.ALIAS
+    loc_list.append(LocGroup(name,coord,alias))
+  return loc_list 
+
+def var_groupfetch(char* mask=""):
+  group_list = []
+  
+  cdef Py_variantGroup group
+  cdef Py_variant var
+  cdef Py_sample_variant svar
+  cdef Py_genotype geno
+  cdef vector[Py_variant] vars_vec
+  cdef vector[Py_variant].iterator vit
+  cdef vector[int] ind_gts_vec
+  cdef vector[int].iterator nested_it
+  #Unpack vector of groups
+  cdef vector[Py_variantGroup] group_vec = Py_iterateGroup(string(mask))
+  cdef vector[Py_variantGroup].iterator it = group_vec.begin()
+  while it != group_vec.end():
+    group = deref(it) 
+    nvar = group.NV
+    size = group.SIZE
+    coord = group.COORD
+    span = group.SPAN
+    midpos = group.MIDPOS
+    name = group.NAME
+    nind = group.NIND
+    vars_list = []
+    #Unpack vector of variants 
+    vars_vec = group.VARS
+    vit = vars_vec.begin()
+    while vit != vars_vec.end():
+      var = deref(vit)
+      #Unpack vector of individual genotypes
+      ind_gts = []
+      svar = var.CON
+      geno = svar.GENO
+      ind_gts_vec = geno.GT
+      nested_it = ind_gts_vec.begin()
+      while nested_it != ind_gts_vec.end():
+        ind_gts.append(deref(nested_it))
+        inc(nested_it)
+      #Build up Variant object
+      genotype = Genotype(ind_gts)
+      sample_variant = SampleVariant(svar.FSET,
+      								 svar.REF.c_str(),
+      								 svar.ALT.c_str(),
+      								 svar.QUAL,genotype)
+      vars_list.append(Variant(var.CHR,
+      		                   var.BP1,
+      		                   var.BP2,
+      		                   var.ID.c_str(),
+      		                   var.NS,
+      		                   sample_variant))
+      inc(vit)
+    group_list.append(VariantGroup(nvar,
+    							   size,
+    							   coord,
+    							   span,
+    							   midpos,
+    							   name,
+    							   nind,
+    							   vars_list))
+    inc(it)
+  return group_list 
 
 def var_fetch(char* mask="", int limit=1000):
   vars_list = []

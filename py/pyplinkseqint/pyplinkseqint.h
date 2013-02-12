@@ -7,6 +7,7 @@
 // TODO(mrivas): Add support for netdb.
 // TODO(hammer): Add flag to ensure initialization, project loaded
 // TODO(hammer): Complete Py_variant Done M.A. Rivas
+// TODO(mrivas): Complete Py_variantgroup
 // TODO(hammer): Handle multiply sampled variants
 // TODO(hammer): Allow phenotype list in Py_ind_list - Done M.A. Rivas
 
@@ -90,6 +91,8 @@ struct Py_sample_variant {
   Py_genotype GENO;
 };
 
+
+
 struct Py_variant {
   int CHR;
   int BP1;
@@ -99,20 +102,42 @@ struct Py_variant {
   Py_sample_variant CON;
 };
 
+struct Py_variantGroup{
+ int NV;
+ int SIZE;
+ std::string COORD;
+ int MIDPOS;
+ std::string NAME;
+ int NIND;
+ int SPAN;
+std::vector<Py_variant> VARS;
+
+
+};
+
+struct Py_locGroup{
+ std::string NAME;
+ std::string COORD;
+ std::string ALIAS;
+
+};
 
 void Py_init_Pyplinkseq();
 std::string Py_gstore_version();
 void Py_set_project(std::string);
 std::string Py_summary();
 std::vector<Py_variant> Py_iterate(std::string, int);
+std::vector<Py_variantGroup> Py_iterateGroup(std::string mask);
+std::vector<Py_locGroup> Py_locview(std::string group);
 Py_individual_map Py_ind_list(std::string,std::string);
 void Py_seqdbattach(std::string);
+void Py_refdbattach(std::string);
 void Py_locdbattach(std::string);
 void Py_protdbattach(std::string);
 void Py_annotate_load(std::string);
 void Py_locdb_load_gtf(std::string,std::string);
 void Py_locdb_collapse_subregions(std::string,std::string);
-std::string Py_seqdb_annotate(int,int,std::string,std::string,std::string);
+std::string Py_seqdb_annotate(int,int,std::string,std::string,std::string,std::string);
 std::set<Py_Feature> Py_protdb_fetch(std::string, std::string);
 //Py_ProtFeatureSet Py_protdb_lookup(int,int,std::string,std::string,std::string);
 // Database Summaries 
