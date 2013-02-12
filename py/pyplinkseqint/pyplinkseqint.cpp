@@ -421,6 +421,7 @@ std::string Py_seqdb_annotate( int chr , int bp , std::string ref , std::string 
     
   }
   else if( info == "alias"){
+ /* allow alias to be scanned */
      return  g->locdb.alias( transcript , false ) ;
   }
   else if( info == "summary" ){
