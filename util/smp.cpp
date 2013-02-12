@@ -485,9 +485,15 @@ int main( int argc , char ** argv )
 	      
 	      int acnt = 0 , ucnt = 0;
 	      
+	      int acnt_all = 0 , ucnt_all = 0;  // also sum over (potentially) non-independent counts
+
 	      for (int e=0;e<elems.size();e++)
 		{
-		  
+
+		  // always count non-independent counts
+		  acnt_all += agenecnt[ elems[e] ];
+		  ucnt_all += ugenecnt[ elems[e] ]; 
+
 		  bool in_equiv_set = ineq.find( elems[e] ) != ineq.end() ;
 		  
 		  if ( ! in_equiv_set )
@@ -630,6 +636,8 @@ int main( int argc , char ** argv )
 			<< (double)(pv_baseline) / (double)(nrep+1) << "\t" 
 			<< elems.size() << "\t"
 			<< acnt << "/" << ucnt << "\t";
+		//	<< acnt_all << "," << ucnt_all << "\t";
+		
 	      
 	      // note:: cannot give proper odds ratio, as we do not know the denominators really
 	      // rather, just give relative rate of A:U counts, 
