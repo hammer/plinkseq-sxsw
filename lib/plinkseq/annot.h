@@ -100,7 +100,7 @@ struct SeqInfo {
   } 
   
   SeqInfo( const std::string & transcript, 
-	   const std::set<std::string> & aliases,
+	   const std::map<std::string, std::set<std::string> > & aliases,
 	   const seq_annot_t & type , 
 	   const std::string & genomic_ref = "", 
 	   const std::string & genomic_alt = "" ,
@@ -151,7 +151,7 @@ struct SeqInfo {
   seq_annot_t type;
   
   std::string transcript;
-  std::set<std::string> aliases;
+  std::map<std::string, std::set<std::string> > aliases;
 
   int splicedist; // for splice-sites only
   int ofptv; // for splice-sites only at the moment. If out of frame protein truncating variant. 

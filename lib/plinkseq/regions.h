@@ -174,7 +174,7 @@ class Region {
 
   int               group;
   
-  std::set<std::string> aliases;
+  std::map<std::string, std::set<std::string> > aliases;
 
   std::vector<Subregion> subregion; 
 

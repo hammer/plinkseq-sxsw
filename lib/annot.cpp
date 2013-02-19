@@ -233,7 +233,7 @@ void Annotate::add_transcripts(const std::vector<uint64_t> & id) {
 			for (std::set<uint64_t>::iterator aliasIt = alias_group_ids.begin(); aliasIt != alias_group_ids.end(); ++aliasIt) {
 				uint64_t alias_id_for_group = db->alias_id(db->lookup_group_id(r.group));
 				std::set<std::string> aliases = db->targetted_lookup_alias(r.name, alias_id_for_group, *aliasIt);
-				r.aliases.insert(aliases.begin(), aliases.end());
+				r.aliases[db->alias_name(*aliasIt)].insert(aliases.begin(), aliases.end());
 			}
 		}
 
@@ -333,7 +333,7 @@ bool Annotate::annotate(Variant & var, const std::vector<uint64_t> & ids) {
 	// do the actual annotation, for all transcripts indicated in 'ids':
 	std::set<SeqInfo> s = annotate(var.chromosome(), var.position(), var.alternate(), var.reference(), ids);
 
-	std::map<std::string, AnnotToCount> aliasToAnnots;
+	std::map<std::string, std::map<std::string, AnnotToCount> > aliasToAnnots;
 	AnnotToCount potentialWorstAnnotations;
 
 	std::set<SeqInfo>::iterator i = s.begin();
@@ -380,8 +380,13 @@ bool Annotate::annotate(Variant & var, const std::vector<uint64_t> & ids) {
 		for (AnnotToCount::const_iterator annotIt = seqInfoCounts.begin(); annotIt != seqInfoCounts.end(); ++annotIt) {
 			potentialWorstAnnotations[annotIt->first] += annotIt->second;
 
-			for (std::set<std::string>::const_iterator aliasIt = i->aliases.begin(); aliasIt != i->aliases.end(); ++aliasIt)
-				aliasToAnnots[*aliasIt][annotIt->first] += annotIt->second;
+			for (std::map<std::string, std::set<std::string> >::const_iterator aliasClassIt = i->aliases.begin(); aliasClassIt != i->aliases.end(); ++aliasClassIt) {
+				const std::string& aliasClass = aliasClassIt->first;
+				const std::set<std::string> aliases = aliasClassIt->second;
+
+				for (std::set<std::string>::const_iterator aliasIt = aliases.begin(); aliasIt != aliases.end(); ++aliasIt)
+					aliasToAnnots[aliasClass][*aliasIt][annotIt->first] += annotIt->second;
+			}
 		}
 
 		// add annotations
@@ -408,13 +413,18 @@ bool Annotate::annotate(Variant & var, const std::vector<uint64_t> & ids) {
 	var.meta.set(PLINKSeq::ANNOT(), worst);
 
 	// Make a 'worst' summary for each alias for this variant's annotations:
-	for (std::map<std::string, AnnotToCount>::const_iterator nameIt = aliasToAnnots.begin(); nameIt != aliasToAnnots.end(); ++nameIt) {
-		const std::string& alias = nameIt->first;
-		const AnnotToCount& aliasAnnots = nameIt->second;
-		std::string aliasWorst = Annotate::getWorstAnnotation(aliasAnnots);
+	for (std::map<std::string, std::map<std::string, AnnotToCount> >::const_iterator aliasClassIt = aliasToAnnots.begin(); aliasClassIt != aliasToAnnots.end(); ++aliasClassIt) {
+		const std::string& aliasClass = aliasClassIt->first;
+		const std::map<std::string, AnnotToCount>& aliasClassAnnots = aliasClassIt->second;
 
-		var.meta.add(PLINKSeq::ANNOT_ALIAS_GROUPS(), alias);
-		var.meta.add(PLINKSeq::ANNOT_ALIAS_GROUP_WORST(), aliasWorst);
+		for (std::map<std::string, AnnotToCount>::const_iterator nameIt = aliasClassAnnots.begin(); nameIt != aliasClassAnnots.end(); ++nameIt) {
+			const std::string& alias = nameIt->first;
+			const AnnotToCount& aliasAnnots = nameIt->second;
+			std::string aliasWorst = Annotate::getWorstAnnotation(aliasAnnots);
+
+			var.meta.add(PLINKSeq::ANNOT_ALIAS_GROUPS() + "_" + aliasClass, alias);
+			var.meta.add(PLINKSeq::ANNOT_ALIAS_GROUP_WORST() + "_" + aliasClass, aliasWorst);
+		}
 	}
 
 	//

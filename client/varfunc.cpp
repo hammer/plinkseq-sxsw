@@ -506,13 +506,18 @@ void f_lookup_annotator( Variant & var , void * p )
 
       if (aux->append_annot_worst_by_aliases) {
     	  // Broken down by transcript alias:
-    	  pout << var.coordinate() << "\t"
-    			  << "worst_by_alias" << "\t"
-    			  << (var.meta.has_field(PLINKSeq::ANNOT_ALIAS_GROUP_WORST()) ? var.meta.as_string( PLINKSeq::ANNOT_ALIAS_GROUP_WORST() , "," ) : ".") << "\n";
+    	  for (std::set<std::string>::const_iterator w = aux->worstByAliases.begin(); w != aux->worstByAliases.end(); ++w) {
+    		  std::string annots = PLINKSeq::ANNOT_ALIAS_GROUP_WORST() + "_" + *w;
+    		  std::string aliases = PLINKSeq::ANNOT_ALIAS_GROUPS() + "_" + *w;
 
-    	  pout << var.coordinate() << "\t"
-    			  << "alias" << "\t"
-    			  << (var.meta.has_field(PLINKSeq::ANNOT_ALIAS_GROUPS()) ? var.meta.as_string( PLINKSeq::ANNOT_ALIAS_GROUPS() , "," ) : ".") << "\n";
+    		  pout << var.coordinate() << "\t"
+    				  << "worst_by_alias_" << *w << "\t"
+    				  << (var.meta.has_field(annots) ? var.meta.as_string( annots , "," ) : ".") << "\n";
+
+    		  pout << var.coordinate() << "\t"
+    				  << "alias_" << *w << "\t"
+    				  << (var.meta.has_field(aliases) ? var.meta.as_string( aliases , "," ) : ".") << "\n";
+    	  }
       }
 
       // summary annotation
@@ -1061,8 +1066,10 @@ bool Pseq::VarDB::lookup_list( const std::string & filename ,
       pout << "##class,.,String,\"Summary of all annotations\"\n";
 
       if (aux.append_annot_worst_by_aliases) {
-          pout << "##worst_by_alias,.,String,\"Worst annotation for each alias grouping\"\n";
-          pout << "##alias,.,String,\"Aliases of transcripts used to group their annotations into worst_by_alias\"\n";
+    	  for (std::set<std::string>::const_iterator w = aux.worstByAliases.begin(); w != aux.worstByAliases.end(); ++w) {
+    		  pout << "##worst_by_alias_" << *w << ",.,String,\"Worst annotation for grouping by alias '" << *w << "'\"\n";
+    		  pout << "##alias_" << *w << ",.,String,\"Aliases of transcripts used to group their annotations into worst_by_alias_" << *w << "\"\n";
+    	  }
       }
     }
   
