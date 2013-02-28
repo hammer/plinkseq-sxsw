@@ -259,7 +259,7 @@ void Pseq::Util::populate_commands( Pseq::Util::Commands & pcomm )
       
 	  << "seq-load|input,seqop|load FASTA into SEQDB|ARG:format$build$repeat-mode$iupac,file,name,description,"
       
-	  << "lookup|misc,annot|lookup various annotatations for a list of positions|ARG:loc,alias,ref,ref_allelic,protdb,annotate,worstByAlias,worstAnnotationPriorities,titv|OUT:meta"
+	  << "lookup|misc,annot|lookup various annotatations for a list of positions|ARG:loc,alias,ref,ref-allelic,protdb,annotate,worstByAlias,worstAnnotationPriorities,titv|OUT:meta"
       
 	  << "ref-view|views|view a group from a REFDB|ARG:group,vmeta,verbose|OUT:refvars"
       
