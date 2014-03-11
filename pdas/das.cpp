@@ -433,6 +433,8 @@ void f_display_variant( Variant & var , void * p )
     pdas->ss << "<NOTE>QUAL=" << sample.quality() << "</NOTE>";
   
   pdas->ss << "<NOTE>FILTER=" << sample.filter() << "</NOTE>";
+  Genotype* geno = var.genotype(-1, 0);
+  pdas->ss << "<NOTE>GENO=" << geno->allele_count() << "</NOTE>";
   
   std::vector<std::string> keys1 = sample.meta.keys();
   for (int m=0; m< keys1.size(); m++)
@@ -584,6 +586,8 @@ int DAS::parse_request()
       // implies a 'sources' command for this one DSN
       CMD = "sources";
       DSN = cmdstr;
+      std::cerr << "DSN: " << DSN << "\n";
+      std::cerr << "Project name: " << project_name << "\n";
     }  
   else 
     if ( p_slash > p_quest ) return 400; // bad command
